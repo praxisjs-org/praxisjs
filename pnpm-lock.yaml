@@ -81,6 +81,9 @@ importers:
       '@verbose/core':
         specifier: workspace:*
         version: link:../../foundation/core
+      '@verbose/shared':
+        specifier: workspace:*
+        version: link:../../foundation/shared
     devDependencies:
       typescript:
         specifier: ^5.9.3
