@@ -71,7 +71,7 @@ export namespace JSX {
   type InstancePropsOf<C> = C extends { prototype: infer I }
     ? {
         [K in keyof I as K extends
-          | "props"
+          | "defaults"
           | "onMount"
           | "onUnmount"
           | "onUpdate"
