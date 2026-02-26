@@ -1,2 +1,10 @@
-export { isSignal } from "./signal";
+export { isSignal, isComputed } from "./signal";
 export type { Computed, Signal } from "./types/signal";
+export { flattenChildren } from "./children";
+export type {
+  VNode,
+  Children,
+  FunctionComponent,
+  ComponentConstructor,
+  ComponentInstance,
+} from "./types/children";

@@ -96,6 +96,8 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'error',
       // Ban `!` non-null assertions — handle nullability explicitly
       '@typescript-eslint/no-non-null-assertion': 'error',
+      // Disabled: conflicts with no-non-null-assertion (both can't be satisfied simultaneously)
+      '@typescript-eslint/non-nullable-type-assertion-style': 'off',
       // Prefer `??` over `||` for nullish checks
       '@typescript-eslint/prefer-nullish-coalescing': 'error',
       // Prefer `a?.b` over `a && a.b`

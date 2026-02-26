@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@verbose/core": "workspace:*",
-    "@verbose/jsx": "workspace:*"
+    "@verbose/jsx": "workspace:*",
+    "@verbose/shared": "workspace:*"
   }
 }

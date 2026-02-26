@@ -1,5 +1,6 @@
-import { effect } from "@verbose/core";
-import type { VNode, Children, ComponentInstance } from "@verbose/jsx";
+import { effect, createComponent } from "@verbose/core";
+import { initSlots } from "@verbose/decorators";
+import type { VNode, Children, ComponentInstance } from "@verbose/shared";
 
 const EVENT_MAP: Record<string, string> = {
   onClick: "click",
@@ -225,8 +226,12 @@ function mountVNode(
   const { type, props, children } = vnode;
 
   if (typeof type === "function" && "isComponent" in type) {
-    const instance = new type({ ...props });
-
+    const instance = createComponent(type, {
+      ...props,
+    });
+    if (children.length > 0) {
+      initSlots(instance, children);
+    }
     instance.onBeforeMount?.();
     let renderedVNode: VNode | null = null;
 
@@ -246,7 +251,7 @@ function mountVNode(
       wrapper.appendChild(childNode.el);
     }
 
-    const isMemoized = type.isMemorized;
+    const isMemoized = instance._isMemorized;
 
     cleanups.push(
       effect(() => {
@@ -264,7 +269,7 @@ function mountVNode(
           }
 
           if (!instance._stateDirty) {
-            const arePropsEqual = type.arePropsEqual;
+            const arePropsEqual = instance._arePropsEqual;
             const lastProps = instance._lastResolvedProps;
 
             if (

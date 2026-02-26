@@ -10,7 +10,11 @@
     "docs:dev": "pnpm --filter @verbose/docs docs:dev",
     "docs:build": "pnpm --filter @verbose/docs docs:build",
     "docs:preview": "pnpm --filter @verbose/docs docs:preview",
-    "prepare": "husky"
+    "prepare": "husky",
+    "build:foundation": "pnpm --filter './packages/foundation/**' build",
+    "build:features": "pnpm --filter './packages/features/**' build",
+    "build:dx": "pnpm --filter './packages/dx/**' build",
+    "build:utils": "pnpm --filter './packages/utils/**' build"
   },
   "lint-staged": {
     "packages/**/*.{ts,tsx}": "eslint --fix"

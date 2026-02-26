@@ -1,9 +1,10 @@
-import type {
-  Children,
-  ComponentConstructor,
-  FunctionComponent,
-  VNode,
-} from "./types";
+import {
+  flattenChildren,
+  type Children,
+  type ComponentConstructor,
+  type FunctionComponent,
+  type VNode,
+} from "@verbose/shared";
 
 type PropsOf<T> = T extends string
   ? JSX.IntrinsicElements[T]
@@ -14,20 +15,6 @@ type PropsOf<T> = T extends string
       : Record<string, unknown>;
 
 type Reactive<T> = T | (() => T);
-
-function flattenChildren(
-  children: Children | Children[],
-  out: Children[] = [],
-): Children[] {
-  if (Array.isArray(children)) {
-    for (const child of children) {
-      flattenChildren(child, out);
-    }
-  } else {
-    out.push(children);
-  }
-  return [children];
-}
 
 export function jsx<T extends VNode["type"]>(
   type: T,

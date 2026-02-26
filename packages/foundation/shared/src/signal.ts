@@ -5,3 +5,7 @@ export function isSignal<T>(
 ): boolean {
   return typeof (source as Signal<T>).set === "function";
 }
+
+export function isComputed(source: unknown) {
+  return typeof source === "function" && "subscribe" in source;
+}

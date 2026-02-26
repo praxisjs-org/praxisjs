@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@verbose/core": "workspace:*",
+    "@verbose/decorators": "workspace:*",
     "@verbose/jsx": "workspace:*",
-    "@verbose/decorators": "workspace:*"
+    "@verbose/shared": "workspace:*"
   }
 }

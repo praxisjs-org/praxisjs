@@ -3,7 +3,7 @@ import { type Computed, isSignal, type Signal } from "@verbose/shared";
 import { computed, signal } from "../signal";
 import { effect } from "../signal/effect";
 
-export interface History<T> {
+export interface HistoryElement<T> {
   readonly values: Computed<T[]>;
   readonly current: Computed<T>;
   readonly canUndo: Computed<boolean>;
@@ -16,7 +16,7 @@ export interface History<T> {
 export function history<T>(
   source: Signal<T> | Computed<T> | (() => T),
   limit = 50,
-) {
+): HistoryElement<T> {
   const read = typeof source === "function" ? source : (source as () => T);
 
   const _past = signal<T[]>([]);

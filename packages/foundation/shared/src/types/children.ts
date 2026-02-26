@@ -7,7 +7,11 @@ export type Primitive =
   | null
   | undefined;
 
-export type ReactiveChildren = Primitive | VNode | VNode[] | ReactiveChildren[];
+export type ReactiveChildren = () =>
+  | Primitive
+  | VNode
+  | VNode[]
+  | ReactiveChildren[];
 
 export type Children = Primitive | VNode | ReactiveChildren | Children[];
 
@@ -25,17 +29,17 @@ export type FunctionComponent<P = Record<string, unknown>> = (
 export interface ComponentConstructor<P = Record<string, unknown>> {
   new (props: P): ComponentInstance;
   isComponent: true;
-  isMemorized?: boolean;
-  arePropsEqual: (
-    prevProps: Record<string, unknown>,
-    nextProps: Record<string, unknown>,
-  ) => boolean;
 }
 
 export interface ComponentInstance {
   _mounted: boolean;
   _stateDirty: boolean;
   _lastResolvedProps?: Record<string, unknown>;
+  _isMemorized?: boolean;
+  _arePropsEqual: (
+    prevProps: Record<string, unknown>,
+    nextProps: Record<string, unknown>,
+  ) => boolean;
   _setProps(p: Record<string, unknown>): void;
   render(): VNode | null;
   onBeforeMount?(): void;
