@@ -19,7 +19,8 @@ export function runEffect(effect: Effect | null) {
   activeEffect = effect;
 }
 
-type Cleanup = (() => void) | undefined;
+// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+type Cleanup = (() => void) | void;
 
 export function effect(fn: () => Cleanup) {
   let cleanup: Cleanup;
