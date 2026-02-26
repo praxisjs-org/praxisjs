@@ -1,10 +1,10 @@
-export { task } from "./task.js";
-export type { TaskInstance } from "./task.js";
+export { task } from "./task";
+export type { TaskInstance } from "./task";
 
-export { queue } from "./queue.js";
-export type { QueueInstance } from "./queue.js";
+export { queue } from "./queue";
+export type { QueueInstance } from "./queue";
 
-export { pool } from "./pool.js";
-export type { PoolInstance } from "./pool.js";
+export { pool } from "./pool";
+export type { PoolInstance } from "./pool";
 
-export { Task, Queue, Pool } from "./decorators.js";
+export { Task, Queue, Pool } from "./decorators";

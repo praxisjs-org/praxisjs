@@ -19,6 +19,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@verbose/core": "workspace:*"
+    "@verbose/core": "workspace:*",
+    "@verbose/shared": "workspace:*"
   }
 }

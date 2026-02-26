@@ -1,6 +1,6 @@
-import { pool } from "./pool.js";
-import { queue } from "./queue.js";
-import { task } from "./task.js";
+import { pool } from "./pool";
+import { queue } from "./queue";
+import { task } from "./task";
 
 export function Task() {
   return function (

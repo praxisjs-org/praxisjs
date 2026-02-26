@@ -5,18 +5,18 @@ export {
   useScrollPosition,
   useIntersection,
   useFocus,
-} from "./dom.js";
+} from "./dom";
 export {
   useMediaQuery,
   useColorScheme,
   useMouse,
   useKeyCombo,
   useIdle,
-} from "./browser.js";
+} from "./browser";
 export {
   useClipboard,
   useGeolocation,
   useTimeAgo,
   usePagination,
-} from "./utilities.js";
-export type { PaginationOptions } from "./utilities.js";
+} from "./utilities";
+export type { PaginationOptions } from "./utilities";

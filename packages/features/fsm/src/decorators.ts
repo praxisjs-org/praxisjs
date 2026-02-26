@@ -1,4 +1,4 @@
-import { createMachine, type Machine, type MachineDefinition  } from "./machine.js";
+import { createMachine, type Machine, type MachineDefinition } from "./machine";
 
 export function Transition(machineProp: string, event: string) {
   return function (
