@@ -1,4 +1,7 @@
 packages:
-  - "packages/*"
+  - "packages/foundation/*"
+  - "packages/features/*"
+  - "packages/dx/*"
+  - "packages/utils/*"
   - "playground"
   - "docs"
