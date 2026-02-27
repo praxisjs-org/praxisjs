@@ -1,7 +1,3 @@
-import type { ComponentInstance } from "@verbose/shared";
-
-import type { BaseComponent } from "./base";
-
 export type LifeCycleHook =
   | "onBeforeMount"
   | "onMount"
@@ -23,74 +19,64 @@ export const VALID_LIFECYCLE_HOOK_SIGNATURES: Record<LifeCycleHook, string> = {
   onError: "(error: Error): void",
 };
 
-let _currentInstance: BaseComponent | null = null;
-
-export function setCurrentInstance(instance: BaseComponent | null): void {
-  _currentInstance = instance;
+export interface FunctionalContext {
+  onBeforeMount: Array<() => void>;
+  onMount: Array<() => void>;
+  onUnmount: Array<() => void>;
+  onError: Array<(error: Error) => void>;
 }
 
-export function createComponent<T extends ComponentInstance>(
-  construtor: new (props: Record<string, unknown>) => T,
-  props: Record<string, unknown>,
-): T {
-  const instance = new construtor(props);
-  _currentInstance = null;
-  return instance;
+let _functionalContext: FunctionalContext | null = null;
+
+export function setFunctionalContext(ctx: FunctionalContext | null): void {
+  _functionalContext = ctx;
 }
 
-type LifecycleHookFn =
-  | (() => void)
-  | ((prevProps: Record<string, unknown>) => void)
-  | ((error: Error) => void);
-
-function hook(name: keyof BaseComponent, fn: LifecycleHookFn): void {
-  const instance = _currentInstance;
-  if (!instance) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn(`[${name}] Called outside of a component context.`);
-    }
-    return;
-  }
-
-  const existing = instance[name] as ((...args: unknown[]) => void) | undefined;
-  const fnCallable = fn as (...args: unknown[]) => void;
-
-  (instance as unknown as Record<string, unknown>)[name] = function (this: BaseComponent, ...args: unknown[]) {
-    existing?.apply(this, args);
-    fnCallable.apply(this, args);
+export function createFunctionalContext(): FunctionalContext {
+  return {
+    onBeforeMount: [],
+    onMount: [],
+    onUnmount: [],
+    onError: [],
   };
 }
 
 export function onBeforeMount(fn: () => void): void {
-  hook("onBeforeMount", fn);
+  if (_functionalContext) {
+    _functionalContext.onBeforeMount.push(fn);
+    return;
+  }
+  if (process.env.NODE_ENV !== "production") {
+    console.warn("[onBeforeMount] Called outside of a functional component context.");
+  }
 }
 
 export function onMount(fn: () => void): void {
-  hook("onMount", fn);
+  if (_functionalContext) {
+    _functionalContext.onMount.push(fn);
+    return;
+  }
+  if (process.env.NODE_ENV !== "production") {
+    console.warn("[onMount] Called outside of a functional component context.");
+  }
 }
 
 export function onUnmount(fn: () => void): void {
-  hook("onUnmount", fn);
-}
-
-export function onBeforeUpdate(
-  fn: (prevProps: Record<string, unknown>) => void,
-): void {
-  hook("onBeforeUpdate", fn);
-}
-
-export function onUpdate(
-  fn: (prevProps: Record<string, unknown>) => void,
-): void {
-  hook("onUpdate", fn);
-}
-
-export function onAfterUpdate(
-  fn: (prevProps: Record<string, unknown>) => void,
-): void {
-  hook("onAfterUpdate", fn);
+  if (_functionalContext) {
+    _functionalContext.onUnmount.push(fn);
+    return;
+  }
+  if (process.env.NODE_ENV !== "production") {
+    console.warn("[onUnmount] Called outside of a functional component context.");
+  }
 }
 
 export function onError(fn: (error: Error) => void): void {
-  hook("onError", fn);
+  if (_functionalContext) {
+    _functionalContext.onError.push(fn);
+    return;
+  }
+  if (process.env.NODE_ENV !== "production") {
+    console.warn("[onError] Called outside of a functional component context.");
+  }
 }

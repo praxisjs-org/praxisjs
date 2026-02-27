@@ -6,19 +6,42 @@ export default defineConfig({
   description: "Signal-driven frontend framework",
   srcDir: "src",
   themeConfig: {
+    search: {
+      provider: "local",
+    },
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: "Home", link: "/" },
       { text: "Guide", link: "/guide/getting-started" },
       { text: "Reference", link: "/packages/core" },
+      {
+        text: "v0.1.0 beta",
+        items: [
+          {
+            text: "v0.1.0 beta",
+            link: "/project-status",
+          },
+        ],
+      },
     ],
 
     sidebar: [
       {
         text: "Introduction",
         items: [
+          { text: "Project Status", link: "/project-status" },
           { text: "Getting Started", link: "/guide/getting-started" },
-          { text: "Component Anatomy", link: "/guide/component-anatomy" },
+          {
+            text: "Component Anatomy",
+            collapsed: false,
+            items: [
+              { text: "Class Component", link: "/guide/component-anatomy" },
+              {
+                text: "Function Component",
+                link: "/guide/function-component-anatomy",
+              },
+            ],
+          },
         ],
       },
       {
@@ -32,39 +55,36 @@ export default defineConfig({
         ],
       },
       {
-        text: "State & Data",
-        items: [
-          { text: "State Management", link: "/packages/store" },
-          { text: "Client-side Router", link: "/packages/router" },
-          { text: "Finite State Machines", link: "/packages/fsm" },
-        ],
-      },
-      {
-        text: "UI & Effects",
-        items: [
-          { text: "Animations & Transitions", link: "/packages/motion" },
-          { text: "Internationalization", link: "/packages/i18n" },
-        ],
-      },
-      {
-        text: "Utilities",
+        text: "Features",
         items: [
           { text: "Dependency Injection", link: "/packages/di" },
-          { text: "Concurrency Control", link: "/packages/concurrent" },
-          { text: "Composition Utilities", link: "/packages/composables" },
+          { text: "Finite State Machines", link: "/packages/fsm" },
+          { text: "Animations & Transitions", link: "/packages/motion" },
+          { text: "Client-side Router", link: "/packages/router" },
+          { text: "State Management", link: "/packages/store" },
         ],
       },
       {
-        text: "Developer Experience",
+        text: "Utils",
         items: [
-          { text: "Vite Integration", link: "/packages/vite-plugin" },
-          { text: "Mocks & Fixtures", link: "/packages/mock" },
+          { text: "Composition Utilities", link: "/packages/composables" },
+          { text: "Concurrency Control", link: "/packages/concurrent" },
         ],
+      },
+      {
+        text: "DX",
+        items: [{ text: "Vite Integration", link: "/packages/vite-plugin" }],
       },
     ],
 
     socialLinks: [
       { icon: "github", link: "https://github.com/MateusGX/verbose" },
     ],
+    footer: {
+      message:
+        'Released under the <a href="https://github.com/MateusGX/verbose/blob/main/LICENSE">MIT License</a>.',
+      copyright:
+        'Copyright © 2025-present <a href="https://github.com/MateusGX">Mateus Martins</a>  — Verbose is experimental software, use at your own risk.',
+    },
   },
 });

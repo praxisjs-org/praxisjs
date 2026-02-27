@@ -1,13 +1,12 @@
 export { BaseComponent } from "./base";
 export {
   VALID_LIFECYCLE_HOOK_SIGNATURES,
-  createComponent,
-  onAfterUpdate,
+  createFunctionalContext,
+  setFunctionalContext,
   onBeforeMount,
-  onBeforeUpdate,
   onError,
   onMount,
   onUnmount,
-  onUpdate,
+  type FunctionalContext,
   type LifeCycleHook,
 } from "./lifecycle";

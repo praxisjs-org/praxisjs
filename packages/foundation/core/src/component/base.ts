@@ -1,7 +1,5 @@
 import type { VNode } from "@verbose/shared";
 
-import { setCurrentInstance } from "./lifecycle";
-
 export abstract class BaseComponent {
   /** Props passed by the parent — filled by the renderer when instantiating/updating. */
   readonly _rawProps: Record<string, unknown> = {};
@@ -19,7 +17,6 @@ export abstract class BaseComponent {
   _stateDirty = false;
 
   constructor(props: Record<string, unknown> = {}) {
-    setCurrentInstance(this);
     Object.assign(this._rawProps, props);
   }
 

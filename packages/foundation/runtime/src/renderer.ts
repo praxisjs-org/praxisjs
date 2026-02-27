@@ -1,4 +1,4 @@
-import { effect, createComponent } from "@verbose/core";
+import { effect, createFunctionalContext, setFunctionalContext } from "@verbose/core";
 import { initSlots } from "@verbose/decorators";
 import type { VNode, Children, ComponentInstance } from "@verbose/shared";
 
@@ -226,7 +226,7 @@ function mountVNode(
   const { type, props, children } = vnode;
 
   if (typeof type === "function" && "isComponent" in type) {
-    const instance = createComponent(type, {
+    const instance = new type({
       ...props,
     });
     if (children.length > 0) {
@@ -331,12 +331,27 @@ function mountVNode(
       props: Record<string, unknown> & { children?: Children[] },
     ) => VNode | null;
 
-    const resolvedVNode = resolvedType({ ...props, children });
+    const ctx = createFunctionalContext();
+    setFunctionalContext(ctx);
+
+    let resolvedVNode: VNode | null = null;
+    try {
+      resolvedVNode = resolvedType({ ...props, children });
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      ctx.onError.forEach((fn) => { fn(error); });
+    }
+
+    setFunctionalContext(null);
+
+    ctx.onBeforeMount.forEach((fn) => { fn(); });
 
     if (!resolvedVNode) {
       const commentNode = document.createComment(
         `<${type.name || "AnonymousComponent"} />`,
       );
+      queueMicrotask(() => { ctx.onMount.forEach((fn) => { fn(); }); });
+      cleanups.push(() => { ctx.onUnmount.forEach((fn) => { fn(); }); });
       parentCleanups.push(() => {
         cleanups.forEach((fn) => {
           fn();
@@ -350,6 +365,8 @@ function mountVNode(
     }
 
     const childNode = mountVNode(resolvedVNode, _parent, cleanups);
+    queueMicrotask(() => { ctx.onMount.forEach((fn) => { fn(); }); });
+    cleanups.push(() => { ctx.onUnmount.forEach((fn) => { fn(); }); });
     parentCleanups.push(() => {
       cleanups.forEach((fn) => {
         fn();
