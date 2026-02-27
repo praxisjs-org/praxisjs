@@ -36,7 +36,7 @@ export interface ComponentInstance {
   _stateDirty: boolean;
   _lastResolvedProps?: Record<string, unknown>;
   _isMemorized?: boolean;
-  _arePropsEqual: (
+  _arePropsEqual?: (
     prevProps: Record<string, unknown>,
     nextProps: Record<string, unknown>,
   ) => boolean;

@@ -1,4 +1,8 @@
-import { effect, createFunctionalContext, setFunctionalContext } from "@verbose/core";
+import {
+  effect,
+  createFunctionalContext,
+  setFunctionalContext,
+} from "@verbose/core";
 import { initSlots } from "@verbose/decorators";
 import type { VNode, Children, ComponentInstance } from "@verbose/shared";
 
@@ -274,7 +278,7 @@ function mountVNode(
 
             if (
               lastProps !== undefined &&
-              arePropsEqual(lastProps, resolvedProps)
+              arePropsEqual?.(lastProps, resolvedProps)
             ) {
               return;
             }
@@ -339,19 +343,31 @@ function mountVNode(
       resolvedVNode = resolvedType({ ...props, children });
     } catch (e) {
       const error = e instanceof Error ? e : new Error(String(e));
-      ctx.onError.forEach((fn) => { fn(error); });
+      ctx.onError.forEach((fn) => {
+        fn(error);
+      });
     }
 
     setFunctionalContext(null);
 
-    ctx.onBeforeMount.forEach((fn) => { fn(); });
+    ctx.onBeforeMount.forEach((fn) => {
+      fn();
+    });
 
     if (!resolvedVNode) {
       const commentNode = document.createComment(
         `<${type.name || "AnonymousComponent"} />`,
       );
-      queueMicrotask(() => { ctx.onMount.forEach((fn) => { fn(); }); });
-      cleanups.push(() => { ctx.onUnmount.forEach((fn) => { fn(); }); });
+      queueMicrotask(() => {
+        ctx.onMount.forEach((fn) => {
+          fn();
+        });
+      });
+      cleanups.push(() => {
+        ctx.onUnmount.forEach((fn) => {
+          fn();
+        });
+      });
       parentCleanups.push(() => {
         cleanups.forEach((fn) => {
           fn();
@@ -365,8 +381,16 @@ function mountVNode(
     }
 
     const childNode = mountVNode(resolvedVNode, _parent, cleanups);
-    queueMicrotask(() => { ctx.onMount.forEach((fn) => { fn(); }); });
-    cleanups.push(() => { ctx.onUnmount.forEach((fn) => { fn(); }); });
+    queueMicrotask(() => {
+      ctx.onMount.forEach((fn) => {
+        fn();
+      });
+    });
+    cleanups.push(() => {
+      ctx.onUnmount.forEach((fn) => {
+        fn();
+      });
+    });
     parentCleanups.push(() => {
       cleanups.forEach((fn) => {
         fn();
