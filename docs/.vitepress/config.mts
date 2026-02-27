@@ -7,6 +7,7 @@ export default defineConfig({
   srcDir: "src",
   appearance: true,
   themeConfig: {
+    logo: "/logo.svg",
     search: {
       provider: "local",
     },
@@ -88,4 +89,5 @@ export default defineConfig({
         'Copyright © 2025-present <a href="https://github.com/MateusGX">Mateus Martins</a>  — Verbose is experimental software, use at your own risk.',
     },
   },
+  head: [["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }]],
 });
