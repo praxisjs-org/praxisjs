@@ -1,8 +1,20 @@
 # @verbose/concurrent
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @verbose/concurrent
 ```
+
+```sh [pnpm]
+pnpm add @verbose/concurrent
+```
+
+```sh [yarn]
+yarn add @verbose/concurrent
+```
+
+:::
 
 Concurrency control for async operations. Wraps async functions with reactive loading/error state and execution policies.
 

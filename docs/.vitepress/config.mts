@@ -5,6 +5,7 @@ export default defineConfig({
   title: "Verbose",
   description: "Signal-driven frontend framework",
   srcDir: "src",
+  appearance: true,
   themeConfig: {
     search: {
       provider: "local",

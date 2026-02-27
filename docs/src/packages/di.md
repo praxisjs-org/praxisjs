@@ -1,8 +1,20 @@
 # @verbose/di
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @verbose/di
 ```
+
+```sh [pnpm]
+pnpm add @verbose/di
+```
+
+```sh [yarn]
+yarn add @verbose/di
+```
+
+:::
 
 Dependency injection container with TypeScript decorators, token-based resolution, and scoped containers.
 

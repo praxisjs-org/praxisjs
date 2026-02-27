@@ -1,8 +1,20 @@
 # @verbose/decorators
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @verbose/decorators
 ```
+
+```sh [pnpm]
+pnpm add @verbose/decorators
+```
+
+```sh [yarn]
+yarn add @verbose/decorators
+```
+
+:::
 
 TypeScript decorators for defining components, reactive state, lifecycle hooks, and utilities.
 

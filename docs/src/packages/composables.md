@@ -1,8 +1,20 @@
 # @verbose/composables
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @verbose/composables
 ```
+
+```sh [pnpm]
+pnpm add @verbose/composables
+```
+
+```sh [yarn]
+yarn add @verbose/composables
+```
+
+:::
 
 Composition utilities for DOM, browser APIs, and common UI patterns. All return reactive signals or computed values.
 

@@ -1,8 +1,20 @@
 # @verbose/vite-plugin
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install -D @verbose/vite-plugin
 ```
+
+```sh [pnpm]
+pnpm add -D @verbose/vite-plugin
+```
+
+```sh [yarn]
+yarn add -D @verbose/vite-plugin
+```
+
+:::
 
 Vite plugin that configures the build for Verbose: decorator support, JSX transform, and optional Hot Module Replacement.
 

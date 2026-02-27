@@ -4,13 +4,24 @@ Verbose is a signal-driven frontend framework built with TypeScript. It provides
 
 ## Installation
 
-```bash
-# Install the core packages
-npm install @verbose/core @verbose/jsx @verbose/runtime @verbose/decorators
+::: code-group
 
-# Vite plugin for JSX and HMR
+```sh [npm]
+npm install @verbose/core @verbose/jsx @verbose/runtime @verbose/decorators
 npm install -D @verbose/vite-plugin
 ```
+
+```sh [pnpm]
+pnpm add @verbose/core @verbose/jsx @verbose/runtime @verbose/decorators
+pnpm add -D @verbose/vite-plugin
+```
+
+```sh [yarn]
+yarn add @verbose/core @verbose/jsx @verbose/runtime @verbose/decorators
+yarn add -D @verbose/vite-plugin
+```
+
+:::
 
 ## Project Setup
 

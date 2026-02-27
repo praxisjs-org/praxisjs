@@ -1,8 +1,20 @@
 # @verbose/store
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @verbose/store
 ```
+
+```sh [pnpm]
+pnpm add @verbose/store
+```
+
+```sh [yarn]
+yarn add @verbose/store
+```
+
+:::
 
 Simple reactive state management. Stores are plain objects whose state properties become signals and whose methods can mutate state via `this`.
 

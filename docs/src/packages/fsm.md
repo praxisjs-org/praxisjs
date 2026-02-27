@@ -1,8 +1,20 @@
 # @verbose/fsm
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @verbose/fsm
 ```
+
+```sh [pnpm]
+pnpm add @verbose/fsm
+```
+
+```sh [yarn]
+yarn add @verbose/fsm
+```
+
+:::
 
 Finite state machine implementation with reactive state tracking and TypeScript-safe transitions.
 

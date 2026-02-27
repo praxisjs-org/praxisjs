@@ -1,8 +1,20 @@
 # @verbose/jsx
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @verbose/jsx
 ```
+
+```sh [pnpm]
+pnpm add @verbose/jsx
+```
+
+```sh [yarn]
+yarn add @verbose/jsx
+```
+
+:::
 
 JSX runtime and TypeScript type definitions. Configure your project to use this package as the JSX import source.
 

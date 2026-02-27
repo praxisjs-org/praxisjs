@@ -1,8 +1,20 @@
 # @verbose/core
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @verbose/core
 ```
+
+```sh [pnpm]
+pnpm add @verbose/core
+```
+
+```sh [yarn]
+yarn add @verbose/core
+```
+
+:::
 
 Reactive primitives that power the entire framework. All state, derivations, and side effects flow through signals.
 

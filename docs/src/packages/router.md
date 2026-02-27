@@ -1,8 +1,20 @@
 # @verbose/router
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @verbose/router
 ```
+
+```sh [pnpm]
+pnpm add @verbose/router
+```
+
+```sh [yarn]
+yarn add @verbose/router
+```
+
+:::
 
 Signal-based client-side router with nested routes, guards, and reactive composables.
 

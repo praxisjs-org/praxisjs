@@ -1,8 +1,20 @@
 # @verbose/runtime
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @verbose/runtime
 ```
+
+```sh [pnpm]
+pnpm add @verbose/runtime
+```
+
+```sh [yarn]
+yarn add @verbose/runtime
+```
+
+:::
 
 VNode rendering engine. Turns JSX output into real DOM nodes and keeps them in sync with reactive signals.
 

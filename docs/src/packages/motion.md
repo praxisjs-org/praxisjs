@@ -1,8 +1,20 @@
 # @verbose/motion
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @verbose/motion
 ```
+
+```sh [pnpm]
+pnpm add @verbose/motion
+```
+
+```sh [yarn]
+yarn add @verbose/motion
+```
+
+:::
 
 Animation utilities based on signals: tweens, physics springs, and keyframe animations for DOM elements.
 
