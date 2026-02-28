@@ -75,7 +75,10 @@ export default defineConfig({
       },
       {
         text: "DX",
-        items: [{ text: "Vite Integration", link: "/packages/vite-plugin" }],
+        items: [
+          { text: "Vite Integration", link: "/packages/vite-plugin" },
+          { text: "DevTools", link: "/packages/devtools" },
+        ],
       },
     ],
 
