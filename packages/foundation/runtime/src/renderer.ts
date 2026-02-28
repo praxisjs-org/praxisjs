@@ -4,7 +4,11 @@ import {
   setFunctionalContext,
 } from "@verbose/core";
 import { initSlots } from "@verbose/decorators";
-import type { VNode, Children, ComponentInstance } from "@verbose/shared";
+import type {
+  VNode,
+  ChildrenInternal,
+  ComponentInstance,
+} from "@verbose/shared";
 
 const EVENT_MAP: Record<string, string> = {
   onClick: "click",
@@ -136,7 +140,7 @@ function applyProps(
       continue;
     }
 
-    if (key in ["checked", "value", "disabled", "selected"]) {
+    if (["checked", "value", "disabled", "selected"].includes(key)) {
       if (typeof value === "function") {
         cleanups.push(
           effect(() => {
@@ -191,7 +195,7 @@ function applyProps(
 }
 
 function renderChildren(
-  children: Children,
+  children: ChildrenInternal,
   cleanups: Array<() => void>,
 ): Node[] {
   if (children === null || children === undefined || children === false) {
@@ -207,7 +211,7 @@ function renderChildren(
   }
 
   if (typeof children === "function") {
-    const fn = children as () => Children;
+    const fn = children as () => ChildrenInternal;
 
     const anchor = document.createComment("reactive");
     let currentNodes: Node[] = [];
@@ -364,7 +368,7 @@ function mountVNode(
 
   if (typeof type === "function") {
     const resolvedType = type as (
-      props: Record<string, unknown> & { children?: Children[] },
+      props: Record<string, unknown> & { children?: ChildrenInternal[] },
     ) => VNode | null;
 
     const ctx = createFunctionalContext();

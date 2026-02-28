@@ -1,8 +1,8 @@
-import type { Children } from "./types/children";
+import type { ChildrenInternal } from "./types/children";
 
 export const flattenChildren = (
-  children: Children | Children[],
-  out: Children[] = [],
+  children: ChildrenInternal | ChildrenInternal[],
+  out: ChildrenInternal[] = [],
 ) => {
   if (Array.isArray(children)) {
     for (const child of children) {
@@ -11,5 +11,5 @@ export const flattenChildren = (
   } else {
     out.push(children);
   }
-  return [children];
+  return out;
 };

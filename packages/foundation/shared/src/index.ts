@@ -4,6 +4,7 @@ export { flattenChildren } from "./children";
 export type {
   VNode,
   Children,
+  ChildrenInternal,
   FunctionComponent,
   ComponentConstructor,
   ComponentInstance,

@@ -13,19 +13,25 @@ export type ReactiveChildren = () =>
   | VNode[]
   | ReactiveChildren[];
 
-export type Children = Primitive | VNode | ReactiveChildren | Children[];
+export type ChildrenInternal =
+  | Primitive
+  | VNode
+  | ReactiveChildren
+  | ChildrenInternal[];
+
+export type Children = ChildrenInternal | ChildrenInternal[];
 
 export type Component = FunctionComponent | ComponentConstructor;
 
 export interface VNode {
   type: string | ComponentConstructor | FunctionComponent;
   props: Record<string, unknown>;
-  children: Children[];
+  children: ChildrenInternal[];
   key?: string | number;
 }
 
 export type FunctionComponent<P = Record<string, unknown>> = (
-  props: P & { children?: Children[] },
+  props: P & { children?: Children },
 ) => VNode | null;
 
 export interface ComponentConstructor<P = Record<string, unknown>> {
