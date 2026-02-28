@@ -45,8 +45,38 @@ interface MountedNode {
   children: MountedNode[];
 }
 
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+const SVG_TAGS = new Set([
+  "svg",
+  "path",
+  "circle",
+  "rect",
+  "line",
+  "polyline",
+  "polygon",
+  "ellipse",
+  "text",
+  "g",
+  "defs",
+  "use",
+  "symbol",
+  "marker",
+  "clipPath",
+  "mask",
+  "pattern",
+  "image",
+  "linearGradient",
+  "radialGradient",
+  "stop",
+  "filter",
+  "feGaussianBlur",
+  "tspan",
+  "textPath",
+  "foreignObject",
+]);
+
 function applyProps(
-  el: HTMLElement,
+  el: Element,
   props: Record<string, unknown>,
   cleanups: Array<() => void>,
 ) {
@@ -64,7 +94,7 @@ function applyProps(
     }
 
     if (key === "ref" && typeof value === "function") {
-      (value as (el: HTMLElement) => void)(el);
+      (value as (el: Element) => void)(el);
       continue;
     }
 
@@ -72,12 +102,12 @@ function applyProps(
       if (typeof value === "function") {
         cleanups.push(
           effect(() => {
-            el.className = String((value as () => unknown)());
+            el.setAttribute("class", String((value as () => unknown)()));
           }),
         );
       } else {
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        el.className = String(value ?? "");
+        el.setAttribute("class", String(value ?? ""));
       }
       continue;
     }
@@ -88,8 +118,8 @@ function applyProps(
           effect(() => {
             const styleValue = (value as () => unknown)();
             if (typeof styleValue === "object" && styleValue !== null) {
-              el.style.cssText = "";
-              Object.assign(el.style, styleValue);
+              el.removeAttribute("style");
+              Object.assign((el as HTMLElement).style, styleValue);
             } else {
               // eslint-disable-next-line @typescript-eslint/no-base-to-string
               el.setAttribute("style", String(styleValue ?? ""));
@@ -97,8 +127,8 @@ function applyProps(
           }),
         );
       } else if (typeof value === "object" && value !== null) {
-        el.style.cssText = "";
-        Object.assign(el.style, value);
+        el.removeAttribute("style");
+        Object.assign((el as HTMLElement).style, value);
       } else {
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
         el.setAttribute("style", String(value ?? ""));
@@ -406,7 +436,9 @@ function mountVNode(
     };
   }
 
-  const el = document.createElement(type);
+  const el = SVG_TAGS.has(type)
+    ? document.createElementNS(SVG_NAMESPACE, type)
+    : document.createElement(type);
   applyProps(el, props, cleanups);
 
   for (const child of children) {
