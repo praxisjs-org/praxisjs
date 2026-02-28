@@ -7,4 +7,5 @@ export type {
   FunctionComponent,
   ComponentConstructor,
   ComponentInstance,
+  Component,
 } from "./types/children";

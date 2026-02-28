@@ -15,6 +15,8 @@ export type ReactiveChildren = () =>
 
 export type Children = Primitive | VNode | ReactiveChildren | Children[];
 
+export type Component = FunctionComponent | ComponentConstructor;
+
 export interface VNode {
   type: string | ComponentConstructor | FunctionComponent;
   props: Record<string, unknown>;
