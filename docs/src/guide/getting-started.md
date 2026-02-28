@@ -2,6 +2,18 @@
 
 Verbose is a signal-driven frontend framework built with TypeScript. It provides fine-grained reactivity, class components with decorators, and a complete ecosystem of first-party packages.
 
+::: warning Experimental
+Verbose is under active development. APIs are unstable and subject to breaking changes at any time. Not recommended for production use. [See project status →](/project-status)
+:::
+
+## The right amount of verbose
+
+The name is intentional. Verbose was designed around the idea that code should be **explicit by default** — not terse to the point of hiding intent, and not ceremonious for the sake of it. The goal is the ideal level of verbosity: enough to make structure visible, patterns enforceable, and onboarding straightforward.
+
+Decorators like `@State`, `@Prop`, and `@Watch` aren't boilerplate — they're declarations. They make the contract of a component readable at a glance, help teams agree on patterns, and give tooling a clear surface to work with.
+
+Reactivity is **explicit, fine-grained, and TypeScript-native**. Signals propagate changes directly to the DOM nodes that care about them — no reconciliation pass, no diffing overhead.
+
 ## Installation
 
 ::: code-group
