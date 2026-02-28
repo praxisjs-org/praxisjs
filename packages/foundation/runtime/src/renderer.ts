@@ -88,6 +88,7 @@ function applyProps(
           effect(() => {
             const styleValue = (value as () => unknown)();
             if (typeof styleValue === "object" && styleValue !== null) {
+              el.style.cssText = "";
               Object.assign(el.style, styleValue);
             } else {
               // eslint-disable-next-line @typescript-eslint/no-base-to-string
@@ -96,6 +97,7 @@ function applyProps(
           }),
         );
       } else if (typeof value === "object" && value !== null) {
+        el.style.cssText = "";
         Object.assign(el.style, value);
       } else {
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
