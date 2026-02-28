@@ -1,11 +1,6 @@
 import type { ComponentConstructor, ComponentInstance } from "@verbose/shared";
 
-export interface ComponentOptions {
-  tag?: string;
-  shadow?: boolean;
-}
-
-export function Component(_options: ComponentOptions = {}) {
+export function Component() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function <T extends new (...args: any[]) => ComponentInstance>(
     constructor: T,

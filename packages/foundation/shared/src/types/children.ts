@@ -24,7 +24,7 @@ export type Children = ChildrenInternal | ChildrenInternal[];
 export type Component = FunctionComponent | ComponentConstructor;
 
 export interface VNode {
-  type: string | ComponentConstructor | FunctionComponent;
+  type: string | Component;
   props: Record<string, unknown>;
   children: ChildrenInternal[];
   key?: string | number;
