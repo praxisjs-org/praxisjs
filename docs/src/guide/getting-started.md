@@ -2,19 +2,23 @@
 
 PraxisJS is a signal-driven frontend framework built with TypeScript. It provides fine-grained reactivity, class components with decorators, and a complete ecosystem of first-party packages.
 
+::: info Personal project
+PraxisJS is a personal project, born from a personal vision about how frontend development could look and feel. The ideas here reflect one person's perspective — not a consensus, not a committee. At the outset, the project also served as a deliberate exercise in evaluating AI-assisted development: how far could these tools go, where did they fall short, and what did they change about the process of translating an idea into working code. Part of what exists here was shaped through that collaboration.
+:::
+
 ::: warning Experimental
 PraxisJS is under active development. APIs are unstable and subject to breaking changes at any time. Not recommended for production use. [See project status →](/project-status)
 :::
 
 ## Why Praxis?
 
-*Praxis* (πρᾶξις, Greek: *action*, *practice*). Not how things should be — how they are actually done.
+_Praxis_ (πρᾶξις, Greek: _action_, _practice_). Not how things should be — how they are actually done.
 
 The ancient concept that separates those who understand from those who execute. Not theory, not intention — only the act that emerges when knowledge and craft become inseparable.
 
 Most frameworks hide their praxis. Write less, trust more, let the runtime handle the rest. PraxisJS refuses that contract.
 
-`@State` doesn't *suggest* that a property is reactive — it *is* reactive, and you can read that in the code. `@Prop` doesn't imply a contract — it declares one. `@Watch` doesn't hint at a side effect — it commits to one. The component doesn't hide what it does: **it practices openly**.
+`@State` doesn't _suggest_ that a property is reactive — it _is_ reactive, and you can read that in the code. `@Prop` doesn't imply a contract — it declares one. `@Watch` doesn't hint at a side effect — it commits to one. The component doesn't hide what it does: **it practices openly**.
 
 Fine-grained reactivity, TypeScript-native, signals that reach the DOM with no reconciliation pass between intention and result — nothing hidden, nothing assumed.
 
@@ -50,11 +54,11 @@ npm create praxisjs@latest my-app
 
 The CLI will then ask which template to use:
 
-| Template | Includes |
-| -------- | -------- |
-| Minimal | `@praxisjs/core`, `@praxisjs/decorators`, `@praxisjs/jsx`, `@praxisjs/runtime` |
-| With Router | Minimal + `@praxisjs/router` |
-| Full | Router + `@praxisjs/store`, `@praxisjs/di`, `@praxisjs/composables`, `@praxisjs/concurrent`, `@praxisjs/devtools` |
+| Template    | Includes                                                                                                          |
+| ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| Minimal     | `@praxisjs/core`, `@praxisjs/decorators`, `@praxisjs/jsx`, `@praxisjs/runtime`                                    |
+| With Router | Minimal + `@praxisjs/router`                                                                                      |
+| Full        | Router + `@praxisjs/store`, `@praxisjs/di`, `@praxisjs/composables`, `@praxisjs/concurrent`, `@praxisjs/devtools` |
 
 Once the project is created, install dependencies and start the dev server:
 
