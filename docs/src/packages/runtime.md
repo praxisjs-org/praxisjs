@@ -1,17 +1,17 @@
-# @verbose/runtime
+# @praxisjs/runtime
 
 ::: code-group
 
 ```sh [npm]
-npm install @verbose/runtime
+npm install @praxisjs/runtime
 ```
 
 ```sh [pnpm]
-pnpm add @verbose/runtime
+pnpm add @praxisjs/runtime
 ```
 
 ```sh [yarn]
-yarn add @verbose/runtime
+yarn add @praxisjs/runtime
 ```
 
 :::
@@ -23,7 +23,7 @@ VNode rendering engine. Turns JSX output into real DOM nodes and keeps them in s
 Mounts a VNode tree into a DOM container. Handles initial mount and subsequent reactive updates.
 
 ```ts
-import { render } from '@verbose/runtime'
+import { render } from '@praxisjs/runtime'
 
 render(<App />, document.getElementById('app')!)
 ```

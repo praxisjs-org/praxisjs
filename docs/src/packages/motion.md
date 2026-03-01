@@ -1,17 +1,17 @@
-# @verbose/motion
+# @praxisjs/motion
 
 ::: code-group
 
 ```sh [npm]
-npm install @verbose/motion
+npm install @praxisjs/motion
 ```
 
 ```sh [pnpm]
-pnpm add @verbose/motion
+pnpm add @praxisjs/motion
 ```
 
 ```sh [yarn]
-yarn add @verbose/motion
+yarn add @praxisjs/motion
 ```
 
 :::
@@ -23,7 +23,7 @@ Animation utilities based on signals: tweens, physics springs, and keyframe anim
 All animation functions accept an `easing` option. Built-in easings:
 
 ```ts
-import { easings } from "@verbose/motion";
+import { easings } from "@praxisjs/motion";
 // linear, easeIn, easeOut, easeInOut, easeInCubic, bounce, elastic
 ```
 
@@ -38,7 +38,7 @@ You can also pass a custom easing function `(t: number) => number` where `t` is 
 Animates a number from `from` to `to` over a duration. Returns a reactive object backed by signals.
 
 ```ts
-import { tween } from "@verbose/motion";
+import { tween } from "@praxisjs/motion";
 
 const anim = tween(0, 100, { duration: 500, easing: "easeOut" });
 
@@ -83,7 +83,7 @@ anim.target.set(200); // smoothly animates from current value to 200
 A physics-based spring that overshoots and oscillates naturally. Great for interactive gestures.
 
 ```ts
-import { spring } from "@verbose/motion";
+import { spring } from "@praxisjs/motion";
 
 const pos = spring(0, { stiffness: 200, damping: 20 });
 
@@ -118,8 +118,8 @@ pos.stop();
 Animates CSS properties of a DOM element using keyframe-style objects. Works with enter/exit animations.
 
 ```ts
-import { createRef } from "@verbose/composables";
-import { useMotion } from "@verbose/motion";
+import { createRef } from "@praxisjs/composables";
+import { useMotion } from "@praxisjs/motion";
 
 const boxRef = createRef<HTMLDivElement>();
 const motion = useMotion(boxRef);
@@ -169,7 +169,7 @@ motion.exit({
 Marks a `@State` property as animated, so changes transition smoothly instead of jumping.
 
 ```ts
-import { Animate } from '@verbose/motion'
+import { Animate } from '@praxisjs/motion'
 
 @Component()
 class ProgressBar extends BaseComponent {

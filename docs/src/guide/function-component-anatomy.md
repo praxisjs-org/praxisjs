@@ -5,9 +5,9 @@ A function component is a plain TypeScript function that receives props and retu
 ## Overview
 
 ```tsx
-import { signal, computed, resource } from "@verbose/core";
-import { useRouter } from "@verbose/router";
-import type { Children } from "@verbose/shared";
+import { signal, computed, resource } from "@praxisjs/core";
+import { useRouter } from "@praxisjs/router";
+import type { Children } from "@praxisjs/shared";
 
 // ── External state ────────────────────────────────────────────────────────────
 const query = signal("");
@@ -153,7 +153,7 @@ function ThemeButton() {
 Because the renderer calls the function **exactly once**, any `signal()` created inside the body is instantiated once per usage and lives for as long as the component is in the DOM. Reactive children `() =>` capture the signal via closure, so every update is reflected automatically.
 
 ```tsx
-import { signal } from "@verbose/core";
+import { signal } from "@praxisjs/core";
 
 function Counter() {
   const count = signal(0);
@@ -274,8 +274,8 @@ function UserCard() {
 Function components support a subset of lifecycle hooks: `onBeforeMount`, `onMount`, `onUnmount`, and `onError`. Call them at the top level of the function body — the renderer collects them during the single invocation and wires them up automatically.
 
 ```tsx
-import { onMount, onUnmount, onError } from "@verbose/core";
-import { signal } from "@verbose/core";
+import { onMount, onUnmount, onError } from "@praxisjs/core";
+import { signal } from "@praxisjs/core";
 
 function Clock() {
   const time = signal(new Date());
@@ -317,11 +317,11 @@ function Logger() {
 
 ### 8. Composing with utilities
 
-Composables from `@verbose/composables` return signals/computed values that work as reactive props or reactive children.
+Composables from `@praxisjs/composables` return signals/computed values that work as reactive props or reactive children.
 
 ```tsx
-import { createRef, useElementSize } from "@verbose/composables";
-import { spring } from "@verbose/motion";
+import { createRef, useElementSize } from "@praxisjs/composables";
+import { spring } from "@praxisjs/motion";
 
 function AnimatedBox() {
   const ref = createRef<HTMLDivElement>();

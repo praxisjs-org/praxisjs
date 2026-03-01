@@ -1,17 +1,17 @@
-# @verbose/router
+# @praxisjs/router
 
 ::: code-group
 
 ```sh [npm]
-npm install @verbose/router
+npm install @praxisjs/router
 ```
 
 ```sh [pnpm]
-pnpm add @verbose/router
+pnpm add @praxisjs/router
 ```
 
 ```sh [yarn]
-yarn add @verbose/router
+yarn add @praxisjs/router
 ```
 
 :::
@@ -21,7 +21,7 @@ Signal-based client-side router with nested routes, lazy loading, guards, and re
 ## Defining Routes
 
 ```ts
-import { createRouter, lazy } from '@verbose/router'
+import { createRouter, lazy } from '@praxisjs/router'
 import { Home } from './pages/Home'
 
 const router = createRouter([
@@ -76,7 +76,7 @@ Routes accept three kinds of components:
 Use the `lazy()` helper to code-split routes. The component is fetched on demand and cached after the first load.
 
 ```ts
-import { createRouter, lazy } from '@verbose/router'
+import { createRouter, lazy } from '@praxisjs/router'
 
 createRouter([
   // Eager – imported at startup
@@ -152,7 +152,7 @@ type RouteDefinition = {
 Use these inside components to access router state reactively.
 
 ```ts
-import { useRouter, useParams, useQuery, useLocation } from "@verbose/router";
+import { useRouter, useParams, useQuery, useLocation } from "@praxisjs/router";
 
 const router = useRouter();
 const params = useParams(); // Computed<RouteParams>
@@ -167,7 +167,7 @@ const location = useLocation(); // Signal<RouteLocation>
 Renders the current route's component reactively.
 
 ```tsx
-import { RouterView } from '@verbose/router'
+import { RouterView } from '@praxisjs/router'
 
 render() {
   return (
@@ -184,7 +184,7 @@ render() {
 Navigation component that renders an `<a>` tag. Adds `activeClass` when the current path matches `to`.
 
 ```tsx
-import { Link } from '@verbose/router'
+import { Link } from '@praxisjs/router'
 
 <Link to="/home">Home</Link>
 <Link to="/users" activeClass="active">Users</Link>
@@ -204,7 +204,7 @@ import { Link } from '@verbose/router'
 Registers the component class as a route directly.
 
 ```ts
-import { Route } from '@verbose/router'
+import { Route } from '@praxisjs/router'
 
 @Route('/about')
 @Component()

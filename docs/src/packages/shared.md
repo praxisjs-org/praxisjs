@@ -1,6 +1,6 @@
-# @verbose/shared
+# @praxisjs/shared
 
-Internal type definitions and utilities shared across all Verbose packages. You generally don't install this directly — it is a peer dependency pulled in by the other packages.
+Internal type definitions and utilities shared across all PraxisJS packages. You generally don't install this directly — it is a peer dependency pulled in by the other packages.
 
 ## Signal Types
 
@@ -9,7 +9,7 @@ Internal type definitions and utilities shared across all Verbose packages. You 
 A readable and writable reactive value.
 
 ```ts
-import type { Signal } from "@verbose/shared";
+import type { Signal } from "@praxisjs/shared";
 ```
 
 | Member      | Signature                                    | Description                               |
@@ -24,7 +24,7 @@ import type { Signal } from "@verbose/shared";
 A read-only reactive value derived from other signals.
 
 ```ts
-import type { Computed } from "@verbose/shared";
+import type { Computed } from "@praxisjs/shared";
 ```
 
 | Member      | Signature                                    | Description                               |
@@ -111,7 +111,7 @@ type Component = FunctionComponent | ComponentConstructor;
 - Use `Component` in renderer internals, routing tables, or dynamic component registries where both forms must be handled uniformly.
 
 ```ts
-import type { Component } from "@verbose/shared";
+import type { Component } from "@praxisjs/shared";
 
 const registry: Record<string, Component> = {
   Button,   // FunctionComponent
@@ -142,7 +142,7 @@ interface ComponentInstance {
 Returns `true` if `source` is a writable `Signal` (has a `.set` method).
 
 ```ts
-import { isSignal } from "@verbose/shared";
+import { isSignal } from "@praxisjs/shared";
 
 isSignal(signal(0)); // true
 isSignal(computed(() => 0)); // false
@@ -153,7 +153,7 @@ isSignal(computed(() => 0)); // false
 Returns `true` if `source` is a `Computed` or `Signal` (callable with a `.subscribe` method).
 
 ```ts
-import { isComputed } from "@verbose/shared";
+import { isComputed } from "@praxisjs/shared";
 
 isComputed(computed(() => 0)); // true
 isComputed(signal(0)); // true
@@ -165,7 +165,7 @@ isComputed(42); // false
 Recursively flattens a nested `Children` array into a flat list.
 
 ```ts
-import { flattenChildren } from '@verbose/shared'
+import { flattenChildren } from '@praxisjs/shared'
 
 flattenChildren([[<a />, <b />], <c />])
 // [<a />, <b />, <c />]

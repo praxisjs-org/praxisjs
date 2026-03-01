@@ -1,6 +1,6 @@
 # Component Anatomy
 
-A Verbose component is a TypeScript class that extends `BaseComponent`. This guide walks through each part of a component and how they connect.
+A PraxisJS component is a TypeScript class that extends `BaseComponent`. This guide walks through each part of a component and how they connect.
 
 ## Overview
 
@@ -15,8 +15,8 @@ import {
   OnCommand,
   Command,
   createCommand,
-} from "@verbose/decorators";
-import { BaseComponent, resource } from "@verbose/core";
+} from "@praxisjs/decorators";
+import { BaseComponent, resource } from "@praxisjs/core";
 
 @Component()
 class UserCard extends BaseComponent {
@@ -364,8 +364,8 @@ Prefer reading `@State` and `@Prop` values directly inside `render()` rather tha
 ## Composing with external utilities
 
 ```tsx
-import { createRef, useElementSize } from "@verbose/composables";
-import { tween } from "@verbose/motion";
+import { createRef, useElementSize } from "@praxisjs/composables";
+import { tween } from "@praxisjs/motion";
 
 @Component()
 class AnimatedPanel extends BaseComponent {

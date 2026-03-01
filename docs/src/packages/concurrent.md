@@ -1,17 +1,17 @@
-# @verbose/concurrent
+# @praxisjs/concurrent
 
 ::: code-group
 
 ```sh [npm]
-npm install @verbose/concurrent
+npm install @praxisjs/concurrent
 ```
 
 ```sh [pnpm]
-pnpm add @verbose/concurrent
+pnpm add @praxisjs/concurrent
 ```
 
 ```sh [yarn]
-yarn add @verbose/concurrent
+yarn add @praxisjs/concurrent
 ```
 
 :::
@@ -23,7 +23,7 @@ Concurrency control for async operations. Wraps async functions with reactive lo
 Wraps an async function. Multiple concurrent calls are all tracked together. Useful for simple async actions with loading state.
 
 ```ts
-import { task } from '@verbose/concurrent'
+import { task } from '@praxisjs/concurrent'
 
 const saveUser = task(async (user: User) => {
   await api.save(user)
@@ -53,7 +53,7 @@ saveUser.cancelAll()  // abort all in-flight calls
 Serial execution queue — calls are buffered and executed one at a time in order.
 
 ```ts
-import { queue } from '@verbose/concurrent'
+import { queue } from '@praxisjs/concurrent'
 
 const processItem = queue(async (item: Item) => {
   await api.process(item)
@@ -82,7 +82,7 @@ processItem.clear()    // discard all queued items
 Limits the number of concurrent executions. Excess calls wait until a slot opens.
 
 ```ts
-import { pool } from '@verbose/concurrent'
+import { pool } from '@praxisjs/concurrent'
 
 const uploadFile = pool(3, async (file: File) => {
   await storage.upload(file)
@@ -113,7 +113,7 @@ Use these on class methods to apply concurrency policies declaratively.
 ### `@Task()`
 
 ```ts
-import { Task } from '@verbose/concurrent'
+import { Task } from '@praxisjs/concurrent'
 
 @Component()
 class Form extends BaseComponent {
@@ -129,7 +129,7 @@ class Form extends BaseComponent {
 ### `@Queue()`
 
 ```ts
-import { Queue } from '@verbose/concurrent'
+import { Queue } from '@praxisjs/concurrent'
 
 @Queue()
 async processMessage(msg: Message) {
@@ -140,7 +140,7 @@ async processMessage(msg: Message) {
 ### `@Pool(concurrency)`
 
 ```ts
-import { Pool } from '@verbose/concurrent'
+import { Pool } from '@praxisjs/concurrent'
 
 @Pool(4)
 async renderThumbnail(image: File) {

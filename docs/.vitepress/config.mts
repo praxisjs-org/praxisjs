@@ -2,7 +2,7 @@ import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "Verbose",
+  title: "PraxisJS",
   description: "Signal-driven frontend framework",
   srcDir: "src",
   appearance: true,
@@ -89,7 +89,7 @@ export default defineConfig({
       message:
         'Released under the <a href="https://github.com/MateusGX/verbose/blob/main/LICENSE">MIT License</a>.',
       copyright:
-        'Copyright © 2025-present <a href="https://github.com/MateusGX">Mateus Martins</a>  — Verbose is experimental software, use at your own risk.',
+        'Copyright © 2025-present <a href="https://github.com/MateusGX">Mateus Martins</a>  — PraxisJS is experimental software, use at your own risk.',
     },
   },
   head: [["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }]],

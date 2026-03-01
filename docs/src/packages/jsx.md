@@ -1,17 +1,17 @@
-# @verbose/jsx
+# @praxisjs/jsx
 
 ::: code-group
 
 ```sh [npm]
-npm install @verbose/jsx
+npm install @praxisjs/jsx
 ```
 
 ```sh [pnpm]
-pnpm add @verbose/jsx
+pnpm add @praxisjs/jsx
 ```
 
 ```sh [yarn]
-yarn add @verbose/jsx
+yarn add @praxisjs/jsx
 ```
 
 :::
@@ -25,12 +25,12 @@ JSX runtime and TypeScript type definitions. Configure your project to use this 
 {
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "@verbose/jsx"
+    "jsxImportSource": "@praxisjs/jsx"
   }
 }
 ```
 
-With this configuration, TypeScript automatically imports `jsx` and `jsxs` from `@verbose/jsx/jsx-runtime` — no explicit imports needed in component files.
+With this configuration, TypeScript automatically imports `jsx` and `jsxs` from `@praxisjs/jsx/jsx-runtime` — no explicit imports needed in component files.
 
 ---
 
@@ -43,7 +43,7 @@ These are used by the TypeScript/Babel JSX transform and generally not called di
 Creates a virtual node. Called for single-child elements.
 
 ```ts
-import { jsx } from "@verbose/jsx";
+import { jsx } from "@praxisjs/jsx";
 
 jsx("div", { class: "box", children: "Hello" });
 ```
@@ -57,7 +57,7 @@ Alias for `jsx`, called for elements with multiple children.
 Symbol for grouping elements without a DOM wrapper.
 
 ```tsx
-import { Fragment } from '@verbose/jsx'
+import { Fragment } from '@praxisjs/jsx'
 
 // JSX shorthand:
 <>
@@ -71,7 +71,7 @@ jsx(Fragment, { children: [...] })
 
 ---
 
-> **VNode, Children, FunctionComponent, ComponentConstructor** — these types are defined in [@verbose/shared](./shared) and re-used by the JSX runtime.
+> **VNode, Children, FunctionComponent, ComponentConstructor** — these types are defined in [@praxisjs/shared](./shared) and re-used by the JSX runtime.
 
 ---
 

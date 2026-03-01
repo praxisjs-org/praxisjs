@@ -1,17 +1,17 @@
-# @verbose/core
+# @praxisjs/core
 
 ::: code-group
 
 ```sh [npm]
-npm install @verbose/core
+npm install @praxisjs/core
 ```
 
 ```sh [pnpm]
-pnpm add @verbose/core
+pnpm add @praxisjs/core
 ```
 
 ```sh [yarn]
-yarn add @verbose/core
+yarn add @praxisjs/core
 ```
 
 :::
@@ -25,7 +25,7 @@ Reactive primitives that power the entire framework. All state, derivations, and
 Creates a reactive value. When the value changes, all subscribers and effects that read it are automatically re-executed.
 
 ```ts
-import { signal } from '@verbose/core'
+import { signal } from '@praxisjs/core'
 
 const count = signal(0)
 
@@ -40,7 +40,7 @@ count.subscribe(v => console.log(v))  // listen for changes
 Creates a derived value that recalculates lazily whenever its signal dependencies change. The result is cached between reads.
 
 ```ts
-import { signal, computed } from '@verbose/core'
+import { signal, computed } from '@praxisjs/core'
 
 const count = signal(2)
 const doubled = computed(() => count() * 2)
@@ -55,7 +55,7 @@ doubled()  // 10
 Runs a function immediately and re-runs it whenever any signal read inside it changes. The function can return a cleanup callback.
 
 ```ts
-import { signal, effect } from '@verbose/core'
+import { signal, effect } from '@praxisjs/core'
 
 const name = signal('Alice')
 
@@ -73,7 +73,7 @@ stop()           // stops the effect
 Defers all signal notifications until the function completes. Useful when updating multiple signals that drive the same UI.
 
 ```ts
-import { signal, batch } from '@verbose/core'
+import { signal, batch } from '@praxisjs/core'
 
 const x = signal(0)
 const y = signal(0)
@@ -94,7 +94,7 @@ batch(() => {
 A signal that automatically reads from and writes to `localStorage`. Updates sync across browser tabs.
 
 ```ts
-import { persistedSignal } from '@verbose/core'
+import { persistedSignal } from '@praxisjs/core'
 
 const theme = persistedSignal('theme', 'light')
 
@@ -121,7 +121,7 @@ Reads a signal or computed value **without registering a reactive dependency**. 
 Use this when you need the current value of a signal inside an effect or `render()` but deliberately do **not** want that signal to trigger a re-run when it changes.
 
 ```ts
-import { signal, effect, peek } from '@verbose/core'
+import { signal, effect, peek } from '@praxisjs/core'
 
 const count = signal(0)
 const multiplier = signal(2)
@@ -151,7 +151,7 @@ const snapshot = peek(doubled)
 Executes `fn` exactly once, the first time `source` becomes truthy. Returns a cancel function.
 
 ```ts
-import { signal, when } from '@verbose/core'
+import { signal, when } from '@praxisjs/core'
 
 const ready = signal(false)
 
@@ -167,7 +167,7 @@ ready.set(true)  // logs "ready!" once
 Returns a `Promise` that resolves with the first truthy value from `source`.
 
 ```ts
-import { signal, until } from '@verbose/core'
+import { signal, until } from '@praxisjs/core'
 
 const data = signal<string | null>(null)
 
@@ -180,7 +180,7 @@ console.log(value)  // string (never null)
 Creates a derived signal that only updates after `ms` milliseconds of inactivity from `source`.
 
 ```ts
-import { signal, debounced } from '@verbose/core'
+import { signal, debounced } from '@praxisjs/core'
 
 const input = signal('')
 const debouncedInput = debounced(input, 300)
@@ -193,7 +193,7 @@ const debouncedInput = debounced(input, 300)
 Maintains an undo/redo history for a signal. Defaults to 50 entries.
 
 ```ts
-import { signal, history } from '@verbose/core'
+import { signal, history } from '@praxisjs/core'
 
 const text = signal('hello')
 const h = history(text)
@@ -231,7 +231,7 @@ h.clear()
 Manages async data fetching. Automatically re-fetches when any signal read inside `fetcher` changes.
 
 ```ts
-import { signal, resource } from '@verbose/core'
+import { signal, resource } from '@praxisjs/core'
 
 const userId = signal(1)
 
@@ -274,7 +274,7 @@ user.mutate({ name: 'Alice' })  // optimistic update
 Convenience wrapper for a resource driven by a single parameter signal.
 
 ```ts
-import { signal, createResource } from '@verbose/core'
+import { signal, createResource } from '@praxisjs/core'
 
 const userId = signal(1)
 
@@ -297,7 +297,7 @@ These hooks are available **only inside function components**. The renderer coll
 Runs synchronously before the returned VNode is inserted into the DOM.
 
 ```ts
-import { onBeforeMount } from '@verbose/core'
+import { onBeforeMount } from '@praxisjs/core'
 
 function Banner() {
   onBeforeMount(() => {
@@ -312,7 +312,7 @@ function Banner() {
 Runs after the component's DOM nodes have been inserted. Equivalent to `onMount()` on a class component.
 
 ```ts
-import { onMount, onUnmount, signal } from '@verbose/core'
+import { onMount, onUnmount, signal } from '@praxisjs/core'
 
 function Clock() {
   const time = signal(new Date())
@@ -333,7 +333,7 @@ function Clock() {
 Runs when the component is removed from the DOM. Typically used for cleanup.
 
 ```ts
-import { onUnmount } from '@verbose/core'
+import { onUnmount } from '@praxisjs/core'
 
 function Tracker() {
   onUnmount(() => {
@@ -348,7 +348,7 @@ function Tracker() {
 Called if an error is thrown during the function body execution. Receives the caught error.
 
 ```ts
-import { onError } from '@verbose/core'
+import { onError } from '@praxisjs/core'
 
 function Risky() {
   onError((err) => {
@@ -365,7 +365,7 @@ function Risky() {
 Abstract base class that all class components extend. Provides the props system and lifecycle method stubs.
 
 ```ts
-import { BaseComponent } from '@verbose/core'
+import { BaseComponent } from '@praxisjs/core'
 
 abstract class BaseComponent {
   abstract render(): VNode | null

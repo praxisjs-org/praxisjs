@@ -1,22 +1,22 @@
-# @verbose/devtools
+# @praxisjs/devtools
 
 ::: code-group
 
 ```sh [npm]
-npm install -D @verbose/devtools
+npm install -D @praxisjs/devtools
 ```
 
 ```sh [pnpm]
-pnpm add -D @verbose/devtools
+pnpm add -D @praxisjs/devtools
 ```
 
 ```sh [yarn]
-yarn add -D @verbose/devtools
+yarn add -D @praxisjs/devtools
 ```
 
 :::
 
-In-app developer tools for Verbose applications. Renders an interactive panel that shows live signal state, component performance metrics, and a chronological event timeline — all without leaving the browser.
+In-app developer tools for PraxisJS applications. Renders an interactive panel that shows live signal state, component performance metrics, and a chronological event timeline — all without leaving the browser.
 
 ## Setup
 
@@ -24,7 +24,7 @@ Call `DevTools.init()` in your entry point before mounting the application. The 
 
 ```ts
 // main.ts
-import { DevTools } from '@verbose/devtools'
+import { DevTools } from '@praxisjs/devtools'
 
 if (import.meta.env.DEV) {
   DevTools.init()
@@ -109,8 +109,8 @@ Chronological log of all devtools events, capped at 200 entries. Each entry incl
 Class decorator. Instruments a component to report render performance and lifecycle events to the devtools panel.
 
 ```ts
-import { Trace } from '@verbose/devtools'
-import { Component } from '@verbose/decorators'
+import { Trace } from '@praxisjs/devtools'
+import { Component } from '@praxisjs/decorators'
 
 @Trace()
 @Component()
@@ -142,8 +142,8 @@ Property or method decorator. Tracks a `@State()` property, a `computed()` field
 Stack `@Debug()` above `@State()`:
 
 ```ts
-import { Debug } from '@verbose/devtools'
-import { State } from '@verbose/decorators'
+import { Debug } from '@praxisjs/devtools'
+import { State } from '@praxisjs/decorators'
 
 @Trace()
 @Component()
@@ -158,7 +158,7 @@ Every time `count` changes, the new value is recorded in the Signals tab with a 
 #### On a `computed()` field
 
 ```ts
-import { computed } from '@verbose/core'
+import { computed } from '@praxisjs/core'
 
 @Trace()
 @Component()
@@ -193,7 +193,7 @@ Method calls appear in the Timeline tab with arguments, return value, and execut
 A plugin is a plain object that satisfies the `DevtoolsPlugin` interface.
 
 ```ts
-import type { DevtoolsPlugin } from '@verbose/devtools'
+import type { DevtoolsPlugin } from '@praxisjs/devtools'
 
 const MyPlugin: DevtoolsPlugin = {
   id: 'my-plugin',
@@ -221,7 +221,7 @@ DevTools.registerPlugin(MyPlugin)
 | `id` | `string` | Unique identifier — used to prevent duplicate registration |
 | `label` | `string` | Tab label shown in the panel |
 | `setup` | `(registry: Registry) => void` | Optional. Called once on registration to subscribe to events |
-| `component` | `FunctionComponent<{ registry: Registry }>` | Verbose function component rendered inside the tab |
+| `component` | `FunctionComponent<{ registry: Registry }>` | PraxisJS function component rendered inside the tab |
 
 ---
 
@@ -235,7 +235,7 @@ import type {
   HistoryEntry,
   LifecycleEvent,
   TimelineEventType,
-} from '@verbose/devtools'
+} from '@praxisjs/devtools'
 ```
 
 ### `SignalEntry`

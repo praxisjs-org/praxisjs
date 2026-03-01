@@ -1,17 +1,17 @@
-# @verbose/fsm
+# @praxisjs/fsm
 
 ::: code-group
 
 ```sh [npm]
-npm install @verbose/fsm
+npm install @praxisjs/fsm
 ```
 
 ```sh [pnpm]
-pnpm add @verbose/fsm
+pnpm add @praxisjs/fsm
 ```
 
 ```sh [yarn]
-yarn add @verbose/fsm
+yarn add @praxisjs/fsm
 ```
 
 :::
@@ -23,7 +23,7 @@ Finite state machine implementation with reactive state tracking and TypeScript-
 Creates a state machine from a definition object. State and history are exposed as signals/computed values.
 
 ```ts
-import { createMachine } from '@verbose/fsm'
+import { createMachine } from '@praxisjs/fsm'
 
 type State = 'idle' | 'loading' | 'success' | 'error'
 type Event = 'FETCH' | 'RESOLVE' | 'REJECT' | 'RESET'
@@ -139,7 +139,7 @@ class FetchButton extends BaseComponent {
 Declarative FSM integration for class components.
 
 ```ts
-import { StateMachine, Transition } from '@verbose/fsm'
+import { StateMachine, Transition } from '@praxisjs/fsm'
 
 @StateMachine({ initial: 'idle', states: { /* ... */ } })
 @Component()

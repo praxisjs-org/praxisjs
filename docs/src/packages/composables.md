@@ -1,17 +1,17 @@
-# @verbose/composables
+# @praxisjs/composables
 
 ::: code-group
 
 ```sh [npm]
-npm install @verbose/composables
+npm install @praxisjs/composables
 ```
 
 ```sh [pnpm]
-pnpm add @verbose/composables
+pnpm add @praxisjs/composables
 ```
 
 ```sh [yarn]
-yarn add @verbose/composables
+yarn add @praxisjs/composables
 ```
 
 :::
@@ -25,7 +25,7 @@ Composition utilities for DOM, browser APIs, and common UI patterns. All return 
 Creates a reference object to be attached to a DOM element via the `ref` prop.
 
 ```tsx
-import { createRef } from '@verbose/composables'
+import { createRef } from '@praxisjs/composables'
 
 const inputRef = createRef()
 
@@ -41,7 +41,7 @@ inputRef.current?.focus()
 Tracks the rendered size of an element using `ResizeObserver`.
 
 ```ts
-import { createRef, useElementSize } from '@verbose/composables'
+import { createRef, useElementSize } from '@praxisjs/composables'
 
 const ref = createRef()
 const { width, height, stop } = useElementSize(ref)
@@ -60,7 +60,7 @@ const { width, height, stop } = useElementSize(ref)
 Tracks the browser window dimensions.
 
 ```ts
-import { useWindowSize } from '@verbose/composables'
+import { useWindowSize } from '@praxisjs/composables'
 
 const { width, height } = useWindowSize()
 // width(), height() update on resize
@@ -71,7 +71,7 @@ const { width, height } = useWindowSize()
 Tracks scroll position of an element or the window.
 
 ```ts
-import { useScrollPosition } from '@verbose/composables'
+import { useScrollPosition } from '@praxisjs/composables'
 
 const { x, y } = useScrollPosition()           // window scroll
 const { x, y } = useScrollPosition(el)         // element scroll
@@ -82,7 +82,7 @@ const { x, y } = useScrollPosition(el)         // element scroll
 Returns a `Computed<boolean>` that is `true` when the element enters the viewport.
 
 ```ts
-import { useIntersection } from '@verbose/composables'
+import { useIntersection } from '@praxisjs/composables'
 
 const isVisible = useIntersection(ref, { threshold: 0.5 })
 ```
@@ -92,7 +92,7 @@ const isVisible = useIntersection(ref, { threshold: 0.5 })
 Returns a `Computed<boolean>` reflecting the focus state of an element.
 
 ```ts
-import { useFocus } from '@verbose/composables'
+import { useFocus } from '@praxisjs/composables'
 
 const focused = useFocus(inputRef)
 ```
@@ -106,7 +106,7 @@ const focused = useFocus(inputRef)
 Matches a CSS media query and returns a reactive boolean.
 
 ```ts
-import { useMediaQuery } from '@verbose/composables'
+import { useMediaQuery } from '@praxisjs/composables'
 
 const isTablet = useMediaQuery('(min-width: 768px)')
 // isTablet() updates when the query result changes
@@ -117,7 +117,7 @@ const isTablet = useMediaQuery('(min-width: 768px)')
 Detects the user's preferred color scheme.
 
 ```ts
-import { useColorScheme } from '@verbose/composables'
+import { useColorScheme } from '@praxisjs/composables'
 
 const { isDark, isLight } = useColorScheme()
 ```
@@ -127,7 +127,7 @@ const { isDark, isLight } = useColorScheme()
 Tracks the cursor position in page coordinates.
 
 ```ts
-import { useMouse } from '@verbose/composables'
+import { useMouse } from '@praxisjs/composables'
 
 const { x, y } = useMouse()
 ```
@@ -137,7 +137,7 @@ const { x, y } = useMouse()
 Detects a keyboard shortcut being held down.
 
 ```ts
-import { useKeyCombo } from '@verbose/composables'
+import { useKeyCombo } from '@praxisjs/composables'
 
 const isSaving = useKeyCombo('ctrl+s')
 const isUndo = useKeyCombo('ctrl+z')
@@ -150,7 +150,7 @@ Combo syntax: modifier keys joined with `+` followed by the key name. Modifiers:
 Detects user inactivity. Resets on mouse, keyboard, touch, or scroll events.
 
 ```ts
-import { useIdle } from '@verbose/composables'
+import { useIdle } from '@praxisjs/composables'
 
 const idle = useIdle(30_000)  // 30 seconds, default is 60s
 // idle() === true when user has been inactive
@@ -165,7 +165,7 @@ const idle = useIdle(30_000)  // 30 seconds, default is 60s
 Provides clipboard read/write with a reactive `copied` flag.
 
 ```ts
-import { useClipboard } from '@verbose/composables'
+import { useClipboard } from '@praxisjs/composables'
 
 const { copy, copied, content } = useClipboard(2000)
 
@@ -185,7 +185,7 @@ content()  // 'Hello!'
 Requests the user's geolocation reactively.
 
 ```ts
-import { useGeolocation } from '@verbose/composables'
+import { useGeolocation } from '@praxisjs/composables'
 
 const { lat, lng, error, loading } = useGeolocation()
 ```
@@ -202,8 +202,8 @@ const { lat, lng, error, loading } = useGeolocation()
 Formats a date signal as a human-readable relative time string. Defaults to `pt-BR` locale.
 
 ```ts
-import { signal } from '@verbose/core'
-import { useTimeAgo } from '@verbose/composables'
+import { signal } from '@praxisjs/core'
+import { useTimeAgo } from '@praxisjs/composables'
 
 const date = signal(new Date(Date.now() - 3600_000))
 const label = useTimeAgo(date)
@@ -218,7 +218,7 @@ const labelEn = useTimeAgo(date, 'en-US')
 Manages pagination state for a list.
 
 ```ts
-import { usePagination } from '@verbose/composables'
+import { usePagination } from '@praxisjs/composables'
 
 const pager = usePagination({ total: 100, pageSize: 10, initial: 1 })
 

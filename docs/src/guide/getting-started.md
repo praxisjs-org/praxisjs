@@ -1,39 +1,43 @@
 # Getting Started
 
-Verbose is a signal-driven frontend framework built with TypeScript. It provides fine-grained reactivity, class components with decorators, and a complete ecosystem of first-party packages.
+PraxisJS is a signal-driven frontend framework built with TypeScript. It provides fine-grained reactivity, class components with decorators, and a complete ecosystem of first-party packages.
 
 ::: warning Experimental
-Verbose is under active development. APIs are unstable and subject to breaking changes at any time. Not recommended for production use. [See project status →](/project-status)
+PraxisJS is under active development. APIs are unstable and subject to breaking changes at any time. Not recommended for production use. [See project status →](/project-status)
 :::
 
-## The right amount of verbose
+## Why Praxis?
 
-The name is intentional. Verbose was designed around the idea that code should be **explicit by default** — not terse to the point of hiding intent, and not ceremonious for the sake of it. The goal is the ideal level of verbosity: enough to make structure visible, patterns enforceable, and onboarding straightforward.
+*Praxis* (πρᾶξις, Greek: *action*, *practice*). Not how things should be — how they are actually done.
 
-Decorators like `@State`, `@Prop`, and `@Watch` aren't boilerplate — they're declarations. They make the contract of a component readable at a glance, help teams agree on patterns, and give tooling a clear surface to work with.
+The ancient concept that separates those who understand from those who execute. Not theory, not intention — only the act that emerges when knowledge and craft become inseparable.
 
-Reactivity is **explicit, fine-grained, and TypeScript-native**. Signals propagate changes directly to the DOM nodes that care about them — no reconciliation pass, no diffing overhead.
+Most frameworks hide their praxis. Write less, trust more, let the runtime handle the rest. PraxisJS refuses that contract.
+
+`@State` doesn't *suggest* that a property is reactive — it *is* reactive, and you can read that in the code. `@Prop` doesn't imply a contract — it declares one. `@Watch` doesn't hint at a side effect — it commits to one. The component doesn't hide what it does: **it practices openly**.
+
+Fine-grained reactivity, TypeScript-native, signals that reach the DOM with no reconciliation pass between intention and result — nothing hidden, nothing assumed.
 
 ## Automatic setup
 
-Run `create-verbose` to generate a new project with TypeScript, Vite, JSX, and all dependencies already configured.
+Run `create-praxisjs` to generate a new project with TypeScript, Vite, JSX, and all dependencies already configured.
 
 ::: code-group
 
 ```sh [npm]
-npm create verbose@latest
+npm create praxisjs@latest
 ```
 
 ```sh [pnpm]
-pnpm create verbose
+pnpm create praxisjs
 ```
 
 ```sh [yarn]
-yarn create verbose
+yarn create praxisjs
 ```
 
 ```sh [bun]
-bun create verbose
+bun create praxisjs
 ```
 
 :::
@@ -41,16 +45,16 @@ bun create verbose
 You can also pass the project name as an argument to skip the first prompt:
 
 ```sh
-npm create verbose@latest my-app
+npm create praxisjs@latest my-app
 ```
 
 The CLI will then ask which template to use:
 
 | Template | Includes |
 | -------- | -------- |
-| Minimal | `@verbose/core`, `@verbose/decorators`, `@verbose/jsx`, `@verbose/runtime` |
-| With Router | Minimal + `@verbose/router` |
-| Full | Router + `@verbose/store`, `@verbose/di`, `@verbose/composables`, `@verbose/concurrent`, `@verbose/devtools` |
+| Minimal | `@praxisjs/core`, `@praxisjs/decorators`, `@praxisjs/jsx`, `@praxisjs/runtime` |
+| With Router | Minimal + `@praxisjs/router` |
+| Full | Router + `@praxisjs/store`, `@praxisjs/di`, `@praxisjs/composables`, `@praxisjs/concurrent`, `@praxisjs/devtools` |
 
 Once the project is created, install dependencies and start the dev server:
 
@@ -60,7 +64,7 @@ npm install
 npm run dev
 ```
 
-The dev server starts at `http://localhost:5173` with HMR enabled via `@verbose/vite-plugin`.
+The dev server starts at `http://localhost:5173` with HMR enabled via `@praxisjs/vite-plugin`.
 
 ---
 
@@ -73,37 +77,37 @@ Prefer to configure everything yourself? Install only the packages you need.
 ::: code-group
 
 ```sh [npm]
-npm install @verbose/core @verbose/jsx @verbose/runtime @verbose/decorators
-npm install -D @verbose/vite-plugin
+npm install @praxisjs/core @praxisjs/jsx @praxisjs/runtime @praxisjs/decorators
+npm install -D @praxisjs/vite-plugin
 ```
 
 ```sh [pnpm]
-pnpm add @verbose/core @verbose/jsx @verbose/runtime @verbose/decorators
-pnpm add -D @verbose/vite-plugin
+pnpm add @praxisjs/core @praxisjs/jsx @praxisjs/runtime @praxisjs/decorators
+pnpm add -D @praxisjs/vite-plugin
 ```
 
 ```sh [yarn]
-yarn add @verbose/core @verbose/jsx @verbose/runtime @verbose/decorators
-yarn add -D @verbose/vite-plugin
+yarn add @praxisjs/core @praxisjs/jsx @praxisjs/runtime @praxisjs/decorators
+yarn add -D @praxisjs/vite-plugin
 ```
 
 :::
 
 ### Project setup
 
-Configure Vite to use the Verbose plugin:
+Configure Vite to use the PraxisJS plugin:
 
 ```ts
 // vite.config.ts
 import { defineConfig } from "vite";
-import { verbose } from "@verbose/vite-plugin";
+import { praxisjs } from "@praxisjs/vite-plugin";
 
 export default defineConfig({
-  plugins: [verbose({ hmr: true })],
+  plugins: [praxisjs({ hmr: true })],
 });
 ```
 
-Configure TypeScript to use the Verbose JSX runtime:
+Configure TypeScript to use the PraxisJS JSX runtime:
 
 ```json
 // tsconfig.json
@@ -111,7 +115,7 @@ Configure TypeScript to use the Verbose JSX runtime:
   "compilerOptions": {
     "experimentalDecorators": true,
     "jsx": "react-jsx",
-    "jsxImportSource": "@verbose/jsx"
+    "jsxImportSource": "@praxisjs/jsx"
   }
 }
 ```
@@ -119,8 +123,8 @@ Configure TypeScript to use the Verbose JSX runtime:
 ### Your first component
 
 ```tsx
-import { Component, State, Prop } from "@verbose/decorators";
-import { BaseComponent } from "@verbose/core";
+import { Component, State, Prop } from "@praxisjs/decorators";
+import { BaseComponent } from "@praxisjs/core";
 
 @Component()
 class Counter extends BaseComponent {
@@ -145,7 +149,7 @@ class Counter extends BaseComponent {
 ### Mounting the app
 
 ```ts
-import { render } from '@verbose/runtime'
+import { render } from '@praxisjs/runtime'
 
 render(<Counter initialCount={0} />, document.getElementById('app')!)
 ```

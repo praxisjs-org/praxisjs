@@ -1,41 +1,41 @@
-# @verbose/vite-plugin
+# @praxisjs/vite-plugin
 
 ::: code-group
 
 ```sh [npm]
-npm install -D @verbose/vite-plugin
+npm install -D @praxisjs/vite-plugin
 ```
 
 ```sh [pnpm]
-pnpm add -D @verbose/vite-plugin
+pnpm add -D @praxisjs/vite-plugin
 ```
 
 ```sh [yarn]
-yarn add -D @verbose/vite-plugin
+yarn add -D @praxisjs/vite-plugin
 ```
 
 :::
 
-Vite plugin that configures the build for Verbose: decorator support, JSX transform, and optional Hot Module Replacement.
+Vite plugin that configures the build for PraxisJS: decorator support, JSX transform, and optional Hot Module Replacement.
 
 ## Setup
 
 ```ts
 // vite.config.ts
 import { defineConfig } from 'vite'
-import { verbose } from '@verbose/vite-plugin'
+import { praxisjs } from '@praxisjs/vite-plugin'
 
 export default defineConfig({
-  plugins: [verbose()],
+  plugins: [praxisjs()],
 })
 ```
 
-## `verbose(options?)`
+## `praxisjs(options?)`
 
 Returns an array of Vite plugins. Pass the result directly to the `plugins` array.
 
 ```ts
-verbose({
+praxisjs({
   hmr: true,
   autoImport: true,
 })
@@ -52,14 +52,14 @@ verbose({
 
 ## What the plugin does
 
-### Core plugin (`verbose:core`)
+### Core plugin (`praxisjs:core`)
 
 - Sets `esbuild.target` to `es2022` to enable native decorator support
 - Configures `esbuild.jsx` and `jsxImportSource` when `autoImport` is enabled
 
-### HMR plugin (`verbose:hmr`)
+### HMR plugin (`praxisjs:hmr`)
 
-When `hmr: true`, watches component files for changes and sends `verbose:component-update` custom events to the browser. This triggers in-place component reloads without a full page refresh.
+When `hmr: true`, watches component files for changes and sends `praxisjs:component-update` custom events to the browser. This triggers in-place component reloads without a full page refresh.
 
 ---
 
@@ -72,7 +72,7 @@ When `hmr: true`, watches component files for changes and sends `verbose:compone
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
     "jsx": "react-jsx",
-    "jsxImportSource": "@verbose/jsx"
+    "jsxImportSource": "@praxisjs/jsx"
   }
 }
 ```

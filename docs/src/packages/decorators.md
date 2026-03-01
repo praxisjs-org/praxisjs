@@ -1,17 +1,17 @@
-# @verbose/decorators
+# @praxisjs/decorators
 
 ::: code-group
 
 ```sh [npm]
-npm install @verbose/decorators
+npm install @praxisjs/decorators
 ```
 
 ```sh [pnpm]
-pnpm add @verbose/decorators
+pnpm add @praxisjs/decorators
 ```
 
 ```sh [yarn]
-yarn add @verbose/decorators
+yarn add @praxisjs/decorators
 ```
 
 :::
@@ -22,12 +22,12 @@ TypeScript decorators for defining components, reactive state, lifecycle hooks, 
 
 ### `@Component()`
 
-Marks a class as a Verbose component.
+Marks a class as a PraxisJS component.
 
 ```ts
-import { Component, Slot } from '@verbose/decorators'
-import { BaseComponent } from '@verbose/core'
-import type { Children } from '@verbose/shared'
+import { Component, Slot } from '@praxisjs/decorators'
+import { BaseComponent } from '@praxisjs/core'
+import type { Children } from '@praxisjs/shared'
 
 @Component()
 class MyButton extends BaseComponent {
@@ -87,7 +87,7 @@ class Toggle extends BaseComponent {
 Observes one or more `@State`, `@Prop`, or `@Computed` properties. The decorated method is called with the new and old values whenever they change.
 
 ```ts
-import { Watch, WatchVal } from "@verbose/decorators";
+import { Watch, WatchVal } from "@praxisjs/decorators";
 
 @Component()
 class Search extends BaseComponent {
@@ -106,7 +106,7 @@ class Search extends BaseComponent {
 Watch multiple properties at once:
 
 ```ts
-import { WatchVals } from '@verbose/decorators'
+import { WatchVals } from '@praxisjs/decorators'
 
 @Watch('firstName', 'lastName')
 onNameChange(vals: WatchVals<this, 'firstName' | 'lastName'>) {
@@ -161,9 +161,9 @@ Lifecycle hooks can be used as class methods (via inheritance) or as standalone 
 ### Functional hooks
 
 ```ts
-import { onMount, onUnmount, onBeforeMount, onError } from '@verbose/core'
-import { Component } from '@verbose/decorators'
-import { BaseComponent } from '@verbose/core'
+import { onMount, onUnmount, onBeforeMount, onError } from '@praxisjs/core'
+import { Component } from '@praxisjs/decorators'
+import { BaseComponent } from '@praxisjs/core'
 
 @Component()
 class Timer extends BaseComponent {
@@ -232,7 +232,7 @@ class Input extends BaseComponent {
 Subscribes the decorated method to a `Command` prop. Automatically unsubscribes on unmount.
 
 ```ts
-import { Command, createCommand } from '@verbose/decorators'
+import { Command, createCommand } from '@praxisjs/decorators'
 
 @Component()
 class Modal extends BaseComponent {
@@ -284,7 +284,7 @@ class Layout extends BaseComponent {
 An imperative event bus for triggering component actions from the outside.
 
 ```ts
-import { createCommand } from "@verbose/decorators";
+import { createCommand } from "@praxisjs/decorators";
 
 const reset = createCommand();
 reset.trigger();
@@ -302,8 +302,8 @@ Class-level decorator that skips re-renders when the component's resolved props 
 The optional `areEqual(prev, next)` function receives the previous and next resolved prop values and must return `true` when the component should **not** re-render. Defaults to a shallow (`Object.is`) equality check over all props.
 
 ```ts
-import { Memoize, Component, Prop } from '@verbose/decorators'
-import { BaseComponent } from '@verbose/core'
+import { Memoize, Component, Prop } from '@praxisjs/decorators'
+import { BaseComponent } from '@praxisjs/core'
 
 @Memoize()
 @Component()

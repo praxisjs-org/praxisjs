@@ -1,17 +1,17 @@
-# @verbose/di
+# @praxisjs/di
 
 ::: code-group
 
 ```sh [npm]
-npm install @verbose/di
+npm install @praxisjs/di
 ```
 
 ```sh [pnpm]
-pnpm add @verbose/di
+pnpm add @praxisjs/di
 ```
 
 ```sh [yarn]
-yarn add @verbose/di
+yarn add @praxisjs/di
 ```
 
 :::
@@ -21,7 +21,7 @@ Dependency injection container with TypeScript decorators, token-based resolutio
 ## Basic Usage
 
 ```ts
-import { Injectable, Inject, container } from '@verbose/di'
+import { Injectable, Inject, container } from '@praxisjs/di'
 
 @Injectable()
 class LoggerService {
@@ -111,7 +111,7 @@ Use tokens for injecting values that aren't classes (primitives, config objects,
 Creates a typed injection token.
 
 ```ts
-import { token } from '@verbose/di'
+import { token } from '@praxisjs/di'
 
 const API_URL = token<string>('API_URL')
 const HTTP_OPTIONS = token<HttpOptions>('HTTP_OPTIONS')
@@ -191,7 +191,7 @@ requestScope.registerValue(REQUEST_ID, generateId())
 Shorthand for creating a scoped child container. Useful for request-level or component-level isolation.
 
 ```ts
-import { createScope } from '@verbose/di'
+import { createScope } from '@praxisjs/di'
 
 const scope = createScope()
 scope.registerValue(SESSION, session)
@@ -205,7 +205,7 @@ const handler = scope.resolve(RequestHandler)
 Composable to resolve a service from the global container inside a component.
 
 ```ts
-import { useService } from '@verbose/di'
+import { useService } from '@praxisjs/di'
 
 @Component()
 class Dashboard extends BaseComponent {
@@ -220,7 +220,7 @@ class Dashboard extends BaseComponent {
 Or with a functional component:
 
 ```ts
-import { useService } from '@verbose/di'
+import { useService } from '@praxisjs/di'
 
 function Dashboard() {
   const analytics = useService(AnalyticsService)

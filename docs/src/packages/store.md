@@ -1,17 +1,17 @@
-# @verbose/store
+# @praxisjs/store
 
 ::: code-group
 
 ```sh [npm]
-npm install @verbose/store
+npm install @praxisjs/store
 ```
 
 ```sh [pnpm]
-pnpm add @verbose/store
+pnpm add @praxisjs/store
 ```
 
 ```sh [yarn]
-yarn add @verbose/store
+yarn add @praxisjs/store
 ```
 
 :::
@@ -23,7 +23,7 @@ Simple reactive state management. Stores are plain objects whose state propertie
 Creates a store from an object that mixes state and methods. Returns a factory function that returns the reactive proxy.
 
 ```ts
-import { createStore } from '@verbose/store'
+import { createStore } from '@praxisjs/store'
 
 const useCounter = createStore({
   count: 0,
@@ -90,8 +90,8 @@ Use `@Store` and `@UseStore` for singleton stores accessed across components.
 Registers the class as a singleton store in the global registry.
 
 ```ts
-import { Store } from '@verbose/store'
-import { State } from '@verbose/decorators'
+import { Store } from '@praxisjs/store'
+import { State } from '@praxisjs/decorators'
 
 @Store()
 class AuthStore {
@@ -115,9 +115,9 @@ class AuthStore {
 Lazily injects the singleton store instance into a component property.
 
 ```ts
-import { UseStore } from '@verbose/store'
-import { Component } from '@verbose/decorators'
-import { BaseComponent } from '@verbose/core'
+import { UseStore } from '@praxisjs/store'
+import { Component } from '@praxisjs/decorators'
+import { BaseComponent } from '@praxisjs/core'
 
 @Component()
 class Header extends BaseComponent {
