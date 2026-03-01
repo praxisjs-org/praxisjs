@@ -25,7 +25,7 @@ export function Link({
   const handleClick = (e: MouseEvent) => {
     e.preventDefault();
     if (replace) {
-      router.replace(to);
+      void router.replace(to);
     } else {
       void router.push(to);
     }
