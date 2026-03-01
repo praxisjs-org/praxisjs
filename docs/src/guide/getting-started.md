@@ -14,6 +14,10 @@ Decorators like `@State`, `@Prop`, and `@Watch` aren't boilerplate — they're d
 
 Reactivity is **explicit, fine-grained, and TypeScript-native**. Signals propagate changes directly to the DOM nodes that care about them — no reconciliation pass, no diffing overhead.
 
+::: tip Scaffold a project instantly
+Use [create-verbose](/guide/create-verbose) to generate a fully configured project with a single command — no manual setup needed.
+:::
+
 ## Installation
 
 ::: code-group

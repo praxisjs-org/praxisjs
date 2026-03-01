@@ -32,6 +32,7 @@ export default defineConfig({
         text: "Introduction",
         items: [
           { text: "Project Status", link: "/project-status" },
+          { text: "create-verbose", link: "/guide/create-verbose" },
           { text: "Getting Started", link: "/guide/getting-started" },
           {
             text: "Component Anatomy",
