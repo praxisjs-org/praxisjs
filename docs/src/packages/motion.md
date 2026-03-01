@@ -1,5 +1,9 @@
 # @praxisjs/motion
 
+::: warning Bugs and broken features
+This package may have bugs or partially broken functionality. If you run into something, feel free to [open an issue or contribute on GitHub](https://github.com/praxisjs-org/praxisjs).
+:::
+
 ::: code-group
 
 ```sh [npm]

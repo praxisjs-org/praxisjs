@@ -1,5 +1,9 @@
 # @praxisjs/shared
 
+::: warning Bugs and broken features
+This package may have bugs or partially broken functionality. If you run into something, feel free to [open an issue or contribute on GitHub](https://github.com/praxisjs-org/praxisjs).
+:::
+
 Internal type definitions and utilities shared across all PraxisJS packages. You generally don't install this directly — it is a peer dependency pulled in by the other packages.
 
 ## Signal Types
