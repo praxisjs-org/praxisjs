@@ -3,5 +3,6 @@ packages:
   - "packages/features/*"
   - "packages/dx/*"
   - "packages/utils/*"
+  - "packages/create-verbose"
   - "playground"
   - "docs"

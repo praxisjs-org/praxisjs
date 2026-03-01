@@ -1,12 +1,13 @@
 // @ts-check
 import importX from 'eslint-plugin-import-x'
+import unicorn from 'eslint-plugin-unicorn'
 import unusedImports from 'eslint-plugin-unused-imports'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   // ── Ignores ─────────────────────────────────────────────────────────────────
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/*.d.ts', 'docs/**', 'playground/**'],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/*.d.ts', 'docs/**', 'playground/**', 'packages/create-verbose/templates/**'],
   },
 
   // ── TypeScript source files ──────────────────────────────────────────────────
@@ -18,15 +19,21 @@ export default tseslint.config(
     ],
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ['*.config.ts', '*.config.mjs'],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },
     plugins: {
       'import-x': importX,
       'unused-imports': unusedImports,
+      unicorn,
     },
     rules: {
+      // ── File naming ──────────────────────────────────────────────────────────
+      'unicorn/filename-case': ['error', { case: 'kebabCase' }],
+
       // ── Unused vars & imports ────────────────────────────────────────────────
       // Disabled in favor of the more granular unused-imports plugin
       '@typescript-eslint/no-unused-vars': 'off',

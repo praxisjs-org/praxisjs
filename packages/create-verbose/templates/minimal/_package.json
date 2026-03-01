@@ -1,0 +1,26 @@
+{
+  "name": "verbose-app",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@verbose/core": "^0.1.0",
+    "@verbose/decorators": "^0.1.0",
+    "@verbose/jsx": "^0.1.0",
+    "@verbose/runtime": "^0.1.0"
+  },
+  "devDependencies": {
+    "@verbose/vite-plugin": "^0.1.0",
+    "eslint": "^10.0.2",
+    "eslint-plugin-unicorn": "^63.0.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1",
+    "vite": "^7.3.1"
+  }
+}
