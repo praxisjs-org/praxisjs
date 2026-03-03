@@ -249,6 +249,34 @@ class MyComponent extends BaseComponent {
 }
 ```
 
+### `@LifeCycle`
+
+Development-only class decorator that validates lifecycle hook method names. Any method starting with `on` that is not a recognized lifecycle hook triggers a `console.warn`.
+
+::: info
+`@LifeCycle` is a no-op in production (`process.env.NODE_ENV === 'production'`). It is purely a development aid and has zero runtime cost when deployed.
+:::
+
+```ts
+import { LifeCycle } from '@praxisjs/decorators'
+import { BaseComponent } from '@praxisjs/core'
+
+@LifeCycle
+@Component()
+class MyComponent extends BaseComponent {
+  onMount() {
+    console.log('mounted')
+  }
+
+  // Typo — will warn: "onMoont" is not a recognized lifecycle hook
+  onMoont() {}
+
+  render() { return <div /> }
+}
+```
+
+Valid hooks: `onBeforeMount`, `onMount`, `onUnmount`, `onError`.
+
 ---
 
 ## Events & Slots
