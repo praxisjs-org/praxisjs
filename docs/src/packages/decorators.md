@@ -110,11 +110,11 @@ class Settings extends BaseComponent {
 
 Setting the property to `null` or `undefined` removes the entry from `localStorage`.
 
-| Option        | Type                        | Default         | Description                              |
-| ------------- | --------------------------- | --------------- | ---------------------------------------- |
-| `serialize`   | `(value: T) => string`      | `JSON.stringify` | Custom serialization                    |
-| `deserialize` | `(value: string) => T`      | `JSON.parse`    | Custom deserialization                   |
-| `syncTabs`    | `boolean`                   | `true`          | Sync value across browser tabs via the `storage` event |
+| Option        | Type                   | Default          | Description                                            |
+| ------------- | ---------------------- | ---------------- | ------------------------------------------------------ |
+| `serialize`   | `(value: T) => string` | `JSON.stringify` | Custom serialization                                   |
+| `deserialize` | `(value: string) => T` | `JSON.parse`     | Custom deserialization                                 |
+| `syncTabs`    | `boolean`              | `true`           | Sync value across browser tabs via the `storage` event |
 
 **Custom serialization example:**
 
@@ -261,7 +261,7 @@ Development-only class decorator that validates lifecycle hook method names. Any
 import { LifeCycle } from '@praxisjs/decorators'
 import { BaseComponent } from '@praxisjs/core'
 
-@LifeCycle
+@LifeCycle()
 @Component()
 class MyComponent extends BaseComponent {
   onMount() {
