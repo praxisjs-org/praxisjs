@@ -16,6 +16,7 @@
     "@praxisjs/decorators": "workspace:*",
     "@praxisjs/di": "workspace:*",
     "@praxisjs/jsx": "workspace:*",
+    "@praxisjs/motion": "workspace:*",
     "@praxisjs/router": "workspace:*",
     "@praxisjs/runtime": "workspace:*",
     "@praxisjs/shared": "workspace:*",

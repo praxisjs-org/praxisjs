@@ -330,6 +330,9 @@ importers:
       '@praxisjs/jsx':
         specifier: workspace:*
         version: link:../packages/foundation/jsx
+      '@praxisjs/motion':
+        specifier: workspace:*
+        version: link:../packages/features/motion
       '@praxisjs/router':
         specifier: workspace:*
         version: link:../packages/features/router
