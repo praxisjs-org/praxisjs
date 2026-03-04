@@ -10,8 +10,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@praxisjs/core": "^0.1.0",
-    "@praxisjs/decorators": "^0.1.0",
+    "@praxisjs/core": "^0.2.0",
+    "@praxisjs/decorators": "^0.2.0",
     "@praxisjs/jsx": "^0.1.0",
     "@praxisjs/runtime": "^0.1.0"
   },
