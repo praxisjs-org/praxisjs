@@ -11,4 +11,4 @@ createRouter([
   { path: "/about", component: About },
 ]);
 
-render(<App />, document.getElementById("app")!);
+render(() => <App />, document.getElementById("app")!);

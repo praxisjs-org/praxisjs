@@ -1,8 +1,8 @@
-import { BaseComponent } from "@praxisjs/core";
+import { StatefulComponent } from "@praxisjs/core";
 import { Component, State } from "@praxisjs/decorators";
 
 @Component()
-export class App extends BaseComponent {
+export class App extends StatefulComponent {
   @State() count = 0;
 
   increment() {

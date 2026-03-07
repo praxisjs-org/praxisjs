@@ -1,10 +1,10 @@
-import { BaseComponent } from "@praxisjs/core";
+import { StatefulComponent } from "@praxisjs/core";
 import { Component, State } from "@praxisjs/decorators";
 import { Route } from "@praxisjs/router";
 
 @Route("/")
 @Component()
-export class Home extends BaseComponent {
+export class Home extends StatefulComponent {
   @State() count = 0;
 
   increment() {

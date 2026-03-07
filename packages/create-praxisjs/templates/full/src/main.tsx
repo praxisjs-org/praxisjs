@@ -11,7 +11,7 @@ createRouter([
   { path: "/about", component: About },
 ]);
 
-render(<App />, document.getElementById("app")!);
+render(() => <App />, document.getElementById("app")!);
 
 if (import.meta.env.DEV) {
   const { DevTools } = await import("@praxisjs/devtools");

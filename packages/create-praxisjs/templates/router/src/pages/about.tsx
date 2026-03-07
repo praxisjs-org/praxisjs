@@ -1,10 +1,10 @@
-import { BaseComponent } from "@praxisjs/core";
+import { StatefulComponent } from "@praxisjs/core";
 import { Component } from "@praxisjs/decorators";
 import { Route } from "@praxisjs/router";
 
 @Route("/about")
 @Component()
-export class About extends BaseComponent {
+export class About extends StatefulComponent {
   render() {
     return (
       <div class="page">

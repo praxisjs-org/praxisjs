@@ -1,6 +1,6 @@
 import { useColorScheme } from "@praxisjs/composables";
 import { task } from "@praxisjs/concurrent";
-import { BaseComponent } from "@praxisjs/core";
+import { StatefulComponent } from "@praxisjs/core";
 import { Component } from "@praxisjs/decorators";
 import { Inject } from "@praxisjs/di";
 import { Route } from "@praxisjs/router";
@@ -12,7 +12,7 @@ import { Trace } from "@praxisjs/devtools";
 @Trace()
 @Route("/")
 @Component()
-export class Home extends BaseComponent {
+export class Home extends StatefulComponent {
   private readonly store = useCounterStore();
 
   @Inject(ApiService) api!: ApiService;
