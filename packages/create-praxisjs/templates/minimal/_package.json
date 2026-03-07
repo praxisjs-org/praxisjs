@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "@praxisjs/core": "^0.4.0",
-    "@praxisjs/decorators": "^0.4.0",
-    "@praxisjs/jsx": "^0.3.0",
-    "@praxisjs/runtime": "^0.2.1"
+    "@praxisjs/decorators": "^0.4.1",
+    "@praxisjs/jsx": "^0.3.1",
+    "@praxisjs/runtime": "^0.2.2"
   },
   "devDependencies": {
     "@praxisjs/vite-plugin": "^0.1.0",
