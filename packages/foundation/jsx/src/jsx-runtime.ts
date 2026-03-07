@@ -60,9 +60,18 @@ export namespace JSX {
   type InstancePropsOf<C> = C extends { prototype: infer I }
     ? {
         [K in keyof I as K extends
-          | "defaults"
+          | "_defaults"
+          | "_stateDirty"
+          | "_rawProps"
+          | "_mounted"
+          | "_anchor"
+          | "_setProps"
+          | "props"
+          | "onBeforeMount"
           | "onMount"
           | "onUnmount"
+          | "onError"
+          | "render"
           | "onUpdate"
           ? never
           : I[K] extends (...args: unknown[]) => unknown
