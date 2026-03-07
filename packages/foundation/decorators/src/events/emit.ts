@@ -1,20 +1,17 @@
-import type { BaseComponent } from "@praxisjs/core";
+import type { StatefulComponent } from "@praxisjs/core";
 
 import { readProp } from "./helper";
 
 export function Emit(propName: string) {
   return function (
-    _target: object,
-    methodKey: string,
-    descriptor: PropertyDescriptor,
-  ): PropertyDescriptor {
-    const originalMethod = descriptor.value as (...args: unknown[]) => unknown;
-
+    value: (this: StatefulComponent, ...args: unknown[]) => unknown,
+    context: ClassMethodDecoratorContext<StatefulComponent>,
+  ): void {
     const wrapped = function (
-      this: BaseComponent,
+      this: StatefulComponent,
       ...args: unknown[]
     ): unknown {
-      const result = originalMethod.apply(this, args);
+      const result = value.apply(this, args);
 
       const callback = readProp(this, propName);
       if (typeof callback !== "function") return result;
@@ -30,18 +27,14 @@ export function Emit(propName: string) {
       return result;
     };
 
-    return {
-      configurable: true,
-      enumerable: false,
-      get(this: BaseComponent) {
-        const bound = wrapped.bind(this);
-        Object.defineProperty(this, methodKey, {
-          value: bound,
-          configurable: true,
-          writable: true,
-        });
-        return bound;
-      },
-    };
+    context.addInitializer(function (this: unknown) {
+      const name = context.name as string;
+      const bound = wrapped.bind(this as StatefulComponent);
+      Object.defineProperty(this as object, name, {
+        value: bound,
+        configurable: true,
+        writable: true,
+      });
+    });
   };
 }

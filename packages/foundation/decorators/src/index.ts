@@ -1,4 +1,4 @@
-export { Component, Memoize, Lazy, Virtual } from "./component";
+export { Component, Lazy, Virtual } from "./component";
 export {
   Memo,
   Bind,
@@ -12,5 +12,13 @@ export {
   type WatchVal,
   type WatchVals,
 } from "./functions";
-export { Prop, State, Persisted, Slot, initSlots, History, type WithHistory } from "./properties";
+export {
+  Prop,
+  State,
+  Persisted,
+  Slot,
+  initSlots,
+  History,
+  type WithHistory,
+} from "./properties";
 export { type Command, createCommand, Emit, OnCommand } from "./events";

@@ -1,24 +1,30 @@
-import { signal } from "@praxisjs/core";
-import type { ComponentInstance, Signal } from "@praxisjs/shared";
+import type { StatefulComponent } from "@praxisjs/core";
+import { signal } from "@praxisjs/core/internal";
 
 export function State() {
-  return function (target: object, propertyKey: string) {
-    const signalMap = new WeakMap<object, Signal<unknown>>();
+  return function (
+    _value: undefined,
+    context: ClassFieldDecoratorContext<StatefulComponent>,
+  ): void {
+    context.addInitializer(function (this: unknown) {
+      const instance = this as StatefulComponent & Record<string, unknown>;
+      const name = context.name as string;
+      const initialValue = instance[name];
+      Reflect.deleteProperty(instance, name);
 
-    Object.defineProperty(target, propertyKey, {
-      get(this: object) {
-        if (!signalMap.has(this)) signalMap.set(this, signal(undefined));
-        return (signalMap.get(this) as Signal<unknown>)();
-      },
-      set(this: object, value: unknown) {
-        if (!signalMap.has(this)) signalMap.set(this, signal(value));
-        else {
-          (this as ComponentInstance)._stateDirty = true;
-          (signalMap.get(this) as Signal<unknown>).set(value);
-        }
-      },
-      enumerable: true,
-      configurable: true,
+      const sig = signal(initialValue);
+
+      Object.defineProperty(instance, name, {
+        get() {
+          return sig();
+        },
+        set(value: unknown) {
+          instance._stateDirty = true;
+          sig.set(value);
+        },
+        enumerable: true,
+        configurable: true,
+      });
     });
   };
 }

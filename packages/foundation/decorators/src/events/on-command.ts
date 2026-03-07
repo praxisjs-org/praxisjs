@@ -1,4 +1,4 @@
-import type { BaseComponent } from "@praxisjs/core";
+import type { StatefulComponent } from "@praxisjs/core";
 
 import { readProp } from "./helper";
 
@@ -6,50 +6,49 @@ import type { Command } from "./command";
 
 export function OnCommand(propName: string) {
   return function (
-    target: object,
-    _methodKey: string,
-    descriptor: PropertyDescriptor,
-  ): PropertyDescriptor {
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const originalOnMount = (target as { onMount?(): void }).onMount;
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const originalOnUnmount = (target as { onUnmount?(): void }).onUnmount;
-
-    const method = descriptor.value as (...args: unknown[]) => void;
+    value: (this: StatefulComponent, ...args: unknown[]) => void,
+    context: ClassMethodDecoratorContext<StatefulComponent>,
+  ): void {
     const cleanups = new WeakMap<object, () => void>();
 
-    (target as { onMount?(): void }).onMount = function (this: BaseComponent) {
-      originalOnMount?.call(this);
+    context.addInitializer(function (this: unknown) {
+      const instance = this as StatefulComponent;
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalOnMount = instance.onMount;
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalOnUnmount = instance.onUnmount;
 
-      const command = readProp(this, propName) as Command<unknown> | undefined;
+      instance.onMount = function (this: StatefulComponent) {
+        originalOnMount?.call(this);
 
-      if (!command) {
-        console.warn(
-          `[OnCommand] prop "${propName}" was not provided to ${this.constructor.name}`,
-        );
-        return;
-      }
+        const command = readProp(this, propName) as Command<unknown> | undefined;
 
-      if (typeof command.subscribe !== "function") {
-        console.warn(
-          `[OnCommand] prop "${propName}" is not a valid Command in ${this.constructor.name}`,
-        );
-        return;
-      }
+        if (!command) {
+          console.warn(
+            `[OnCommand] prop "${propName}" was not provided to ${this.constructor.name}`,
+          );
+          return;
+        }
 
-      const bound = method.bind(this);
-      const unsub = command.subscribe((...args: unknown[]) => { bound(...args); });
-      cleanups.set(this, unsub);
-    };
+        if (typeof command.subscribe !== "function") {
+          console.warn(
+            `[OnCommand] prop "${propName}" is not a valid Command in ${this.constructor.name}`,
+          );
+          return;
+        }
 
-    (target as { onUnmount?(): void }).onUnmount = function (
-      this: BaseComponent,
-    ) {
-      originalOnUnmount?.call(this);
-      cleanups.get(this)?.();
-      cleanups.delete(this);
-    };
+        const bound = value.bind(this);
+        const unsub = command.subscribe((...args: unknown[]) => {
+          bound(...args);
+        });
+        cleanups.set(this, unsub);
+      };
 
-    return descriptor;
+      instance.onUnmount = function (this: StatefulComponent) {
+        originalOnUnmount?.call(this);
+        cleanups.get(this)?.();
+        cleanups.delete(this);
+      };
+    });
   };
 }

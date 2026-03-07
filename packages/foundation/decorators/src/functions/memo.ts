@@ -1,4 +1,5 @@
-import { computed } from "@praxisjs/core";
+import type { StatefulComponent } from "@praxisjs/core";
+import { computed } from "@praxisjs/core/internal";
 import type { Computed } from "@praxisjs/shared";
 
 const instanceCache = new WeakMap<
@@ -46,18 +47,16 @@ function serializeArgs(args: unknown[]) {
 
 export function Memo() {
   return function (
-    _target: object,
-    methodName: string,
-    descriptor: PropertyDescriptor,
-  ): PropertyDescriptor {
-    const originalMethod = descriptor.value as (...args: unknown[]) => unknown;
-    descriptor.value = function (this: object, ...args: unknown[]) {
+    value: (this: object, ...args: unknown[]) => unknown,
+    context: ClassMethodDecoratorContext<StatefulComponent>,
+  ): (this: object, ...args: unknown[]) => unknown {
+    const methodName = context.name as string;
+    return function (this: object, ...args: unknown[]) {
       const argKey = serializeArgs(args);
       const memoized = getCache(this, methodName, argKey, () =>
-        originalMethod.apply(this, args),
+        value.apply(this, args),
       );
       return memoized();
     };
-    return descriptor;
   };
 }

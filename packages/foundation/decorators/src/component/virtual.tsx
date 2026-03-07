@@ -1,24 +1,30 @@
-import { type BaseComponent, computed, signal } from "@praxisjs/core";
-import type { VNode } from "@praxisjs/shared";
+import { computed, effect, type RootComponent, signal } from "@praxisjs/core/internal";
+
+interface VirtualHost {
+  _anchor?: Comment;
+  items?: unknown[];
+  renderItem(item: unknown, index: number): Node | Node[] | null;
+}
 
 export function Virtual(itemHeight: number, buffer = 3) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function <T extends new (...args: any[]) => BaseComponent>(
+  return function <T extends new (...args: any[]) => RootComponent>(
     constructor: T,
+    _context: ClassDecoratorContext,
   ): T {
     return class VirtualWrapper extends constructor {
       private readonly _scrollTop = signal(0);
       private readonly _viewHeight = signal(600);
       private _container?: HTMLElement;
       private _scrollHandler?: () => void;
+      private _cleanups: Array<() => void> = [];
 
       onMount() {
         super.onMount?.();
 
+        // Use the end anchor set by the runtime to locate the parent element
         this._container =
-          document.querySelector<HTMLElement>(
-            `[data-component="${constructor.name}"]`,
-          ) ?? undefined;
+          (this as unknown as VirtualHost)._anchor?.parentElement ?? undefined;
 
         if (!this._container) return;
 
@@ -39,23 +45,24 @@ export function Virtual(itemHeight: number, buffer = 3) {
         if (this._container && this._scrollHandler) {
           this._container.removeEventListener("scroll", this._scrollHandler);
         }
+        this._cleanups.forEach((c) => { c(); });
+        this._cleanups = [];
       }
 
       render() {
-        const instance = this as unknown as Record<string, unknown>;
-        const items = (instance.items as unknown[] | undefined) ?? [];
+        const host = this as unknown as VirtualHost;
+        const items = host.items ?? [];
         const total = items.length;
         const totalH = total * itemHeight;
 
-        const renderItem = instance.renderItem as
-          | ((item: unknown, i: number) => VNode | null)
-          | undefined;
-        if (!renderItem) {
+        if (typeof host.renderItem !== "function") {
           console.warn(
             `[Virtual] ${constructor.name} must implement renderItem(item, index)`,
           );
           return null;
         }
+
+        const renderItem = host.renderItem.bind(host);
 
         const startIdx = computed(() => {
           const start = Math.floor(this._scrollTop() / itemHeight) - buffer;
@@ -70,7 +77,7 @@ export function Virtual(itemHeight: number, buffer = 3) {
         });
 
         const visibleItems = computed(() => {
-          const result = [];
+          const result: Array<{ item: unknown; index: number }> = [];
           for (let i = startIdx(); i <= endIdx(); i++) {
             result.push({ item: items[i], index: i });
           }
@@ -82,22 +89,58 @@ export function Virtual(itemHeight: number, buffer = 3) {
           () => (total - 1 - endIdx()) * itemHeight,
         );
 
-        return (
-          <div style={`height:${String(totalH)}px; position:relative;`}>
-            <div style={() => `height:${String(offsetTop())}px;`} />
-            {() =>
-              visibleItems().map(({ item, index }) => (
-                <div
-                  key={String(index)}
-                  style={`height:${String(itemHeight)}px; overflow:hidden;`}
-                >
-                  {renderItem.call(this, item, index)}
-                </div>
-              ))
+        const outer = document.createElement("div");
+        outer.setAttribute(
+          "style",
+          `height:${String(totalH)}px; position:relative;`,
+        );
+
+        const spacerTop = document.createElement("div");
+        this._cleanups.push(
+          effect(() => {
+            spacerTop.setAttribute("style", `height:${String(offsetTop())}px;`);
+          }),
+        );
+
+        const itemsSlot = document.createElement("div");
+        this._cleanups.push(
+          effect(() => {
+            while (itemsSlot.firstChild) {
+              itemsSlot.removeChild(itemsSlot.firstChild);
             }
-            <div style={() => `height:${String(offsetBottom())}px;`} />
-          </div>
-        ) as unknown as VNode;
+            visibleItems().forEach(({ item, index }) => {
+              const wrapper = document.createElement("div");
+              wrapper.setAttribute(
+                "style",
+                `height:${String(itemHeight)}px; overflow:hidden;`,
+              );
+              const rendered = renderItem(item, index);
+              if (rendered) {
+                const nodes = (
+                  Array.isArray(rendered) ? rendered.flat() : [rendered]
+                );
+                nodes.forEach((n) => wrapper.appendChild(n));
+              }
+              itemsSlot.appendChild(wrapper);
+            });
+          }),
+        );
+
+        const spacerBottom = document.createElement("div");
+        this._cleanups.push(
+          effect(() => {
+            spacerBottom.setAttribute(
+              "style",
+              `height:${String(offsetBottom())}px;`,
+            );
+          }),
+        );
+
+        outer.appendChild(spacerTop);
+        outer.appendChild(itemsSlot);
+        outer.appendChild(spacerBottom);
+
+        return outer;
       }
     } as unknown as T;
   };

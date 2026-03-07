@@ -1,44 +1,42 @@
-import { type BaseComponent, when } from "@praxisjs/core";
-import { isComputed } from "@praxisjs/shared";
+import type { StatefulComponent } from "@praxisjs/core";
+import { when } from "@praxisjs/core/internal";
+import type { Computed, Signal } from "@praxisjs/shared";
+import { isComputed } from "@praxisjs/shared/internal";
 
 export function When(propName: string) {
   return function (
-    target: object,
-    _methodKey: string,
-    descriptor: PropertyDescriptor,
-  ): PropertyDescriptor {
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const originalOnMount = (target as { onMount?(): void }).onMount;
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const originalOnUnmount = (target as { onUnmount?(): void }).onUnmount;
-
-    const method = descriptor.value as (value: unknown) => void;
+    value: (this: StatefulComponent, val: unknown) => void,
+    context: ClassMethodDecoratorContext<StatefulComponent>,
+  ): void {
     const cancels = new WeakMap<object, () => void>();
 
-    (target as { onMount?(): void }).onMount = function (this: BaseComponent) {
-      originalOnMount?.call(this);
+    context.addInitializer(function (this: unknown) {
+      const instance = this as StatefulComponent;
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalOnMount = instance.onMount;
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalOnUnmount = instance.onUnmount;
 
-      const instance = this as unknown as Record<string, unknown>;
-      const source = () => {
-        const raw = instance[propName];
-        return isComputed(raw) ? (raw as unknown as () => unknown)() : raw;
+      instance.onMount = function (this: StatefulComponent) {
+        originalOnMount?.call(this);
+
+        const raw = (this as unknown as Record<string, unknown>)[propName];
+        const source = isComputed(raw)
+          ? (raw as Computed<unknown>)
+          : (raw as Signal<unknown>);
+
+        const cancel = when(source, (val) => {
+          value.call(this, val);
+        });
+
+        cancels.set(this, cancel);
       };
 
-      const cancel = when(source, (value) => {
-        method.call(this, value);
-      });
-
-      cancels.set(this, cancel);
-    };
-
-    (target as { onUnmount?(): void }).onUnmount = function (
-      this: BaseComponent,
-    ) {
-      originalOnUnmount?.call(this);
-      cancels.get(this)?.();
-      cancels.delete(this);
-    };
-
-    return descriptor;
+      instance.onUnmount = function (this: StatefulComponent) {
+        originalOnUnmount?.call(this);
+        cancels.get(this)?.();
+        cancels.delete(this);
+      };
+    });
   };
 }

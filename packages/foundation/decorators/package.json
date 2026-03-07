@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@praxisjs/core": "workspace:*",
-    "@praxisjs/jsx": "workspace:*",
     "@praxisjs/shared": "workspace:*"
   }
 }
