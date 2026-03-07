@@ -2,6 +2,7 @@
 "@praxisjs/jsx": patch
 "@praxisjs/decorators": patch
 "@praxisjs/devtools": patch
+"create-praxisjs": patch
 ---
 
 Fix JSX prop typing for `StatelessComponent` to automatically accept reactive values (`() => T`) without requiring manual declaration. `LibraryManagedAttributes` now uses `InstancePropsOf` directly instead of intersecting with the raw constructor props, preventing the erroneous `T | (T & (() => T))` type expansion.
