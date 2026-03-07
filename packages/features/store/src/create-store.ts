@@ -1,4 +1,4 @@
-import { signal, effect } from "@praxisjs/core";
+import { signal, effect } from "@praxisjs/core/internal";
 
 export function createStore<T extends Record<string, unknown>>(
   definition: T & ThisType<T>,
@@ -7,7 +7,8 @@ export function createStore<T extends Record<string, unknown>>(
   const methods: Record<string, (...args: unknown[]) => unknown> = {};
 
   for (const [key, value] of Object.entries(definition)) {
-    if (typeof value === "function") methods[key] = value as (...args: unknown[]) => unknown;
+    if (typeof value === "function")
+      methods[key] = value as (...args: unknown[]) => unknown;
     else initialState[key] = value;
   }
 
@@ -20,7 +21,8 @@ export function createStore<T extends Record<string, unknown>>(
     get(_t, key: string | symbol) {
       if (typeof key !== "string") return undefined;
       if (key in methods)
-        return (...args: unknown[]): unknown => methods[key].call(store, ...args);
+        return (...args: unknown[]): unknown =>
+          methods[key].call(store, ...args);
       if (key === "$subscribe") return subscribe;
       if (key === "$reset") return reset;
       if (key === "$patch") return patch;
@@ -47,7 +49,9 @@ export function createStore<T extends Record<string, unknown>>(
   }
 
   function subscribe(fn: (state: Record<string, unknown>) => void): () => void {
-    return effect(() => { fn(getState()); });
+    return effect(() => {
+      fn(getState());
+    });
   }
 
   function reset(): void {
