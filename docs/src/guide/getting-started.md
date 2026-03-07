@@ -122,9 +122,7 @@ Configure TypeScript to use the PraxisJS JSX runtime:
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "jsxImportSource": "@praxisjs/jsx",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "useDefineForClassFields": false,
+    "useDefineForClassFields": true,
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true
