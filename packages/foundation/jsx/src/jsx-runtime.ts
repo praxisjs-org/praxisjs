@@ -1,55 +1,56 @@
 import {
-  type Children,
-  flattenChildren,
-  type ChildrenInternal,
-  type ComponentConstructor,
-  type FunctionComponent,
-  type VNode,
-} from "@praxisjs/shared";
+  mountElement,
+  mountComponent,
+  getCurrentScope,
+} from "@praxisjs/runtime";
+import type { Children } from "@praxisjs/shared";
+import { isComponent, type ComponentConstructor } from "@praxisjs/shared/internal";
+
+export const Fragment = Symbol("Fragment");
 
 type PropsOf<T> = T extends string
   ? JSX.IntrinsicElements[T]
   : T extends ComponentConstructor<infer P>
     ? P
-    : T extends FunctionComponent<infer P>
-      ? P
-      : Record<string, unknown>;
+    : Record<string, unknown>;
 
 type Reactive<T> = T | (() => T);
 
-export function jsx<T extends VNode["type"]>(
+export function jsx<T extends string | ComponentConstructor | symbol>(
   type: T,
-  props: PropsOf<T> & { children?: ChildrenInternal | ChildrenInternal[] },
-  key?: string | number,
-): VNode {
-  const { children: raw, ...rest } = props;
-  const children: ChildrenInternal[] = [];
+  props: PropsOf<T> & { children?: unknown },
+): Node | Node[] {
+  const scope = getCurrentScope();
 
-  if (raw !== undefined) {
-    if (Array.isArray(raw)) {
-      const flatted = flattenChildren(raw);
-      children.push(...flatted);
-    } else {
-      children.push(raw);
-    }
+  if (type === Fragment) {
+    const { children } = props;
+    if (!children) return [];
+    if (Array.isArray(children)) return children.flat(Infinity) as Node[];
+    if (children instanceof Node) return [children];
+    return [];
   }
 
-  return {
-    type,
-    props: rest,
-    children,
-    key,
-  };
+  if (typeof type === "string") {
+    return mountElement(type, props as Record<string, unknown>, scope);
+  }
+
+  if (isComponent(type)) {
+    return mountComponent(
+      type,
+      props as Record<string, unknown>,
+      scope,
+    );
+  }
+
+  return document.createComment("?");
 }
 
 export const jsxs = jsx;
 export const jsxDEV = jsx;
 
-export const Fragment = Symbol("Fragment");
-
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace JSX {
-  export type Element = VNode;
+  export type Element = Node | Node[];
 
   interface GlobalAttributes {
     key?: string | number | symbol;

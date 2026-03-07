@@ -27,6 +27,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@praxisjs/runtime": "workspace:*",
     "@praxisjs/shared": "workspace:*"
   }
 }
