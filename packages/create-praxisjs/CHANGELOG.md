@@ -1,5 +1,11 @@
 # create-praxisjs
 
+## 0.3.2
+
+### Patch Changes
+
+- 339a97d: Bump `@praxisjs/jsx` to `^0.2.1` in scaffolded project templates to pick up reactive component prop typing support.
+
 ## 0.3.1
 
 ### Patch Changes

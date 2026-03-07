@@ -1,5 +1,13 @@
 # playground
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [339a97d]
+  - @praxisjs/jsx@0.3.0
+  - @praxisjs/router@0.2.2
+
 ## 0.1.4
 
 ### Patch Changes

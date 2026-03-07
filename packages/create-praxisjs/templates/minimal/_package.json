@@ -12,7 +12,7 @@
   "dependencies": {
     "@praxisjs/core": "^0.4.0",
     "@praxisjs/decorators": "^0.4.0",
-    "@praxisjs/jsx": "^0.2.1",
+    "@praxisjs/jsx": "^0.3.0",
     "@praxisjs/runtime": "^0.2.1"
   },
   "devDependencies": {
