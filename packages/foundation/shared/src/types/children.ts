@@ -32,7 +32,8 @@ export interface ComponentConstructor<P = Record<string, unknown>> {
   name: string;
 }
 
-export type ComponentElement = new (...args: unknown[]) => ComponentInstance;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ComponentElement = new (...args: any[]) => ComponentInstance;
 
 export interface ComponentInstance {
   _mounted: boolean;
