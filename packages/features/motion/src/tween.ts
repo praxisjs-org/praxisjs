@@ -1,4 +1,4 @@
-import { signal, computed, effect } from "@praxisjs/core";
+import { signal, computed, effect } from "@praxisjs/core/internal";
 import type { Computed, Signal } from "@praxisjs/shared";
 
 import { resolveEasing, type Easing } from "./easings";
