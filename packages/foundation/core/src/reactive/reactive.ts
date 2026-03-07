@@ -4,14 +4,13 @@ import { signal } from "../signal";
 import { effect } from "../signal/effect";
 
 export function when<T>(
-  source: Signal<T> | Computed<T> | (() => T),
+  source: Signal<T> | Computed<T>,
   fn: (value: NonNullable<T>) => void,
 ) {
-  const read = typeof source === "function" ? source : (source as () => T);
   let disposed = false;
 
   const stop = effect(() => {
-    const value = read();
+    const value = source();
     if (!value || disposed) return;
 
     disposed = true;
@@ -22,7 +21,7 @@ export function when<T>(
   return stop;
 }
 
-export function until<T>(source: Signal<T> | Computed<T> | (() => T)) {
+export function until<T>(source: Signal<T> | Computed<T>) {
   return new Promise<NonNullable<T>>((resolve) => {
     const stop = when(source, (value) => {
       resolve(value);
@@ -32,16 +31,12 @@ export function until<T>(source: Signal<T> | Computed<T> | (() => T)) {
   });
 }
 
-export function debounced<T>(
-  source: Signal<T> | Computed<T> | (() => T),
-  ms: number,
-) {
-  const read = typeof source === "function" ? source : (source as () => T);
-  const current = signal<T>(read());
+export function debounced<T>(source: Signal<T> | Computed<T>, ms: number) {
+  const current = signal<T>(source());
   let timeout: ReturnType<typeof setTimeout> | undefined;
 
   effect(() => {
-    const value = read();
+    const value = source();
     if (timeout) clearTimeout(timeout);
     timeout = setTimeout(() => {
       current.set(value);

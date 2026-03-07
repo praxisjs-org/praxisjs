@@ -43,6 +43,7 @@ export function computed<T>(computeFn: () => T): Computed<T> {
 
   const computedSignal = read as Computed<T>;
   computedSignal.subscribe = subscribe;
+  computedSignal.__isComputed = true;
 
   return computedSignal;
 }

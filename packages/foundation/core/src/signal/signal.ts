@@ -15,7 +15,6 @@ export function signal<T>(initialValue: T): Signal<T> {
 
   function set(newValue: T) {
     if (Object.is(value, newValue)) return;
-
     value = newValue;
     [...subscribers].forEach((sub) => {
       sub();
@@ -39,6 +38,7 @@ export function signal<T>(initialValue: T): Signal<T> {
   signal.set = set;
   signal.update = update;
   signal.subscribe = subscribe;
+  signal.__isSignal = true;
 
   return signal;
 }

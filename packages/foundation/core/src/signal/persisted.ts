@@ -82,6 +82,7 @@ export function persistedSignal<T>(
   source.set = set;
   source.update = update;
   source.subscribe = inner.subscribe.bind(inner);
+  source.__isSignal = true;
 
   return source;
 }

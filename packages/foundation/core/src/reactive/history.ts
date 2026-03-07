@@ -1,4 +1,5 @@
-import { type Computed, isSignal, type Signal } from "@praxisjs/shared";
+import type { Computed, Signal } from "@praxisjs/shared";
+import { isSignal } from "@praxisjs/shared/internal";
 
 import { computed, signal, peek } from "../signal";
 import { effect } from "../signal/effect";
@@ -14,20 +15,18 @@ export interface HistoryElement<T> {
 }
 
 export function history<T>(
-  source: Signal<T> | Computed<T> | (() => T),
+  source: Signal<T> | Computed<T>,
   limit = 50,
 ): HistoryElement<T> {
-  const read = typeof source === "function" ? source : (source as () => T);
-
   const _past = signal<T[]>([]);
   const _future = signal<T[]>([]);
-  const _current = signal<T>(read());
+  const _current = signal<T>(source());
 
   let _ignoreNext = false;
   let _initialized = false;
 
   effect(() => {
-    const value = read();
+    const value = source();
 
     if (!_initialized) {
       _initialized = true;
