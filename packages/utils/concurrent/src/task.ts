@@ -1,4 +1,4 @@
-import { signal, computed } from "@praxisjs/core";
+import { signal, computed } from "@praxisjs/core/internal";
 import type { Computed } from "@praxisjs/shared";
 
 export interface TaskInstance<T> {
