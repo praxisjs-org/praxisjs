@@ -1,3 +1,5 @@
+import { computed } from "@praxisjs/core/internal";
+
 import { Registry } from "../core/registry";
 
 export interface DebugOptions {
@@ -24,6 +26,15 @@ interface ComputedSlot {
   unsub: () => void;
 }
 
+interface DebugDecorator {
+  (
+    value: (...args: unknown[]) => unknown,
+    context: ClassMethodDecoratorContext,
+  ): (...args: unknown[]) => unknown;
+  (value: unknown, context: ClassGetterDecoratorContext): void;
+  (value: undefined, context: ClassFieldDecoratorContext): void;
+}
+
 /**
  * Tracks state, computed values, and methods in the devtools panel.
  *
@@ -31,18 +42,22 @@ interface ComputedSlot {
  *   @Debug()
  *   @State() count = 0;
  *
- * On computed class fields:
- *   @Debug()
- *   doubled = computed(() => this.count * 2);
+ * On @Computed() getters (stacked):
+ *   @Debug({ label: "doubled" })
+ *   @Computed()
+ *   get doubled() { return this.count * 2; }
  *
  * On methods:
  *   @Debug()
  *   increment() { ... }
  */
-export function Debug(options: DebugOptions = {}) {
-  return function (
+export function Debug(options: DebugOptions = {}): DebugDecorator {
+  const impl = function (
     value: unknown,
-    context: ClassMethodDecoratorContext | ClassFieldDecoratorContext,
+    context:
+      | ClassMethodDecoratorContext
+      | ClassGetterDecoratorContext
+      | ClassFieldDecoratorContext,
   ) {
     const label = options.label ?? (context.name as string);
 
@@ -76,6 +91,39 @@ export function Debug(options: DebugOptions = {}) {
 
         return result;
       };
+    }
+
+    // ── Getter decorator (@Computed() getters) ────────────────────────────
+    if (context.kind === "getter") {
+      const originalGetter = value as (this: object) => unknown;
+
+      context.addInitializer(function (this: unknown) {
+        const instance = this as object & Record<string, unknown>;
+        const componentName = (instance.constructor as { name: string }).name;
+
+        // Defer until the current synchronous class initialization (including
+        // field initializers like `count = 0`) has fully completed. Without
+        // this, accessing `this.doubled` here could read state signals before
+        // their field initializers have run, producing NaN or undefined.
+        queueMicrotask(() => {
+          const c = computed(() => originalGetter.call(instance));
+          let skipFirst = true;
+          let prevValue = c();
+
+          Registry.instance.registerSignal(instance, label, prevValue, componentName);
+
+          c.subscribe((newValue) => {
+            if (skipFirst) {
+              skipFirst = false;
+              return;
+            }
+            Registry.instance.updateSignal(instance, label, newValue, prevValue);
+            prevValue = newValue;
+          });
+        });
+      });
+
+      return;
     }
 
     // ── Field decorator ───────────────────────────────────────────────────
@@ -183,4 +231,6 @@ export function Debug(options: DebugOptions = {}) {
         });
     });
   };
+
+  return impl as DebugDecorator;
 }

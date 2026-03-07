@@ -17,10 +17,10 @@ export default defineConfig({
       { text: "Guide", link: "/guide/getting-started" },
       { text: "Reference", link: "/packages/core" },
       {
-        text: "v0.3.0 beta",
+        text: "v0.4.0 beta",
         items: [
           {
-            text: "v0.3.0 beta",
+            text: "v0.4.0 beta",
             link: "/project-status",
           },
         ],

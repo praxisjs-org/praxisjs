@@ -1,6 +1,6 @@
 import type { Computed } from "@praxisjs/shared";
 
-import { track, activeEffect, runEffect, type Effect } from "./effect";
+import { activeEffect, runEffect, type Effect } from "./effect";
 
 export function computed<T>(computeFn: () => T): Computed<T> {
   let cachedValue: T;
@@ -38,8 +38,6 @@ export function computed<T>(computeFn: () => T): Computed<T> {
     wrappedEffect();
     return () => subscribers.delete(wrappedEffect);
   }
-
-  track(recompute);
 
   const computedSignal = read as Computed<T>;
   computedSignal.subscribe = subscribe;

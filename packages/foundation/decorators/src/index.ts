@@ -15,6 +15,7 @@ export {
 export {
   Prop,
   State,
+  Computed,
   Persisted,
   Slot,
   initSlots,

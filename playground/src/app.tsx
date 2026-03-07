@@ -1,5 +1,6 @@
 import { StatefulComponent, StatelessComponent } from "@praxisjs/core";
-import { Component, State, Watch } from "@praxisjs/decorators";
+import { Component, Computed, State, Watch } from "@praxisjs/decorators";
+import { Debug, Trace } from "@praxisjs/devtools";
 import { Signal } from "@praxisjs/shared";
 
 @Component()
@@ -30,28 +31,28 @@ function TesteV() {
   return <span>asdasdasdas</span>;
 }
 
+@Trace()
 @Component()
 export class App extends StatefulComponent {
-  @State() count: Array<number> = [10, 12];
-  // @State() value = 10;
+  @Debug()
+  @State()
+  count = 0;
 
-  // @Watch("value")
-  // checkValue(value: any) {
-  //   console.log(value);
-  // }
+  @Debug({ label: "doubled" })
+  @Computed()
+  get doubled() {
+    return this.count * 2;
+  }
 
   increment() {
-    const numero = Math.random();
-    this.count = [...this.count, numero];
-    // this.value++;
+    this.count++;
   }
 
   render() {
     return (
       <div class="app">
-        <span class="count-value">
-          {() => this.count.map((e) => <ListItem value={e} />)}
-        </span>
+        <span class="count-value">{() => this.count}</span>
+        <span>double: {() => this.doubled}</span>
         <button
           onClick={() => {
             this.increment();

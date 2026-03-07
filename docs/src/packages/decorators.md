@@ -132,6 +132,38 @@ Setting the property to `null` or `undefined` removes the entry from `localStora
 flags: string[] = []
 ```
 
+### `@Computed()`
+
+Declares a read-only reactive getter backed by a cached `computed()` signal. The value is recomputed automatically whenever a `@State` or `@Prop` it reads changes. Use it instead of plain getters when the derived value is expensive or used in reactive templates.
+
+```ts
+import { Component, State, Computed } from "@praxisjs/decorators";
+import { StatefulComponent } from "@praxisjs/core";
+
+@Component()
+class Cart extends StatefulComponent {
+  @State() items: { name: string; price: number }[] = []
+
+  @Computed()
+  get total() {
+    return this.items.reduce((sum, p) => sum + p.price, 0)
+  }
+
+  render() {
+    return (
+      <div>
+        <ul>{() => this.items.map((p) => <li>{p.name}</li>)}</ul>
+        <p>Total: {() => this.total}</p>
+      </div>
+    )
+  }
+}
+```
+
+::: tip
+A plain getter (`get total() { ... }`) recalculates every time it is read. `@Computed()` caches the result and only recomputes when a signal dependency changes.
+:::
+
 ---
 
 ## Watching State

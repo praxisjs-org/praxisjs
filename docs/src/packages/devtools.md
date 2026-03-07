@@ -160,10 +160,10 @@ class Counter extends StatefulComponent {
 
 Every time `count` changes, the new value is recorded in the Signals tab with a full history trail.
 
-#### On a `computed()` field
+#### On a `@Computed()` getter
 
 ```ts
-import { computed } from "@praxisjs/core";
+import { Component, State, Computed, Debug, Trace } from "@praxisjs/decorators";
 
 @Trace()
 @Component()
@@ -173,7 +173,10 @@ class Counter extends StatefulComponent {
   count = 0;
 
   @Debug({ label: "doubled" })
-  doubled = computed(() => this.count * 2);
+  @Computed()
+  get doubled() {
+    return this.count * 2;
+  }
 }
 ```
 

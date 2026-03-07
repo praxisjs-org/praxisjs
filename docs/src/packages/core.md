@@ -22,6 +22,58 @@ yarn add @praxisjs/core
 
 Base classes for PraxisJS class components. Exported from `@praxisjs/core`.
 
+## Reactivity
+
+PraxisJS uses **fine-grained signals** as its reactivity primitive. You don't create signals manually — decorators like `@State()` and `@Prop()` create and wire them automatically for each decorated property.
+
+- `@State()` wraps the property in a writable signal. Reading `this.count` returns the current value; assigning `this.count = 1` updates the signal and triggers any dependent effects.
+- `@Prop()` wraps incoming props in signals so changes from the parent propagate reactively to the child.
+- `@Computed()` derives a read-only cached value from other signals; it recomputes only when a dependency changes.
+- `@Persisted()` works like `@State()` but the signal is backed by `localStorage` and survives page reloads.
+
+### Render runs once
+
+`render()` is called **only once** on mount. To keep a value live in the DOM, pass it as an arrow function:
+
+```tsx
+@Component()
+class Counter extends StatefulComponent {
+  @State() count = 0
+
+  render() {
+    return (
+      <div>
+        <p>{() => this.count}</p>
+        <button onClick={() => { this.count++ }}>+</button>
+      </div>
+    )
+  }
+}
+```
+
+`{() => this.count}` is wrapped in an `effect()` by the renderer and patches only that DOM node when the signal changes. Writing `{this.count}` would capture the value at mount time and never update.
+
+### Derived state with `@Computed()`
+
+```tsx
+import { Component, State, Computed } from "@praxisjs/decorators";
+import { StatefulComponent } from "@praxisjs/core";
+
+@Component()
+class Cart extends StatefulComponent {
+  @State() items: { price: number }[] = []
+
+  @Computed()
+  get total() {
+    return this.items.reduce((sum, p) => sum + p.price, 0)
+  }
+
+  render() {
+    return <p>Total: {() => this.total}</p>
+  }
+}
+```
+
 ## StatefulComponent
 
 Abstract base class for class components that use decorators (`@State`, `@Prop`, etc.). Provides the props system and lifecycle method stubs.
