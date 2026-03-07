@@ -7,7 +7,7 @@ import { TimelinePlugin } from "@plugins/timeline";
 import unoReset from "@unocss/reset/tailwind-v4.css?inline";
 
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, State } from "@praxisjs/decorators";
+import { Component, Prop, State } from "@praxisjs/decorators";
 import { render } from "@praxisjs/runtime";
 
 import { Panel } from "./panel";
@@ -27,23 +27,17 @@ export interface DevToolsOptions {
 @Component()
 class DevToolsApp extends StatefulComponent {
   @State() open = false;
-
-  private get p() {
-    return this.props as unknown as {
-      plugins: DevtoolsPlugin[];
-      registry: Registry;
-    };
-  }
+  @Prop() plugins: DevtoolsPlugin[] = [];
+  @Prop() registry: Registry | undefined;
 
   render() {
-    const { plugins, registry } = this.p;
     return (
       <div>
         {() =>
           this.open ? (
             <Panel
-              plugins={plugins}
-              registry={registry}
+              plugins={this.plugins}
+              registry={this.registry}
               onClose={() => {
                 this.open = false;
               }}

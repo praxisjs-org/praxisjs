@@ -132,6 +132,30 @@ Setting the property to `null` or `undefined` removes the entry from `localStora
 flags: string[] = []
 ```
 
+::: warning Arrays and objects
+`@State()` only detects changes when the **reference changes**. Mutating an array or object in-place (e.g. `push`, `splice`, property assignment) will not trigger reactivity.
+
+Always replace the value with a new reference:
+
+```ts
+// ✅ reactive — new array reference
+this.items = [...this.items, newItem]
+
+// ❌ not reactive — mutates in-place
+this.items.push(newItem)
+```
+
+The same applies to objects:
+
+```ts
+// ✅ reactive
+this.config = { ...this.config, theme: 'dark' }
+
+// ❌ not reactive
+this.config.theme = 'dark'
+```
+:::
+
 ### `@Computed()`
 
 Declares a read-only reactive getter backed by a cached `computed()` signal. The value is recomputed automatically whenever a `@State` or `@Prop` it reads changes. Use it instead of plain getters when the derived value is expensive or used in reactive templates.
@@ -281,6 +305,19 @@ class Input extends StatefulComponent {
   }
 }
 ```
+
+**JSX typing:** If you don't declare the callback with `@Prop()`, TypeScript won't include it in the component's JSX props. Add a `declare` field alongside the `@Emit` method to expose it:
+
+```ts
+@Component()
+class Panel extends StatefulComponent {
+  @Emit('onClose')
+  handleClose() {}
+  declare onClose: (() => void) | undefined  // exposes `onClose` in JSX props
+}
+```
+
+The `declare` field generates no runtime code — it's a type-only annotation that `InstancePropsOf` picks up to make `<Panel onClose={...} />` valid.
 
 ### `@OnCommand(propName)`
 

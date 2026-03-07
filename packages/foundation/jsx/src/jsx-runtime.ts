@@ -55,38 +55,47 @@ export namespace JSX {
     key?: string | number | symbol;
   }
 
+  // Resolves to `true` when T is the `any` type.
+  type IsAny<T> = 0 extends 1 & T ? true : false;
+
   // Infer props from the class instance properties
   // (excludes lifecycle and methods)
   type InstancePropsOf<C> = C extends { prototype: infer I }
-    ? {
-        [K in keyof I as K extends
-          | "_defaults"
-          | "_stateDirty"
-          | "_rawProps"
-          | "_mounted"
-          | "_anchor"
-          | "_setProps"
-          | "props"
-          | "onBeforeMount"
-          | "onMount"
-          | "onUnmount"
-          | "onError"
-          | "render"
-          | "onUpdate"
-          ? never
-          : I[K] extends (...args: unknown[]) => unknown
-            ? never
-            : K]?: Reactive<I[K]>;
-      }
+    ? IsAny<I> extends true
+      ? never // raw construct-type alias — prototype resolves to `any`
+      : I extends { _rawProps: infer RawProps extends object }
+        ? [string] extends [keyof RawProps]
+          ? {
+              [K in keyof I as K extends
+                | "_defaults"
+                | "_stateDirty"
+                | "_rawProps"
+                | "_mounted"
+                | "_anchor"
+                | "_setProps"
+                | "props"
+                | "onBeforeMount"
+                | "onMount"
+                | "onUnmount"
+                | "onError"
+                | "render"
+                | "onUpdate"
+                ? never
+                : I[K] extends (...args: unknown[]) => unknown
+                  ? never
+                  : K]?: Reactive<I[K]>;
+            }
+          : { [K in keyof RawProps]?: Reactive<RawProps[K]> }
+        : never
     : never;
 
-  export type LibraryManagedAttributes<C, P> = P &
-    (C extends string
-      ? Record<never, never>
-      : InstancePropsOf<C> extends never
-        ? Record<never, never>
-        : InstancePropsOf<C>) &
-    GlobalAttributes;
+  export type LibraryManagedAttributes<C, P> = C extends string
+    ? P & GlobalAttributes
+    : [InstancePropsOf<C>] extends [never]
+      ? C extends new (props: infer CtorProps) => unknown
+        ? { [K in keyof CtorProps]?: Reactive<CtorProps[K]> } & GlobalAttributes
+        : Record<string, unknown> & GlobalAttributes
+      : InstancePropsOf<C> & GlobalAttributes;
 
   export interface IntrinsicElements {
     div: HTMLAttributes;

@@ -4,13 +4,15 @@ import { readProp } from "./helper";
 
 export function Emit(propName: string) {
   return function (
-    value: (this: StatefulComponent, ...args: unknown[]) => unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    value: (this: StatefulComponent, ...args: any[]) => any,
     context: ClassMethodDecoratorContext<StatefulComponent>,
   ): void {
     const wrapped = function (
       this: StatefulComponent,
       ...args: unknown[]
     ): unknown {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const result = value.apply(this, args);
 
       const callback = readProp(this, propName);

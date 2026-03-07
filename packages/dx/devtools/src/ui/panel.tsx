@@ -10,17 +10,11 @@ import {
 import { IconButton } from "@shared/icon-button";
 
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, State } from "@praxisjs/decorators";
+import { Component, Emit, Prop, State } from "@praxisjs/decorators";
 import type { ComponentElement } from "@praxisjs/shared";
 
 import type { Registry } from "@core/registry";
 import type { DevtoolsPlugin } from "@plugins/types";
-
-interface PanelProps {
-  plugins: DevtoolsPlugin[];
-  registry: Registry;
-  onClose: () => void;
-}
 
 type Dock = "bottom" | "top" | "left" | "right";
 
@@ -44,12 +38,17 @@ export class Panel extends StatefulComponent {
   @State() bottomSize = DEFAULT_HEIGHT;
   @State() vertSize = DEFAULT_WIDTH;
 
-  private get p() {
-    return this.props as unknown as PanelProps;
-  }
+  @Prop() plugins: DevtoolsPlugin[] = [];
+  @Prop() registry: Registry | undefined;
 
-  onBeforeMount() {
-    this.activeTab = this.p.plugins[0]?.id ?? "";
+  @Emit("onClose")
+  handleClose() {
+    return;
+  }
+  declare onClose: (() => void) | undefined;
+
+  onMount() {
+    if (this.plugins.length > 0) this.activeTab = this.plugins[0].id;
   }
 
   handleMouseDown(e: MouseEvent) {
@@ -81,18 +80,12 @@ export class Panel extends StatefulComponent {
       } else if (d === "left") {
         this.vertSize = Math.max(
           MIN_WIDTH,
-          Math.min(
-            window.innerWidth * 0.6,
-            startSize + (ev.clientX - startX),
-          ),
+          Math.min(window.innerWidth * 0.6, startSize + (ev.clientX - startX)),
         );
       } else {
         this.vertSize = Math.max(
           MIN_WIDTH,
-          Math.min(
-            window.innerWidth * 0.6,
-            startSize + (startX - ev.clientX),
-          ),
+          Math.min(window.innerWidth * 0.6, startSize + (startX - ev.clientX)),
         );
       }
     };
@@ -107,7 +100,7 @@ export class Panel extends StatefulComponent {
   }
 
   render() {
-    const { plugins, registry, onClose } = this.p;
+    // const { plugins, registry, onClose } = this.p;
     return (
       <div
         class={() => {
@@ -128,13 +121,17 @@ export class Panel extends StatefulComponent {
               return "h-1 cursor-[ns-resize] bg-transparent hover:bg-accent transition-colors duration-200";
             return "w-1 cursor-[ew-resize] bg-transparent hover:bg-accent transition-colors duration-200";
           }}
-          onMouseDown={(e: MouseEvent) => { this.handleMouseDown(e); }}
+          onMouseDown={(e: MouseEvent) => {
+            this.handleMouseDown(e);
+          }}
         />
         <div
           class={() => {
             const d = this.dock;
-            if (d === "top") return "w-full h-full bg-bg border-b border-border";
-            if (d === "left") return "w-full h-full bg-bg border-r border-border";
+            if (d === "top")
+              return "w-full h-full bg-bg border-b border-border";
+            if (d === "left")
+              return "w-full h-full bg-bg border-r border-border";
             if (d === "right")
               return "w-full h-full bg-bg border-l border-border";
             return "w-full h-full bg-bg border-t border-border";
@@ -156,26 +153,28 @@ export class Panel extends StatefulComponent {
               </div>
 
               <div class="flex items-stretch flex-1">
-                {plugins.map((p) => (
-                  <button
-                    key={p.id}
-                    class={() =>
-                      this.activeTab === p.id
-                        ? "relative flex items-center px-3 text-[11px] font-semibold text-accent cursor-pointer"
-                        : "flex items-center px-3 text-[11px] text-muted cursor-pointer hover:text-text transition-colors duration-150"
-                    }
-                    onClick={() => {
-                      this.activeTab = p.id;
-                    }}
-                  >
-                    {p.label}
-                    {() =>
-                      this.activeTab === p.id ? (
-                        <span class="absolute bottom-0 left-0 right-0 h-[2px] bg-accent" />
-                      ) : null
-                    }
-                  </button>
-                ))}
+                {() =>
+                  this.plugins.map((p) => (
+                    <button
+                      key={p.id}
+                      class={() =>
+                        this.activeTab === p.id
+                          ? "relative flex items-center px-3 text-[11px] font-semibold text-accent cursor-pointer"
+                          : "flex items-center px-3 text-[11px] text-muted cursor-pointer hover:text-text transition-colors duration-150"
+                      }
+                      onClick={() => {
+                        this.activeTab = p.id;
+                      }}
+                    >
+                      {p.label}
+                      {() =>
+                        this.activeTab === p.id ? (
+                          <span class="absolute bottom-0 left-0 right-0 h-[2px] bg-accent" />
+                        ) : null
+                      }
+                    </button>
+                  ))
+                }
               </div>
 
               <div class="flex items-center gap-[2px] shrink-0">
@@ -212,15 +211,23 @@ export class Panel extends StatefulComponent {
 
                 <div class="w-px h-3 bg-border mx-1" />
 
-                <IconButton title="Close" icon={XIcon} onClick={onClose} />
+                <IconButton
+                  title="Close"
+                  icon={XIcon}
+                  onClick={() => {
+                    this.handleClose();
+                  }}
+                />
               </div>
             </div>
 
             <div class="flex-1 overflow-hidden flex flex-col">
               {() => {
-                const plugin = plugins.find((p) => p.id === this.activeTab);
+                const plugin = this.plugins.find(
+                  (p) => p.id === this.activeTab,
+                );
                 const Active = plugin?.component;
-                return Active ? <Active registry={registry} /> : null;
+                return Active ? <Active registry={this.registry} /> : null;
               }}
             </div>
           </div>
