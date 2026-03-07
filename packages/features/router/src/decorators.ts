@@ -1,11 +1,9 @@
 export function Route(path: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function <T extends new (...args: any[]) => any>(constructor: T): T {
-    Object.defineProperty(constructor, "__routePath", {
+  return function (value: abstract new (...args: unknown[]) => unknown, _context: ClassDecoratorContext): void {
+    Object.defineProperty(value, "__routePath", {
       value: path,
       writable: false,
       configurable: false,
     });
-    return constructor;
   };
 }
