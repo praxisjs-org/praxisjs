@@ -154,7 +154,7 @@
   --vp-code-color: var(--vp-c-brand-1);
   --vp-code-bg: var(--vp-c-brand-soft);
 
-  --vp-code-block-bg: #19162a;
+  --vp-code-block-bg: var(--vp-code-bg);
   --vp-code-block-color: #eae7ff;
   --vp-code-line-highlight-color: rgba(109, 91, 189, 0.15);
 
@@ -216,7 +216,7 @@
 }
 
 .VPHome .VPHero::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -100px;
   left: 50%;
@@ -225,9 +225,21 @@
   max-width: 1100px;
   height: 750px;
   background:
-    radial-gradient(ellipse 55% 45% at 35% 55%, rgba(109, 91, 189, 0.18) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 35% at 65% 40%, rgba(99, 102, 241, 0.12) 0%, transparent 70%),
-    radial-gradient(ellipse 30% 25% at 50% 85%, rgba(155, 144, 230, 0.08) 0%, transparent 70%);
+    radial-gradient(
+      ellipse 55% 45% at 35% 55%,
+      rgba(109, 91, 189, 0.18) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 40% 35% at 65% 40%,
+      rgba(99, 102, 241, 0.12) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 30% 25% at 50% 85%,
+      rgba(155, 144, 230, 0.08) 0%,
+      transparent 70%
+    );
   pointer-events: none;
   z-index: 0;
 }
@@ -247,9 +259,16 @@
 }
 
 @keyframes praxis-float {
-  0%, 100% { transform: translateY(0px); }
-  33%       { transform: translateY(-14px); }
-  66%       { transform: translateY(-7px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  33% {
+    transform: translateY(-14px);
+  }
+  66% {
+    transform: translateY(-7px);
+  }
 }
 
 /* ======================================================================
@@ -274,8 +293,12 @@
 }
 
 @keyframes praxis-shimmer {
-  0%   { background-position: 0% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 
 /* ======================================================================
@@ -283,7 +306,9 @@
  * ====================================================================== */
 
 .VPButton.brand {
-  transition: transform 0.2s ease, box-shadow 0.3s ease !important;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.3s ease !important;
 }
 
 .VPButton.brand:hover {
@@ -296,13 +321,16 @@
  * ====================================================================== */
 
 .VPFeatures .VPFeature {
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
   position: relative;
   overflow: hidden;
 }
 
 .VPFeatures .VPFeature::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(
@@ -326,4 +354,3 @@
 .VPFeatures .VPFeature:hover::after {
   opacity: 1;
 }
-
