@@ -1,5 +1,11 @@
 # create-praxisjs
 
+## 0.3.4
+
+### Patch Changes
+
+- fe39901: chore(create-praxisjs): bump dependencies to pick up bug fixes in core, decorators, router and store
+
 ## 0.3.3
 
 ### Patch Changes

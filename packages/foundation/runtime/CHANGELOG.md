@@ -1,5 +1,14 @@
 # @praxisjs/runtime
 
+## 0.2.3
+
+### Patch Changes
+
+- Updated dependencies [fe39901]
+- Updated dependencies [fe39901]
+  - @praxisjs/decorators@0.4.2
+  - @praxisjs/core@0.4.1
+
 ## 0.2.2
 
 ### Patch Changes

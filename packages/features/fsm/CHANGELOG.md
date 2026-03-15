@@ -1,5 +1,12 @@
 # @praxisjs/fsm
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [fe39901]
+  - @praxisjs/core@0.4.1
+
 ## 0.2.1
 
 ### Patch Changes
