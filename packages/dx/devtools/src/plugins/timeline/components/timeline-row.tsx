@@ -1,8 +1,7 @@
 import { time } from "@utils/format-time";
 
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, State } from "@praxisjs/decorators";
-
+import { Component, Prop, State } from "@praxisjs/decorators";
 
 import { Badge } from "./badge";
 
@@ -11,9 +10,12 @@ import type { TimelineEntry } from "@core/types";
 @Component()
 export class TimelineRow extends StatefulComponent {
   @State() open = false;
+  @Prop() entry: TimelineEntry | undefined;
 
   render() {
-    const { entry } = this.props as { entry: TimelineEntry };
+    const entry = this.entry;
+    if (!entry) return null;
+
     const hasData = Object.keys(entry.data).length > 0;
 
     return (

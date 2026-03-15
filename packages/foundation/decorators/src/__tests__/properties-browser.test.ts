@@ -40,10 +40,10 @@ describe("Persisted decorator", () => {
     Persisted<string>("theme")(undefined, ctx);
 
     const instance = new TestComponent();
-    (instance as Record<string, unknown>).theme = "light";
+    (instance as unknown as Record<string, unknown>).theme = "light";
     run(instance);
 
-    expect((instance as Record<string, unknown>).theme).toBe("light");
+    expect((instance as unknown as Record<string, unknown>).theme).toBe("light");
   });
 
   it("persists set value to localStorage", () => {
@@ -51,12 +51,12 @@ describe("Persisted decorator", () => {
     Persisted<string>("lang")(undefined, ctx);
 
     const instance = new TestComponent();
-    (instance as Record<string, unknown>).lang = "en";
+    (instance as unknown as Record<string, unknown>).lang = "en";
     run(instance);
 
-    (instance as Record<string, unknown>).lang = "pt";
+    (instance as unknown as Record<string, unknown>).lang = "pt";
     expect(localStorage.getItem("lang")).toBe('"pt"');
-    expect((instance as Record<string, unknown>).lang).toBe("pt");
+    expect((instance as unknown as Record<string, unknown>).lang).toBe("pt");
   });
 
   it("reads existing localStorage value over the initialValue", () => {
@@ -65,10 +65,10 @@ describe("Persisted decorator", () => {
     Persisted<string>("color")(undefined, ctx);
 
     const instance = new TestComponent();
-    (instance as Record<string, unknown>).color = "blue";
+    (instance as unknown as Record<string, unknown>).color = "blue";
     run(instance);
 
-    expect((instance as Record<string, unknown>).color).toBe("red");
+    expect((instance as unknown as Record<string, unknown>).color).toBe("red");
   });
 
   it("uses the property name as storage key when no explicit key given", () => {
@@ -76,10 +76,10 @@ describe("Persisted decorator", () => {
     Persisted<number>()(undefined, ctx);
 
     const instance = new TestComponent();
-    (instance as Record<string, unknown>).count = 0;
+    (instance as unknown as Record<string, unknown>).count = 0;
     run(instance);
 
-    (instance as Record<string, unknown>).count = 7;
+    (instance as unknown as Record<string, unknown>).count = 7;
     expect(localStorage.getItem("count")).toBe("7");
   });
 
@@ -91,18 +91,18 @@ describe("Persisted decorator", () => {
     Persisted<number>("valB")(undefined, ctxB);
 
     const a = new TestComponent();
-    (a as Record<string, unknown>).val = 1;
+    (a as unknown as Record<string, unknown>).val = 1;
     runA(a);
 
     const b = new TestComponent();
-    (b as Record<string, unknown>).val = 2;
+    (b as unknown as Record<string, unknown>).val = 2;
     runB(b);
 
-    (a as Record<string, unknown>).val = 10;
-    (b as Record<string, unknown>).val = 20;
+    (a as unknown as Record<string, unknown>).val = 10;
+    (b as unknown as Record<string, unknown>).val = 20;
 
-    expect((a as Record<string, unknown>).val).toBe(10);
-    expect((b as Record<string, unknown>).val).toBe(20);
+    expect((a as unknown as Record<string, unknown>).val).toBe(10);
+    expect((b as unknown as Record<string, unknown>).val).toBe(20);
   });
 });
 
@@ -116,7 +116,7 @@ describe("Slot decorator", () => {
     const instance = new TestComponent();
     run(instance);
 
-    expect((instance as Record<string, unknown>).default).toEqual([]);
+    expect((instance as unknown as Record<string, unknown>).default).toEqual([]);
   });
 
   it("returns default slot children after initSlots", () => {
@@ -129,7 +129,7 @@ describe("Slot decorator", () => {
     const el = document.createElement("span");
     initSlots(instance, [el]);
 
-    expect((instance as Record<string, unknown>).default).toContain(el);
+    expect((instance as unknown as Record<string, unknown>).default).toContain(el);
   });
 
   it("resolves named slot children", () => {
@@ -143,7 +143,7 @@ describe("Slot decorator", () => {
     el.setAttribute("slot", "header");
     initSlots(instance, [el]);
 
-    const result = (instance as Record<string, unknown>).header as unknown[];
+    const result = (instance as unknown as Record<string, unknown>).header as unknown[];
     expect(result).toHaveLength(1);
     expect(result[0]).toBe(el);
   });
@@ -173,7 +173,7 @@ describe("Slot decorator", () => {
     run(instance);
 
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    (instance as Record<string, unknown>).content = ["something"];
+    (instance as unknown as Record<string, unknown>).content = ["something"];
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("[Slot]"));
     warn.mockRestore();
 
@@ -191,7 +191,7 @@ describe("Slot decorator", () => {
     el.setAttribute("slot", "sidebar");
     initSlots(instance, [el]);
 
-    const result = (instance as Record<string, unknown>).sidebar as unknown[];
+    const result = (instance as unknown as Record<string, unknown>).sidebar as unknown[];
     expect(result).toHaveLength(1);
   });
 });

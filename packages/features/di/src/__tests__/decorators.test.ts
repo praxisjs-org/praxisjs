@@ -2,7 +2,13 @@ import "reflect-metadata";
 import { describe, it, expect, vi } from "vitest";
 
 import { Container, token } from "../container";
-import { Injectable, Inject, InjectContainer, useService, createScope } from "../decorators";
+import {
+  Injectable,
+  Inject,
+  InjectContainer,
+  useService,
+  createScope,
+} from "../decorators";
 
 // Each test group uses a fresh container to avoid state pollution
 function makeScope() {
@@ -15,7 +21,9 @@ describe("Injectable", () => {
   it("registers the class in the global container", () => {
     // We test via useService resolving without throwing
     class MyService {
-      greet() { return "hello"; }
+      greet() {
+        return "hello";
+      }
     }
     Injectable()(MyService, {} as ClassDecoratorContext);
     const instance = useService(MyService);
@@ -37,7 +45,9 @@ describe("Injectable", () => {
 describe("Inject", () => {
   it("injects a registered service via property", () => {
     class Logger {
-      log(msg: string) { return msg; }
+      log(msg: string) {
+        return msg;
+      }
     }
     Injectable()(Logger, {} as ClassDecoratorContext);
 
@@ -45,13 +55,17 @@ describe("Inject", () => {
     const ctx = {
       name: "logger",
       kind: "field" as const,
-      addInitializer(fn: (this: unknown) => void) { initializers.push(fn); },
+      addInitializer(fn: (this: unknown) => void) {
+        initializers.push(fn);
+      },
     } as ClassFieldDecoratorContext;
 
     Inject(Logger)(undefined, ctx);
 
     const instance: Record<string, unknown> = {};
-    initializers.forEach((fn) => { fn.call(instance); });
+    initializers.forEach((fn) => {
+      fn.call(instance);
+    });
 
     expect(instance.logger).toBeInstanceOf(Logger);
   });
@@ -63,14 +77,20 @@ describe("Inject", () => {
     const ctx = {
       name: "dep",
       kind: "field" as const,
-      addInitializer(fn: (this: unknown) => void) { initializers.push(fn); },
+      addInitializer(fn: (this: unknown) => void) {
+        initializers.push(fn);
+      },
     } as ClassFieldDecoratorContext;
 
     Inject(UnknownDep)(undefined, ctx);
 
-    class MyClass { constructor() {} }
+    class MyClass {
+      constructor() {}
+    }
     const instance = new MyClass() as Record<string, unknown>;
-    initializers.forEach((fn) => { fn.call(instance); });
+    initializers.forEach((fn) => {
+      fn.call(instance);
+    });
 
     expect(() => instance.dep).toThrow("[Inject]");
   });
@@ -83,15 +103,18 @@ describe("Inject", () => {
     const ctx = {
       name: "dep2",
       kind: "field" as const,
-      addInitializer(fn: (this: unknown) => void) { initializers.push(fn); },
+      addInitializer(fn: (this: unknown) => void) {
+        initializers.push(fn);
+      },
     } as ClassFieldDecoratorContext;
 
     Inject(Dep2)(undefined, ctx);
     const instance: Record<string, unknown> = {};
-    initializers.forEach((fn) => { fn.call(instance); });
+    initializers.forEach((fn) => {
+      fn.call(instance);
+    });
 
     const spy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    // @ts-expect-error — testing the setter
     instance.dep2 = "override";
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("[Inject]"));
     spy.mockRestore();
@@ -106,12 +129,16 @@ describe("InjectContainer", () => {
     const ctx = {
       name: "container",
       kind: "field" as const,
-      addInitializer(fn: (this: unknown) => void) { initializers.push(fn); },
+      addInitializer(fn: (this: unknown) => void) {
+        initializers.push(fn);
+      },
     } as ClassFieldDecoratorContext;
 
     InjectContainer()(undefined, ctx);
     const instance: Record<string, unknown> = {};
-    initializers.forEach((fn) => { fn.call(instance); });
+    initializers.forEach((fn) => {
+      fn.call(instance);
+    });
 
     expect(instance.container).toBeInstanceOf(Container);
   });
@@ -138,7 +165,9 @@ describe("createScope", () => {
 
   it("applies the configure callback", () => {
     const DB = token<string>("DB");
-    const child = createScope((c) => c.registerValue(DB, "postgres://localhost"));
+    const child = createScope((c) =>
+      c.registerValue(DB, "postgres://localhost"),
+    );
     expect(child.resolve(DB)).toBe("postgres://localhost");
   });
 });

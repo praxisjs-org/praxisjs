@@ -142,7 +142,7 @@ describe("useClipboard", () => {
   });
 
   it("warns and does not update state on clipboard failure", async () => {
-    (navigator.clipboard as { writeText: ReturnType<typeof vi.fn> }).writeText =
+    (navigator.clipboard as unknown as { writeText: ReturnType<typeof vi.fn> }).writeText =
       vi.fn().mockRejectedValue(new Error("denied"));
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { copy, copied } = useClipboard();

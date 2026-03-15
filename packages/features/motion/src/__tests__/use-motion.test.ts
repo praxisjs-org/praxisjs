@@ -39,16 +39,16 @@ describe("useMotion", () => {
     const ref = makeRef(el);
     const m = useMotion(ref);
 
-    let rafCallback: FrameRequestCallback | null = null;
+    const rafCallbacks: FrameRequestCallback[] = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
-      rafCallback = cb;
+      rafCallbacks.push(cb);
       return 1;
     });
 
     m.animate({ opacity: [0, 1], duration: 100 });
 
     // Simulate first frame at t=50 (half way through)
-    if (rafCallback) rafCallback(50);
+    rafCallbacks[0]?.(50);
     expect(el.style.opacity).not.toBe("");
   });
 
@@ -57,15 +57,15 @@ describe("useMotion", () => {
     const ref = makeRef(el);
     const m = useMotion(ref);
 
-    let rafCallback: FrameRequestCallback | null = null;
+    const rafCallbacks: FrameRequestCallback[] = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
-      rafCallback = cb;
+      rafCallbacks.push(cb);
       return 1;
     });
 
     m.animate({ x: [0, 100], y: [0, 50], scale: [1, 2], rotate: [0, 90], duration: 200 });
 
-    if (rafCallback) rafCallback(100);
+    rafCallbacks[0]?.(100);
     expect(el.style.transform).toContain("translateX");
     expect(el.style.transform).toContain("translateY");
     expect(el.style.transform).toContain("scale");
@@ -99,9 +99,9 @@ describe("useMotion", () => {
     const m = useMotion(ref);
 
     const cancelRaf = vi.fn();
-    let rafCallback: FrameRequestCallback | null = null;
+    const rafCallbacks: FrameRequestCallback[] = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
-      rafCallback = cb;
+      rafCallbacks.push(cb);
       return 42;
     });
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(cancelRaf);
@@ -110,7 +110,7 @@ describe("useMotion", () => {
     cancel();
 
     // After cancel, further frames should be no-ops
-    if (rafCallback) rafCallback(100);
+    rafCallbacks[0]?.(100);
     expect(cancelRaf).toHaveBeenCalledWith(42);
   });
 
@@ -119,16 +119,16 @@ describe("useMotion", () => {
     const ref = makeRef(el);
     const m = useMotion(ref);
 
-    let rafCallback: FrameRequestCallback | null = null;
+    const rafCallbacks: FrameRequestCallback[] = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
-      rafCallback = cb;
+      rafCallbacks.push(cb);
       return 1;
     });
 
     // exit reverses opacity [0,1] → animates [1,0] and x [0,100] → [100,0]
     m.exit({ opacity: [0, 1], x: [0, 100], duration: 100 });
 
-    if (rafCallback) rafCallback(0);
+    rafCallbacks[0]?.(0);
     // At t=0 (start), opacity should be 1 (the reversed start)
     expect(el.style.opacity).toBe("1");
   });
@@ -157,16 +157,16 @@ describe("useMotion", () => {
     const ref = makeRef(el);
     const m = useMotion(ref);
 
-    let rafCallback: FrameRequestCallback | null = null;
+    const rafCallbacks: FrameRequestCallback[] = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
-      rafCallback = cb;
+      rafCallbacks.push(cb);
       return 1;
     });
 
     m.animate({ opacity: [0, 1], delay: 200, duration: 100 });
 
     // At ts=50, delay not yet passed; opacity should be at start value (0)
-    if (rafCallback) rafCallback(50);
+    rafCallbacks[0]?.(50);
     expect(el.style.opacity).toBe("0");
   });
 });
