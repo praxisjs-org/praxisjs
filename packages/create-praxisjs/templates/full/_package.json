@@ -10,18 +10,18 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@praxisjs/composables": "^0.1.3",
-    "@praxisjs/concurrent": "^0.2.1",
-    "@praxisjs/core": "^0.4.0",
-    "@praxisjs/decorators": "^0.4.1",
-    "@praxisjs/di": "^0.2.1",
-    "@praxisjs/jsx": "^0.3.1",
-    "@praxisjs/router": "^0.2.3",
-    "@praxisjs/runtime": "^0.2.2",
-    "@praxisjs/store": "^0.2.1"
+    "@praxisjs/composables": "^0.1.4",
+    "@praxisjs/concurrent": "^0.2.2",
+    "@praxisjs/core": "^0.4.1",
+    "@praxisjs/decorators": "^0.4.2",
+    "@praxisjs/di": "^0.2.2",
+    "@praxisjs/jsx": "^0.3.2",
+    "@praxisjs/router": "^0.2.4",
+    "@praxisjs/runtime": "^0.2.3",
+    "@praxisjs/store": "^0.2.2"
   },
   "devDependencies": {
-    "@praxisjs/devtools": "^0.2.3",
+    "@praxisjs/devtools": "^0.2.4",
     "@praxisjs/vite-plugin": "^0.1.0",
     "eslint": "^10.0.2",
     "eslint-plugin-unicorn": "^63.0.0",
