@@ -39,6 +39,9 @@ jobs:
           pnpm build:dx
           pnpm --filter create-praxisjs build
 
+      - name: Run tests
+        run: pnpm test
+
       - name: Create Release PR or Publish
         uses: changesets/action@v1
         with:

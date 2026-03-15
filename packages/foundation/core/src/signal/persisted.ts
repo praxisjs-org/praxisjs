@@ -60,20 +60,18 @@ export function persistedSignal<T>(
 
   if (syncTabs) {
     window.addEventListener("storage", (event) => {
-      if (event.key === key || event.storageArea !== localStorage) return;
-      {
-        try {
-          const newValue = event.newValue
-            ? deserialize(event.newValue)
-            : initialValue;
-          inner.set(newValue);
-        } catch (e) {
-          console.warn(
-            `Failed to deserialize value for key "${key}" from storage event:`,
-            e,
-          );
-          inner.set(initialValue);
-        }
+      if (event.key !== key || event.storageArea !== localStorage) return;
+      try {
+        const newValue = event.newValue
+          ? deserialize(event.newValue)
+          : initialValue;
+        inner.set(newValue);
+      } catch (e) {
+        console.warn(
+          `Failed to deserialize value for key "${key}" from storage event:`,
+          e,
+        );
+        inner.set(initialValue);
       }
     });
   }

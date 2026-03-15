@@ -26,22 +26,18 @@ export function History(limit = 50) {
 
             const h = history(source as Signal<unknown>, limit);
 
-            const originalUndo = () => {
-              h.undo();
-            };
-            const originalRedo = () => {
-              h.redo();
-            };
+            const _undo = h.undo.bind(h);
+            const _redo = h.redo.bind(h);
 
             h.undo = () => {
               const prev = h.values()[h.values().length - 2];
               if (prev === undefined) return;
-              originalUndo();
+              _undo();
               this[propertyKey] = prev;
             };
 
             h.redo = () => {
-              originalRedo();
+              _redo();
               this[propertyKey] = h.current();
             };
 

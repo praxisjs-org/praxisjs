@@ -139,7 +139,12 @@ export class Router {
     await this.resolveAndSetComponent(loc.path);
   }
 
-  async push(path: string, query?: RouteQuery, hash?: string): Promise<void> {
+  async push(path: string, query?: RouteQuery, hash?: string, _redirectDepth = 0): Promise<void> {
+    if (_redirectDepth > 10) {
+      console.warn(`[Router] Maximum redirect depth exceeded navigating to "${path}"`);
+      return;
+    }
+
     const search = query ? "?" + new URLSearchParams(query).toString() : "";
     const hashStr = hash ? `#${hash}` : "";
     const fullUrl = path + search + hashStr;
@@ -154,7 +159,7 @@ export class Router {
       );
       if (result === false) return;
       if (typeof result === "string") {
-        return this.push(result);
+        return this.push(result, undefined, undefined, _redirectDepth + 1);
       }
     }
 

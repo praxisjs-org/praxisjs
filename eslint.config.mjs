@@ -7,7 +7,7 @@ import tseslint from 'typescript-eslint'
 export default tseslint.config(
   // ── Ignores ─────────────────────────────────────────────────────────────────
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/*.d.ts', 'docs/**', 'playground/**', 'packages/create-praxisjs/templates/**'],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/*.d.ts', 'docs/**', 'playground/**', 'packages/create-praxisjs/templates/**', '**/__tests__/**', '**/*.test.ts', '**/*.test.tsx', '**/vitest.config.*'],
   },
 
   // ── TypeScript source files ──────────────────────────────────────────────────

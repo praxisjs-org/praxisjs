@@ -33,7 +33,7 @@ export function createStore<T extends Record<string, unknown>>(
       return undefined;
     },
     set(_t, key: string | symbol, value: unknown) {
-      if (typeof key !== "string") return false;
+      if (typeof key !== "string") return true;
       if (key in signals) {
         signals[key].set(value);
         return true;

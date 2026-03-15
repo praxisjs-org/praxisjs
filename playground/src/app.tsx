@@ -1,5 +1,5 @@
 import { StatefulComponent, StatelessComponent } from "@praxisjs/core";
-import { Component, Computed, State, Watch } from "@praxisjs/decorators";
+import { Component, Computed, Prop, State, Watch } from "@praxisjs/decorators";
 import { Debug, Trace } from "@praxisjs/devtools";
 import { Signal } from "@praxisjs/shared";
 
@@ -10,6 +10,7 @@ export class ListItem extends StatelessComponent<{
   render() {
     return (
       <div>
+        <span>label</span>
         <span>{this.props.value}</span>
       </div>
     );
@@ -17,11 +18,14 @@ export class ListItem extends StatelessComponent<{
 }
 
 @Component()
-export class Version extends StatelessComponent {
+export class Version extends StatefulComponent {
+  @Prop() value = 0;
+
   render() {
     return (
       <div>
-        <span>vTeste</span>
+        <span>VNEW</span>
+        <span>{() => this.value}</span>
       </div>
     );
   }
@@ -38,6 +42,8 @@ export class App extends StatefulComponent {
   @State()
   count = 0;
 
+  @State() arr = [];
+
   @Debug({ label: "doubled" })
   @Computed()
   get doubled() {
@@ -46,13 +52,27 @@ export class App extends StatefulComponent {
 
   increment() {
     this.count++;
+    this.arr.push();
   }
 
   render() {
     return (
       <div class="app">
-        <span class="count-value">{() => this.count}</span>
+        <span
+          class="count-value"
+          style={() => ({
+            backgroundColor: this.count % 2 === 0 ? "red" : "blue",
+          })}
+        >
+          {() => this.count}
+        </span>
         <span>double: {() => this.doubled}</span>
+        <div>
+          <ListItem value={() => this.count} />
+        </div>
+        <div>
+          <Version value={() => this.count} />
+        </div>
         <button
           onClick={() => {
             this.increment();
