@@ -1,5 +1,20 @@
 # @praxisjs/devtools
 
+## 0.2.4
+
+### Patch Changes
+
+- 9fa8dd1: fix(devtools): guard against undefined `entry` in `TimelineRow`
+
+  `entry` is typed as `TimelineEntry | undefined`, but `render()` accessed `entry.data` unconditionally, which would throw at runtime when no entry is provided. Added an early `null` return guard and a local `const entry = this.entry` binding that also fixes bare `entry` references in JSX that were missing the `this.` prefix.
+
+- Updated dependencies [fe39901]
+- Updated dependencies [fe39901]
+  - @praxisjs/decorators@0.4.2
+  - @praxisjs/core@0.4.1
+  - @praxisjs/runtime@0.2.3
+  - @praxisjs/jsx@0.3.2
+
 ## 0.2.3
 
 ### Patch Changes
