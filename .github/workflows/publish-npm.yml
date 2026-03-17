@@ -40,7 +40,12 @@ jobs:
           pnpm --filter create-praxisjs build
 
       - name: Run tests
-        run: pnpm test
+        run: pnpm test:coverage
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Create Release PR or Publish
         uses: changesets/action@v1
