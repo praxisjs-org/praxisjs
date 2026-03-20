@@ -70,6 +70,22 @@ describe("queue", () => {
     expect(q.error()?.message).toBe("string error");
   });
 
+  it("error in one task does not prevent subsequent tasks from running", async () => {
+    const q = queue(async (n: unknown) => {
+      if (n === 0) throw new Error("task 0 failed");
+      return n as number;
+    });
+
+    const p0 = q(0); // will reject
+    const p1 = q(1); // should still run despite p0 failing
+    const p2 = q(2);
+
+    await expect(p0).rejects.toThrow("task 0 failed");
+    expect(await p1).toBe(1);
+    expect(await p2).toBe(2);
+    expect(q.error()?.message).toBe("task 0 failed");
+  });
+
   it("clear() empties the pending queue", async () => {
     let resolveFirst!: () => void;
     const q = queue(

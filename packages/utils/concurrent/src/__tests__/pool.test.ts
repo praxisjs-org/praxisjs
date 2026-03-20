@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 import { pool } from "../pool";
 
@@ -127,6 +127,19 @@ describe("pool", () => {
 
     expect(results[0]).toBeUndefined(); // error → undefined
     expect(results[1]).toBe(1);         // subsequent task ran
+  });
+
+  it("concurrency=0 — tasks are enqueued but never executed", async () => {
+    const fn = vi.fn(async () => "result");
+    const p = pool(0, fn);
+
+    // Queue a task — tryRun() bails immediately because _active(0) >= concurrency(0)
+    void p();
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(fn).not.toHaveBeenCalled();
+    expect(p.pending()).toBe(1);
+    expect(p.loading()).toBe(false);
   });
 
   it("active() never exceeds concurrency", async () => {

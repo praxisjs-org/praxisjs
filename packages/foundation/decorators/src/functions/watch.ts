@@ -64,13 +64,16 @@ export function Watch<
       const instance = this as T & Record<string, unknown>;
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const originalOnMount = instance.onMount;
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalOnUnmount = instance.onUnmount;
+      let stopEffect: (() => void) | undefined;
 
       instance.onMount = function (this: T & Record<string, unknown>) {
         originalOnMount?.call(this);
 
         if (props.length === 1) {
           let oldVal = readValue(this, props[0]);
-          effect(() => {
+          stopEffect = effect(() => {
             const newVal = readValue(this, props[0]);
             if (!Object.is(newVal, oldVal)) {
               value.call(this as T, newVal, oldVal);
@@ -81,7 +84,7 @@ export function Watch<
           const read = () =>
             Object.fromEntries(props.map((p) => [p, readValue(this, p)]));
           let oldVals = read();
-          effect(() => {
+          stopEffect = effect(() => {
             const newVals = read();
             if (props.some((p) => !Object.is(newVals[p], oldVals[p]))) {
               value.call(this as T, newVals, oldVals);
@@ -89,6 +92,12 @@ export function Watch<
             }
           });
         }
+      };
+
+      instance.onUnmount = function (this: T) {
+        originalOnUnmount?.call(this);
+        stopEffect?.();
+        stopEffect = undefined;
       };
     });
   };

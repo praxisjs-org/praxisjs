@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
+import { signal } from "@praxisjs/core/internal";
 import { Memo } from "../functions/memo";
 
 function mockCtx(name: string) {
@@ -60,6 +61,21 @@ describe("Memo", () => {
     wrapped.call(obj, { a: 1 });
     wrapped.call(obj, { a: 1 }); // same key
     expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-evaluates when a reactive signal read inside the method changes", () => {
+    const s = signal(1);
+    const fn = vi.fn(() => s() * 10);
+    const wrapped = Memo()(fn, mockCtx("reactive"));
+    const obj = {};
+
+    expect(wrapped.call(obj)).toBe(10);
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    s.set(5);
+    // The computed tracks s() — next read triggers recomputation
+    expect(wrapped.call(obj)).toBe(50);
+    expect(fn).toHaveBeenCalledTimes(2);
   });
 
   it("serializes symbol args via toString()", () => {

@@ -633,6 +633,73 @@ describe("History decorator — multiple History properties on same instance", (
   });
 });
 
+// ── Watch (cleanup + multi-prop non-watched) ──────────────────────────────────
+
+describe("Watch decorator — onUnmount cleanup", () => {
+  it("stops firing after onUnmount is called", () => {
+    const { ctx, run } = methodCtx("onCount");
+    const handler = vi.fn();
+    Watch("count" as never)(handler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const s = signal(0);
+    const instance = new TestComponent();
+    Object.defineProperty(instance, "count", { get: () => s(), configurable: true });
+    run(instance);
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    s.set(1);
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    (instance as unknown as { onUnmount: () => void }).onUnmount?.();
+    s.set(2);
+
+    // After unmount the effect is stopped — handler must NOT fire again
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves existing onUnmount when adding cleanup", () => {
+    const { ctx, run } = methodCtx("onVal");
+    const handler = vi.fn();
+    Watch("val" as never)(handler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const s = signal(0);
+    const instance = new TestComponent();
+    Object.defineProperty(instance, "val", { get: () => s(), configurable: true });
+    run(instance);
+
+    const unmountSpy = vi.fn();
+    const prevUnmount = instance.onUnmount?.bind(instance);
+    instance.onUnmount = function () { unmountSpy(); prevUnmount?.(); };
+
+    (instance as unknown as { onMount: () => void }).onMount?.();
+    instance.onUnmount?.();
+    expect(unmountSpy).toHaveBeenCalled();
+  });
+
+  it("multi-prop watch does NOT fire when an unwatched prop changes", () => {
+    const { ctx, run } = methodCtx("onAB");
+    const handler = vi.fn();
+    Watch("a" as never, "b" as never)(handler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const sa = signal(0);
+    const sb = signal(0);
+    const sc = signal(0); // not watched
+
+    const instance = new TestComponent();
+    Object.defineProperty(instance, "a", { get: () => sa(), configurable: true });
+    Object.defineProperty(instance, "b", { get: () => sb(), configurable: true });
+    Object.defineProperty(instance, "c", { get: () => sc(), configurable: true });
+    run(instance);
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    sc.set(99); // unwatched prop — handler must NOT fire
+    expect(handler).not.toHaveBeenCalled();
+
+    sa.set(1); // watched — handler fires
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+});
+
 // ── Watch (additional branches — computed readValue) ──────────────────────────
 
 describe("Watch decorator — reading computed values", () => {

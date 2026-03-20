@@ -172,6 +172,52 @@ describe("Virtual decorator", () => {
     document.body.removeChild(container);
   });
 
+  it("renderItem returning an array appends all child nodes", () => {
+    class ArrayItemList extends StatefulComponent {
+      items = ["item"];
+      renderItem(item: unknown) {
+        const a = document.createElement("span");
+        a.textContent = String(item) + "-1";
+        const b = document.createElement("span");
+        b.textContent = String(item) + "-2";
+        return [a, b];
+      }
+      render() { return null; }
+    }
+
+    const Wrapped = applyVirtual(ArrayItemList as AnyConstructor, 50, 0);
+    const instance = new Wrapped();
+    const outer = instance.render() as HTMLElement;
+    // outer structure: spacerTop, itemsSlot, spacerBottom
+    const itemsSlot = outer.children[1] as HTMLElement;
+    const wrapper = itemsSlot.children[0] as HTMLElement;
+    expect(wrapper.children.length).toBe(2);
+  });
+
+  it("renderItem returning null produces an empty wrapper div", () => {
+    class NullItemList extends StatefulComponent {
+      items = ["x"];
+      renderItem() { return null; }
+      render() { return null; }
+    }
+
+    const Wrapped = applyVirtual(NullItemList as AnyConstructor, 50, 0);
+    const instance = new Wrapped();
+    expect(() => instance.render()).not.toThrow();
+    const outer = instance.render() as HTMLElement;
+    const itemsSlot = outer.children[1] as HTMLElement;
+    const wrapper = itemsSlot.children[0] as HTMLElement;
+    // rendered is null — no child nodes appended
+    expect(wrapper.children.length).toBe(0);
+  });
+
+  it("onUnmount without prior onMount does not throw", () => {
+    const Wrapped = applyVirtual(ListComp as AnyConstructor, 50);
+    const instance = new Wrapped();
+    // _container is undefined — onUnmount should be a no-op
+    expect(() => instance.onUnmount?.()).not.toThrow();
+  });
+
   it("updates scrollTop on scroll event", () => {
     const Wrapped = applyVirtual(ListComp as AnyConstructor, 50);
     const instance = new Wrapped();

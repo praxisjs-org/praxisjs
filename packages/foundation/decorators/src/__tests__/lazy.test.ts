@@ -143,4 +143,78 @@ describe("Lazy decorator", () => {
     // _anchor is undefined by default
     expect(() => instance.onMount?.()).not.toThrow();
   });
+
+  it("render() returns original content after becoming visible", () => {
+    const Wrapped = applyLazy(BaseComp as AnyConstructor, 200);
+    const instance = new Wrapped();
+
+    const parent = document.createElement("div");
+    document.body.appendChild(parent);
+    const anchor = document.createComment("end");
+    parent.appendChild(anchor);
+    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+
+    instance.onMount?.();
+    expect(instance.render()).toBeNull(); // not yet visible
+
+    intersectionCallback(
+      [{ isIntersecting: true } as IntersectionObserverEntry],
+      null as unknown as IntersectionObserver,
+    );
+
+    // Now visible: render() must delegate to the original render()
+    const result = instance.render();
+    expect(result).not.toBeNull();
+    document.body.removeChild(parent);
+  });
+
+  it("observer stays active and minHeight is preserved when entry is not intersecting", () => {
+    const Wrapped = applyLazy(BaseComp as AnyConstructor, 200);
+    const instance = new Wrapped();
+
+    const parent = document.createElement("div");
+    document.body.appendChild(parent);
+    const anchor = document.createComment("end");
+    parent.appendChild(anchor);
+    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+
+    instance.onMount?.();
+
+    // Fire callback with isIntersecting=false — should be a no-op
+    intersectionCallback(
+      [{ isIntersecting: false } as IntersectionObserverEntry],
+      null as unknown as IntersectionObserver,
+    );
+
+    expect(instance.render()).toBeNull();
+    expect(mockDisconnect).not.toHaveBeenCalled();
+    expect(parent.style.minHeight).toBe("200px");
+    document.body.removeChild(parent);
+  });
+
+  it("does not re-apply minHeight on remount when already visible", () => {
+    const Wrapped = applyLazy(BaseComp as AnyConstructor, 300);
+    const instance = new Wrapped();
+
+    const parent = document.createElement("div");
+    document.body.appendChild(parent);
+    const anchor = document.createComment("end");
+    parent.appendChild(anchor);
+    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+
+    // First mount — become visible
+    instance.onMount?.();
+    intersectionCallback(
+      [{ isIntersecting: true } as IntersectionObserverEntry],
+      null as unknown as IntersectionObserver,
+    );
+    instance.onUnmount?.();
+
+    // Second mount — _lazyVisible is already true
+    instance.onMount?.();
+
+    // minHeight must NOT be re-applied because _lazyVisible() is true
+    expect(parent.style.minHeight).toBe("");
+    document.body.removeChild(parent);
+  });
 });

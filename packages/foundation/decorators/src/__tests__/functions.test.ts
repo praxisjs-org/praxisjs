@@ -150,6 +150,15 @@ describe("Retry", () => {
     await expect(wrapped.call({})).rejects.toThrow("string error");
   });
 
+  it("maxAttempts=0 throws immediately without calling the function", async () => {
+    const original = vi.fn(async () => "ok");
+    const ctx = mockMethodContext("never");
+    const wrapped = Retry(0)(original, ctx as unknown as ClassMethodDecoratorContext);
+
+    await expect(wrapped.call({})).rejects.toThrow("Unknown error");
+    expect(original).not.toHaveBeenCalled();
+  });
+
   it("onRetry receives the correct attempt number", async () => {
     const attempts: number[] = [];
     const original = vi.fn(async () => { throw new Error("fail"); });

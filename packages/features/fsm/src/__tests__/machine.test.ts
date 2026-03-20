@@ -105,6 +105,50 @@ describe("createMachine", () => {
     expect(onExit).toHaveBeenCalledOnce();
   });
 
+  it("onExit throwing prevents the state change and keeps history clean", () => {
+    const m = createMachine<"idle" | "active", "START">({
+      initial: "idle",
+      states: {
+        idle: {
+          on: { START: "active" },
+          onExit: () => { throw new Error("exit failed"); },
+        },
+        active: {},
+      },
+    });
+    expect(() => m.send("START")).toThrow("exit failed");
+    expect(m.state()).toBe("idle");
+    expect(m.history()).toHaveLength(0);
+  });
+
+  it("onEnter throwing after state change leaves machine in the new state", () => {
+    const m = createMachine<"idle" | "active", "START">({
+      initial: "idle",
+      states: {
+        idle: { on: { START: "active" } },
+        active: { onEnter: () => { throw new Error("enter failed"); } },
+      },
+    });
+    expect(() => m.send("START")).toThrow("enter failed");
+    // State was already committed before onEnter ran
+    expect(m.state()).toBe("active");
+    expect(m.history()).toHaveLength(1);
+  });
+
+  it("reset() calls onEnter of the initial state", () => {
+    const onEnter = vi.fn();
+    const m = createMachine<"idle" | "active", "START">({
+      initial: "idle",
+      states: {
+        idle: { on: { START: "active" }, onEnter },
+        active: {},
+      },
+    });
+    m.send("START");
+    m.reset();
+    expect(onEnter).toHaveBeenCalledOnce();
+  });
+
   it("calls onTransition callback", () => {
     const onTransition = vi.fn();
     const m = createMachine<"a" | "b", "NEXT">({

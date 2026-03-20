@@ -2,6 +2,11 @@
 "create-praxisjs": patch
 ---
 
-Update template dependency versions
+Update template dependency versions to pick up decorator bug fixes
 
-Bumps the minimum version of `@praxisjs/core` and related packages across the `minimal`, `router`, and `full` templates so that projects scaffolded with `create-praxisjs` start with the latest releases, including the fix for `effect()` stop not preventing re-runs.
+Bumps `@praxisjs/decorators` and `@praxisjs/core` across the `minimal`, `router`, and `full` templates so that projects scaffolded with `create-praxisjs` start with the latest releases. Notable fixes included:
+
+- `effect()` stop now correctly prevents re-runs (`@praxisjs/core`)
+- `@Watch` no longer leaks reactive effects after unmount — the effect is now stopped in `onUnmount` (`@praxisjs/decorators`)
+- `@Lazy` no longer recurses infinitely when `render()` is called after the component becomes visible (`@praxisjs/decorators`)
+- `@Lazy` / `@Virtual` type constraint widened to accept any `StatefulComponent` subclass (`@praxisjs/decorators`)

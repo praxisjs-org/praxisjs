@@ -2,7 +2,7 @@ import { type RootComponent, signal } from "@praxisjs/core/internal";
 
 export function Lazy(placeholder = 200) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function <T extends new (...args: any[]) => RootComponent>(
+  return function <T extends new (...args: any[]) => RootComponent<Record<string, any>>>(
     constructor: T,
     _context: ClassDecoratorContext,
   ): T {
@@ -10,7 +10,9 @@ export function Lazy(placeholder = 200) {
       private readonly _lazyVisible = signal(false);
       private _observer?: IntersectionObserver;
       private readonly _originalRender: () => Node | Node[] | null =
-        this.render.bind(this);
+        // Capture the *parent* class render, not LazyWrapper's own override,
+        // to avoid infinite recursion when render() delegates here.
+        (constructor.prototype as { render(): Node | Node[] | null }).render.bind(this);
 
       onMount() {
         super.onMount?.();

@@ -8,7 +8,7 @@ interface VirtualHost {
 
 export function Virtual(itemHeight: number, buffer = 3) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function <T extends new (...args: any[]) => RootComponent>(
+  return function <T extends new (...args: any[]) => RootComponent<Record<string, any>>>(
     constructor: T,
     _context: ClassDecoratorContext,
   ): T {
