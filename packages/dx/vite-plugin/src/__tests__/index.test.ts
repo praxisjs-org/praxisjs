@@ -37,7 +37,7 @@ describe("praxisjs() plugin factory", () => {
 describe("praxisjs:core config()", () => {
   it("sets esbuild target to es2022", () => {
     const [core] = praxisjs();
-    const config = (core as { config: () => unknown }).config();
+    const config = (core as unknown as { config: () => unknown }).config();
     expect(config).toEqual({ esbuild: { target: "es2022" } });
   });
 });
@@ -96,7 +96,7 @@ describe("praxisjs:hmr handleHotUpdate()", () => {
   it("sends custom event for .ts files", () => {
     const [, hmr] = praxisjs({ hmr: true });
     const server = makeMockServer();
-    (hmr as { handleHotUpdate: HandleHotUpdate }).handleHotUpdate({
+    (hmr as unknown as { handleHotUpdate: HandleHotUpdate }).handleHotUpdate({
       file: "src/app.ts",
       server,
     });
@@ -110,7 +110,7 @@ describe("praxisjs:hmr handleHotUpdate()", () => {
   it("sends custom event for .tsx files", () => {
     const [, hmr] = praxisjs({ hmr: true });
     const server = makeMockServer();
-    (hmr as { handleHotUpdate: HandleHotUpdate }).handleHotUpdate({
+    (hmr as unknown as { handleHotUpdate: HandleHotUpdate }).handleHotUpdate({
       file: "src/component.tsx",
       server,
     });
@@ -124,7 +124,7 @@ describe("praxisjs:hmr handleHotUpdate()", () => {
   it("does not send event for non-.ts/.tsx files", () => {
     const [, hmr] = praxisjs({ hmr: true });
     const server = makeMockServer();
-    (hmr as { handleHotUpdate: HandleHotUpdate }).handleHotUpdate({
+    (hmr as unknown as { handleHotUpdate: HandleHotUpdate }).handleHotUpdate({
       file: "src/style.css",
       server,
     });
@@ -134,7 +134,7 @@ describe("praxisjs:hmr handleHotUpdate()", () => {
   it("does not send event for .js files", () => {
     const [, hmr] = praxisjs({ hmr: true });
     const server = makeMockServer();
-    (hmr as { handleHotUpdate: HandleHotUpdate }).handleHotUpdate({
+    (hmr as unknown as { handleHotUpdate: HandleHotUpdate }).handleHotUpdate({
       file: "src/utils.js",
       server,
     });

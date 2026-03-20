@@ -3,19 +3,25 @@ import { describe, it, expect, vi } from "vitest";
 
 import { mountComponent } from "../component";
 import { Scope } from "../scope";
-import { RootComponent } from "@praxisjs/core/internal";
+import { StatefulComponent } from "@praxisjs/core";
 
-class SimpleComp extends RootComponent {
+class SimpleComp extends StatefulComponent {
+  static __isComponent = true as const;
+  static __isStateless = false;
   render() {
     return document.createTextNode("hello");
   }
 }
 
-class NullComp extends RootComponent {
+class NullComp extends StatefulComponent {
+  static __isComponent = true as const;
+  static __isStateless = false;
   render() { return null; }
 }
 
-class MultiComp extends RootComponent {
+class MultiComp extends StatefulComponent {
+  static __isComponent = true as const;
+  static __isStateless = false;
   render() {
     return [
       document.createTextNode("a"),
@@ -24,14 +30,18 @@ class MultiComp extends RootComponent {
   }
 }
 
-class ErrorComp extends RootComponent {
+class ErrorComp extends StatefulComponent {
+  static __isComponent = true as const;
+  static __isStateless = false;
   onError(_err: Error) {}
   render(): never {
     throw new Error("render error");
   }
 }
 
-class LifecycleComp extends RootComponent {
+class LifecycleComp extends StatefulComponent {
+  static __isComponent = true as const;
+  static __isStateless = false;
   onBeforeMount() {}
   onMount() {}
   onUnmount() {}
@@ -67,7 +77,9 @@ describe("mountComponent", () => {
   it("calls onBeforeMount before render", () => {
     const scope = new Scope();
     const order: string[] = [];
-    class OrderComp extends RootComponent {
+    class OrderComp extends StatefulComponent {
+      static __isComponent = true as const;
+      static __isStateless = false;
       onBeforeMount() { order.push("before"); }
       render() {
         order.push("render");
@@ -81,9 +93,6 @@ describe("mountComponent", () => {
 
   it("calls onMount asynchronously after mount", async () => {
     const scope = new Scope();
-    const comp = new LifecycleComp();
-    // We can't easily capture the instance, but we can verify lifecycle is called
-    // by observing the mount of LifecycleComp via its prototype
     const onMount = vi.spyOn(LifecycleComp.prototype, "onMount");
     mountComponent(LifecycleComp, {}, scope);
     expect(onMount).not.toHaveBeenCalled(); // not called synchronously
@@ -114,14 +123,16 @@ describe("mountComponent", () => {
 
   it("passes props to the component instance", () => {
     let receivedProp: unknown;
-    class PropsComp extends RootComponent<{ msg: string }> {
+    class PropsComp extends StatefulComponent {
+      static __isComponent = true as const;
+      static __isStateless = false;
       render() {
         receivedProp = this.props.msg;
         return null;
       }
     }
     const scope = new Scope();
-    mountComponent(PropsComp as never, { msg: "hello" }, scope);
+    mountComponent(PropsComp, { msg: "hello" }, scope);
     expect(receivedProp).toBe("hello");
     scope.dispose();
   });

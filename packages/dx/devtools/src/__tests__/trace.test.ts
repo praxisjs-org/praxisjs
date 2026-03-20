@@ -119,7 +119,7 @@ describe("Trace — lifecycle hooks", () => {
         onBeforeMount() {}
       }
       const Traced = applyTrace(Comp);
-      const instance = new Traced() as Record<string, () => void>;
+      const instance = new Traced() as unknown as Record<string, () => void>;
 
       // Register the component first via onBeforeMount
       instance.onBeforeMount();
@@ -137,9 +137,9 @@ describe("Trace — lifecycle hooks", () => {
       class Comp {
         onBeforeMount() {}
       }
-      (Comp.prototype as Record<string, unknown>)[hook] = spy;
+      (Comp.prototype as unknown as Record<string, unknown>)[hook] = spy;
       const Traced = applyTrace(Comp);
-      const instance = new Traced() as Record<string, () => void>;
+      const instance = new Traced() as unknown as Record<string, () => void>;
 
       instance.onBeforeMount();
       instance[hook]?.();

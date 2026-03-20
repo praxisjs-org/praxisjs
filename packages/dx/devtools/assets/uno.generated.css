@@ -65,12 +65,14 @@
 .h-\[2px\]{height:2px;}
 .h-\[32px\]{height:32px;}
 .h-\[6px\]{height:6px;}
-.h-1{height:0.25rem;}
+.h-1,
+.h1{height:0.25rem;}
 .h-10{height:2.5rem;}
 .h-3{height:0.75rem;}
 .h-7{height:1.75rem;}
 .h-full{height:100%;}
 .h-screen{height:100vh;}
+.h2{height:0.5rem;}
 .max-w-\[200px\]{max-width:200px;}
 .min-w-0{min-width:0;}
 .w-\[13px\]{width:13px;}
@@ -108,6 +110,7 @@
 .overflow-hidden{overflow:hidden;}
 .overflow-y-auto{overflow-y:auto;}
 .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.b,
 .border{border-width:1px;}
 .border-b{border-bottom-width:1px;}
 .border-l{border-left-width:1px;}
