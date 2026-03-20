@@ -1,5 +1,12 @@
 # @praxisjs/composables
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [d11a10a]
+  - @praxisjs/core@0.4.2
+
 ## 0.1.4
 
 ### Patch Changes
