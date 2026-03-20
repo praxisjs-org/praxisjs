@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from "vitest";
+import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 
-import { createRef, useWindowSize, useScrollPosition, useFocus } from "../dom";
+import { createRef, useWindowSize, useScrollPosition, useFocus, useElementSize, useIntersection } from "../dom";
 
 // ---------- createRef ----------
 
@@ -99,5 +99,114 @@ describe("useFocus", () => {
     el.dispatchEvent(new FocusEvent("blur"));
     expect(focused()).toBe(false);
     document.body.removeChild(el);
+  });
+
+  it("does nothing when ref.current is null", () => {
+    const ref: { current: HTMLElement | null } = { current: null };
+    expect(() => useFocus(ref)).not.toThrow();
+  });
+});
+
+// ---------- useElementSize ----------
+
+describe("useElementSize", () => {
+  let observerCallback: ResizeObserverCallback = () => {};
+  let mockDisconnect: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    mockDisconnect = vi.fn();
+    observerCallback = () => {};
+
+    // Class-based mock so `new ResizeObserver(cb)` works correctly
+    globalThis.ResizeObserver = class {
+      constructor(cb: ResizeObserverCallback) { observerCallback = cb; }
+      observe = vi.fn();
+      disconnect = mockDisconnect;
+    } as unknown as typeof ResizeObserver;
+  });
+
+  afterEach(() => {
+    // @ts-expect-error – removing test stub
+    delete globalThis.ResizeObserver;
+  });
+
+  it("starts at (0, 0) when ref.current is null", () => {
+    const ref: { current: HTMLElement | null } = { current: null };
+    const { width, height } = useElementSize(ref);
+    expect(width()).toBe(0);
+    expect(height()).toBe(0);
+  });
+
+  it("calls stop() to disconnect the ResizeObserver", () => {
+    const el = document.createElement("div");
+    const ref = { current: el };
+    const { stop } = useElementSize(ref);
+    stop();
+    expect(mockDisconnect).toHaveBeenCalled();
+  });
+
+  it("updates width and height when ResizeObserver fires", () => {
+    const el = document.createElement("div");
+    const ref = { current: el };
+    const { width, height } = useElementSize(ref);
+
+    observerCallback(
+      [{ contentRect: { width: 300, height: 200 } } as ResizeObserverEntry],
+      null as unknown as ResizeObserver,
+    );
+
+    expect(width()).toBe(300);
+    expect(height()).toBe(200);
+  });
+});
+
+// ---------- useIntersection ----------
+
+describe("useIntersection", () => {
+  let intersectionCallback: IntersectionObserverCallback = () => {};
+  let capturedOptions: IntersectionObserverInit | undefined;
+
+  beforeEach(() => {
+    intersectionCallback = () => {};
+    capturedOptions = undefined;
+
+    globalThis.IntersectionObserver = class {
+      constructor(cb: IntersectionObserverCallback, opts?: IntersectionObserverInit) {
+        intersectionCallback = cb;
+        capturedOptions = opts;
+      }
+      observe = vi.fn();
+      disconnect = vi.fn();
+    } as unknown as typeof IntersectionObserver;
+  });
+
+  afterEach(() => {
+    // @ts-expect-error – removing test stub
+    delete globalThis.IntersectionObserver;
+  });
+
+  it("starts as false when ref.current is null", () => {
+    const ref: { current: HTMLElement | null } = { current: null };
+    const visible = useIntersection(ref);
+    expect(visible()).toBe(false);
+  });
+
+  it("becomes true when IntersectionObserver fires with isIntersecting=true", () => {
+    const el = document.createElement("div");
+    const ref = { current: el };
+    const visible = useIntersection(ref);
+
+    intersectionCallback(
+      [{ isIntersecting: true } as IntersectionObserverEntry],
+      null as unknown as IntersectionObserver,
+    );
+    expect(visible()).toBe(true);
+  });
+
+  it("passes options to IntersectionObserver", () => {
+    const ref: { current: HTMLElement | null } = { current: null };
+    const options = { threshold: 0.5 };
+    useIntersection(ref, options);
+    expect(capturedOptions).toEqual(options);
   });
 });

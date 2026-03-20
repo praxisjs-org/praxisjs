@@ -144,6 +144,38 @@ describe("applyProp", () => {
     applyProp(label, "htmlFor", "my-input", scope);
     expect(label.getAttribute("for")).toBe("my-input");
   });
+
+  it("removes style attribute when value is null", () => {
+    const el = document.createElement("div");
+    el.setAttribute("style", "color: red;");
+    const scope = new Scope();
+    applyProp(el, "style", null, scope);
+    expect(el.hasAttribute("style")).toBe(false);
+  });
+
+  it("removes style attribute when value is undefined", () => {
+    const el = document.createElement("div");
+    el.setAttribute("style", "color: red;");
+    const scope = new Scope();
+    applyProp(el, "style", undefined, scope);
+    expect(el.hasAttribute("style")).toBe(false);
+  });
+
+  it("removes attribute when value is null for generic attr", () => {
+    const el = document.createElement("div");
+    el.setAttribute("data-x", "1");
+    const scope = new Scope();
+    applyProp(el, "data-x", null, scope);
+    expect(el.hasAttribute("data-x")).toBe(false);
+  });
+
+  it("removes attribute when value is undefined for generic attr", () => {
+    const el = document.createElement("div");
+    el.setAttribute("data-y", "1");
+    const scope = new Scope();
+    applyProp(el, "data-y", undefined, scope);
+    expect(el.hasAttribute("data-y")).toBe(false);
+  });
 });
 
 // ── addEvent ─────────────────────────────────────────────────────────────────

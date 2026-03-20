@@ -93,4 +93,60 @@ describe("Container", () => {
     const c = new Container();
     expect(c.register(A).register(B)).toBe(c);
   });
+
+  it("resolves prop injections from di:props metadata", () => {
+    class Logger {}
+    class Service {
+      logger!: Logger;
+    }
+
+    const c = new Container();
+    c.register(Logger);
+    c.register(Service);
+
+    // Simulate what the @Inject decorator does — set di:props metadata
+    const propsMap = new Map<string, unknown>();
+    propsMap.set("logger", Logger);
+    Reflect.defineMetadata("di:props", propsMap, Service.prototype);
+
+    const instance = c.resolve(Service);
+    expect(instance.logger).toBeInstanceOf(Logger);
+
+    // Cleanup
+    Reflect.deleteMetadata("di:props", Service.prototype);
+  });
+
+  it("child container falls back to parent for unregistered service", () => {
+    class MyDep {}
+    const parent = new Container();
+    parent.register(MyDep);
+    const child = parent.createChild();
+    expect(child.resolve(MyDep)).toBeInstanceOf(MyDep);
+  });
+
+  it("grandchild resolves from grandparent (three-level chain)", () => {
+    const URL_TOKEN = token<string>("GRANDPARENT_URL");
+    const grandparent = new Container();
+    grandparent.registerValue(URL_TOKEN, "https://grandparent.com");
+    const child = grandparent.createChild();
+    const grandchild = child.createChild();
+    expect(grandchild.resolve(URL_TOKEN)).toBe("https://grandparent.com");
+  });
+
+  it("registering the same class twice replaces the previous registration", () => {
+    class Counter {
+      value = Math.random();
+    }
+    const c = new Container();
+    c.register(Counter, { scope: "singleton" });
+    const first = c.resolve(Counter);
+
+    // Re-register resets the descriptor (no cached instance)
+    c.register(Counter, { scope: "singleton" });
+    const second = c.resolve(Counter);
+
+    // After re-registration, a new singleton is created
+    expect(second).toBeInstanceOf(Counter);
+    expect(second).not.toBe(first);
+  });
 });

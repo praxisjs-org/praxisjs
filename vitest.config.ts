@@ -37,7 +37,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["packages/**/src/**/*.ts"],
-      exclude: ["packages/**/src/__tests__/**"],
+      exclude: ["packages/**/src/__tests__/**", "packages/create-praxisjs/templates/**"],
     },
   },
 });

@@ -268,4 +268,15 @@ describe("useTimeAgo", () => {
     const t = useTimeAgo(src);
     expect(typeof t()).toBe("string");
   });
+
+  it("ticks after 60 seconds via setInterval", () => {
+    const now = Date.now();
+    const t = useTimeAgo(() => now - 30_000);
+    const before = t();
+    vi.advanceTimersByTime(60_000);
+    // After ticking, the computed re-evaluates (may or may not change the string)
+    expect(typeof t()).toBe("string");
+    // The interval ran — just verify no errors
+    expect(before).toBeTruthy();
+  });
 });

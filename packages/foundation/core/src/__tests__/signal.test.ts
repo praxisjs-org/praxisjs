@@ -71,4 +71,39 @@ describe("signal", () => {
     s.set(5);
     expect(s()).toBe(5);
   });
+
+  it("NaN is considered equal to NaN — no notification", () => {
+    const s = signal(NaN);
+    const calls: unknown[] = [];
+    s.subscribe((v) => calls.push(v));
+    const before = calls.length;
+    s.set(NaN);
+    expect(calls.length).toBe(before);
+  });
+
+  it("-0 and +0 are considered different — notification fires", () => {
+    const s = signal<number>(-0);
+    const calls: number[] = [];
+    s.subscribe((v) => calls.push(v));
+    const before = calls.length;
+    s.set(+0);
+    expect(calls.length).toBe(before + 1);
+  });
+
+  it("update() fn that throws does not update the value", () => {
+    const s = signal(5);
+    expect(() => s.update(() => { throw new Error("fn error"); })).toThrow("fn error");
+    expect(s()).toBe(5);
+  });
+
+  it("multiple subscribers all receive the update", () => {
+    const s = signal(0);
+    const a: number[] = [];
+    const b: number[] = [];
+    s.subscribe((v) => a.push(v));
+    s.subscribe((v) => b.push(v));
+    s.set(7);
+    expect(a).toContain(7);
+    expect(b).toContain(7);
+  });
 });

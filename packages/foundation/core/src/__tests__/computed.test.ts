@@ -86,4 +86,43 @@ describe("computed", () => {
     s.set(10);
     expect(received).toEqual([1]);
   });
+
+  it("computeFn that throws propagates the error on read", () => {
+    const s = signal(true);
+    const c = computed(() => {
+      if (s()) throw new Error("compute error");
+      return 0;
+    });
+    expect(() => c()).toThrow("compute error");
+  });
+
+  it("dynamic dependency: switches tracked signal based on condition", () => {
+    const toggle = signal(true);
+    const a = signal(10);
+    const b = signal(20);
+    const c = computed(() => (toggle() ? a() : b()));
+
+    expect(c()).toBe(10);
+    a.set(11);
+    expect(c()).toBe(11);
+
+    toggle.set(false);
+    expect(c()).toBe(20);
+    b.set(21);
+    expect(c()).toBe(21);
+  });
+
+  it("unsubscribe then re-subscribe works correctly", () => {
+    const s = signal(1);
+    const c = computed(() => s() * 3);
+    const received: number[] = [];
+
+    const unsub = c.subscribe((v) => received.push(v));
+    unsub();
+
+    // Re-subscribe
+    c.subscribe((v) => received.push(v));
+    s.set(2);
+    expect(received).toContain(6);
+  });
 });

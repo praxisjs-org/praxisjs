@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import { RootComponent } from "../component/base";
 import { StatefulComponent } from "../component/stateful";
+import { StatelessComponent } from "../component/stateless";
 
 class ConcreteRoot extends RootComponent<{ name: string }> {
   render() { return null; }
@@ -54,5 +55,28 @@ describe("StatefulComponent", () => {
     c._setProps({ y: 2 });
     expect((c._rawProps).x).toBeUndefined();
     expect((c._rawProps).y).toBe(2);
+  });
+});
+
+class ConcreteStateless extends StatelessComponent<{ name: string }> {
+  render() { return null; }
+}
+
+describe("StatelessComponent", () => {
+  it("stores props on _rawProps", () => {
+    const c = new ConcreteStateless({ name: "Alice" });
+    expect(c._rawProps.name).toBe("Alice");
+  });
+
+  it("_setProps replaces _rawProps contents", () => {
+    const c = new ConcreteStateless({ name: "Alice" });
+    c._setProps({ name: "Bob" });
+    expect(c._rawProps.name).toBe("Bob");
+  });
+
+  it("_setProps removes old keys", () => {
+    const c = new ConcreteStateless({ name: "Alice" });
+    c._setProps({});
+    expect((c._rawProps as Record<string, unknown>).name).toBeUndefined();
   });
 });

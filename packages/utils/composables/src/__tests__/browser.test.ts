@@ -116,3 +116,32 @@ describe("useIdle", () => {
     vi.useRealTimers();
   });
 });
+
+// ---------- useMediaQuery — change event ----------
+
+describe("useMediaQuery change event", () => {
+  it("updates when the media query match state changes", () => {
+    let changeHandler: ((e: MediaQueryListEvent) => void) | null = null;
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn(() => ({
+        matches: false,
+        addEventListener: vi.fn((_event: string, handler: (e: MediaQueryListEvent) => void) => {
+          changeHandler = handler;
+        }),
+        removeEventListener: vi.fn(),
+      })),
+    });
+
+    const matches = useMediaQuery("(min-width: 768px)");
+    expect(matches()).toBe(false);
+
+    // Simulate the media query becoming true
+    changeHandler!({ matches: true } as MediaQueryListEvent);
+    expect(matches()).toBe(true);
+
+    // Simulate it reverting
+    changeHandler!({ matches: false } as MediaQueryListEvent);
+    expect(matches()).toBe(false);
+  });
+});

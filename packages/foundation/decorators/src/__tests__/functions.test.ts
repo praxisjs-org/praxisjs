@@ -129,6 +129,64 @@ describe("Retry", () => {
     await expect(wrapped.call({})).rejects.toThrow();
     expect(onRetry).toHaveBeenCalledTimes(2); // attempts 1 and 2, not the last
   });
+
+  it("maxAttempts=1 fails immediately without retrying", async () => {
+    const original = vi.fn(async () => { throw new Error("instant fail"); });
+    const ctx = mockMethodContext("once");
+    const wrapped = Retry(1)(original, ctx as unknown as ClassMethodDecoratorContext);
+
+    await expect(wrapped.call({})).rejects.toThrow("instant fail");
+    expect(original).toHaveBeenCalledTimes(1);
+  });
+
+  it("non-Error throw is wrapped in an Error", async () => {
+    const original = vi.fn(async () => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw "string error";
+    });
+    const ctx = mockMethodContext("strThrow");
+    const wrapped = Retry(1)(original, ctx as unknown as ClassMethodDecoratorContext);
+
+    await expect(wrapped.call({})).rejects.toThrow("string error");
+  });
+
+  it("onRetry receives the correct attempt number", async () => {
+    const attempts: number[] = [];
+    const original = vi.fn(async () => { throw new Error("fail"); });
+    const ctx = mockMethodContext("numbered");
+    const wrapped = Retry(3, {
+      onRetry: (_err, attempt) => { attempts.push(attempt); },
+    })(original, ctx as unknown as ClassMethodDecoratorContext);
+
+    await expect(wrapped.call({})).rejects.toThrow();
+    expect(attempts).toEqual([1, 2]); // attempt 1 failed → onRetry(1), attempt 2 failed → onRetry(2)
+  });
+
+  it("backoff multiplies delay correctly", async () => {
+    vi.useFakeTimers();
+    const callTimes: number[] = [];
+    const original = vi.fn(async () => {
+      callTimes.push(Date.now());
+      throw new Error("fail");
+    });
+    const ctx = mockMethodContext("backoffTest");
+    const wrapped = Retry(3, { delay: 100, backoff: 2 })(
+      original,
+      ctx as unknown as ClassMethodDecoratorContext,
+    );
+
+    const p = wrapped.call({});
+    const rejection = expect(p).rejects.toThrow("fail");
+    await vi.runAllTimersAsync();
+    await rejection;
+
+    expect(callTimes.length).toBe(3);
+    // Attempt 2 runs 100ms after attempt 1
+    expect(callTimes[1] - callTimes[0]).toBeGreaterThanOrEqual(100);
+    // Attempt 3 runs 200ms after attempt 2 (backoff × 2)
+    expect(callTimes[2] - callTimes[1]).toBeGreaterThanOrEqual(200);
+    vi.useRealTimers();
+  });
 });
 
 // ── Log ──────────────────────────────────────────────────────────────────────
@@ -221,6 +279,66 @@ describe("Log", () => {
   });
 });
 
+// ── Log (additional branches) ─────────────────────────────────────────────────
+
+describe("Log — time option", () => {
+  it("includes elapsed time in sync result log when time=true", () => {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const original = vi.fn(() => "value");
+    const ctx = mockMethodContext("timed");
+    const wrapped = Log({ args: false, result: true, time: true })(
+      original,
+      ctx as unknown as ClassMethodDecoratorContext,
+    );
+
+    class Svc {}
+    wrapped.call(new Svc());
+    // Third argument should be a string containing "ms"
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining("returned:"),
+      "value",
+      expect.stringContaining("ms"),
+    );
+    spy.mockRestore();
+  });
+
+  it("includes elapsed time in async result log when time=true", async () => {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const original = vi.fn(async () => "async-val");
+    const ctx = mockMethodContext("asyncTimed");
+    const wrapped = Log({ args: false, result: true, time: true })(
+      original,
+      ctx as unknown as ClassMethodDecoratorContext,
+    );
+
+    class Svc {}
+    await wrapped.call(new Svc());
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining("resolved:"),
+      "async-val",
+      expect.stringContaining("ms"),
+    );
+    spy.mockRestore();
+  });
+
+  it("skips result log when result=false", () => {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const original = vi.fn(() => 42);
+    const ctx = mockMethodContext("noResult");
+    const wrapped = Log({ args: false, result: false })(
+      original,
+      ctx as unknown as ClassMethodDecoratorContext,
+    );
+
+    class Svc {}
+    wrapped.call(new Svc());
+    // Should not log a "returned:" line
+    const calls = spy.mock.calls.flat().join(" ");
+    expect(calls).not.toContain("returned:");
+    spy.mockRestore();
+  });
+});
+
 // ── Bind ─────────────────────────────────────────────────────────────────────
 
 describe("Bind", () => {
@@ -286,6 +404,49 @@ describe("Debounce", () => {
     expect(fn).toHaveBeenCalledOnce();
     vi.useRealTimers();
   });
+
+  it("multiple instances have independent timers", () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const ctx = mockMethodContext("act");
+    Debounce(100)(fn, ctx as unknown as ClassMethodDecoratorContext);
+
+    const obj1 = {};
+    const obj2 = {};
+    ctx.runInitializers(obj1);
+    ctx.runInitializers(obj2);
+
+    const m1 = (obj1 as Record<string, (...a: unknown[]) => void>).act;
+    const m2 = (obj2 as Record<string, (...a: unknown[]) => void>).act;
+
+    m1("from-1");
+    m2("from-2");
+
+    vi.advanceTimersByTime(100);
+    // Both timers fire independently
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(fn).toHaveBeenCalledWith("from-1");
+    expect(fn).toHaveBeenCalledWith("from-2");
+    vi.useRealTimers();
+  });
+
+  it("delay=0 fires after the next macrotask", () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const ctx = mockMethodContext("instant");
+    Debounce(0)(fn, ctx as unknown as ClassMethodDecoratorContext);
+
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => void>).instant;
+
+    method("a");
+    expect(fn).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(0);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(fn).toHaveBeenCalledWith("a");
+    vi.useRealTimers();
+  });
 });
 
 // ── Throttle ─────────────────────────────────────────────────────────────────
@@ -336,6 +497,43 @@ describe("Throttle", () => {
     method();
     vi.advanceTimersByTime(100);
     method();
+    expect(fn).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it("passes the first call's arguments to the underlying function", () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const ctx = mockMethodContext("click");
+    Throttle(100)(fn, ctx as unknown as ClassMethodDecoratorContext);
+
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => void>).click;
+
+    method("first-arg");
+    method("second-arg");
+    expect(fn).toHaveBeenCalledWith("first-arg");
+    vi.useRealTimers();
+  });
+
+  it("multiple instances throttle independently", () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const ctx = mockMethodContext("ping");
+    Throttle(100)(fn, ctx as unknown as ClassMethodDecoratorContext);
+
+    const obj1 = {};
+    const obj2 = {};
+    ctx.runInitializers(obj1);
+    ctx.runInitializers(obj2);
+
+    const m1 = (obj1 as Record<string, (...a: unknown[]) => void>).ping;
+    const m2 = (obj2 as Record<string, (...a: unknown[]) => void>).ping;
+
+    m1("a");
+    m2("b");
+    // Both first calls go through
     expect(fn).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
   });

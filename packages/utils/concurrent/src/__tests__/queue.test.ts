@@ -61,6 +61,15 @@ describe("queue", () => {
     expect(q.error()?.message).toBe("boom");
   });
 
+  it("wraps non-Error throws in an Error", async () => {
+    const q = queue(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-throw-literal
+      throw "string error";
+    });
+    await expect(q()).rejects.toThrow("string error");
+    expect(q.error()?.message).toBe("string error");
+  });
+
   it("clear() empties the pending queue", async () => {
     let resolveFirst!: () => void;
     const q = queue(

@@ -113,6 +113,18 @@ describe("debounced", () => {
     expect(d()).toBe(2);
     vi.useRealTimers();
   });
+
+  it("delay=0 fires synchronously after setTimeout(0)", () => {
+    vi.useFakeTimers();
+    const s = signal("a");
+    const d = debounced(s, 0);
+
+    s.set("b");
+    expect(d()).toBe("a"); // not yet
+    vi.advanceTimersByTime(0);
+    expect(d()).toBe("b");
+    vi.useRealTimers();
+  });
 });
 
 // ---------- history ----------
@@ -206,5 +218,28 @@ describe("history", () => {
     for (let i = 1; i <= 5; i++) s.set(i);
     // past holds at most 3, plus current = 4 values total
     expect(h.values().length).toBeLessThanOrEqual(4);
+  });
+
+  it("limit=1 allows only one past entry", () => {
+    const s = signal(0);
+    const h = history(s, 1);
+    s.set(1);
+    s.set(2);
+    s.set(3);
+    // values = [past(1 entry max), current] → at most 2 entries
+    expect(h.values().length).toBeLessThanOrEqual(2);
+    expect(h.current()).toBe(3);
+  });
+
+  it("clear() after undo removes both past and future", () => {
+    const s = signal(0);
+    const h = history(s);
+    s.set(1);
+    s.set(2);
+    h.undo();
+    expect(h.canRedo()).toBe(true);
+    h.clear();
+    expect(h.canUndo()).toBe(false);
+    expect(h.canRedo()).toBe(false);
   });
 });

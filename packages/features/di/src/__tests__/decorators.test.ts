@@ -10,11 +10,6 @@ import {
   createScope,
 } from "../decorators";
 
-// Each test group uses a fresh container to avoid state pollution
-function makeScope() {
-  return new Container();
-}
-
 // ── Injectable ────────────────────────────────────────────────────────────────
 
 describe("Injectable", () => {
@@ -169,5 +164,28 @@ describe("createScope", () => {
       c.registerValue(DB, "postgres://localhost"),
     );
     expect(child.resolve(DB)).toBe("postgres://localhost");
+  });
+});
+
+// ── Inject — Token in error message ──────────────────────────────────────────
+
+describe("Inject — Token error display", () => {
+  it("includes the Token description in the error message when resolution fails", () => {
+    const MY_TOKEN = token<string>("MY_SERVICE");
+
+    const initializers: Array<(this: unknown) => void> = [];
+    const ctx = {
+      name: "svc",
+      kind: "field" as const,
+      addInitializer(fn: (this: unknown) => void) { initializers.push(fn); },
+    } as ClassFieldDecoratorContext;
+
+    Inject(MY_TOKEN)(undefined, ctx);
+
+    class Consumer { constructor() {} }
+    const instance = new Consumer() as Record<string, unknown>;
+    initializers.forEach((fn) => { fn.call(instance); });
+
+    expect(() => instance.svc).toThrow("MY_SERVICE");
   });
 });

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 import { StatefulComponent } from "@praxisjs/core";
-import { signal } from "@praxisjs/core/internal";
+import { signal, computed } from "@praxisjs/core/internal";
 
 import { Watch } from "../functions/watch";
 import { When } from "../functions/when";
@@ -75,6 +75,36 @@ describe("State decorator", () => {
     instance._stateDirty = false;
     (instance as unknown as Record<string, unknown>).value = "world";
     expect(instance._stateDirty).toBe(true);
+  });
+
+  it("accepts null as initial value", () => {
+    const { ctx, run } = fieldCtx("nullable");
+    State()(undefined, ctx);
+
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).nullable = null;
+    run(instance);
+
+    expect((instance as unknown as Record<string, unknown>).nullable).toBeNull();
+    (instance as unknown as Record<string, unknown>).nullable = "set";
+    expect((instance as unknown as Record<string, unknown>).nullable).toBe("set");
+  });
+
+  it("multiple State fields on same class are independent", () => {
+    const { ctx: ctxA, run: runA } = fieldCtx("a");
+    const { ctx: ctxB, run: runB } = fieldCtx("b");
+    State()(undefined, ctxA);
+    State()(undefined, ctxB);
+
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).a = 1;
+    (instance as unknown as Record<string, unknown>).b = 2;
+    runA(instance);
+    runB(instance);
+
+    (instance as unknown as Record<string, unknown>).a = 10;
+    expect((instance as unknown as Record<string, unknown>).a).toBe(10);
+    expect((instance as unknown as Record<string, unknown>).b).toBe(2);
   });
 });
 
@@ -473,5 +503,156 @@ describe("When decorator", () => {
     instance.onUnmount?.();
     expect(mountSpy).toHaveBeenCalled();
     expect(unmountSpy).toHaveBeenCalled();
+  });
+
+  it("works when the watched prop is a computed value", () => {
+    const { ctx, run } = methodCtxFor("onComputed");
+    const handler = vi.fn();
+    When("doubled")(handler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const s = signal(0);
+    const c = computed(() => s() * 2);
+    const instance = new TestComponent();
+    // Store the computed itself (not the result) so When can call isComputed on it
+    (instance as unknown as Record<string, unknown>).doubled = c;
+    run(instance);
+
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    s.set(5); // doubled becomes 10 (truthy)
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Prop (additional branches) ────────────────────────────────────────────────
+
+describe("Prop decorator — additional branches", () => {
+  it("set() updates the default value (used when no _rawProps entry)", () => {
+    const { ctx, run } = fieldCtx("size");
+    Prop()(undefined, ctx);
+
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).size = "sm";
+    run(instance);
+
+    // Setter path: updates _defaults
+    (instance as unknown as Record<string, unknown>).size = "lg";
+    expect((instance as unknown as Record<string, unknown>).size).toBe("lg");
+  });
+});
+
+// ── History (additional branches) ────────────────────────────────────────────
+
+describe("History decorator — undo with no previous value", () => {
+  it("undo() does nothing when there is no previous value", () => {
+    const { ctx, run } = fieldCtx("pts");
+    History()(undefined, ctx);
+
+    const s = signal(0);
+    const instance = new TestComponent();
+    Object.defineProperty(instance, "pts", {
+      get: () => s(),
+      set: (v: number) => { s.set(v); },
+      configurable: true,
+    });
+    run(instance);
+
+    const h = (instance as unknown as Record<string, unknown>).ptsHistory as {
+      undo: () => void;
+      canUndo: () => boolean;
+    };
+
+    // No changes yet — undo should be a no-op
+    expect(h.canUndo()).toBe(false);
+    expect(() => h.undo()).not.toThrow();
+    expect(s()).toBe(0);
+  });
+});
+
+// ── History decorator — multiple fields ───────────────────────────────────────
+
+describe("History decorator — multiple History properties on same instance", () => {
+  it("two History fields are independent", () => {
+    const { ctx: ctxX, run: runX } = fieldCtx("x");
+    const { ctx: ctxY, run: runY } = fieldCtx("y");
+    History()(undefined, ctxX);
+    History()(undefined, ctxY);
+
+    const sx = signal(0);
+    const sy = signal(0);
+    const instance = new TestComponent();
+    Object.defineProperty(instance, "x", {
+      get: () => sx(), set: (v: number) => { sx.set(v); }, configurable: true,
+    });
+    Object.defineProperty(instance, "y", {
+      get: () => sy(), set: (v: number) => { sy.set(v); }, configurable: true,
+    });
+    runX(instance);
+    runY(instance);
+
+    // Access history first to trigger lazy creation and subscribe to signals
+    const hx = (instance as unknown as Record<string, unknown>).xHistory as {
+      canUndo: () => boolean; current: () => number;
+    };
+    const hy = (instance as unknown as Record<string, unknown>).yHistory as {
+      canUndo: () => boolean; current: () => number;
+    };
+
+    sx.set(5);
+    sy.set(10);
+
+    expect(hx.canUndo()).toBe(true);
+    expect(hy.canUndo()).toBe(true);
+    expect(hx.current()).toBe(5);
+    expect(hy.current()).toBe(10);
+  });
+
+  it("clear() after undo removes redo entries", () => {
+    const { ctx, run } = fieldCtx("val");
+    History()(undefined, ctx);
+
+    const s = signal(0);
+    const instance = new TestComponent();
+    Object.defineProperty(instance, "val", {
+      get: () => s(), set: (v: number) => { s.set(v); }, configurable: true,
+    });
+    run(instance);
+
+    const h = (instance as unknown as Record<string, unknown>).valHistory as {
+      undo: () => void; clear: () => void;
+      canUndo: () => boolean; canRedo: () => boolean;
+    };
+
+    s.set(1);
+    s.set(2);
+    h.undo();
+    expect(h.canRedo()).toBe(true);
+    h.clear();
+    expect(h.canRedo()).toBe(false);
+    expect(h.canUndo()).toBe(false);
+  });
+});
+
+// ── Watch (additional branches — computed readValue) ──────────────────────────
+
+describe("Watch decorator — reading computed values", () => {
+  it("reads the value of a computed field (not the computed object)", () => {
+    const { ctx, run } = methodCtx("onDoubled");
+    const handler = vi.fn();
+    Watch("doubled" as never)(handler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const s = signal(1);
+    const c = computed(() => s() * 2);
+    const instance = new TestComponent();
+    // Watch reads instance["doubled"] — if it's a computed, it calls it
+    Object.defineProperty(instance, "doubled", {
+      get: () => c,
+      configurable: true,
+    });
+    run(instance);
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    s.set(5); // c() goes from 2 to 10 → triggers handler
+    expect(handler).toHaveBeenCalledTimes(1);
   });
 });

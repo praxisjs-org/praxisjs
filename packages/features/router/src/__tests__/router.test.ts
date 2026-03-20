@@ -140,7 +140,8 @@ describe("createRouter / useRouter / useParams / useQuery / useLocation", () => 
 
   it("useParams returns the router params computed", () => {
     createRouter([{ path: "/users/:id", component: UserPage }]);
-    expect(useParams).toBeDefined();
+    const params = useParams();
+    expect(typeof params).toBe("function");
   });
 
   it("useQuery returns the router query computed", () => {
@@ -173,5 +174,97 @@ describe("lazy", () => {
     const loader = lazy(() => Promise.resolve({ default: AboutPage }));
     const mod = await loader();
     expect(mod.default).toBe(AboutPage);
+  });
+});
+
+describe("Router back / forward / go", () => {
+  it("back() calls window.history.back", () => {
+    const spy = vi.spyOn(window.history, "back").mockImplementation(() => {});
+    const r = makeRouter();
+    r.back();
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("forward() calls window.history.forward", () => {
+    const spy = vi.spyOn(window.history, "forward").mockImplementation(() => {});
+    const r = makeRouter();
+    r.forward();
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("go() calls window.history.go with delta", () => {
+    const spy = vi.spyOn(window.history, "go").mockImplementation(() => {});
+    const r = makeRouter();
+    r.go(-1);
+    expect(spy).toHaveBeenCalledWith(-1);
+    spy.mockRestore();
+  });
+});
+
+describe("Router lazy component", () => {
+  it("resolves a lazy component and caches it", async () => {
+    const loaderFn = vi.fn().mockResolvedValue({ default: AboutPage });
+    const lazyComp = lazy(loaderFn);
+    const r = new Router([
+      { path: "/lazy", component: lazyComp },
+    ]);
+    await r.push("/lazy");
+    expect(loaderFn).toHaveBeenCalledOnce();
+    expect(r.currentComponent()).toBe(AboutPage);
+
+    // Second navigation should use the cache
+    await r.push("/lazy");
+    expect(loaderFn).toHaveBeenCalledOnce(); // still only once
+  });
+
+  it("sets loading true while resolving lazy component", async () => {
+    let resolveLoader!: (val: { default: typeof AboutPage }) => void;
+    const loaderFn = vi.fn(
+      () => new Promise<{ default: typeof AboutPage }>((resolve) => { resolveLoader = resolve; }),
+    );
+    const lazyComp = lazy(loaderFn);
+    const r = new Router([{ path: "/lazy2", component: lazyComp }]);
+
+    const pushPromise = r.push("/lazy2");
+    // loading should be true while we wait
+    expect(r.loading()).toBe(true);
+    resolveLoader({ default: AboutPage });
+    await pushPromise;
+    expect(r.loading()).toBe(false);
+  });
+
+  it("replace() with query string updates location", async () => {
+    const r = makeRouter();
+    await r.replace("/about", { q: "test" });
+    expect(r.location().query).toEqual({ q: "test" });
+  });
+
+  it("lazy loader that rejects leaves component null", async () => {
+    const loaderFn = vi.fn().mockRejectedValue(new Error("load failed"));
+    const lazyComp = lazy(loaderFn);
+    const r = new Router([{ path: "/bad-lazy", component: lazyComp }]);
+
+    // push() propagates the rejection
+    await expect(r.push("/bad-lazy")).rejects.toThrow("load failed");
+    // component was never set
+    expect(r.currentComponent()).toBeNull();
+    expect(r.loading()).toBe(false); // loading reset in finally
+  });
+
+  it("beforeEnter that throws blocks navigation and re-throws", async () => {
+    const r = new Router([
+      { path: "/", component: HomePage },
+      {
+        path: "/boom",
+        component: AboutPage,
+        beforeEnter: async () => { throw new Error("guard boom"); },
+      },
+    ]);
+
+    await expect(r.push("/boom")).rejects.toThrow("guard boom");
+    // Location stays at "/"
+    expect(r.location().path).toBe("/");
   });
 });

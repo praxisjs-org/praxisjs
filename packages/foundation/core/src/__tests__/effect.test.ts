@@ -51,4 +51,43 @@ describe("effect", () => {
     b.set(20);
     expect(sums).toEqual([11, 12, 22]);
   });
+
+  it("stop() prevents future re-runs", () => {
+    const s = signal(0);
+    const values: number[] = [];
+    const stop = effect(() => {
+      values.push(s());
+    });
+    stop();
+    s.set(99);
+    expect(values).toEqual([0]); // only initial run
+  });
+
+  it("effect with no reactive dependencies runs once only", () => {
+    const ran = vi.fn();
+    effect(() => {
+      ran(); // no signal reads
+    });
+    expect(ran).toHaveBeenCalledTimes(1);
+    // No signal changes possible — just verify it doesn't re-run spontaneously
+    expect(ran).toHaveBeenCalledTimes(1);
+  });
+
+  it("stop() with no cleanup function does not throw", () => {
+    const stop = effect(() => { /* no return value */ });
+    expect(() => stop()).not.toThrow();
+  });
+
+  it("cleanup is re-invoked before each re-run", () => {
+    const s = signal(0);
+    const cleanupCount = { n: 0 };
+    effect(() => {
+      s(); // track
+      return () => { cleanupCount.n++; };
+    });
+    s.set(1);
+    s.set(2);
+    // cleanup called once before second run, once before third run
+    expect(cleanupCount.n).toBe(2);
+  });
 });

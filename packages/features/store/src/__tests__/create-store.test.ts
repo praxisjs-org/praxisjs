@@ -95,4 +95,68 @@ describe("createStore", () => {
     ).not.toThrow();
     expect(store.count).toBe(0);
   });
+
+  it("setting a non-signal string key via proxy returns false", () => {
+    const store = makeCounter();
+    // "nonExistent" is a string key but is not a signal — set returns false
+    const result = Reflect.set(
+      store as object,
+      "nonExistent",
+      42,
+    );
+    expect(result).toBe(false);
+  });
+
+  it("getting an unknown key returns undefined", () => {
+    const store = makeCounter();
+    const val = (store as unknown as Record<string, unknown>).doesNotExist;
+    expect(val).toBeUndefined();
+  });
+
+  it("multiple $subscribe listeners all receive updates", () => {
+    const store = makeCounter();
+    const snapshotsA: number[] = [];
+    const snapshotsB: number[] = [];
+
+    type StoreType = { $subscribe: (fn: (s: Record<string, unknown>) => void) => () => void };
+    (store as unknown as StoreType).$subscribe((s) => snapshotsA.push(s.count as number));
+    (store as unknown as StoreType).$subscribe((s) => snapshotsB.push(s.count as number));
+
+    (store as unknown as { count: number }).count = 5;
+    expect(snapshotsA).toContain(5);
+    expect(snapshotsB).toContain(5);
+  });
+
+  it("$subscribe unsubscribe stops delivery to that listener", () => {
+    const store = makeCounter();
+    const snapshots: number[] = [];
+
+    type StoreType = { $subscribe: (fn: (s: Record<string, unknown>) => void) => () => void };
+    const unsub = (store as unknown as StoreType).$subscribe(
+      (s) => snapshots.push(s.count as number),
+    );
+
+    (store as unknown as { count: number }).count = 1;
+    unsub();
+    (store as unknown as { count: number }).count = 2;
+
+    // After unsub, count=2 should NOT be in snapshots
+    expect(snapshots).toContain(1);
+    expect(snapshots).not.toContain(2);
+  });
+
+  it("$state() snapshot includes getter values", () => {
+    const store = createStore({
+      a: 2,
+      b: 3,
+      get sum() {
+        return (this as unknown as { a: number; b: number }).a + (this as unknown as { a: number; b: number }).b;
+      },
+    })();
+
+    // $state returns only signal-backed fields (not getters)
+    const state = (store as unknown as { $state: () => Record<string, unknown> }).$state();
+    expect(state).toHaveProperty("a", 2);
+    expect(state).toHaveProperty("b", 3);
+  });
 });

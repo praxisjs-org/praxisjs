@@ -70,4 +70,30 @@ describe("mountChildren", () => {
     expect(el.textContent).toBe("");
     scope.dispose();
   });
+
+  it("reactive function returning an array of nodes renders all of them", () => {
+    const el = container();
+    const scope = new Scope();
+    mountChildren(el, () => ["x", "y", "z"], scope);
+    expect(el.textContent).toBe("xyz");
+    scope.dispose();
+  });
+
+  it("reactive function returning a Node renders it", () => {
+    const el = container();
+    const scope = new Scope();
+    const node = document.createElement("em");
+    node.textContent = "em";
+    mountChildren(el, () => node, scope);
+    expect(el.textContent).toBe("em");
+    scope.dispose();
+  });
+
+  it("reactive function returning a number renders it", () => {
+    const el = container();
+    const scope = new Scope();
+    mountChildren(el, () => 42, scope);
+    expect(el.textContent).toBe("42");
+    scope.dispose();
+  });
 });

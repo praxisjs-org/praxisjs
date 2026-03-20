@@ -84,4 +84,68 @@ describe("persistedSignal", () => {
     // Just verify it works without errors
     expect(s()).toBe(5);
   });
+
+  it("warns and falls back to initialValue when serialize throws on set", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const s = persistedSignal("key11", { x: 1 }, {
+      serialize: () => { throw new Error("serialize fail"); },
+      deserialize: JSON.parse as (v: string) => { x: number },
+    });
+    expect(() => s.set({ x: 2 })).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Failed to serialize"), expect.any(Error));
+    warn.mockRestore();
+  });
+
+  it("syncs to initialValue when storage event has newValue=null (key removed)", () => {
+    const s = persistedSignal("key12", 42);
+    s.set(99);
+
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: "key12",
+        newValue: null, // key removed in another tab
+        storageArea: localStorage,
+      }),
+    );
+    expect(s()).toBe(42); // falls back to initialValue
+  });
+
+  it("warns and falls back to initialValue when storage event deserialization fails", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const s = persistedSignal("key13", 0, {
+      deserialize: () => { throw new Error("bad"); },
+    });
+
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: "key13",
+        newValue: "invalid",
+        storageArea: localStorage,
+      }),
+    );
+    expect(s()).toBe(0);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("Failed to deserialize"),
+      expect.any(Error),
+    );
+    warn.mockRestore();
+  });
+
+  it("ignores storage events from other keys", () => {
+    const s = persistedSignal("key14", 1);
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: "other-key",
+        newValue: "999",
+        storageArea: localStorage,
+      }),
+    );
+    expect(s()).toBe(1);
+  });
+
+  it("set(undefined) removes the key from localStorage", () => {
+    const s = persistedSignal<number | undefined>("key15", 5);
+    s.set(undefined);
+    expect(localStorage.getItem("key15")).toBeNull();
+  });
 });

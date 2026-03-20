@@ -24,8 +24,10 @@ type Cleanup = (() => void) | void;
 
 export function effect(fn: () => Cleanup) {
   let cleanup: Cleanup;
+  let stopped = false;
 
   const wrappedEffect = () => {
+    if (stopped) return;
     cleanup?.();
     const prevEffect = activeEffect;
     activeEffect = wrappedEffect;
@@ -39,6 +41,8 @@ export function effect(fn: () => Cleanup) {
   wrappedEffect();
 
   return () => {
+    stopped = true;
     cleanup?.();
+    cleanup = undefined;
   };
 }
