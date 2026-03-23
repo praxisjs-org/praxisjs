@@ -47,3 +47,8 @@ coverage/
 docs/.vitepress/dist
 docs/.vitepress/cache
 docs/.vitepress/.temp
+
+#codecove
+codecov
+codecov.SHA256SUM
+codecov.SHA256SUM.sig
