@@ -495,6 +495,49 @@ async loadConfig() {
 }
 ```
 
+### `@Memo()`
+
+Memoizes a method's return value per unique argument combination. Each unique set of arguments gets its own reactive `computed()` — so if the method reads any `@State` or `@Prop`, the cached value automatically updates when those signals change.
+
+```ts
+import { Component, State, Memo } from '@praxisjs/decorators'
+import { StatefulComponent } from '@praxisjs/core'
+
+@Component()
+class PriceList extends StatefulComponent {
+  @State() discount = 0
+
+  @Memo()
+  discountedPrice(price: number) {
+    return price * (1 - this.discount)
+  }
+
+  render() {
+    return (
+      <ul>
+        <li>{() => this.discountedPrice(100)}</li>
+        <li>{() => this.discountedPrice(200)}</li>
+      </ul>
+    )
+  }
+}
+```
+
+Each distinct argument combination (`100`, `200`) has its own cache entry. When `this.discount` changes, both cached values recompute automatically.
+
+::: tip How argument caching works
+Arguments are serialized to a string cache key:
+- Objects and `null` → `JSON.stringify`
+- Symbols → `symbol.toString()`
+- Everything else → `String(value)`
+
+Multiple arguments are joined with `|`. Methods with no arguments share a single cache entry.
+:::
+
+::: warning
+`@Memo()` only works on methods of a `StatefulComponent`. Applying it to plain classes or static methods will not behave correctly.
+:::
+
 ### `@Retry(maxAttempts, options?)`
 
 Automatically retries an async method on failure.
