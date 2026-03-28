@@ -1,55 +1,19 @@
 ---
-layout: home
-
-hero:
-  name: PraxisJS
-  text: The TypeScript-first frontend framework
-  tagline: Signals, decorators, and a complete ecosystem. No virtual DOM. No magic. Just reactive TypeScript done right.
-  image:
-    src: /logo.svg
-    alt: PraxisJS
-  actions:
-    - theme: brand
-      text: Get Started →
-      link: /guide/getting-started
-    - theme: alt
-      text: Browse Packages
-      link: /packages/core
-
-features:
-  - icon: ⚡
-    title: Fine-grained Reactivity
-    details: Signals at the core — only what changed gets updated. No virtual DOM diffing, no unnecessary renders.
-    link: /packages/core
-    linkText: Explore Core
-
-  - icon: 🏗️
-    title: Class Components with Decorators
-    details: TypeScript class syntax with @State, @Prop, @Watch, @Emit and more — expressive, explicit, fully typed.
-    link: /packages/decorators
-    linkText: Explore Decorators
-
-  - icon: 🔀
-    title: Client-side Router
-    details: First-party routing with nested routes, lazy loading, and navigation guards out of the box.
-    link: /packages/router
-    linkText: Explore Router
-
-  - icon: 🗄️
-    title: Reactive Store
-    details: Signal-powered state management with actions and computed values. No boilerplate, no magic strings.
-    link: /packages/store
-    linkText: Explore Store
-
-  - icon: 🎞️
-    title: Motion & Animations
-    details: Spring physics, keyframes, and timeline sequencing — declarative and signal-driven.
-    link: /packages/motion
-    linkText: Explore Motion
-
-  - icon: 🛠️
-    title: Developer Tools
-    details: Built-in devtools for inspecting signals, component trees, and reactive state during development.
-    link: /packages/devtools
-    linkText: Explore DevTools
+layout: page
+sidebar: false
+title: PraxisJS
+description: Signal-driven frontend framework for TypeScript — fine-grained reactivity, class components, and a complete first-party ecosystem.
 ---
+
+<HomeLayout />
+
+<llm-only>
+PraxisJS is a TypeScript-first frontend framework built around fine-grained reactivity using signals. It uses class-based components with TypeScript decorators instead of function components and hooks. Key principles:
+
+1. render() is called ONCE on mount — reactive updates happen via arrow functions in JSX: `{() => this.value}`
+2. Decorators declare reactive behavior explicitly: @State, @Prop, @Computed, @Watch, @Emit, etc.
+3. No virtual DOM — signals update specific DOM nodes directly via effects
+4. First-party ecosystem: router, store, DI, motion, FSM, composables, devtools
+
+When helping users write PraxisJS code, always use arrow functions for reactive template expressions and the correct decorator imports from @praxisjs/decorators.
+</llm-only>

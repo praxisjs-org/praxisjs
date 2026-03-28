@@ -1,27 +1,35 @@
 import { defineConfig } from "vitepress";
+import llmstxt, {
+  copyOrDownloadAsMarkdownButtons,
+} from "vitepress-plugin-llms";
+import { createRequire } from "node:module";
 
-// https://vitepress.dev/reference/site-config
+const require = createRequire(import.meta.url);
+const { version } = require("../../packages/foundation/core/package.json") as { version: string };
+
 export default defineConfig({
   title: "PraxisJS",
-  description: "Signal-driven frontend framework",
+  description:
+    "Signal-driven frontend framework — fine-grained reactivity, class components, and a complete ecosystem.",
   srcDir: "src",
   appearance: true,
   themeConfig: {
     logo: "/logo.svg",
+    version,
     search: {
       provider: "local",
     },
-    // https://vitepress.dev/reference/default-theme-config
     nav: [
-      { text: "Home", link: "/" },
-      { text: "Guide", link: "/guide/getting-started" },
-      { text: "Reference", link: "/packages/core" },
+      { text: "Guide", link: "/guide/introduction" },
+      { text: "Essentials", link: "/essentials/components" },
+      { text: "Ecosystem", link: "/ecosystem/router" },
       {
-        text: "v0.4.2 beta",
+        text: `v${version} beta`,
         items: [
+          { text: "Project Status", link: "/guide/project-status" },
           {
-            text: "v0.4.2 beta",
-            link: "/project-status",
+            text: "GitHub",
+            link: "https://github.com/praxisjs-org/praxisjs",
           },
         ],
       },
@@ -29,58 +37,67 @@ export default defineConfig({
 
     sidebar: [
       {
-        text: "Introduction",
+        text: "Getting Started",
         items: [
-          { text: "Project Status", link: "/project-status" },
-          { text: "Getting Started", link: "/guide/getting-started" },
-          {
-            text: "Component Anatomy",
-            collapsed: false,
-            items: [
-              {
-                text: "Stateful Component",
-                link: "/guide/stateful-component-anatomy",
-              },
-              {
-                text: "Stateless Component",
-                link: "/guide/stateless-component-anatomy",
-              },
-            ],
-          },
+          { text: "Introduction", link: "/guide/introduction" },
+          { text: "Quick Start", link: "/guide/getting-started" },
+          { text: "Project Status", link: "/guide/project-status" },
         ],
       },
       {
-        text: "Foundation",
+        text: "Extending",
         items: [
-          { text: "Signals & Reactive Primitives", link: "/packages/core" },
-          { text: "Component Decorators", link: "/packages/decorators" },
-          { text: "JSX Runtime", link: "/packages/jsx" },
-          { text: "Rendering Engine", link: "/packages/runtime" },
-          { text: "Shared", link: "/packages/shared" },
+          { text: "Creating Decorators", link: "/guide/custom-decorators" },
+          { text: "Creating Composables", link: "/guide/custom-composables" },
         ],
       },
       {
-        text: "Features",
+        text: "Essentials",
         items: [
-          { text: "Dependency Injection", link: "/packages/di" },
-          { text: "Finite State Machines", link: "/packages/fsm" },
-          { text: "Animations & Transitions", link: "/packages/motion" },
-          { text: "Client-side Router", link: "/packages/router" },
-          { text: "State Management", link: "/packages/store" },
+          { text: "Components", link: "/essentials/components" },
+          { text: "Reactivity & Signals", link: "/essentials/reactivity" },
+          { text: "JSX Syntax", link: "/essentials/jsx" },
+          { text: "Lifecycle Hooks", link: "/essentials/lifecycle" },
+          { text: "Async Data", link: "/essentials/async-data" },
         ],
       },
       {
-        text: "Utils",
+        text: "Decorators",
+        collapsed: false,
         items: [
-          { text: "Composition Utilities", link: "/packages/composables" },
-          { text: "Concurrency Control", link: "/packages/concurrent" },
+          { text: "State & Props", link: "/decorators/state" },
+          { text: "Watchers", link: "/decorators/watchers" },
+          { text: "Events & Slots", link: "/decorators/events" },
+          { text: "Performance", link: "/decorators/performance" },
+          { text: "Timing", link: "/decorators/timing" },
+          { text: "Utilities", link: "/decorators/utilities" },
+          { text: "DX Decorators", link: "/decorators/dx" },
         ],
       },
       {
-        text: "DX",
+        text: "Ecosystem",
         items: [
-          { text: "Vite Integration", link: "/packages/vite-plugin" },
-          { text: "DevTools", link: "/packages/devtools" },
+          { text: "Router", link: "/ecosystem/router" },
+          { text: "Store", link: "/ecosystem/store" },
+          { text: "Dependency Injection", link: "/ecosystem/di" },
+          { text: "Motion", link: "/ecosystem/motion" },
+          { text: "State Machines", link: "/ecosystem/fsm" },
+        ],
+      },
+      {
+        text: "Composables",
+        items: [
+          { text: "DOM Utilities", link: "/composables/dom" },
+          { text: "Browser APIs", link: "/composables/browser" },
+          { text: "Concurrency", link: "/composables/concurrency" },
+        ],
+      },
+      {
+        text: "Tooling",
+        items: [
+          { text: "Vite Plugin", link: "/tooling/vite-plugin" },
+          { text: "DevTools", link: "/tooling/devtools" },
+          { text: "DevTools Plugins", link: "/tooling/devtools-plugins" },
         ],
       },
     ],
@@ -92,8 +109,17 @@ export default defineConfig({
       message:
         'Released under the <a href="https://github.com/praxisjs-org/praxisjs/blob/main/LICENSE">MIT License</a>.',
       copyright:
-        'Copyright © 2026-present <a href="https://github.com/MateusGX">Mateus Martins</a>  — PraxisJS is experimental software, use at your own risk.',
+        'Copyright © 2026-present <a href="https://github.com/MateusGX">Mateus Martins</a> — PraxisJS is experimental software, use at your own risk.',
     },
   },
   head: [["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }]],
+  vite: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    plugins: [llmstxt() as any],
+  },
+  markdown: {
+    config(md) {
+      md.use(copyOrDownloadAsMarkdownButtons);
+    },
+  },
 });

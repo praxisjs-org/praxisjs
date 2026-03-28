@@ -207,7 +207,15 @@
 }
 
 /* ======================================================================
- * Home: Hero — aurora background glow
+ * Home page (layout: page) — remove container padding for full-bleed
+ * ====================================================================== */
+
+.VPPage:has(.ph) {
+  padding: 0 !important;
+}
+
+/* ======================================================================
+ * Home: Hero — aurora background glow (legacy, kept for reference)
  * ====================================================================== */
 
 .VPHome .VPHero {
@@ -353,4 +361,98 @@
 
 .VPFeatures .VPFeature:hover::after {
   opacity: 1;
+}
+
+/* ======================================================================
+ * Sidebar — section header accent
+ * ====================================================================== */
+
+.VPSidebarItem.level-0 > .item > .text {
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vp-c-brand-1);
+  opacity: 0.85;
+}
+
+.VPSidebarItem.level-1.is-active > .item > .link > .text {
+  color: var(--vp-c-brand-1);
+}
+
+/* ======================================================================
+ * Tables — subtle brand border
+ * ====================================================================== */
+
+.vp-doc table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.vp-doc th {
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.vp-doc tr:hover {
+  background: var(--vp-c-bg-alt);
+}
+
+/* ======================================================================
+ * Inline code — brand tinted
+ * ====================================================================== */
+
+.vp-doc :not(pre) > code {
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.875em;
+}
+
+/* ======================================================================
+ * Nav — active item brand underline
+ * ====================================================================== */
+
+.VPNavBarMenuLink.active {
+  color: var(--vp-c-brand-1) !important;
+}
+
+/* ======================================================================
+ * Home — section title style
+ * ====================================================================== */
+
+.VPFeatures .title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+.VPFeatures .details {
+  font-size: 0.875rem;
+  color: var(--vp-c-text-2);
+  line-height: 1.6;
+}
+
+/* ======================================================================
+ * Code blocks — subtle brand glow on focus
+ * ====================================================================== */
+
+.vp-doc div[class*='language-'] {
+  border-radius: 8px;
+  border: 1px solid var(--vp-c-border);
+}
+
+.dark .vp-doc div[class*='language-'] {
+  border-color: rgba(155, 144, 230, 0.15);
+}
+
+/* ======================================================================
+ * Custom containers — brand important
+ * ====================================================================== */
+
+.vp-doc .custom-block.tip {
+  border-color: var(--vp-c-brand-soft);
+  background: var(--vp-c-brand-soft);
 }

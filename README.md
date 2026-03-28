@@ -1,56 +1,96 @@
+<div align="center">
+
+<img src="docs/public/logo.svg" width="64" height="64" alt="PraxisJS logo" />
+
 # PraxisJS
 
-> **⚠️ Experimental** — PraxisJS is in early beta. The API is unstable and subject to breaking changes without notice. Not recommended for production use.
+**Signal-driven frontend framework for TypeScript.**
+Fine-grained reactivity · Class components · Decorator-first API · Complete ecosystem.
 
-A signal-driven frontend framework written in TypeScript. PraxisJS combines fine-grained reactivity with class components and decorators, shipping a complete first-party ecosystem for building web applications.
+[![npm](https://img.shields.io/npm/v/@praxisjs/core?label=version&color=38bdf8)](https://www.npmjs.com/package/@praxisjs/core)
+[![codecov](https://codecov.io/gh/praxisjs-org/praxisjs/graph/badge.svg?token=VTZHTEP9QT)](https://codecov.io/gh/praxisjs-org/praxisjs)
+[![license](https://img.shields.io/github/license/praxisjs-org/praxisjs?color=38bdf8)](./LICENSE)
 
-**[Documentation](https://praxisjs.org/)** · [GitHub](https://github.com/praxisjs-org/praxisjs)
+[Documentation](https://praxisjs.org) · [Getting Started](https://praxisjs.org/guide/getting-started) · [GitHub](https://github.com/praxisjs-org/praxisjs)
+
+> **⚠️ Early beta** — API is unstable and subject to breaking changes. Not recommended for production use.
+
+</div>
+
+---
+
+## Overview
+
+PraxisJS is a TypeScript frontend framework built around fine-grained signals. Components are classes decorated with a rich set of built-in decorators, and the first-party ecosystem covers routing, state management, animations, dependency injection, and more — all designed to work together.
+
+```tsx
+import { Component, State, Watch } from '@praxisjs/decorators'
+import { StatefulComponent } from '@praxisjs/core'
+
+@Component()
+class Counter extends StatefulComponent {
+  @State() count = 0
+
+  @Watch('count')
+  onCountChange(next: number) {
+    console.log('count is now', next)
+  }
+
+  render() {
+    return (
+      <div>
+        <p>Count: {() => this.count}</p>
+        <button onClick={() => this.count++}>Increment</button>
+      </div>
+    )
+  }
+}
+```
+
+---
 
 ## Packages
 
 ### Foundation
 
-| Package                | Description                                                                  |
-| ---------------------- | ---------------------------------------------------------------------------- |
-| `@praxisjs/core`       | Signals, computed values, effects, and async resources                       |
-| `@praxisjs/decorators` | Class component decorators (`@Component`, `@State`, `@Prop`, `@Watch`, etc.) |
-| `@praxisjs/jsx`        | JSX runtime                                                                  |
-| `@praxisjs/runtime`    | Rendering engine                                                             |
-| `@praxisjs/shared`     | Shared types and utilities                                                   |
+| Package | Description |
+|---|---|
+| `@praxisjs/core` | Signals, computed values, effects, and async resources |
+| `@praxisjs/decorators` | Class component decorators (`@Component`, `@State`, `@Prop`, `@Watch`, …) |
+| `@praxisjs/jsx` | JSX runtime |
+| `@praxisjs/runtime` | Rendering engine |
+| `@praxisjs/shared` | Shared types and utilities |
 
 ### Features
 
-| Package            | Description                |
-| ------------------ | -------------------------- |
-| `@praxisjs/router` | Client-side router         |
-| `@praxisjs/store`  | State management           |
+| Package | Description |
+|---|---|
+| `@praxisjs/router` | Client-side router |
+| `@praxisjs/store` | Global state management |
 | `@praxisjs/motion` | Animations and transitions |
-| `@praxisjs/di`     | Dependency injection       |
-| `@praxisjs/fsm`    | Finite state machines      |
+| `@praxisjs/di` | Dependency injection |
+| `@praxisjs/fsm` | Finite state machines |
 
 ### Utils
 
-| Package                 | Description           |
-| ----------------------- | --------------------- |
-| `@praxisjs/composables` | Composition utilities |
-| `@praxisjs/concurrent`  | Concurrency control   |
+| Package | Description |
+|---|---|
+| `@praxisjs/composables` | DOM, browser, and concurrency utilities |
+| `@praxisjs/concurrent` | Concurrency control decorators |
 
 ### DX
 
-| Package                 | Description         |
-| ----------------------- | ------------------- |
-| `@praxisjs/vite-plugin` | Vite integration    |
-| `@praxisjs/devtools`    | Developer tools UI  |
+| Package | Description |
+|---|---|
+| `@praxisjs/devtools` | In-app developer tools overlay |
+| `@praxisjs/vite-plugin` | Vite integration |
+| `create-praxisjs` | Project scaffolding CLI |
 
-### Tooling
-
-| Package           | Description                    |
-| ----------------- | ------------------------------ |
-| `create-praxisjs` | Project scaffolding CLI (npm init) |
+---
 
 ## Development
 
-This is a monorepo managed with [pnpm workspaces](https://pnpm.io/workspaces).
+Monorepo managed with [pnpm workspaces](https://pnpm.io/workspaces).
 
 ```sh
 pnpm install
@@ -64,19 +104,22 @@ pnpm build:features
 pnpm build:utils
 pnpm build:dx
 
-# run docs
-pnpm docs:dev
+# run tests
+pnpm test
 
-# typecheck
+# typecheck & lint
 pnpm typecheck
-
-# lint
 pnpm lint
+
+# docs dev server
+pnpm docs:dev
 ```
+
+---
 
 ## Contributing
 
-PraxisJS is a personal project, built out of curiosity and a desire to explore framework design from the ground up. Contributions are welcome — whether it's bug reports, ideas, or pull requests. Feel free to open an issue to discuss anything before diving in.
+PraxisJS is a personal project built out of curiosity and a desire to explore framework design from scratch. Contributions are welcome — bug reports, ideas, or pull requests. Feel free to open an issue before diving in.
 
 ## License
 

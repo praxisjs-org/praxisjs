@@ -1,30 +1,13 @@
-# Getting Started
+---
+title: Quick Start
+description: Create a new PraxisJS project and build your first component in minutes.
+---
 
-PraxisJS is a signal-driven frontend framework built with TypeScript. It provides fine-grained reactivity, class components with decorators, and a complete ecosystem of first-party packages.
-
-::: info Personal project
-PraxisJS is a personal project, born from a personal vision of what a more explicit, traceable frontend architecture could look, feel, and actually work like. The ideas here reflect a single perspective — not a consensus, not a committee. It also became an experiment in AI-assisted development: not to automate thinking, but to pressure-test ideas, surface blind spots, and accelerate iteration. Some parts were shaped through that collaboration — and some parts exist precisely because the AI fell short.
-:::
-
-::: warning Experimental
-PraxisJS is under active development. APIs are unstable and subject to breaking changes at any time. Not recommended for production use. [See project status →](/project-status)
-:::
-
-## Why Praxis?
-
-_Praxis_ (πρᾶξις, Greek: _action_, _practice_). Not how things should be — how they are actually done.
-
-The ancient concept that separates those who understand from those who execute. Not theory, not intention — only the act that emerges when knowledge and craft become inseparable.
-
-Most frameworks hide their praxis. Write less, trust more, let the runtime handle the rest. PraxisJS refuses that contract.
-
-`@State` doesn't _suggest_ that a property is reactive — it _is_ reactive, and you can read that in the code. `@Prop` doesn't imply a contract — it declares one. `@Watch` doesn't hint at a side effect — it commits to one. The component doesn't hide what it does: **it practices openly**.
-
-Fine-grained reactivity, TypeScript-native, signals that reach the DOM with no reconciliation pass between intention and result — nothing hidden, nothing assumed.
+# Quick Start
 
 ## Automatic setup
 
-Run `create-praxisjs` to generate a new project with TypeScript, Vite, JSX, and all dependencies already configured.
+The fastest way to get started is `create-praxisjs`, which scaffolds a project with TypeScript, Vite, JSX, and HMR already configured.
 
 ::: code-group
 
@@ -46,21 +29,15 @@ bun create praxisjs
 
 :::
 
-You can also pass the project name as an argument to skip the first prompt:
+The CLI will ask for a project name and template:
 
-```sh
-npm create praxisjs@latest my-app
-```
+| Template | Packages included |
+|---|---|
+| **Minimal** | core, decorators, jsx, runtime |
+| **With Router** | Minimal + router |
+| **Full** | Router + store, di, composables, concurrent, devtools |
 
-The CLI will then ask which template to use:
-
-| Template    | Includes                                                                                                          |
-| ----------- | ----------------------------------------------------------------------------------------------------------------- |
-| Minimal     | `@praxisjs/core`, `@praxisjs/decorators`, `@praxisjs/jsx`, `@praxisjs/runtime`                                    |
-| With Router | Minimal + `@praxisjs/router`                                                                                      |
-| Full        | Router + `@praxisjs/store`, `@praxisjs/di`, `@praxisjs/composables`, `@praxisjs/concurrent`, `@praxisjs/devtools` |
-
-Once the project is created, install dependencies and start the dev server:
+Then start the dev server:
 
 ```sh
 cd my-app
@@ -68,15 +45,11 @@ npm install
 npm run dev
 ```
 
-The dev server starts at `http://localhost:5173` with HMR enabled via `@praxisjs/vite-plugin`.
-
 ---
 
 ## Manual setup
 
-Prefer to configure everything yourself? Install only the packages you need.
-
-### Installation
+### Install packages
 
 ::: code-group
 
@@ -97,21 +70,19 @@ yarn add -D @praxisjs/vite-plugin
 
 :::
 
-### Project setup
-
-Configure Vite to use the PraxisJS plugin:
+### Configure Vite
 
 ```ts
 // vite.config.ts
-import { defineConfig } from "vite";
-import { praxisjs } from "@praxisjs/vite-plugin";
+import { defineConfig } from 'vite'
+import { praxisjs } from '@praxisjs/vite-plugin'
 
 export default defineConfig({
   plugins: [praxisjs({ hmr: true })],
-});
+})
 ```
 
-Configure TypeScript to use the PraxisJS JSX runtime:
+### Configure TypeScript
 
 ```json
 // tsconfig.json
@@ -122,65 +93,76 @@ Configure TypeScript to use the PraxisJS JSX runtime:
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "jsxImportSource": "@praxisjs/jsx",
-    "useDefineForClassFields": true,
+    "useDefineForClassFields": false,
     "strict": true,
-    "noEmit": true,
-    "skipLibCheck": true
-  },
-  "include": ["src", "vite.config.ts"]
+    "noEmit": true
+  }
 }
 ```
 
-### Your first component
+::: warning `useDefineForClassFields: false` is required
+With `true` (the ES2022+ default), TypeScript compiles class fields using `Object.defineProperty`, which runs **after** decorator initializers and overwrites the getter/setter they registered. Setting it to `false` compiles fields as constructor assignments (`this.x = value`), so the decorator's signal wiring stays intact.
+:::
+
+---
+
+## Your first component
 
 ```tsx
-import { Component, State, Prop } from "@praxisjs/decorators";
-import { StatefulComponent } from "@praxisjs/core";
+// src/Counter.tsx
+import { StatefulComponent } from '@praxisjs/core'
+import { Component, State, Prop } from '@praxisjs/decorators'
 
 @Component()
 class Counter extends StatefulComponent {
-  @Prop() initialCount = 0;
-  @State() count = 0;
+  @Prop() initialCount = 0
+  @State() count = 0
 
-  increment() {
-    this.count++;
+  onMount() {
+    this.count = this.initialCount
   }
 
   render() {
     return (
       <div>
         <p>Count: {() => this.count}</p>
-        <button onClick={() => this.increment()}>Increment</button>
+        <button onClick={() => this.count++}>+</button>
+        <button onClick={() => this.count--}>-</button>
       </div>
-    );
+    )
   }
 }
 ```
 
-### Mounting the app
+::: tip Why `{() => this.count}` and not `{this.count}`?
+`render()` runs **once** on mount. To keep a value reactive in the DOM, wrap it in an arrow function — the renderer tracks it as a live dependency. `{this.count}` captures the value at render time and never updates.
+:::
+
+## Mount the app
 
 ```ts
-import { render } from "@praxisjs/runtime";
+// src/main.ts
+import { render } from '@praxisjs/runtime'
+import { Counter } from './Counter'
 
-render(() => <Counter initialCount={0} />, document.getElementById("app")!);
+render(() => <Counter initialCount={5} />, document.getElementById('app')!)
 ```
 
 ---
 
-## Package overview
+## What's next?
 
-| Package                              | Purpose                                                         |
-| ------------------------------------ | --------------------------------------------------------------- |
-| [core](/packages/core)               | Base classes `StatefulComponent`, `StatelessComponent`; internally coordinates signals, computed, effects and async resources |
-| [composables](/packages/composables) | DOM and browser composition utilities                           |
-| [decorators](/packages/decorators)   | Class decorators for components                                 |
-| [jsx](/packages/jsx)                 | JSX runtime and type definitions                                |
-| [runtime](/packages/runtime)         | DOM rendering engine and scope management                       |
-| [store](/packages/store)             | Reactive state management                                       |
-| [router](/packages/router)           | Client-side routing                                             |
-| [motion](/packages/motion)           | Animations: tweens, springs, keyframes                          |
-| [fsm](/packages/fsm)                 | Finite state machines                                           |
-| [concurrent](/packages/concurrent)   | Async concurrency control                                       |
-| [di](/packages/di)                   | Dependency injection container                                  |
-| [vite-plugin](/packages/vite-plugin) | Vite integration                                                |
-| [devtools](/packages/devtools)       | In-app developer tools panel                                    |
+- [Components](/essentials/components) — stateful and stateless components
+- [Reactivity & Signals](/essentials/reactivity) — how signals work under the hood
+- [Decorators: State & Props](/decorators/state) — full decorator reference
+
+<llm-only>
+IMPORTANT for code generation:
+- Always import @Component, @State, @Prop from '@praxisjs/decorators'
+- Always import StatefulComponent from '@praxisjs/core'
+- Always import render from '@praxisjs/runtime'
+- Files that contain JSX must have .tsx extension
+- The jsxImportSource in tsconfig.json must be "@praxisjs/jsx"
+- useDefineForClassFields in tsconfig.json MUST be false — decorator signal wiring breaks if it is true
+- render() is called ONCE — all dynamic values in JSX MUST be arrow functions: {() => this.value}
+</llm-only>
