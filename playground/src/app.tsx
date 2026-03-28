@@ -1,98 +1,29 @@
-import { StatefulComponent, StatelessComponent } from "@praxisjs/core";
-import {
-  Component,
-  Compose,
-  Computed,
-  Prop,
-  State,
-  Watch,
-} from "@praxisjs/decorators";
-import { Debug, Trace } from "@praxisjs/devtools";
-import { Signal } from "@praxisjs/shared";
-import { MediaQuery } from "@praxisjs/composables";
+import { StatefulComponent } from "@praxisjs/core";
+import { Component } from "@praxisjs/decorators";
+import { RouterConfig, RouterView, Link, Lazy } from "@praxisjs/router";
 
-@Component()
-export class ListItem extends StatelessComponent<{
-  value: number;
-}> {
-  render() {
-    return (
-      <div>
-        <span>label</span>
-        <span>{this.props.value}</span>
-      </div>
-    );
-  }
-}
+import { Home } from "./pages/home";
+import About from "./pages/about";
 
-@Component()
-export class Version extends StatefulComponent {
-  @Prop() value = 0;
-
-  render() {
-    return (
-      <div>
-        <span>VNEW</span>
-        <span>{() => this.value}</span>
-      </div>
-    );
-  }
-}
-
-function TesteV() {
-  return <span>asdasdasdas</span>;
-}
-
-@Trace()
+@RouterConfig([Home, About])
 @Component()
 export class App extends StatefulComponent {
-  @Debug()
-  @State()
-  count = 0;
-
-  @Compose(MediaQuery, "(max-width: 768px)")
-  mobile!: InstanceType<typeof MediaQuery>;
-
-  @State() arr = [];
-
-  @Debug({ label: "doubled" })
-  @Computed()
-  get doubled() {
-    return this.count * 2;
-  }
-
-  increment() {
-    this.count++;
-    this.arr.push();
-  }
-
   render() {
     return (
       <div class="app">
-        <span
-          class="count-value"
-          style={() => ({
-            backgroundColor: this.count % 2 === 0 ? "red" : "blue",
-          })}
-        >
-          {() => this.count}
-        </span>
-        <span>double: {() => this.doubled}</span>
-        <div>
-          <ListItem value={() => this.count} />
-        </div>
-        <div>
-          <Version value={() => this.count} />
-        </div>
-        <button
-          onClick={() => {
-            this.increment();
-          }}
-        >
-          Increment
-        </button>
-        <TesteV />
-        <Version />
+        <nav class="nav">
+          <div class="nav-brand">
+            <img src="/logo.svg" class="nav-logo" alt="PraxisJS" />
+            <span class="nav-name">PraxisJS</span>
+          </div>
+          <div class="nav-links">
+            <Link to="/">Home</Link>
+            <Link to="/about">About</Link>
+          </div>
+        </nav>
+        <main class="main">
+          <RouterView />
+        </main>
       </div>
     );
   }

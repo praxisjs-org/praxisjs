@@ -88,52 +88,118 @@ code {
 }
 
 /* ============================================================
- * App layout — centered single page
+ * App shell
  * ============================================================ */
 
 .app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 48px;
-  padding: 40px 24px;
 }
 
 /* ============================================================
- * Hero
+ * Navbar
  * ============================================================ */
 
-.hero {
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 62px;
+  border-bottom: 1px solid var(--color-divider);
+  background-color: var(--color-bg-elv);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.nav-logo {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.nav-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.nav-links a {
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-2);
+  text-decoration: none;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--color-brand);
+  background-color: var(--color-brand-soft);
+}
+
+/* ============================================================
+ * Main content
+ * ============================================================ */
+
+.main {
+  flex: 1;
+  padding: 56px 28px;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ============================================================
+ * Page
+ * ============================================================ */
+
+.page {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  text-align: center;
+  gap: 40px;
 }
 
-.logo-mark {
-  width: 80px;
-  height: 80px;
-  margin-bottom: 4px;
+.page-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.hero h1 {
-  font-size: 2.5rem;
+.page-hero h1 {
+  font-size: 2.25rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  background: linear-gradient(90deg, #6d5bbd 0%, #7c6dd6 50%, #6366f1 100%);
+  background: linear-gradient(90deg, #6d5bbd, #7c6dd6, #6366f1);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  line-height: 1.15;
+  line-height: 1.2;
 }
 
-.tagline {
-  font-size: 1rem;
-  color: var(--color-text-3);
-  font-weight: 400;
+.page-hero p {
+  font-size: 1.05rem;
+  color: var(--color-text-2);
+  max-width: 520px;
 }
 
 /* ============================================================
@@ -144,14 +210,14 @@ code {
   background: var(--color-bg-elv);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 36px 48px;
+  padding: 36px 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
   box-shadow: var(--shadow-md);
-  min-width: 300px;
   text-align: center;
+  max-width: 320px;
 }
 
 .count-value {
@@ -172,10 +238,48 @@ code {
   margin-top: -4px;
 }
 
-.hint {
-  font-size: 0.8rem;
+/* ============================================================
+ * Features grid
+ * ============================================================ */
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.feature-card {
+  background: var(--color-bg-elv);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.feature-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-brand-soft);
+}
+
+.feature-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.feature-card h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.feature-card p {
+  font-size: 0.85rem;
   color: var(--color-text-3);
-  margin-top: 4px;
+  line-height: 1.5;
 }
 
 /* ============================================================
@@ -187,8 +291,8 @@ button {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 10px 28px;
-  font-size: 0.9rem;
+  padding: 10px 24px;
+  font-size: 0.875rem;
   font-weight: 600;
   font-family: inherit;
   border-radius: var(--radius-md);
@@ -212,4 +316,16 @@ button:active {
 button:focus-visible {
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
+}
+
+button.secondary {
+  background-color: var(--color-bg-soft);
+  color: var(--color-text);
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
+button.secondary:hover {
+  background-color: var(--color-bg-alt);
+  box-shadow: none;
 }
