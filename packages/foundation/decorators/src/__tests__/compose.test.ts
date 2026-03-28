@@ -102,7 +102,7 @@ describe("@Compose decorator", () => {
     expect(view).toBeDefined();
 
     // Trigger onMount
-    instance.onMount();
+    instance.onMount!();
     const lc = new LifecycleComposable();
     // The composable's onMount would have been called
     // We verify the instance has an onMount wiring
@@ -133,7 +133,7 @@ describe("@Compose decorator", () => {
     const instance = new TestComponent();
     run(instance);
 
-    instance.onUnmount();
+    instance.onUnmount!();
     expect(unmountSpy).toHaveBeenCalled();
   });
 
