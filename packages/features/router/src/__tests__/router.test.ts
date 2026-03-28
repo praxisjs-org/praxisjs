@@ -363,7 +363,7 @@ describe("@Route", () => {
     class Dashboard { render() { return null; } }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const Enhanced = Route("/dashboard")(Dashboard as any, {} as ClassDecoratorContext);
-    expect((Enhanced as Record<string, unknown>).__routePath).toBe("/dashboard");
+    expect((Enhanced as unknown as Record<string, unknown>).__routePath).toBe("/dashboard");
   });
 
   it("create() returns empty enhancement — instantiating calls RouteBehavior.create()", () => {
