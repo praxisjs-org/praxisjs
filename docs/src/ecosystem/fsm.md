@@ -7,9 +7,25 @@ description: "@praxisjs/fsm — finite state machines via @StateMachine and @Tra
 
 Finite state machines via decorators. `@StateMachine` attaches a reactive machine to a component class, and `@Transition` binds methods to state transitions.
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @praxisjs/fsm
 ```
+
+```sh [pnpm]
+pnpm add @praxisjs/fsm
+```
+
+```sh [yarn]
+yarn add @praxisjs/fsm
+```
+
+```sh [bun]
+bun add @praxisjs/fsm
+```
+
+:::
 
 ## `@StateMachine(definition, property?)`
 

@@ -7,9 +7,25 @@ description: "@praxisjs/concurrent — async concurrency control decorators @Tas
 
 Async concurrency decorators from `@praxisjs/concurrent`. Decorate async methods to get reactive loading, error, and result state — automatically scoped per instance.
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @praxisjs/concurrent
 ```
+
+```sh [pnpm]
+pnpm add @praxisjs/concurrent
+```
+
+```sh [yarn]
+yarn add @praxisjs/concurrent
+```
+
+```sh [bun]
+bun add @praxisjs/concurrent
+```
+
+:::
 
 Each decorator exposes reactive state as separate properties named `{method}_loading`, `{method}_error`, etc.
 

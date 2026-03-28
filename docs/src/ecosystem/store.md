@@ -7,9 +7,25 @@ description: "@praxisjs/store — class-based singleton stores with @Store and @
 
 Class-based singleton state management. Define a store with `@Store`, inject it into any component with `@UseStore`.
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @praxisjs/store
 ```
+
+```sh [pnpm]
+pnpm add @praxisjs/store
+```
+
+```sh [yarn]
+yarn add @praxisjs/store
+```
+
+```sh [bun]
+bun add @praxisjs/store
+```
+
+:::
 
 ## `@Store()`
 

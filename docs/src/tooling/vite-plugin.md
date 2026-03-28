@@ -7,9 +7,25 @@ description: "@praxisjs/vite-plugin — configures Vite for PraxisJS with decora
 
 The Vite plugin handles all the configuration needed to run PraxisJS — decorator support, JSX transform, and optional HMR.
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install -D @praxisjs/vite-plugin
 ```
+
+```sh [pnpm]
+pnpm add -D @praxisjs/vite-plugin
+```
+
+```sh [yarn]
+yarn add -D @praxisjs/vite-plugin
+```
+
+```sh [bun]
+bun add -d @praxisjs/vite-plugin
+```
+
+:::
 
 ## Setup
 

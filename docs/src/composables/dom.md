@@ -7,9 +7,25 @@ description: "@praxisjs/composables DOM composable classes — WindowSize, Scrol
 
 DOM composables from `@praxisjs/composables`. Use them with the `@Compose` decorator to bind reactive DOM state directly to component properties.
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @praxisjs/composables
 ```
+
+```sh [pnpm]
+pnpm add @praxisjs/composables
+```
+
+```sh [yarn]
+yarn add @praxisjs/composables
+```
+
+```sh [bun]
+bun add @praxisjs/composables
+```
+
+:::
 
 ## `WindowSize`
 

@@ -9,9 +9,25 @@ Decorators that instrument your code for the [DevTools](/tooling/devtools) panel
 
 Both decorators are exported from `@praxisjs/devtools`:
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @praxisjs/devtools
 ```
+
+```sh [pnpm]
+pnpm add @praxisjs/devtools
+```
+
+```sh [yarn]
+yarn add @praxisjs/devtools
+```
+
+```sh [bun]
+bun add @praxisjs/devtools
+```
+
+:::
 
 ```ts
 import { Debug, Trace } from '@praxisjs/devtools'

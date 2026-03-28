@@ -7,9 +7,25 @@ description: "@praxisjs/router — signal-based client-side router. Configure ro
 
 Signal-based client-side routing. Configure the router with `@RouterConfig` on your root component and use decorator-based injection to access router state anywhere.
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @praxisjs/router
 ```
+
+```sh [pnpm]
+pnpm add @praxisjs/router
+```
+
+```sh [yarn]
+yarn add @praxisjs/router
+```
+
+```sh [bun]
+bun add @praxisjs/router
+```
+
+:::
 
 ## Setup with `@RouterConfig`
 

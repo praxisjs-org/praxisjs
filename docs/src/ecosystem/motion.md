@@ -7,9 +7,25 @@ description: "@praxisjs/motion — signal-driven animations via @Tween and @Spri
 
 Animated field decorators. Assign a value and the transition plays automatically — no imperative API needed.
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @praxisjs/motion
 ```
+
+```sh [pnpm]
+pnpm add @praxisjs/motion
+```
+
+```sh [yarn]
+yarn add @praxisjs/motion
+```
+
+```sh [bun]
+bun add @praxisjs/motion
+```
+
+:::
 
 ## `@Tween(options?)`
 

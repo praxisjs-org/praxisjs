@@ -7,9 +7,25 @@ description: "@praxisjs/devtools — in-app developer tools overlay for inspecti
 
 An in-app developer tools panel that appears as an overlay during development. Inspect reactive state, render metrics, and a chronological event timeline — without leaving the app.
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @praxisjs/devtools
 ```
+
+```sh [pnpm]
+pnpm add @praxisjs/devtools
+```
+
+```sh [yarn]
+yarn add @praxisjs/devtools
+```
+
+```sh [bun]
+bun add @praxisjs/devtools
+```
+
+:::
 
 ## Setup
 

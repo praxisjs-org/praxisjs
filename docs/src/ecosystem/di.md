@@ -7,9 +7,25 @@ description: "@praxisjs/di — decorator-based DI with @Injectable, @Inject, @In
 
 Decorator-based DI with singleton/transient scopes, token-based injection, and per-instance scoped containers.
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @praxisjs/di
 ```
+
+```sh [pnpm]
+pnpm add @praxisjs/di
+```
+
+```sh [yarn]
+yarn add @praxisjs/di
+```
+
+```sh [bun]
+bun add @praxisjs/di
+```
+
+:::
 
 ## `@Injectable(options?)`
 

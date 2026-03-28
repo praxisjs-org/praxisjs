@@ -7,9 +7,25 @@ description: "@praxisjs/composables browser composable classes — MediaQuery, C
 
 Browser API composables from `@praxisjs/composables`. Bind them to components with `@Compose`.
 
-```sh
+::: code-group
+
+```sh [npm]
 npm install @praxisjs/composables
 ```
+
+```sh [pnpm]
+pnpm add @praxisjs/composables
+```
+
+```sh [yarn]
+yarn add @praxisjs/composables
+```
+
+```sh [bun]
+bun add @praxisjs/composables
+```
+
+:::
 
 ## `MediaQuery`
 
