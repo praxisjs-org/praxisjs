@@ -1,5 +1,11 @@
 # create-praxisjs
 
+## 0.3.6
+
+### Patch Changes
+
+- 87a5bbe: Update project templates to reflect the decorator-first API: use `@Store`, `@Route`, and `@RouterConfig` decorators, and initialize DevTools via dynamic import after `render()`.
+
 ## 0.3.5
 
 ### Patch Changes

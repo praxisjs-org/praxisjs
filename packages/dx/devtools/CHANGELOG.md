@@ -1,5 +1,17 @@
 # @praxisjs/devtools
 
+## 0.2.6
+
+### Patch Changes
+
+- 4d15755: Refactor `@Debug` and `@Trace` internals to use the new decorator factory helpers from `@praxisjs/decorators` (`createFieldDecorator`, `createMethodDecorator`, `createGetterObserverDecorator`, `createClassDecorator`). No changes to public API or behavior.
+- Updated dependencies [3372878]
+- Updated dependencies [feaa478]
+  - @praxisjs/core@1.0.0
+  - @praxisjs/decorators@0.5.0
+  - @praxisjs/runtime@0.2.5
+  - @praxisjs/jsx@0.3.4
+
 ## 0.2.5
 
 ### Patch Changes
