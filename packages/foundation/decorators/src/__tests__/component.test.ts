@@ -153,4 +153,14 @@ describe("Component decorator", () => {
     const Enhanced = Component()(MyComp, {} as ClassDecoratorContext);
     expect(Enhanced).not.toBe(MyComp);
   });
+
+  it("render() falls through to originalRender when enhancement has no render override", () => {
+    class MyComp extends StatefulComponent {
+      render() { return null; }
+    }
+    const Enhanced = Component()(MyComp, {} as ClassDecoratorContext);
+    const instance = new Enhanced();
+    // ComponentBehavior.create() returns {} (no render), so line 48 is hit
+    expect((instance as StatefulComponent).render()).toBeNull();
+  });
 });

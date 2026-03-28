@@ -1,20 +1,18 @@
-import type { StatefulComponent } from "@praxisjs/core";
 import { computed } from "@praxisjs/core/internal";
 
-export function Computed() {
-  return function <This extends StatefulComponent, T>(
-    target: (this: This) => T,
-    _context: ClassGetterDecoratorContext<This, T>,
-  ): (this: This) => T {
-    const computedMap = new WeakMap<object, () => T>();
+import { createGetterDecorator } from "../create-getter-decorator";
 
-    return function (this: This): T {
-      let c = computedMap.get(this);
+export function Computed() {
+  const cache = new WeakMap<object, () => unknown>();
+
+  return createGetterDecorator({
+    wrap(original, instance) {
+      let c = cache.get(instance);
       if (!c) {
-        c = computed(() => target.call(this));
-        computedMap.set(this, c);
+        c = computed(() => original.call(instance));
+        cache.set(instance, c);
       }
-      return c();
-    };
-  };
+      return c;
+    },
+  });
 }

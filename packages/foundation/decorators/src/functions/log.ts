@@ -1,4 +1,4 @@
-import type { StatefulComponent } from "@praxisjs/core";
+import { createMethodDecorator } from "../create-method-decorator";
 
 export interface LogOptions {
   level?: "log" | "warn" | "error" | "debug";
@@ -17,52 +17,49 @@ export function Log(options: LogOptions = {}) {
     devOnly = true,
   } = options;
 
-  return function (
-    value: (this: object, ...args: unknown[]) => unknown,
-    context: ClassMethodDecoratorContext<StatefulComponent>,
-  ): (this: object, ...args: unknown[]) => unknown {
-    const methodKey = context.name as string;
+  return createMethodDecorator({
+    wrap(original, instance, name) {
+      return (...args: unknown[]) => {
+        if (
+          devOnly &&
+          typeof process !== "undefined" &&
+          process.env.NODE_ENV === "production"
+        ) {
+          return original.apply(instance, args);
+        }
 
-    return function (this: object, ...args: unknown[]) {
-      if (
-        devOnly &&
-        typeof process !== "undefined" &&
-        process.env.NODE_ENV === "production"
-      ) {
-        return value.apply(this, args);
-      }
+        const className =
+          (instance.constructor as { name?: string }).name ?? "Unknown";
+        const label = `[${className}.${name}]`;
+        const logger = console[level].bind(console);
 
-      const className =
-        (this.constructor as { name?: string }).name ?? "Unknown";
-      const label = `[${className}.${methodKey}]`;
-      const logger = console[level].bind(console);
+        if (logArgs) logger(`${label} args:`, args);
 
-      if (logArgs) logger(`${label} args:`, args);
+        const start = time ? performance.now() : 0;
+        const output = original.apply(instance, args);
 
-      const start = time ? performance.now() : 0;
-      const output = value.apply(this, args);
+        if (output instanceof Promise) {
+          return (output as Promise<unknown>)
+            .then((resolved) => {
+              const elapsed = time
+                ? ` (${(performance.now() - start).toFixed(2)}ms)`
+                : "";
+              if (result) logger(`${label} resolved:`, resolved, elapsed);
+              return resolved;
+            })
+            .catch((e: unknown) => {
+              logger(`${label} rejected:`, e);
+              throw e;
+            });
+        }
 
-      if (output instanceof Promise) {
-        return (output as Promise<unknown>)
-          .then((resolved) => {
-            const elapsed = time
-              ? ` (${(performance.now() - start).toFixed(2)}ms)`
-              : "";
-            if (result) logger(`${label} resolved:`, resolved, elapsed);
-            return resolved;
-          })
-          .catch((e: unknown) => {
-            logger(`${label} rejected:`, e);
-            throw e;
-          });
-      }
+        const elapsed = time
+          ? ` (${(performance.now() - start).toFixed(2)}ms)`
+          : "";
+        if (result) logger(`${label} returned:`, output, elapsed);
 
-      const elapsed = time
-        ? ` (${(performance.now() - start).toFixed(2)}ms)`
-        : "";
-      if (result) logger(`${label} returned:`, output, elapsed);
-
-      return output;
-    };
-  };
+        return output;
+      };
+    },
+  });
 }

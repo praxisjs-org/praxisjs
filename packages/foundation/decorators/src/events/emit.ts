@@ -1,42 +1,31 @@
 import type { StatefulComponent } from "@praxisjs/core";
 
+import { createMethodDecorator } from "../create-method-decorator";
 import { readProp } from "./helper";
 
 export function Emit(propName: string) {
-  return function (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    value: (this: StatefulComponent, ...args: any[]) => any,
-    context: ClassMethodDecoratorContext<StatefulComponent>,
-  ): void {
-    const wrapped = function (
-      this: StatefulComponent,
-      ...args: unknown[]
-    ): unknown {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const result = value.apply(this, args);
+  return createMethodDecorator({
+    wrap(original, instance) {
+      const comp = instance as StatefulComponent;
+      return (...args: unknown[]) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+        const result = original.apply(instance, args) as any;
 
-      const callback = readProp(this, propName);
-      if (typeof callback !== "function") return result;
+        const callback = readProp(comp, propName);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        if (typeof callback !== "function") return result;
 
-      if (result !== undefined) {
-        (callback as (v: unknown) => void)(result);
-      } else if (args.length > 0) {
-        (callback as (...a: unknown[]) => void)(...args);
-      } else {
-        (callback as () => void)();
-      }
+        if (result !== undefined) {
+          (callback as (v: unknown) => void)(result);
+        } else if (args.length > 0) {
+          (callback as (...a: unknown[]) => void)(...args);
+        } else {
+          (callback as () => void)();
+        }
 
-      return result;
-    };
-
-    context.addInitializer(function (this: unknown) {
-      const name = context.name as string;
-      const bound = wrapped.bind(this as StatefulComponent);
-      Object.defineProperty(this as object, name, {
-        value: bound,
-        configurable: true,
-        writable: true,
-      });
-    });
-  };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return result;
+      };
+    },
+  });
 }

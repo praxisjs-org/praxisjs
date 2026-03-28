@@ -15,3 +15,10 @@ export {
   type PersistedSignalOptions,
 } from "./signal";
 export { RootComponent } from "./component";
+export {
+  resource,
+  createResource,
+  type ResourceStatus,
+  type Resource,
+  type ResourceOptions,
+} from "./async/resource";

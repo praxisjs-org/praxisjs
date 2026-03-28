@@ -1,4 +1,4 @@
-import type { StatefulComponent } from "@praxisjs/core";
+import { createFieldDecorator } from "../create-field-decorator";
 
 const slotsMap = new WeakMap<object, Map<string, unknown[]>>();
 
@@ -14,7 +14,6 @@ function resolveSlots(children: unknown): Map<string, unknown[]> {
     : [children];
 
   for (const child of arr) {
-    // Named slots via `slot` attribute on DOM elements
     if (child instanceof Element) {
       const slotName = child.getAttribute("slot");
       if (slotName) {
@@ -39,33 +38,21 @@ export function getSlot(instance: object, name: string): unknown[] {
 }
 
 export function Slot(name?: string) {
-  return function (
-    _value: undefined,
-    context: ClassFieldDecoratorContext<StatefulComponent>,
-  ): void {
-    context.addInitializer(function (this: unknown) {
-      const instance = this as StatefulComponent;
-      const propKey = context.name as string;
-      const slotName = name ?? (propKey === "default" ? "default" : propKey);
-
-      Reflect.deleteProperty(instance, propKey);
-
-      Object.defineProperty(instance, propKey, {
-        get(this: StatefulComponent): unknown[] {
-          return getSlot(this, slotName);
+  return createFieldDecorator({
+    bind(instance, propName, _initialValue) {
+      const slotName = name ?? (propName === "default" ? "default" : propName);
+      return {
+        descriptor: {
+          get: () => getSlot(instance, slotName),
+          set: (_value: unknown) => {
+            if (process.env.NODE_ENV !== "production") {
+              console.warn(
+                `[Slot] "${propName}" is a slot and cannot be assigned directly. Slots are filled by the parent component.`,
+              );
+            }
+          },
         },
-
-        set(_value: unknown): void {
-          if (process.env.NODE_ENV !== "production") {
-            console.warn(
-              `[Slot] "${propKey}" is a slot and cannot be assigned directly. Slots are filled by the parent component.`,
-            );
-          }
-        },
-
-        enumerable: true,
-        configurable: true,
-      });
-    });
-  };
+      };
+    },
+  });
 }

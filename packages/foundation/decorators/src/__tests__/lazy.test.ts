@@ -64,9 +64,8 @@ describe("Lazy decorator", () => {
     (instance as unknown as { _anchor: Comment })._anchor = anchor;
 
     instance.onMount?.();
-    // Without IntersectionObserver, _lazyVisible should be set to true
-    const lazyVisible = (instance as unknown as { _lazyVisible: () => boolean })._lazyVisible;
-    expect(lazyVisible()).toBe(true);
+    // Without IntersectionObserver, component should immediately become visible
+    expect(instance.render()).not.toBeNull();
     document.body.removeChild(parent);
   });
 
@@ -104,8 +103,7 @@ describe("Lazy decorator", () => {
     );
 
     expect(parent.style.minHeight).toBe("");
-    const lazyVisible = (instance as unknown as { _lazyVisible: () => boolean })._lazyVisible;
-    expect(lazyVisible()).toBe(true);
+    expect(instance.render()).not.toBeNull(); // component became visible after intersection
     expect(mockDisconnect).toHaveBeenCalled();
     document.body.removeChild(parent);
   });

@@ -1,8 +1,1 @@
-export { StatefulComponent, StatelessComponent } from "./component";
-export {
-  resource,
-  createResource,
-  type ResourceStatus,
-  type Resource,
-  type ResourceOptions,
-} from "./async/resource";
+export { StatefulComponent, StatelessComponent, Composable } from "./component";

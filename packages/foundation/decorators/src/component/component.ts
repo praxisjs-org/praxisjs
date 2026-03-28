@@ -1,25 +1,40 @@
 import { StatelessComponent } from "@praxisjs/core";
+import type { RootComponent } from "@praxisjs/core/internal";
 import type {
   ComponentConstructor,
   ComponentInstance,
 } from "@praxisjs/shared/internal";
 
+import {
+  ClassBehavior,
+  createClassDecorator,
+  type ClassEnhancement,
+} from "../create-class-decorator";
+
+class ComponentBehavior extends ClassBehavior {
+  create(_instance: RootComponent): ClassEnhancement {
+    return {};
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  initialize(Enhanced: new (...args: any[]) => unknown, original: new (...args: any[]) => unknown): void {
+    const isStateless = (original.prototype as object) instanceof StatelessComponent;
+    Object.defineProperty(Enhanced, "__isComponent", { value: true, configurable: true });
+    Object.defineProperty(Enhanced, "__isStateless", { value: isStateless, configurable: true });
+  }
+}
+
+const behavior = new ComponentBehavior();
+
 export function Component() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function <T extends new (...args: any[]) => ComponentInstance>(
     constructor: T,
-    _context: ClassDecoratorContext,
+    context: ClassDecoratorContext,
   ): T & ComponentConstructor {
-    const isStateless = constructor.prototype instanceof StatelessComponent;
-    const Enhanced = class extends constructor {
-      static __isComponent = true as const;
-      static __isStateless = isStateless;
-    } as unknown as T & ComponentConstructor;
-
-    Object.defineProperty(Enhanced, "name", {
-      value: constructor.name,
-    });
-
-    return Enhanced;
+    return createClassDecorator(behavior)(
+      constructor as unknown as T & (new(...args: unknown[]) => RootComponent<Record<string, unknown>>),
+      context,
+    ) as unknown as T & ComponentConstructor;
   };
 }

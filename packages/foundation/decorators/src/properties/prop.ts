@@ -1,35 +1,25 @@
-import type { StatefulComponent } from "@praxisjs/core";
+import { createFieldDecorator } from "../create-field-decorator";
 
 export function Prop() {
-  return function (
-    _value: undefined,
-    context: ClassFieldDecoratorContext<StatefulComponent>,
-  ): void {
-    context.addInitializer(function (this: unknown) {
-      const instance = this as StatefulComponent;
-      const name = context.name as string;
-      const raw = instance as unknown as Record<string, unknown>;
-      const defaultValue = raw[name];
-      Reflect.deleteProperty(raw, name);
-
-      instance._defaults[name] = defaultValue;
-
-      Object.defineProperty(instance, name, {
-        get(this: StatefulComponent) {
-          const fromParent = this._rawProps[name];
-          if (fromParent !== undefined) {
-            return typeof fromParent === "function"
-              ? (fromParent as () => unknown)()
-              : fromParent;
-          }
-          return this._defaults[name];
+  return createFieldDecorator({
+    bind(instance, name, initialValue) {
+      instance._defaults[name] = initialValue;
+      return {
+        descriptor: {
+          get() {
+            const fromParent = (instance._rawProps)[name];
+            if (fromParent !== undefined) {
+              return typeof fromParent === "function"
+                ? (fromParent as () => unknown)()
+                : fromParent;
+            }
+            return instance._defaults[name];
+          },
+          set(value: unknown) {
+            instance._defaults[name] = value;
+          },
         },
-        set(this: StatefulComponent, value: unknown) {
-          this._defaults[name] = value;
-        },
-        enumerable: true,
-        configurable: true,
-      });
-    });
-  };
+      };
+    },
+  });
 }

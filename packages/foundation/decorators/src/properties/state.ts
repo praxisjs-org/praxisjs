@@ -1,30 +1,20 @@
-import type { StatefulComponent } from "@praxisjs/core";
 import { signal } from "@praxisjs/core/internal";
 
+import { createFieldDecorator } from "../create-field-decorator";
+
 export function State() {
-  return function (
-    _value: undefined,
-    context: ClassFieldDecoratorContext<StatefulComponent>,
-  ): void {
-    context.addInitializer(function (this: unknown) {
-      const instance = this as StatefulComponent & Record<string, unknown>;
-      const name = context.name as string;
-      const initialValue = instance[name];
-      Reflect.deleteProperty(instance, name);
-
+  return createFieldDecorator({
+    bind(instance, _name, initialValue) {
       const sig = signal(initialValue);
-
-      Object.defineProperty(instance, name, {
-        get() {
-          return sig();
+      return {
+        descriptor: {
+          get: () => sig(),
+          set: (value: unknown) => {
+            instance._stateDirty = true;
+            sig.set(value);
+          },
         },
-        set(value: unknown) {
-          instance._stateDirty = true;
-          sig.set(value);
-        },
-        enumerable: true,
-        configurable: true,
-      });
-    });
-  };
+      };
+    },
+  });
 }

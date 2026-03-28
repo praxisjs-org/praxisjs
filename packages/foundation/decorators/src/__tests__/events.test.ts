@@ -213,6 +213,38 @@ describe("OnCommand decorator", () => {
     warn.mockRestore();
   });
 
+  it("uses 'unknown' as component name when constructor.name is undefined (missing-prop branch)", () => {
+    const { ctx, run } = methodCtx("onNoName");
+    OnCommand("missingProp")(vi.fn() as never, ctx as unknown as ClassMethodDecoratorContext<StatefulComponent>);
+
+    // Instance whose constructor.name is undefined to hit ?? "unknown"
+    const fakeInstance = Object.assign(new TestComponent(), {
+      constructor: { name: undefined },
+    });
+    run(fakeInstance);
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    fakeInstance.onMount?.();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("unknown"));
+    warn.mockRestore();
+  });
+
+  it("uses 'unknown' as component name when constructor.name is undefined (invalid-command branch)", () => {
+    const { ctx, run } = methodCtx("onNoName2");
+    OnCommand("badProp")(vi.fn() as never, ctx as unknown as ClassMethodDecoratorContext<StatefulComponent>);
+
+    // Instance with a non-command prop and undefined constructor.name
+    const fakeInstance = Object.assign(new TestComponent({ badProp: "not-a-command" }), {
+      constructor: { name: undefined },
+    });
+    run(fakeInstance);
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    fakeInstance.onMount?.();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("unknown"));
+    warn.mockRestore();
+  });
+
   it("preserves the original onMount and onUnmount implementations", () => {
     const { ctx, run } = methodCtx("onEvt");
     OnCommand("evt")(vi.fn() as never, ctx as unknown as ClassMethodDecoratorContext<StatefulComponent>);

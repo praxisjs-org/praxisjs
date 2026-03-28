@@ -158,16 +158,16 @@ describe("Virtual decorator", () => {
     (instance as unknown as { _anchor: Comment })._anchor = anchor;
 
     instance.onMount?.();
-    // First render - populates the itemsSlot
-    instance.render();
+    // First render - sets up effects with the spacerTop/itemsSlot/spacerBottom elements
+    const outer = instance.render() as HTMLElement;
 
     // Change scrollTop to trigger effect re-run (covers the while loop removing old nodes)
     Object.defineProperty(container, "scrollTop", { configurable: true, value: 500 });
     container.dispatchEvent(new Event("scroll"));
 
-    // Verify scrollTop was updated (effect should have re-run)
-    const scrollTop = (instance as unknown as { _scrollTop: () => number })._scrollTop;
-    expect(scrollTop()).toBe(500);
+    // buffer=0, itemHeight=50, scrollTop=500 → startIdx=10 → offsetTop=500px
+    const spacerTop = outer.children[0] as HTMLElement;
+    expect(spacerTop.getAttribute("style")).toContain("500px");
 
     document.body.removeChild(container);
   });
@@ -211,6 +211,22 @@ describe("Virtual decorator", () => {
     expect(wrapper.children.length).toBe(0);
   });
 
+  it("uses empty array when items is undefined (host.items ?? [])", () => {
+    class NoItems extends StatefulComponent {
+      // items is intentionally not defined
+      renderItem() { return document.createElement("div"); }
+      render() { return null; }
+    }
+
+    const Wrapped = applyVirtual(NoItems as AnyConstructor, 50, 0);
+    const instance = new Wrapped();
+    // render() should work fine with 0 items
+    const result = instance.render() as HTMLElement;
+    expect(result).toBeInstanceOf(HTMLElement);
+    const style = result.getAttribute("style") ?? "";
+    expect(style).toContain("0px"); // totalH = 0 * 50 = 0
+  });
+
   it("onUnmount without prior onMount does not throw", () => {
     const Wrapped = applyVirtual(ListComp as AnyConstructor, 50);
     const instance = new Wrapped();
@@ -230,12 +246,15 @@ describe("Virtual decorator", () => {
     (instance as unknown as { _anchor: Comment })._anchor = anchor;
 
     instance.onMount?.();
+    // Render to set up effects that observe scrollTop
+    const outer = instance.render() as HTMLElement;
 
     Object.defineProperty(container, "scrollTop", { configurable: true, value: 200 });
     container.dispatchEvent(new Event("scroll"));
 
-    const scrollTop = (instance as unknown as { _scrollTop: () => number })._scrollTop;
-    expect(scrollTop()).toBe(200);
+    // buffer=3, itemHeight=50, scrollTop=200 → startIdx=1 → offsetTop=50px
+    const spacerTop = outer.children[0] as HTMLElement;
+    expect(spacerTop.getAttribute("style")).toContain("50px");
     document.body.removeChild(container);
   });
 });

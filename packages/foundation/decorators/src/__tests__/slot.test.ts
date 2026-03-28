@@ -61,6 +61,19 @@ describe("initSlots / getSlot", () => {
     initSlots(instance, [null, el, undefined]);
     expect(getSlot(instance, "default")).toEqual([el]);
   });
+
+  it("appends to existing named slot when same slot name appears twice", () => {
+    const instance = {};
+    const a = document.createElement("div");
+    a.setAttribute("slot", "header");
+    const b = document.createElement("div");
+    b.setAttribute("slot", "header");
+    initSlots(instance, [a, b]);
+    const headerSlot = getSlot(instance, "header");
+    expect(headerSlot).toHaveLength(2);
+    expect(headerSlot[0]).toBe(a);
+    expect(headerSlot[1]).toBe(b);
+  });
 });
 
 // ── Slot decorator ───────────────────────────────────────────────────────────
@@ -114,6 +127,31 @@ describe("Slot decorator", () => {
     const slot = (instance as Record<string, unknown>).content as unknown[];
     expect(slot).toHaveLength(1);
     expect(slot[0]).toBe(el);
+  });
+
+  it("skips warn on direct assignment in production mode", () => {
+    class MyComp extends StatefulComponent {
+      render() { return null; }
+    }
+
+    const initializers: Array<(this: unknown) => void> = [];
+    const ctx = {
+      name: "default",
+      kind: "field" as const,
+      addInitializer(fn: (this: unknown) => void) { initializers.push(fn); },
+    } as ClassFieldDecoratorContext<StatefulComponent>;
+
+    Slot()(undefined, ctx);
+
+    const instance = new MyComp() as unknown as Record<string, unknown>;
+    initializers.forEach((fn) => { fn.call(instance); });
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubEnv("NODE_ENV", "production");
+    (instance as Record<string, unknown>).default = "bad";
+    expect(warn).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+    warn.mockRestore();
   });
 
   it("warns on direct assignment in non-production", () => {

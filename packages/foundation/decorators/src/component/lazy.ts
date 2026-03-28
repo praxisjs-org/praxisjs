@@ -1,60 +1,56 @@
 import { type RootComponent, signal } from "@praxisjs/core/internal";
 
-export function Lazy(placeholder = 200) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function <T extends new (...args: any[]) => RootComponent<Record<string, any>>>(
-    constructor: T,
-    _context: ClassDecoratorContext,
-  ): T {
-    return class LazyWrapper extends constructor {
-      private readonly _lazyVisible = signal(false);
-      private _observer?: IntersectionObserver;
-      private readonly _originalRender: () => Node | Node[] | null =
-        // Capture the *parent* class render, not LazyWrapper's own override,
-        // to avoid infinite recursion when render() delegates here.
-        (constructor.prototype as { render(): Node | Node[] | null }).render.bind(this);
+import { ClassBehavior, createClassDecorator, type ClassEnhancement } from "../create-class-decorator";
 
+class LazyBehavior extends ClassBehavior {
+  constructor(private readonly placeholder: number) {
+    super();
+  }
+
+  create(instance: RootComponent): ClassEnhancement {
+    const placeholder = this.placeholder;
+    const visible = signal(false);
+    let observer: IntersectionObserver | undefined;
+
+    return {
       onMount() {
-        super.onMount?.();
-
-        // Use the end anchor to find the parent element
         const el =
-          (this as unknown as { _anchor?: Comment })._anchor
-            ?.parentElement ?? null;
+          (instance as { _anchor?: Comment })._anchor?.parentElement ?? null;
         if (!el) return;
 
         if (!("IntersectionObserver" in window)) {
-          this._lazyVisible.set(true);
+          visible.set(true);
           return;
         }
 
-        if (!this._lazyVisible()) {
-          el.style.minHeight = `${String(placeholder)}px`;
-        }
+        if (!visible()) el.style.minHeight = `${String(placeholder)}px`;
 
-        this._observer = new IntersectionObserver(
+        observer = new IntersectionObserver(
           (entries) => {
             if (entries[0]?.isIntersecting) {
-              this._lazyVisible.set(true);
+              visible.set(true);
               el.style.minHeight = "";
-              this._observer?.disconnect();
+              observer?.disconnect();
             }
           },
           { rootMargin: "100px" },
         );
 
-        this._observer.observe(el);
-      }
+        observer.observe(el);
+      },
 
       onUnmount() {
-        super.onUnmount?.();
-        this._observer?.disconnect();
-      }
+        observer?.disconnect();
+      },
 
-      render(): Node | Node[] | null {
-        if (!this._lazyVisible()) return null;
-        return this._originalRender();
-      }
-    } as unknown as T;
-  };
+      render(originalRender) {
+        if (!visible()) return null;
+        return originalRender();
+      },
+    };
+  }
+}
+
+export function Lazy(placeholder = 200) {
+  return createClassDecorator(new LazyBehavior(placeholder));
 }

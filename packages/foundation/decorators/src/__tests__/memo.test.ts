@@ -4,87 +4,138 @@ import { signal } from "@praxisjs/core/internal";
 import { Memo } from "../functions/memo";
 
 function mockCtx(name: string) {
-  return { name, kind: "method" as const } as ClassMethodDecoratorContext;
+  const initializers: Array<(this: object) => void> = [];
+  return {
+    name,
+    kind: "method" as const,
+    addInitializer(fn: (this: object) => void) {
+      initializers.push(fn);
+    },
+    runInitializers(instance: object) {
+      initializers.forEach((fn) => { fn.call(instance); });
+    },
+  } as unknown as ClassMethodDecoratorContext & { runInitializers(instance: object): void };
 }
 
 describe("Memo", () => {
   it("returns the computed value", () => {
     const fn = vi.fn((x: unknown) => (x as number) * 2);
-    const wrapped = Memo()(fn, mockCtx("double"));
+    const ctx = mockCtx("double");
+    Memo()(fn, ctx);
+
     const obj = {};
-    expect(wrapped.call(obj, 5)).toBe(10);
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => unknown>).double;
+
+    expect(method(5)).toBe(10);
   });
 
   it("caches result for same args — calls original only once", () => {
     const fn = vi.fn((x: unknown) => (x as number) + 1);
-    const wrapped = Memo()(fn, mockCtx("inc"));
+    const ctx = mockCtx("inc");
+    Memo()(fn, ctx);
+
     const obj = {};
-    wrapped.call(obj, 3);
-    wrapped.call(obj, 3);
-    wrapped.call(obj, 3);
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => unknown>).inc;
+
+    method(3);
+    method(3);
+    method(3);
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
   it("computes separately for different args", () => {
     const fn = vi.fn((x: unknown) => (x as number) * 10);
-    const wrapped = Memo()(fn, mockCtx("mul"));
+    const ctx = mockCtx("mul");
+    Memo()(fn, ctx);
+
     const obj = {};
-    expect(wrapped.call(obj, 2)).toBe(20);
-    expect(wrapped.call(obj, 3)).toBe(30);
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => unknown>).mul;
+
+    expect(method(2)).toBe(20);
+    expect(method(3)).toBe(30);
     expect(fn).toHaveBeenCalledTimes(2);
   });
 
   it("is per-instance — different instances have separate caches", () => {
     const fn = vi.fn(() => Math.random());
-    const wrapped = Memo()(fn, mockCtx("rand"));
+    const ctx = mockCtx("rand");
+    Memo()(fn, ctx);
+
     const a = {};
     const b = {};
-    const v1 = wrapped.call(a);
-    const v2 = wrapped.call(b);
+    ctx.runInitializers(a);
+    ctx.runInitializers(b);
+
+    const methodA = (a as Record<string, () => unknown>).rand;
+    const methodB = (b as Record<string, () => unknown>).rand;
+    const v1 = methodA();
+    const v2 = methodB();
     expect(fn).toHaveBeenCalledTimes(2);
     expect(v1).not.toBe(v2); // different random values per instance
   });
 
   it("serializes no-args calls with __no_args__ key", () => {
     const fn = vi.fn(() => 42);
-    const wrapped = Memo()(fn, mockCtx("noop"));
+    const ctx = mockCtx("noop");
+    Memo()(fn, ctx);
+
     const obj = {};
-    wrapped.call(obj);
-    wrapped.call(obj);
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => unknown>).noop;
+
+    method();
+    method();
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
   it("serializes object args via JSON.stringify", () => {
     const fn = vi.fn((o: unknown) => JSON.stringify(o));
-    const wrapped = Memo()(fn, mockCtx("obj"));
+    const ctx = mockCtx("obj");
+    Memo()(fn, ctx);
+
     const obj = {};
-    wrapped.call(obj, { a: 1 });
-    wrapped.call(obj, { a: 1 }); // same key
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => unknown>).obj;
+
+    method({ a: 1 });
+    method({ a: 1 }); // same key
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
   it("re-evaluates when a reactive signal read inside the method changes", () => {
     const s = signal(1);
     const fn = vi.fn(() => s() * 10);
-    const wrapped = Memo()(fn, mockCtx("reactive"));
-    const obj = {};
+    const ctx = mockCtx("reactive");
+    Memo()(fn, ctx);
 
-    expect(wrapped.call(obj)).toBe(10);
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => unknown>).reactive;
+
+    expect(method()).toBe(10);
     expect(fn).toHaveBeenCalledTimes(1);
 
     s.set(5);
     // The computed tracks s() — next read triggers recomputation
-    expect(wrapped.call(obj)).toBe(50);
+    expect(method()).toBe(50);
     expect(fn).toHaveBeenCalledTimes(2);
   });
 
   it("serializes symbol args via toString()", () => {
     const fn = vi.fn((s: unknown) => String(s));
-    const wrapped = Memo()(fn, mockCtx("sym"));
+    const ctx = mockCtx("sym");
+    Memo()(fn, ctx);
+
     const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => unknown>).sym;
+
     const sym = Symbol("test");
-    wrapped.call(obj, sym);
-    wrapped.call(obj, sym);
+    method(sym);
+    method(sym);
     expect(fn).toHaveBeenCalledTimes(1);
   });
 });

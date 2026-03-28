@@ -73,6 +73,19 @@ describe("resource", () => {
     expect(r.status()).toBe("idle");
   });
 
+  it("cancel() before rejection ignores the stale error (catch stale path)", async () => {
+    let reject!: (e: Error) => void;
+    const r = resource(
+      () => new Promise<number>((_res, rej) => { reject = rej; }),
+    );
+    r.cancel();
+    expect(r.status()).toBe("idle");
+    reject(new Error("cancelled error"));
+    await new Promise((res) => setTimeout(res, 10));
+    expect(r.status()).toBe("idle");
+    expect(r.error()).toBeNull();
+  });
+
   it("keepPreviousData=true preserves old data during refetch", async () => {
     let call = 0;
     const r = resource(() => Promise.resolve(++call), { keepPreviousData: true });

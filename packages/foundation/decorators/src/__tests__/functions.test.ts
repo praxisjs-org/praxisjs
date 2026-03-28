@@ -29,11 +29,14 @@ describe("Once", () => {
   it("only calls the original function once", () => {
     const original = vi.fn(() => 42);
     const ctx = mockMethodContext("doSomething");
-    const wrapped = Once()(original, ctx as unknown as ClassMethodDecoratorContext);
+    Once()(original, ctx as unknown as ClassMethodDecoratorContext);
 
     const obj = {};
-    expect(wrapped.call(obj)).toBe(42);
-    expect(wrapped.call(obj)).toBe(42);
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => unknown>).doSomething;
+
+    expect(method()).toBe(42);
+    expect(method()).toBe(42);
     expect(original).toHaveBeenCalledTimes(1);
   });
 
@@ -41,24 +44,32 @@ describe("Once", () => {
     let counter = 0;
     const original = () => ++counter;
     const ctx = mockMethodContext("inc");
-    const wrapped = Once()(original, ctx as unknown as ClassMethodDecoratorContext);
+    Once()(original, ctx as unknown as ClassMethodDecoratorContext);
 
     const obj = {};
-    wrapped.call(obj);
-    wrapped.call(obj);
-    wrapped.call(obj);
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => unknown>).inc;
+
+    method();
+    method();
+    method();
     expect(counter).toBe(1);
   });
 
   it("is per-instance — different instances call independently", () => {
     const original = vi.fn(() => "result");
     const ctx = mockMethodContext("fn");
-    const wrapped = Once()(original, ctx as unknown as ClassMethodDecoratorContext);
+    Once()(original, ctx as unknown as ClassMethodDecoratorContext);
 
     const a = {};
     const b = {};
-    wrapped.call(a);
-    wrapped.call(b);
+    ctx.runInitializers(a);
+    ctx.runInitializers(b);
+
+    const methodA = (a as Record<string, () => unknown>).fn;
+    const methodB = (b as Record<string, () => unknown>).fn;
+    methodA();
+    methodB();
     expect(original).toHaveBeenCalledTimes(2);
   });
 });
@@ -69,9 +80,13 @@ describe("Retry", () => {
   it("returns result if the first attempt succeeds", async () => {
     const original = vi.fn(async () => "ok");
     const ctx = mockMethodContext("fetch");
-    const wrapped = Retry(3)(original, ctx as unknown as ClassMethodDecoratorContext);
+    Retry(3)(original, ctx as unknown as ClassMethodDecoratorContext);
 
-    const result = await wrapped.call({});
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => Promise<unknown>>).fetch;
+
+    const result = await method();
     expect(result).toBe("ok");
     expect(original).toHaveBeenCalledTimes(1);
   });
@@ -84,9 +99,13 @@ describe("Retry", () => {
       return "success";
     });
     const ctx = mockMethodContext("call");
-    const wrapped = Retry(3)(original, ctx as unknown as ClassMethodDecoratorContext);
+    Retry(3)(original, ctx as unknown as ClassMethodDecoratorContext);
 
-    const result = await wrapped.call({});
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => Promise<unknown>>).call;
+
+    const result = await method();
     expect(result).toBe("success");
     expect(original).toHaveBeenCalledTimes(3);
   });
@@ -96,9 +115,13 @@ describe("Retry", () => {
       throw new Error("always fails");
     });
     const ctx = mockMethodContext("bad");
-    const wrapped = Retry(3)(original, ctx as unknown as ClassMethodDecoratorContext);
+    Retry(3)(original, ctx as unknown as ClassMethodDecoratorContext);
 
-    await expect(wrapped.call({})).rejects.toThrow("always fails");
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => Promise<unknown>>).bad;
+
+    await expect(method()).rejects.toThrow("always fails");
     expect(original).toHaveBeenCalledTimes(3);
   });
 
@@ -106,11 +129,16 @@ describe("Retry", () => {
     vi.useFakeTimers();
     const original = vi.fn(async () => { throw new Error("fail"); });
     const ctx = mockMethodContext("delayed");
-    const wrapped = Retry(3, { delay: 100, backoff: 2 })(
+    Retry(3, { delay: 100, backoff: 2 })(
       original,
       ctx as unknown as ClassMethodDecoratorContext,
     );
-    const p = wrapped.call({});
+
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => Promise<unknown>>).delayed;
+
+    const p = method();
     const rejection = expect(p).rejects.toThrow("fail");
     await vi.runAllTimersAsync();
     await rejection;
@@ -124,18 +152,26 @@ describe("Retry", () => {
       throw new Error("err");
     });
     const ctx = mockMethodContext("op");
-    const wrapped = Retry(3, { onRetry })(original, ctx as unknown as ClassMethodDecoratorContext);
+    Retry(3, { onRetry })(original, ctx as unknown as ClassMethodDecoratorContext);
 
-    await expect(wrapped.call({})).rejects.toThrow();
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => Promise<unknown>>).op;
+
+    await expect(method()).rejects.toThrow();
     expect(onRetry).toHaveBeenCalledTimes(2); // attempts 1 and 2, not the last
   });
 
   it("maxAttempts=1 fails immediately without retrying", async () => {
     const original = vi.fn(async () => { throw new Error("instant fail"); });
     const ctx = mockMethodContext("once");
-    const wrapped = Retry(1)(original, ctx as unknown as ClassMethodDecoratorContext);
+    Retry(1)(original, ctx as unknown as ClassMethodDecoratorContext);
 
-    await expect(wrapped.call({})).rejects.toThrow("instant fail");
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => Promise<unknown>>).once;
+
+    await expect(method()).rejects.toThrow("instant fail");
     expect(original).toHaveBeenCalledTimes(1);
   });
 
@@ -145,17 +181,25 @@ describe("Retry", () => {
       throw "string error";
     });
     const ctx = mockMethodContext("strThrow");
-    const wrapped = Retry(1)(original, ctx as unknown as ClassMethodDecoratorContext);
+    Retry(1)(original, ctx as unknown as ClassMethodDecoratorContext);
 
-    await expect(wrapped.call({})).rejects.toThrow("string error");
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => Promise<unknown>>).strThrow;
+
+    await expect(method()).rejects.toThrow("string error");
   });
 
   it("maxAttempts=0 throws immediately without calling the function", async () => {
     const original = vi.fn(async () => "ok");
     const ctx = mockMethodContext("never");
-    const wrapped = Retry(0)(original, ctx as unknown as ClassMethodDecoratorContext);
+    Retry(0)(original, ctx as unknown as ClassMethodDecoratorContext);
 
-    await expect(wrapped.call({})).rejects.toThrow("Unknown error");
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => Promise<unknown>>).never;
+
+    await expect(method()).rejects.toThrow("Unknown error");
     expect(original).not.toHaveBeenCalled();
   });
 
@@ -163,11 +207,15 @@ describe("Retry", () => {
     const attempts: number[] = [];
     const original = vi.fn(async () => { throw new Error("fail"); });
     const ctx = mockMethodContext("numbered");
-    const wrapped = Retry(3, {
+    Retry(3, {
       onRetry: (_err, attempt) => { attempts.push(attempt); },
     })(original, ctx as unknown as ClassMethodDecoratorContext);
 
-    await expect(wrapped.call({})).rejects.toThrow();
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => Promise<unknown>>).numbered;
+
+    await expect(method()).rejects.toThrow();
     expect(attempts).toEqual([1, 2]); // attempt 1 failed → onRetry(1), attempt 2 failed → onRetry(2)
   });
 
@@ -179,12 +227,16 @@ describe("Retry", () => {
       throw new Error("fail");
     });
     const ctx = mockMethodContext("backoffTest");
-    const wrapped = Retry(3, { delay: 100, backoff: 2 })(
+    Retry(3, { delay: 100, backoff: 2 })(
       original,
       ctx as unknown as ClassMethodDecoratorContext,
     );
 
-    const p = wrapped.call({});
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, () => Promise<unknown>>).backoffTest;
+
+    const p = method();
     const rejection = expect(p).rejects.toThrow("fail");
     await vi.runAllTimersAsync();
     await rejection;
@@ -205,13 +257,17 @@ describe("Log", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     const original = vi.fn(() => 99);
     const ctx = mockMethodContext("myMethod");
-    const wrapped = Log({ args: false, result: false })(
+    Log({ args: false, result: false })(
       original,
       ctx as unknown as ClassMethodDecoratorContext,
     );
 
     class Dummy {}
-    const result = wrapped.call(new Dummy());
+    const dummy = new Dummy();
+    ctx.runInitializers(dummy);
+    const method = (dummy as Record<string, () => unknown>).myMethod;
+
+    const result = method();
     expect(result).toBe(99);
     spy.mockRestore();
   });
@@ -220,13 +276,17 @@ describe("Log", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     const original = vi.fn((x: unknown) => x);
     const ctx = mockMethodContext("greet");
-    const wrapped = Log({ args: true, result: false })(
+    Log({ args: true, result: false })(
       original,
       ctx as unknown as ClassMethodDecoratorContext,
     );
 
     class Foo {}
-    wrapped.call(new Foo(), "hello");
+    const foo = new Foo();
+    ctx.runInitializers(foo);
+    const method = (foo as Record<string, (...a: unknown[]) => unknown>).greet;
+
+    method("hello");
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("args:"), ["hello"]);
     spy.mockRestore();
   });
@@ -235,7 +295,7 @@ describe("Log", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     const original = vi.fn(() => "value");
     const ctx = mockMethodContext("prod");
-    const wrapped = Log({ devOnly: true })(
+    Log({ devOnly: true })(
       original,
       ctx as unknown as ClassMethodDecoratorContext,
     );
@@ -244,7 +304,11 @@ describe("Log", () => {
     process.env.NODE_ENV = "production";
 
     class App {}
-    wrapped.call(new App());
+    const app = new App();
+    ctx.runInitializers(app);
+    const method = (app as Record<string, () => unknown>).prod;
+
+    method();
     expect(spy).not.toHaveBeenCalled();
 
     process.env.NODE_ENV = prevEnv;
@@ -255,13 +319,17 @@ describe("Log", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     const original = vi.fn(async () => "async-result");
     const ctx = mockMethodContext("load");
-    const wrapped = Log({ args: false, result: true })(
+    Log({ args: false, result: true })(
       original,
       ctx as unknown as ClassMethodDecoratorContext,
     );
 
     class Svc {}
-    await wrapped.call(new Svc());
+    const svc = new Svc();
+    ctx.runInitializers(svc);
+    const method = (svc as Record<string, () => Promise<unknown>>).load;
+
+    await method();
     expect(spy).toHaveBeenCalledWith(
       expect.stringContaining("resolved:"),
       "async-result",
@@ -274,12 +342,17 @@ describe("Log", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     const original = vi.fn(async () => { throw new Error("async-error"); });
     const ctx = mockMethodContext("failing");
-    const wrapped = Log({ args: false, result: true })(
+    Log({ args: false, result: true })(
       original,
       ctx as unknown as ClassMethodDecoratorContext,
     );
+
     class Svc {}
-    await expect(wrapped.call(new Svc())).rejects.toThrow("async-error");
+    const svc = new Svc();
+    ctx.runInitializers(svc);
+    const method = (svc as Record<string, () => Promise<unknown>>).failing;
+
+    await expect(method()).rejects.toThrow("async-error");
     expect(spy).toHaveBeenCalledWith(
       expect.stringContaining("rejected:"),
       expect.any(Error),
@@ -295,13 +368,17 @@ describe("Log — time option", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     const original = vi.fn(() => "value");
     const ctx = mockMethodContext("timed");
-    const wrapped = Log({ args: false, result: true, time: true })(
+    Log({ args: false, result: true, time: true })(
       original,
       ctx as unknown as ClassMethodDecoratorContext,
     );
 
     class Svc {}
-    wrapped.call(new Svc());
+    const svc = new Svc();
+    ctx.runInitializers(svc);
+    const method = (svc as Record<string, () => unknown>).timed;
+
+    method();
     // Third argument should be a string containing "ms"
     expect(spy).toHaveBeenCalledWith(
       expect.stringContaining("returned:"),
@@ -315,13 +392,17 @@ describe("Log — time option", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     const original = vi.fn(async () => "async-val");
     const ctx = mockMethodContext("asyncTimed");
-    const wrapped = Log({ args: false, result: true, time: true })(
+    Log({ args: false, result: true, time: true })(
       original,
       ctx as unknown as ClassMethodDecoratorContext,
     );
 
     class Svc {}
-    await wrapped.call(new Svc());
+    const svc = new Svc();
+    ctx.runInitializers(svc);
+    const method = (svc as Record<string, () => Promise<unknown>>).asyncTimed;
+
+    await method();
     expect(spy).toHaveBeenCalledWith(
       expect.stringContaining("resolved:"),
       "async-val",
@@ -334,16 +415,66 @@ describe("Log — time option", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     const original = vi.fn(() => 42);
     const ctx = mockMethodContext("noResult");
-    const wrapped = Log({ args: false, result: false })(
+    Log({ args: false, result: false })(
       original,
       ctx as unknown as ClassMethodDecoratorContext,
     );
 
     class Svc {}
-    wrapped.call(new Svc());
+    const svc = new Svc();
+    ctx.runInitializers(svc);
+    const method = (svc as Record<string, () => unknown>).noResult;
+
+    method();
     // Should not log a "returned:" line
     const calls = spy.mock.calls.flat().join(" ");
     expect(calls).not.toContain("returned:");
+    spy.mockRestore();
+  });
+
+  it("skips resolved log when result=false for async functions", async () => {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const original = vi.fn(async () => "async-value");
+    const ctx = mockMethodContext("asyncNoResult");
+    Log({ args: false, result: false })(
+      original,
+      ctx as unknown as ClassMethodDecoratorContext,
+    );
+
+    class Svc {}
+    const svc = new Svc();
+    ctx.runInitializers(svc);
+    const method = (svc as Record<string, () => Promise<unknown>>).asyncNoResult;
+
+    const result = await method();
+    expect(result).toBe("async-value");
+    const calls = spy.mock.calls.flat().join(" ");
+    expect(calls).not.toContain("resolved:");
+    spy.mockRestore();
+  });
+
+  it("uses 'Unknown' as class name when constructor.name is undefined", () => {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const original = vi.fn(() => "val");
+    const ctx = mockMethodContext("m");
+    Log({ args: false, result: true })(
+      original,
+      ctx as unknown as ClassMethodDecoratorContext,
+    );
+
+    // Construct an object whose constructor.name is undefined to trigger ?? "Unknown"
+    const fakeInstance = Object.assign(Object.create(null) as object, {
+      constructor: { name: undefined },
+    });
+    ctx.runInitializers(fakeInstance);
+    const method = (fakeInstance as Record<string, () => unknown>).m;
+
+    method();
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining("Unknown"),
+      expect.anything(),
+      expect.anything(),
+    );
     spy.mockRestore();
   });
 });

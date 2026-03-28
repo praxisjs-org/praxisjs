@@ -1,31 +1,16 @@
-import type { StatefulComponent } from "@praxisjs/core";
+import { createMethodDecorator } from "../create-method-decorator";
 
 export function Debounce(ms: number) {
-  const timers = new WeakMap<object, ReturnType<typeof setTimeout>>();
-
-  return function (
-    value: (this: object, ...args: unknown[]) => unknown,
-    context: ClassMethodDecoratorContext<StatefulComponent>,
-  ): void {
-    context.addInitializer(function (this: unknown) {
-      const instance = this as object;
-      const name = context.name as string;
-      const bound = (...args: unknown[]) => {
-        const existing = timers.get(instance);
-        if (existing !== undefined) clearTimeout(existing);
-
-        const timer = setTimeout(() => {
-          timers.delete(instance);
-          value.apply(instance, args);
+  return createMethodDecorator({
+    wrap(original, instance) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      return (...args: unknown[]) => {
+        if (timer !== undefined) clearTimeout(timer);
+        timer = setTimeout(() => {
+          timer = undefined;
+          original.apply(instance, args);
         }, ms);
-
-        timers.set(instance, timer);
       };
-      Object.defineProperty(instance, name, {
-        value: bound,
-        configurable: true,
-        writable: true,
-      });
-    });
-  };
+    },
+  });
 }
