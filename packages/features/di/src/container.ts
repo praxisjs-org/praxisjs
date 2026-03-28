@@ -10,7 +10,8 @@ export interface ServiceDescriptor {
   instance?: unknown;
 }
 
-export type Constructor<T = unknown> = new (...args: unknown[]) => T;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Constructor<T = unknown> = new (...args: any[]) => T;
 
 export class Token<_T> {
   readonly description: string;
