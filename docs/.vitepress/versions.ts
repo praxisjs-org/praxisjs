@@ -11,7 +11,7 @@ export const VERSIONS = {
   '@praxisjs/shared':        '^0.2.0',
 
   // Ecosystem
-  '@praxisjs/router':        '^1.0.0',
+  '@praxisjs/router':        '^1.0.1',
   '@praxisjs/store':         '^1.0.0',
   '@praxisjs/di':            '^1.0.0',
   '@praxisjs/motion':        '^1.0.0',
