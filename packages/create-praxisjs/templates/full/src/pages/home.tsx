@@ -1,27 +1,30 @@
-import { useColorScheme } from "@praxisjs/composables";
-import { task } from "@praxisjs/concurrent";
+import { ColorScheme } from "@praxisjs/composables";
+import { Task } from "@praxisjs/concurrent";
 import { StatefulComponent } from "@praxisjs/core";
-import { Component } from "@praxisjs/decorators";
+import { Component, Compose } from "@praxisjs/decorators";
 import { Inject } from "@praxisjs/di";
 import { Route } from "@praxisjs/router";
+import { UseStore } from "@praxisjs/store";
+import { Trace } from "@praxisjs/devtools";
 
 import { ApiService } from "../services/api";
-import { useCounterStore } from "../store";
-import { Trace } from "@praxisjs/devtools";
+import { CounterStore } from "../store";
 
 @Trace()
 @Route("/")
 @Component()
 export class Home extends StatefulComponent {
-  private readonly store = useCounterStore();
+  @UseStore(CounterStore) private store!: CounterStore;
 
-  @Inject(ApiService) api!: ApiService;
+  @Inject(ApiService) private api!: ApiService;
 
-  private readonly scheme = useColorScheme();
+  @Compose(ColorScheme)
+  private scheme!: ColorScheme;
 
-  private readonly fetchMessage = task(async () => {
+  @Task()
+  async fetchMessage() {
     return this.api.fetchMessage();
-  });
+  }
 
   onMount() {
     this.fetchMessage();
@@ -45,26 +48,9 @@ export class Home extends StatefulComponent {
               <span class="count-value">{() => this.store.count}</span>
               <p class="count-label">count</p>
               <div class="btn-group">
-                <button
-                  onClick={() => {
-                    this.store.increment();
-                  }}
-                >
-                  +
-                </button>
-                <button
-                  onClick={() => {
-                    this.store.decrement();
-                  }}
-                >
-                  −
-                </button>
-                <button
-                  class="secondary"
-                  onClick={() => {
-                    this.store.reset();
-                  }}
-                >
+                <button onClick={() => this.store.increment()}>+</button>
+                <button onClick={() => this.store.decrement()}>−</button>
+                <button class="secondary" onClick={() => this.store.reset()}>
                   Reset
                 </button>
               </div>
@@ -79,7 +65,7 @@ export class Home extends StatefulComponent {
             <div class="card-body">
               <p class="stat-label">Color scheme</p>
               <span class="stat-value">
-                {() => (this.scheme.isDark() ? "Dark" : "Light")}
+                {() => (this.scheme.isDark ? "Dark" : "Light")}
               </span>
             </div>
           </div>
@@ -93,9 +79,9 @@ export class Home extends StatefulComponent {
               <p class="stat-label">API response</p>
               <span class="stat-value">
                 {() =>
-                  this.fetchMessage.loading()
+                  this.fetchMessage_loading()
                     ? "Loading..."
-                    : (this.fetchMessage.lastResult() ?? "—")
+                    : (this.fetchMessage_lastResult() ?? "—")
                 }
               </span>
               <button onClick={() => this.fetchMessage()}>Refetch</button>

@@ -73,4 +73,26 @@ for (const template of readdirSync(templatesDir)) {
   }
 }
 
+// Update docs versions.ts
+const docsVersionsPath = join(root, 'docs/.vitepress/versions.ts')
+
+let docsSource = readFileSync(docsVersionsPath, 'utf8')
+let docsChanged = false
+
+for (const [name, version] of Object.entries(versions)) {
+  const updated = `^${version}`
+  const escaped = name.replace(/\//g, '\\/').replace(/@/g, '\\@')
+  const regex = new RegExp(`('${escaped}':)\\s*'[^']+'`, 'g')
+  const next = docsSource.replace(regex, (_, key) => `${key.padEnd(26)} '${updated}'`)
+  if (next !== docsSource) {
+    docsSource = next
+    docsChanged = true
+  }
+}
+
+if (docsChanged) {
+  writeFileSync(docsVersionsPath, docsSource)
+  console.log('Updated docs/.vitepress/versions.ts')
+}
+
 console.log('Template versions synced.')

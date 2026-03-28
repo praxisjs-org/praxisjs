@@ -1,7 +1,13 @@
 import { StatefulComponent } from "@praxisjs/core";
 import { Component } from "@praxisjs/decorators";
-import { RouterView, Link } from "@praxisjs/router";
+import { RouterConfig, RouterView, Link, Lazy } from "@praxisjs/router";
 
+import { Home } from "./pages/home";
+
+@RouterConfig([
+  { path: "/", component: Home },
+  { path: "/about", component: Lazy(() => import("./pages/about")) },
+])
 @Component()
 export class App extends StatefulComponent {
   render() {

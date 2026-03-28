@@ -1,14 +1,19 @@
-import { createStore } from "@praxisjs/store";
+import { State } from "@praxisjs/decorators";
+import { Store } from "@praxisjs/store";
 
-export const useCounterStore = createStore({
-  count: 0,
+@Store()
+export class CounterStore {
+  @State() count = 0;
+
   increment() {
     this.count++;
-  },
+  }
+
   decrement() {
     this.count--;
-  },
+  }
+
   reset() {
     this.count = 0;
-  },
-});
+  }
+}
