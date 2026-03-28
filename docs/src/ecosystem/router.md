@@ -13,19 +13,19 @@ npm install @praxisjs/router
 
 ## Setup with `@RouterConfig`
 
-Apply `@RouterConfig` to the root component class to configure the router. It takes the same route definitions as the low-level API.
+Apply `@RouterConfig` to the root component class to configure the router.
+
+Each entry can be a full `RouteDefinition` object, or a class decorated with `@Route` (the path is read automatically):
 
 ```tsx
-import { RouterConfig, Lazy } from '@praxisjs/router'
+import { RouterConfig, Route, Lazy } from '@praxisjs/router'
 import { RouterView } from '@praxisjs/router'
-import { Home } from './pages/Home'
-
-@Lazy(() => import('./pages/About'))
-class AboutPage {}
+import { Home } from './pages/Home'   // decorated with @Route('/')
+import { About } from './pages/About' // decorated with @Route('/about')
 
 @RouterConfig([
-  { path: '/', component: Home },
-  { path: '/about', component: AboutPage },
+  Home,                                                              // path from @Route
+  About,                                                             // path from @Route
   { path: '/users/:id', component: Lazy(() => import('./pages/UserDetail')) },
   {
     path: '/admin',
@@ -56,20 +56,31 @@ class App extends StatefulComponent {
 
 ## `@Route(path)`
 
-Registers a component's path as a static property. Use this to keep routing metadata co-located with the component:
+Co-locates the route path with the component. When you pass the class directly to `@RouterConfig`, the path is read automatically — no duplication needed.
 
 ```tsx
-import { Route } from '@praxisjs/router'
-
+// pages/About.tsx
 @Route('/about')
 @Component()
-class AboutPage extends StatefulComponent {
+export default class About extends StatefulComponent {
   render() { return <main>About</main> }
 }
+```
 
-// Then reference it by class in route definitions:
+```tsx
+// app.tsx
+import About from './pages/About'
+
+@RouterConfig([About])  // path comes from @Route
+@Component()
+class App extends StatefulComponent { ... }
+```
+
+You can still use the explicit object form when you need `children`, `beforeEnter`, or other options:
+
+```tsx
 @RouterConfig([
-  { path: AboutPage.__routePath, component: AboutPage },
+  { path: About.__routePath, component: About, beforeEnter: authGuard },
 ])
 ```
 
@@ -92,6 +103,17 @@ Or inline directly in the route definition:
 ```ts
 { path: '/users/:id', component: Lazy(() => import('./pages/UserDetail')) }
 ```
+
+::: warning Default export required
+Pages loaded via `Lazy` must use `export default`. The loader resolves `module.default` at runtime.
+
+```ts
+// pages/UserDetail.tsx
+@Route('/users/:id')
+@Component()
+export default class UserDetail extends StatefulComponent { ... }
+```
+:::
 
 ---
 
@@ -212,6 +234,7 @@ Router facts:
 - @RouterConfig replaces createRouter() — apply once on the root app class
 - @Lazy(loader) as a class decorator replaces the class with a LazyRouteComponent — use the class itself in route definitions
 - Lazy(() => import('./Page')) inline in route definitions also works (same result)
+- Lazy-loaded pages MUST use `export default class` — the loader resolves module.default at runtime; named-only exports will cause a TypeScript error and a runtime miss
 - router.loading() is true while a lazy component chunk is loading
 - @Params() and @Query() inject Computed<T> — call them as functions: this.params(), this.query()
 - @Location() injects Signal<RouteLocation> — call as this.location()
@@ -219,6 +242,7 @@ Router facts:
 - RouteLocation: { path: string, params: RouteParams, query: RouteQuery, hash: string }
 - router.push(path, query?, hash?) — query is Record<string, string>, serialized as URLSearchParams
 - Nested routes: children[] paths are relative to the parent path (no leading slash)
-- @Route(path) sets a __routePath static property on the class — useful to keep path co-located with the component
+- @Route(path) sets __routePath on the class; passing the class directly to @RouterConfig uses that path automatically — no { path, component } object needed
+- @RouterConfig accepts a mix of RouteDefinition objects and @Route-annotated classes in the same array
 - Import all decorators and components from '@praxisjs/router'
 </llm-only>
