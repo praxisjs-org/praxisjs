@@ -11,19 +11,31 @@ beforeEach(() => {
 
 // ── Method decorator ──────────────────────────────────────────────────────────
 
+function mockMethodCtx(name: string) {
+  const initializers: Array<(this: object) => void> = [];
+  return {
+    kind: "method" as const,
+    name,
+    addInitializer(fn: (this: object) => void) { initializers.push(fn); },
+    runInitializers(instance: object) { initializers.forEach((fn) => { fn.call(instance); }); },
+  } as unknown as ClassMethodDecoratorContext & { runInitializers(instance: object): void };
+}
+
 describe("Debug — method decorator", () => {
   it("records a method:call timeline entry", () => {
-    const ctx = { kind: "method" as const, name: "doWork" } as ClassMethodDecoratorContext;
+    const ctx = mockMethodCtx("doWork");
     const original = vi.fn((_x: unknown) => "result");
 
-    const wrapped = Debug()(original as never, ctx) as (...args: unknown[]) => unknown;
+    Debug()(original as never, ctx);
 
-    class Comp { constructor() {} }
+    class Comp { doWork(_x: unknown) { return "result"; } }
     const instance = new Comp();
+    ctx.runInitializers(instance);
+
     const registry = Registry.instance;
     registry.registerComponent(instance, "Comp");
 
-    wrapped.call(instance, 42);
+    instance.doWork(42);
 
     const entry = registry.getTimeline().find((t) => t.type === "method:call");
     expect(entry).toBeDefined();
@@ -33,31 +45,33 @@ describe("Debug — method decorator", () => {
   });
 
   it("records throw result when method throws", () => {
-    const ctx = { kind: "method" as const, name: "boom" } as ClassMethodDecoratorContext;
+    const ctx = mockMethodCtx("boom");
     const original = () => { throw new Error("fail"); };
 
-    const wrapped = Debug()(original as never, ctx) as () => void;
+    Debug()(original as never, ctx);
 
-    class Comp {}
+    class Comp { boom() { throw new Error("fail"); } }
     const instance = new Comp();
+    ctx.runInitializers(instance);
     Registry.instance.registerComponent(instance, "Comp");
 
-    expect(() => wrapped.call(instance)).toThrow("fail");
+    expect(() => (instance as unknown as Record<string, () => void>).boom()).toThrow("fail");
 
     const entry = Registry.instance.getTimeline().find((t) => t.type === "method:call");
     expect(entry?.data.result).toContain("throw");
   });
 
   it("uses custom label from options", () => {
-    const ctx = { kind: "method" as const, name: "internal" } as ClassMethodDecoratorContext;
+    const ctx = mockMethodCtx("internal");
     const original = vi.fn(() => undefined);
 
-    const wrapped = Debug({ label: "myLabel" })(original as never, ctx) as () => void;
+    Debug({ label: "myLabel" })(original as never, ctx);
 
-    class Comp {}
+    class Comp { internal() { return undefined; } }
     const instance = new Comp();
+    ctx.runInitializers(instance);
     Registry.instance.registerComponent(instance, "Comp");
-    wrapped.call(instance);
+    (instance as unknown as Record<string, () => void>).internal();
 
     const entry = Registry.instance.getTimeline().find((t) => t.type === "method:call");
     expect(entry?.label).toContain("myLabel");
