@@ -4,7 +4,7 @@ import { Route } from "@praxisjs/router";
 
 @Route("/about")
 @Component()
-export class About extends StatefulComponent {
+export default class About extends StatefulComponent {
   render() {
     return (
       <div class="page">
