@@ -233,6 +233,9 @@ importers:
         specifier: workspace:*
         version: link:../../foundation/shared
     devDependencies:
+      '@praxisjs/runtime':
+        specifier: workspace:*
+        version: link:../../foundation/runtime
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

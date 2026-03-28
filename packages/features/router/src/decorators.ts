@@ -34,59 +34,43 @@ class RouteBehavior extends ClassBehavior {
 
 export function Route(path: string) {
   const decorator = createClassDecorator(new RouteBehavior(path));
-  // Router decorators work on any class, not just RootComponent
-   
-  return decorator as unknown as (value: abstract new (...args: unknown[]) => unknown, context: ClassDecoratorContext) => abstract new (...args: unknown[]) => unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return decorator as unknown as (value: new (...args: any[]) => any, context: ClassDecoratorContext) => void;
 }
 
 // ── @RouterConfig ─────────────────────────────────────────────────────────────
 
-/**
- * Configures the router singleton for the application.
- * Replaces createRouter(). Apply once on your root app class.
- *
- * @RouterConfig([
- *   { path: '/', component: Home },
- *   { path: '/about', component: About },
- * ])
- * class App extends StatefulComponent { ... }
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function RouterConfig(routes: RouteDefinition[]): (cls: new (...args: any[]) => any, ctx: ClassDecoratorContext) => void {
+function normalizeRoute(entry: RouteDefinition | (new (...args: any[]) => any)): RouteDefinition {
+  if (typeof entry === "function" && "__routePath" in entry) {
+    return { path: (entry as { __routePath: string }).__routePath, component: entry };
+  }
+  return entry as RouteDefinition;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function RouterConfig(routes: Array<RouteDefinition | (new (...args: any[]) => any)>): (cls: new (...args: any[]) => any, ctx: ClassDecoratorContext) => void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function(cls: new (...args: any[]) => any, _ctx: ClassDecoratorContext) {
-    createRouter(routes);
+    createRouter(routes.map(normalizeRoute));
     return cls;
   };
 }
 
 // ── @Lazy ─────────────────────────────────────────────────────────────────────
 
-/**
- * Marks a placeholder class as a lazily-loaded route component.
- * The class is replaced by a LazyRouteComponent usable in route definitions.
- *
- * @Lazy(() => import('./About'))
- * class AboutRoute {}
- * // { path: '/about', component: AboutRoute }
- */
-export function Lazy(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function Lazy(loader: () => Promise<{ default: new (...args: any[]) => any }>): any {
+  const lazyComp = lazy(loader);
+  // Dual-purpose: works inline in route definitions (0 args) and as a class decorator (2 args).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  loader: () => Promise<{ default: new (...args: any[]) => any }>,
-) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function(_cls: any, _ctx: ClassDecoratorContext): any {
-    return lazy(loader);
-  };
+  return Object.assign((...args: any[]) => args.length > 0 ? lazyComp : loader(), {
+    __isLazy: true as const,
+  });
 }
 
 // ── Field decorators ──────────────────────────────────────────────────────────
 
-/**
- * Injects the Router singleton as a field.
- *
- * @InjectRouter() router!: Router;
- */
 export function InjectRouter() {
   return createFieldDecorator({
     bind(_instance, _name, _initialValue): FieldBinding {
@@ -102,12 +86,6 @@ export function InjectRouter() {
   }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
 }
 
-/**
- * Injects the current route params as a reactive Computed.
- *
- * @Params() params!: Computed<RouteParams>;
- * // access: this.params()
- */
 export function Params() {
   return createFieldDecorator({
     bind(_instance, _name, _initialValue): FieldBinding {
@@ -123,12 +101,6 @@ export function Params() {
   }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
 }
 
-/**
- * Injects the current route query string as a reactive Computed.
- *
- * @Query() query!: Computed<RouteQuery>;
- * // access: this.query()
- */
 export function Query() {
   return createFieldDecorator({
     bind(_instance, _name, _initialValue): FieldBinding {
@@ -144,12 +116,6 @@ export function Query() {
   }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
 }
 
-/**
- * Injects the current route location as a reactive Signal.
- *
- * @Location() location!: Signal<RouteLocation>;
- * // access: this.location()
- */
 export function Location() {
   return createFieldDecorator({
     bind(_instance, _name, _initialValue): FieldBinding {
