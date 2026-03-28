@@ -4,7 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
-    "useDefineForClassFields": true,
+    "useDefineForClassFields": false,
     "jsx": "react-jsx",
     "jsxImportSource": "@praxisjs/jsx",
     "declaration": true,
