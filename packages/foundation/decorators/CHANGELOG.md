@@ -1,5 +1,30 @@
 # @praxisjs/decorators
 
+## 0.5.0
+
+### Minor Changes
+
+- feaa478: Add decorator factory helpers and new built-in decorators.
+
+  **Decorator factories** — low-level building blocks for authoring custom decorators:
+
+  - `createFieldDecorator` / `FieldBehavior` / `FieldBinding`
+  - `createClassDecorator` / `ClassBehavior` / `ClassEnhancement`
+  - `createMethodDecorator` / `MethodBehavior`
+  - `createLifecycleMethodDecorator` / `LifecycleMethodBehavior`
+  - `createGetterDecorator` / `GetterBehavior`
+  - `createGetterObserverDecorator` / `GetterObserverBehavior`
+
+  **New built-in decorators:**
+
+  - `@Compose` — mixes a `Composable` class into a component, binding its reactive properties and lifecycle hooks
+  - `@Resource` — declares an async resource on a component field, replacing the standalone `resource()` function from `@praxisjs/core`
+
+### Patch Changes
+
+- Updated dependencies [3372878]
+  - @praxisjs/core@1.0.0
+
 ## 0.4.3
 
 ### Patch Changes
