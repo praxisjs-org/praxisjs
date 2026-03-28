@@ -1,58 +1,49 @@
+import { createMethodDecorator } from "@praxisjs/decorators";
+
 import { pool } from "./pool";
 import { queue } from "./queue";
 import { task } from "./task";
 
 export function Task() {
-  return function (
-    value: (...args: unknown[]) => Promise<unknown>,
-    context: ClassMethodDecoratorContext,
-  ): void {
-    const methodKey = String(context.name);
-
-    context.addInitializer(function (this: unknown) {
-      const self = this as Record<string, unknown>;
-      const t = task(value.bind(this));
-      self[`${methodKey}_loading`] = t.loading;
-      self[`${methodKey}_error`] = t.error;
-      self[`${methodKey}_lastResult`] = t.lastResult;
-      self[methodKey] = (...args: unknown[]) => t(...args);
-    });
-  };
+  return createMethodDecorator({
+    wrap(original, instance, name) {
+      const self = instance as Record<string, unknown>;
+      const t = task((original as (...args: unknown[]) => Promise<unknown>).bind(instance));
+      self[`${name}_loading`] = t.loading;
+      self[`${name}_error`] = t.error;
+      self[`${name}_lastResult`] = t.lastResult;
+      return (...args: unknown[]) => t(...args);
+    },
+  // Concurrent decorators work on any class, not just StatefulComponent
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }) as unknown as (value: (...args: unknown[]) => Promise<unknown>, context: ClassMethodDecoratorContext<any>) => void;
 }
 
 export function Queue() {
-  return function (
-    value: (...args: unknown[]) => Promise<unknown>,
-    context: ClassMethodDecoratorContext,
-  ): void {
-    const methodKey = String(context.name);
-
-    context.addInitializer(function (this: unknown) {
-      const self = this as Record<string, unknown>;
-      const q = queue(value.bind(this));
-      self[`${methodKey}_loading`] = q.loading;
-      self[`${methodKey}_pending`] = q.pending;
-      self[`${methodKey}_error`] = q.error;
-      self[methodKey] = (...args: unknown[]) => q(...args);
-    });
-  };
+  return createMethodDecorator({
+    wrap(original, instance, name) {
+      const self = instance as Record<string, unknown>;
+      const q = queue((original as (...args: unknown[]) => Promise<unknown>).bind(instance));
+      self[`${name}_loading`] = q.loading;
+      self[`${name}_pending`] = q.pending;
+      self[`${name}_error`] = q.error;
+      return (...args: unknown[]) => q(...args);
+    },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }) as unknown as (value: (...args: unknown[]) => Promise<unknown>, context: ClassMethodDecoratorContext<any>) => void;
 }
 
 export function Pool(concurrency: number) {
-  return function (
-    value: (...args: unknown[]) => Promise<unknown>,
-    context: ClassMethodDecoratorContext,
-  ): void {
-    const methodKey = String(context.name);
-
-    context.addInitializer(function (this: unknown) {
-      const self = this as Record<string, unknown>;
-      const p = pool(concurrency, value.bind(this));
-      self[`${methodKey}_loading`] = p.loading;
-      self[`${methodKey}_active`] = p.active;
-      self[`${methodKey}_pending`] = p.pending;
-      self[`${methodKey}_error`] = p.error;
-      self[methodKey] = (...args: unknown[]) => p(...args);
-    });
-  };
+  return createMethodDecorator({
+    wrap(original, instance, name) {
+      const self = instance as Record<string, unknown>;
+      const p = pool(concurrency, (original as (...args: unknown[]) => Promise<unknown>).bind(instance));
+      self[`${name}_loading`] = p.loading;
+      self[`${name}_active`] = p.active;
+      self[`${name}_pending`] = p.pending;
+      self[`${name}_error`] = p.error;
+      return (...args: unknown[]) => p(...args);
+    },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }) as unknown as (value: (...args: unknown[]) => Promise<unknown>, context: ClassMethodDecoratorContext<any>) => void;
 }

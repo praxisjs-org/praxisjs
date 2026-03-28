@@ -1,22 +1,15 @@
 export {
-  createRef,
-  useElementSize,
-  useWindowSize,
-  useScrollPosition,
-  useIntersection,
-  useFocus,
+  WindowSize,
+  ScrollPosition,
+  ElementSize,
+  Intersection,
+  Focus,
 } from "./dom";
+export { MediaQuery, ColorScheme, Mouse, KeyCombo, Idle } from "./browser";
 export {
-  useMediaQuery,
-  useColorScheme,
-  useMouse,
-  useKeyCombo,
-  useIdle,
-} from "./browser";
-export {
-  useClipboard,
-  useGeolocation,
-  useTimeAgo,
-  usePagination,
+  Clipboard,
+  Geolocation,
+  TimeAgo,
+  Pagination,
+  type PaginationOptions,
 } from "./utilities";
-export type { PaginationOptions } from "./utilities";

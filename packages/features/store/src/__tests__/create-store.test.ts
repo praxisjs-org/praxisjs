@@ -145,6 +145,13 @@ describe("createStore", () => {
     expect(snapshots).not.toContain(2);
   });
 
+  it("getting via a symbol key returns undefined", () => {
+    const store = makeCounter();
+    const sym = Symbol("test");
+    const val = Reflect.get(store as object, sym);
+    expect(val).toBeUndefined();
+  });
+
   it("$state() snapshot includes getter values", () => {
     const store = createStore({
       a: 2,

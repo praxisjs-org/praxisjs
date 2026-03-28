@@ -2,6 +2,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { Router, createRouter, useRouter, useParams, useQuery, useLocation, lazy } from "../router";
+import { RouterConfig, Lazy, InjectRouter, Params, Query, Location, Route } from "../decorators";
+import { Router as RouterFromIndex } from "../index";
 
 class HomePage { render() { return null; } }
 class AboutPage { render() { return null; } }
@@ -129,6 +131,12 @@ describe("Router", () => {
     ]);
     await r.push("/docs/guide");
     expect(r.currentComponent()).toBe(AboutPage);
+  });
+});
+
+describe("router index re-exports", () => {
+  it("Router exported from index is the same class", () => {
+    expect(RouterFromIndex).toBe(Router);
   });
 });
 
@@ -266,5 +274,125 @@ describe("Router lazy component", () => {
     await expect(r.push("/boom")).rejects.toThrow("guard boom");
     // Location stays at "/"
     expect(r.location().path).toBe("/");
+  });
+});
+
+// ── Decorator tests ───────────────────────────────────────────────────────────
+
+function makeFieldCtx(name: string) {
+  const initializers: Array<(this: unknown) => void> = [];
+  return {
+    ctx: {
+      name,
+      kind: "field" as const,
+      addInitializer(fn: (this: unknown) => void) { initializers.push(fn); },
+    } as ClassFieldDecoratorContext,
+    run(instance: unknown) { initializers.forEach((fn) => { fn.call(instance); }); },
+  };
+}
+
+describe("@RouterConfig", () => {
+  it("creates the router singleton when the decorator is applied", () => {
+    @RouterConfig([{ path: "/", component: HomePage }])
+    class App {}
+    void App;
+    expect(() => useRouter()).not.toThrow();
+  });
+
+  it("the created router is accessible via useRouter()", () => {
+    @RouterConfig([{ path: "/about", component: AboutPage }])
+    class App {}
+    void App;
+    const router = useRouter();
+    expect(router).toBeInstanceOf(Router);
+  });
+});
+
+describe("@Lazy", () => {
+  it("returns a LazyRouteComponent with __isLazy=true", () => {
+    @Lazy(() => Promise.resolve({ default: AboutPage }))
+    class AboutRoute {}
+    const lazyComp = AboutRoute as unknown as { __isLazy: true; (): Promise<{ default: typeof AboutPage }> };
+    expect(lazyComp.__isLazy).toBe(true);
+  });
+
+  it("calling the result resolves to the module default", async () => {
+    @Lazy(() => Promise.resolve({ default: AboutPage }))
+    class AboutRoute {}
+    const lazyComp = AboutRoute as unknown as () => Promise<{ default: typeof AboutPage }>;
+    const mod = await lazyComp();
+    expect(mod.default).toBe(AboutPage);
+  });
+});
+
+describe("@InjectRouter", () => {
+  it("injects the current router singleton", () => {
+    createRouter([{ path: "/", component: HomePage }]);
+    const { ctx, run } = makeFieldCtx("router");
+    InjectRouter()(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    expect(instance.router).toBeInstanceOf(Router);
+  });
+});
+
+describe("@Params", () => {
+  it("injects the params computed from the router", async () => {
+    createRouter([{ path: "/users/:id", component: UserPage }]);
+    const { ctx, run } = makeFieldCtx("params");
+    Params()(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    expect(typeof instance.params).toBe("function"); // it's a Computed
+  });
+});
+
+describe("@Query", () => {
+  it("injects the query computed from the router", () => {
+    createRouter([{ path: "/", component: HomePage }]);
+    const { ctx, run } = makeFieldCtx("query");
+    Query()(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    expect(typeof instance.query).toBe("function");
+  });
+});
+
+describe("@Route", () => {
+  it("sets __routePath on the enhanced class", () => {
+    class Dashboard { render() { return null; } }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Enhanced = Route("/dashboard")(Dashboard as any, {} as ClassDecoratorContext);
+    expect((Enhanced as Record<string, unknown>).__routePath).toBe("/dashboard");
+  });
+
+  it("create() returns empty enhancement — instantiating calls RouteBehavior.create()", () => {
+    class Page { render() { return null; } }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Enhanced = Route("/page")(Page as any, {} as ClassDecoratorContext);
+    // Creating an instance invokes RouteBehavior.create() internally
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(() => new (Enhanced as any)()).not.toThrow();
+  });
+});
+
+describe("@Location", () => {
+  it("injects the location signal from the router", () => {
+    createRouter([{ path: "/", component: HomePage }]);
+    const { ctx, run } = makeFieldCtx("location");
+    Location()(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    expect(typeof instance.location).toBe("function");
+  });
+
+  it("the injected location reflects the current path", () => {
+    createRouter([{ path: "/", component: HomePage }]);
+    const { ctx, run } = makeFieldCtx("location");
+    Location()(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    const loc = (instance.location as () => { path: string })();
+    expect(loc.path).toBe("/");
   });
 });

@@ -1,282 +1,254 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-
 import { signal } from "@praxisjs/core/internal";
 
-import { usePagination, useClipboard, useGeolocation, useTimeAgo } from "../utilities";
+import { Clipboard, Geolocation, TimeAgo, Pagination } from "../utilities";
 
-describe("usePagination", () => {
-  it("starts on page 1 by default", () => {
-    const p = usePagination({ total: 100, pageSize: 10 });
-    expect(p.page()).toBe(1);
-  });
+// ── Clipboard ─────────────────────────────────────────────────────────────────
 
-  it("respects initial page option", () => {
-    const p = usePagination({ total: 100, pageSize: 10, initial: 3 });
-    expect(p.page()).toBe(3);
-  });
-
-  it("computes total pages correctly", () => {
-    expect(usePagination({ total: 100, pageSize: 10 }).totalPages()).toBe(10);
-    expect(usePagination({ total: 101, pageSize: 10 }).totalPages()).toBe(11);
-    expect(usePagination({ total: 5, pageSize: 10 }).totalPages()).toBe(1);
-  });
-
-  it("computes offset", () => {
-    const p = usePagination({ total: 100, pageSize: 10 });
-    expect(p.offset()).toBe(0);
-    p.goTo(3);
-    expect(p.offset()).toBe(20);
-  });
-
-  it("next() advances the page", () => {
-    const p = usePagination({ total: 30, pageSize: 10 });
-    p.next();
-    expect(p.page()).toBe(2);
-  });
-
-  it("next() does nothing on last page", () => {
-    const p = usePagination({ total: 10, pageSize: 10 });
-    p.next();
-    expect(p.page()).toBe(1);
-  });
-
-  it("prev() goes back", () => {
-    const p = usePagination({ total: 30, pageSize: 10, initial: 3 });
-    p.prev();
-    expect(p.page()).toBe(2);
-  });
-
-  it("prev() does nothing on first page", () => {
-    const p = usePagination({ total: 30, pageSize: 10 });
-    p.prev();
-    expect(p.page()).toBe(1);
-  });
-
-  it("goTo() clamps to valid range", () => {
-    const p = usePagination({ total: 30, pageSize: 10 });
-    p.goTo(0);
-    expect(p.page()).toBe(1);
-    p.goTo(99);
-    expect(p.page()).toBe(3);
-  });
-
-  it("first() jumps to page 1", () => {
-    const p = usePagination({ total: 50, pageSize: 10, initial: 5 });
-    p.first();
-    expect(p.page()).toBe(1);
-  });
-
-  it("last() jumps to last page", () => {
-    const p = usePagination({ total: 50, pageSize: 10 });
-    p.last();
-    expect(p.page()).toBe(5);
-  });
-
-  it("hasNext is false on last page", () => {
-    const p = usePagination({ total: 10, pageSize: 10 });
-    expect(p.hasNext()).toBe(false);
-  });
-
-  it("hasPrev is false on first page", () => {
-    const p = usePagination({ total: 30, pageSize: 10 });
-    expect(p.hasPrev()).toBe(false);
-  });
-
-  it("pages() returns array of page numbers", () => {
-    const p = usePagination({ total: 30, pageSize: 10 });
-    expect(p.pages()).toEqual([1, 2, 3]);
-  });
-
-  it("pageSize() reflects the configured size", () => {
-    const p = usePagination({ total: 100, pageSize: 25 });
-    expect(p.pageSize()).toBe(25);
-  });
-
-  it("accepts a factory function for options", () => {
-    const p = usePagination(() => ({ total: 50, pageSize: 5 }));
-    expect(p.totalPages()).toBe(10);
-  });
-});
-
-// ── useClipboard ──────────────────────────────────────────────────────────────
-
-describe("useClipboard", () => {
+describe("Clipboard", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText: vi.fn().mockResolvedValue(undefined) },
       configurable: true,
-      writable: true,
     });
   });
 
-  afterEach(() => {
-    vi.clearAllTimers();
-    vi.useRealTimers();
-  });
-
-  it("copied starts as false", () => {
-    const { copied } = useClipboard();
+  it("starts with copied=false and empty content", () => {
+    const cb = new Clipboard();
+    const { copied, content } = cb.setup() as { copied: () => boolean; content: () => string };
     expect(copied()).toBe(false);
-  });
-
-  it("content starts as empty string", () => {
-    const { content } = useClipboard();
     expect(content()).toBe("");
   });
 
-  it("sets copied to true and content to the text after copy()", async () => {
-    const { copy, copied, content } = useClipboard();
+  it("sets copied=true and content after copy", async () => {
+    const cb = new Clipboard();
+    const { copy, copied, content } = cb.setup() as {
+      copy: (t: string) => Promise<void>;
+      copied: () => boolean;
+      content: () => string;
+    };
     await copy("hello");
     expect(copied()).toBe(true);
     expect(content()).toBe("hello");
   });
 
-  it("resets copied to false after resetDelay", async () => {
-    const { copy, copied } = useClipboard(1000);
+  it("resets copied after resetDelay", async () => {
+    vi.useFakeTimers();
+    const cb = new Clipboard(1000);
+    const { copy, copied } = cb.setup() as {
+      copy: (t: string) => Promise<void>;
+      copied: () => boolean;
+    };
     await copy("test");
     expect(copied()).toBe(true);
     vi.advanceTimersByTime(1000);
     expect(copied()).toBe(false);
+    vi.useRealTimers();
   });
 
-  it("warns and does not update state on clipboard failure", async () => {
-    (navigator.clipboard as unknown as { writeText: ReturnType<typeof vi.fn> }).writeText =
-      vi.fn().mockRejectedValue(new Error("denied"));
+  it("warns on clipboard failure", async () => {
+    (navigator.clipboard.writeText as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("denied"));
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { copy, copied } = useClipboard();
+    const cb = new Clipboard();
+    const { copy } = cb.setup() as { copy: (t: string) => Promise<void> };
     await copy("fail");
-    expect(copied()).toBe(false);
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
   });
 });
 
-// ── useGeolocation ────────────────────────────────────────────────────────────
+// ── Geolocation ───────────────────────────────────────────────────────────────
 
-describe("useGeolocation", () => {
-  it("starts with loading=true and lat/lng null", () => {
-    const successCb: PositionCallback[] = [];
-    Object.defineProperty(navigator, "geolocation", {
-      value: {
-        getCurrentPosition: (success: PositionCallback) => {
-          successCb.push(success);
-        },
-      },
-      configurable: true,
+describe("Geolocation", () => {
+  function mockGeolocation(impl: (success: PositionCallback, error?: PositionErrorCallback | null) => void) {
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      geolocation: { getCurrentPosition: impl },
     });
+  }
 
-    const geo = useGeolocation();
-    expect(geo.loading()).toBe(true);
-    expect(geo.lat()).toBeNull();
-    expect(geo.lng()).toBeNull();
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("starts in loading state", () => {
+    mockGeolocation(() => {});
+    const geo = new Geolocation();
+    const { loading, lat, lng, error } = geo.setup() as {
+      loading: () => boolean;
+      lat: () => number | null;
+      lng: () => number | null;
+      error: () => GeolocationPositionError | null;
+    };
+    expect(loading()).toBe(true);
+    expect(lat()).toBeNull();
+    expect(lng()).toBeNull();
+    expect(error()).toBeNull();
   });
 
-  it("updates lat/lng/loading on success", () => {
-    let successCb: PositionCallback | null = null;
-    Object.defineProperty(navigator, "geolocation", {
-      value: {
-        getCurrentPosition: (success: PositionCallback) => {
-          successCb = success;
-        },
-      },
-      configurable: true,
+  it("sets coordinates on success", () => {
+    mockGeolocation((success) => {
+      success({ coords: { latitude: 51.5, longitude: -0.1 } } as GeolocationPosition);
     });
-
-    const geo = useGeolocation();
-
-    successCb!({
-      coords: { latitude: 10.5, longitude: 20.5 } as GeolocationCoordinates,
-    } as GeolocationPosition);
-
-    expect(geo.lat()).toBe(10.5);
-    expect(geo.lng()).toBe(20.5);
-    expect(geo.loading()).toBe(false);
+    const geo = new Geolocation();
+    const { loading, lat, lng } = geo.setup() as {
+      loading: () => boolean;
+      lat: () => number | null;
+      lng: () => number | null;
+    };
+    expect(loading()).toBe(false);
+    expect(lat()).toBe(51.5);
+    expect(lng()).toBe(-0.1);
   });
 
-  it("sets error and loading=false on failure", () => {
-    let errorCb: PositionErrorCallback | null = null;
-    Object.defineProperty(navigator, "geolocation", {
-      value: {
-        getCurrentPosition: (_s: PositionCallback, error: PositionErrorCallback) => {
-          errorCb = error;
-        },
-      },
-      configurable: true,
-    });
-
-    const geo = useGeolocation();
-    const fakeError = { code: 1, message: "denied" } as GeolocationPositionError;
-    errorCb!(fakeError);
-
-    expect(geo.error()).toBe(fakeError);
-    expect(geo.loading()).toBe(false);
+  it("sets error on failure", () => {
+    const mockError = { code: 1, message: "denied" } as GeolocationPositionError;
+    mockGeolocation((_s, error) => { error!(mockError); });
+    const geo = new Geolocation();
+    const { loading, error } = geo.setup() as {
+      loading: () => boolean;
+      error: () => GeolocationPositionError | null;
+    };
+    expect(loading()).toBe(false);
+    expect(error()).toBe(mockError);
   });
 });
 
-// ── useTimeAgo ────────────────────────────────────────────────────────────────
+// ── TimeAgo ───────────────────────────────────────────────────────────────────
 
-describe("useTimeAgo", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
+describe("TimeAgo", () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
 
-  afterEach(() => {
-    vi.clearAllTimers();
-    vi.useRealTimers();
-  });
-
-  it("returns a computed string", () => {
-    const now = Date.now();
-    const t = useTimeAgo(() => now);
-    expect(typeof t()).toBe("string");
-  });
+  const now = Date.now();
 
   it("formats seconds ago", () => {
-    const now = Date.now();
-    const t = useTimeAgo(() => now - 30_000);
-    expect(t()).toMatch(/segundo|second/i);
+    const ta = new TimeAgo(() => now - 30_000, "en");
+    const { value } = ta.setup() as { value: () => string };
+    expect(value()).toContain("30 seconds ago");
   });
 
   it("formats minutes ago", () => {
-    const now = Date.now();
-    const t = useTimeAgo(() => now - 5 * 60_000);
-    expect(t()).toMatch(/minuto|minute/i);
+    const ta = new TimeAgo(() => now - 5 * 60_000, "en");
+    const { value } = ta.setup() as { value: () => string };
+    expect(value()).toContain("5 minutes ago");
   });
 
   it("formats hours ago", () => {
-    const now = Date.now();
-    const t = useTimeAgo(() => now - 2 * 3_600_000);
-    expect(t()).toMatch(/hora|hour/i);
+    const ta = new TimeAgo(() => now - 2 * 3_600_000, "en");
+    const { value } = ta.setup() as { value: () => string };
+    expect(value()).toContain("2 hours ago");
   });
 
   it("formats days ago", () => {
-    const now = Date.now();
-    const t = useTimeAgo(() => now - 3 * 86_400_000);
-    expect(t()).toMatch(/dia|day/i);
+    const ta = new TimeAgo(() => now - 3 * 86_400_000, "en");
+    const { value } = ta.setup() as { value: () => string };
+    expect(value()).toContain("3 days ago");
   });
 
   it("formats months ago", () => {
-    const now = Date.now();
-    const t = useTimeAgo(() => now - 60 * 86_400_000);
-    expect(t()).toMatch(/mes|month/i);
+    const ta = new TimeAgo(() => now - 60 * 86_400_000, "en");
+    const { value } = ta.setup() as { value: () => string };
+    expect(value()).toContain("2 months ago");
   });
 
-  it("accepts a signal source", () => {
-    const src = signal(Date.now() - 90_000);
-    const t = useTimeAgo(src);
-    expect(typeof t()).toBe("string");
+  it("accepts a signal as source", () => {
+    const src = signal(now - 30_000);
+    const ta = new TimeAgo(src, "en");
+    const { value } = ta.setup() as { value: () => string };
+    expect(value()).toContain("30 seconds ago");
   });
 
-  it("ticks after 60 seconds via setInterval", () => {
-    const now = Date.now();
-    const t = useTimeAgo(() => now - 30_000);
-    const before = t();
-    vi.advanceTimersByTime(60_000);
-    // After ticking, the computed re-evaluates (may or may not change the string)
-    expect(typeof t()).toBe("string");
-    // The interval ran — just verify no errors
-    expect(before).toBeTruthy();
+  it("clears interval on unmount", () => {
+    const clearInterval = vi.spyOn(globalThis, "clearInterval");
+    const ta = new TimeAgo(() => now, "en");
+    ta.setup();
+    ta.onUnmount();
+    expect(clearInterval).toHaveBeenCalled();
+  });
+});
+
+// ── Pagination ────────────────────────────────────────────────────────────────
+
+describe("Pagination", () => {
+  it("initialises with defaults", () => {
+    const p = new Pagination({ total: 100, pageSize: 10 });
+    const s = p.setup() as {
+      page: () => number; totalPages: () => number; offset: () => number;
+      hasNext: () => boolean; hasPrev: () => boolean; pageSize: () => number;
+    };
+    expect(s.page()).toBe(1);
+    expect(s.totalPages()).toBe(10);
+    expect(s.offset()).toBe(0);
+    expect(s.hasNext()).toBe(true);
+    expect(s.hasPrev()).toBe(false);
+    expect(s.pageSize()).toBe(10);
+  });
+
+  it("respects initial page", () => {
+    const p = new Pagination({ total: 100, pageSize: 10, initial: 3 });
+    const { page, offset } = p.setup() as { page: () => number; offset: () => number };
+    expect(page()).toBe(3);
+    expect(offset()).toBe(20);
+  });
+
+  it("next() advances page", () => {
+    const p = new Pagination({ total: 30, pageSize: 10 });
+    const { page, next } = p.setup() as { page: () => number; next: () => void };
+    (next as () => void)();
+    expect(page()).toBe(2);
+  });
+
+  it("prev() goes back a page", () => {
+    const p = new Pagination({ total: 30, pageSize: 10, initial: 3 });
+    const { page, prev } = p.setup() as { page: () => number; prev: () => void };
+    (prev as () => void)();
+    expect(page()).toBe(2);
+  });
+
+  it("next() does not go past last page", () => {
+    const p = new Pagination({ total: 10, pageSize: 10 });
+    const { page, next } = p.setup() as { page: () => number; next: () => void };
+    (next as () => void)();
+    expect(page()).toBe(1);
+  });
+
+  it("prev() does not go before first page", () => {
+    const p = new Pagination({ total: 30, pageSize: 10 });
+    const { page, prev } = p.setup() as { page: () => number; prev: () => void };
+    (prev as () => void)();
+    expect(page()).toBe(1);
+  });
+
+  it("goTo() jumps to a page", () => {
+    const p = new Pagination({ total: 50, pageSize: 10 });
+    const { page, goTo } = p.setup() as { page: () => number; goTo: (n: number) => void };
+    (goTo as (n: number) => void)(4);
+    expect(page()).toBe(4);
+  });
+
+  it("first() jumps to page 1", () => {
+    const p = new Pagination({ total: 50, pageSize: 10, initial: 5 });
+    const { page, first } = p.setup() as { page: () => number; first: () => void };
+    (first as () => void)();
+    expect(page()).toBe(1);
+  });
+
+  it("last() jumps to last page", () => {
+    const p = new Pagination({ total: 50, pageSize: 10 });
+    const { page, last } = p.setup() as { page: () => number; last: () => void };
+    (last as () => void)();
+    expect(page()).toBe(5);
+  });
+
+  it("pages() returns array of page numbers", () => {
+    const p = new Pagination({ total: 30, pageSize: 10 });
+    const { pages } = p.setup() as { pages: () => number[] };
+    expect((pages as () => number[])()).toEqual([1, 2, 3]);
+  });
+
+  it("clamps totalPages for fractional divisions", () => {
+    const p = new Pagination({ total: 25, pageSize: 10 });
+    const { totalPages } = p.setup() as { totalPages: () => number };
+    expect(totalPages()).toBe(3);
   });
 });

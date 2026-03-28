@@ -19,6 +19,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@praxisjs/core": "workspace:*"
+    "@praxisjs/core": "workspace:*",
+    "@praxisjs/decorators": "workspace:*"
   }
 }

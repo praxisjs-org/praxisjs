@@ -133,6 +133,26 @@ describe("Container", () => {
     expect(grandchild.resolve(URL_TOKEN)).toBe("https://grandparent.com");
   });
 
+  it("resolves constructor injection from di:inject metadata", () => {
+    class Engine {}
+    class Car {
+      constructor(public engine: Engine) {}
+    }
+
+    const c = new Container();
+    c.register(Engine);
+    c.register(Car);
+
+    // Simulate what a @Inject constructor param decorator would set
+    Reflect.defineMetadata("di:inject", [Engine], Car);
+
+    const car = c.resolve(Car);
+    expect(car).toBeInstanceOf(Car);
+    expect(car.engine).toBeInstanceOf(Engine);
+
+    Reflect.deleteMetadata("di:inject", Car);
+  });
+
   it("registering the same class twice replaces the previous registration", () => {
     class Counter {
       value = Math.random();

@@ -1,7 +1,15 @@
 import { StatefulComponent, StatelessComponent } from "@praxisjs/core";
-import { Component, Computed, Prop, State, Watch } from "@praxisjs/decorators";
+import {
+  Component,
+  Compose,
+  Computed,
+  Prop,
+  State,
+  Watch,
+} from "@praxisjs/decorators";
 import { Debug, Trace } from "@praxisjs/devtools";
 import { Signal } from "@praxisjs/shared";
+import { MediaQuery } from "@praxisjs/composables";
 
 @Component()
 export class ListItem extends StatelessComponent<{
@@ -41,6 +49,9 @@ export class App extends StatefulComponent {
   @Debug()
   @State()
   count = 0;
+
+  @Compose(MediaQuery, "(max-width: 768px)")
+  mobile!: InstanceType<typeof MediaQuery>;
 
   @State() arr = [];
 

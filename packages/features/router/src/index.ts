@@ -1,12 +1,4 @@
-export {
-  createRouter,
-  lazy,
-  useRouter,
-  useParams,
-  useQuery,
-  useLocation,
-  Router,
-} from "./router";
+export { Router } from "./router";
 export type {
   RouteDefinition,
   RouteLocation,
@@ -17,4 +9,4 @@ export type {
 } from "./types/route";
 
 export { RouterView, Link } from "./components";
-export { Route } from "./decorators";
+export { Route, RouterConfig, Lazy, InjectRouter, Params, Query, Location } from "./decorators";

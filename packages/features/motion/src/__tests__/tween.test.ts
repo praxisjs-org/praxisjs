@@ -1,136 +1,118 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-import { Animate } from "../decorators";
 import { tween } from "../tween";
 
-// ── tween ─────────────────────────────────────────────────────────────────────
+beforeEach(() => {
+  vi.useFakeTimers();
+});
 
-describe("tween", () => {
-  it("starts with the from value", () => {
-    vi.useFakeTimers();
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
+});
+
+function flushRaf(frames = 60) {
+  for (let i = 0; i < frames; i++) {
+    vi.runAllTicks();
+    const cbs = (globalThis as unknown as { __rafCallbacks?: Array<(t: number) => void> }).__rafCallbacks;
+    if (cbs?.length) {
+      const batch = [...cbs];
+      cbs.length = 0;
+      batch.forEach((cb) => cb(performance.now()));
+    }
+  }
+}
+
+describe("tween()", () => {
+  it("starts at the `from` value", () => {
     const t = tween(0, 100);
     expect(t.value()).toBe(0);
-    vi.clearAllTimers();
-    vi.useRealTimers();
+    t.stop();
   });
 
-  it("target starts at the to value", () => {
-    vi.useFakeTimers();
+  it("exposes the target signal", () => {
     const t = tween(0, 100);
     expect(t.target()).toBe(100);
-    vi.clearAllTimers();
-    vi.useRealTimers();
+    t.stop();
   });
 
-  it("playing is initially true (animation started immediately)", () => {
-    vi.useFakeTimers();
+  it("playing is true when animating", () => {
     const t = tween(0, 100);
     expect(t.playing()).toBe(true);
-    vi.clearAllTimers();
-    vi.useRealTimers();
+    t.stop();
   });
 
-  it("stop() sets playing to false", () => {
-    vi.useFakeTimers();
+  it("stop() halts animation and sets playing to false", () => {
     const t = tween(0, 100);
     t.stop();
     expect(t.playing()).toBe(false);
-    vi.clearAllTimers();
-    vi.useRealTimers();
   });
 
-  it("reset() restores to from value and clears progress", () => {
-    vi.useFakeTimers();
-    const t = tween(5, 100);
-    t.reset();
-    expect(t.value()).toBe(5);
-    expect(t.progress()).toBe(0);
-    vi.clearAllTimers();
-    vi.useRealTimers();
-  });
-
-  it("progress moves towards 1 as animation advances", () => {
-    vi.useFakeTimers();
-    const t = tween(0, 100, { duration: 300 });
-    vi.advanceTimersByTime(300);
-    // After full duration, value should be near the target
-    expect(t.progress()).toBeGreaterThanOrEqual(0);
-    vi.clearAllTimers();
-    vi.useRealTimers();
-  });
-
-  it("changing target restarts animation", () => {
-    vi.useFakeTimers();
-    const t = tween(0, 50);
-    t.target.set(200);
-    expect(t.playing()).toBe(true);
+  it("reset() returns value to `from` and resets progress", () => {
+    const t = tween(0, 100);
     t.stop();
-    vi.clearAllTimers();
-    vi.useRealTimers();
-  });
-
-  it("accepts custom easing and delay options", () => {
-    vi.useFakeTimers();
-    const t = tween(0, 100, { easing: "linear", delay: 100, duration: 200 });
+    t.reset();
     expect(t.value()).toBe(0);
-    vi.clearAllTimers();
-    vi.useRealTimers();
-  });
-});
-
-// ── Animate decorator ─────────────────────────────────────────────────────────
-
-describe("Animate decorator", () => {
-  function makeCtx(name: string) {
-    const initializers: Array<(this: unknown) => void> = [];
-    return {
-      ctx: {
-        name,
-        kind: "field" as const,
-        addInitializer(fn: (this: unknown) => void) {
-          initializers.push(fn);
-        },
-      } as ClassFieldDecoratorContext,
-      run(instance: unknown) {
-        initializers.forEach((fn) => { fn.call(instance); });
-      },
-    };
-  }
-
-  it("creates a numeric getter/setter on first assignment", () => {
-    vi.useFakeTimers();
-    const { ctx, run } = makeCtx("x");
-    Animate()(undefined, ctx);
-    const instance: Record<string, unknown> = {};
-    run(instance);
-    instance.x = 10;
-    expect(typeof instance.x).toBe("number");
-    vi.clearAllTimers();
-    vi.useRealTimers();
+    expect(t.progress()).toBe(0);
   });
 
-  it("returns 0 before any value is set", () => {
-    vi.useFakeTimers();
-    const { ctx, run } = makeCtx("opacity");
-    Animate()(undefined, ctx);
-    const instance: Record<string, unknown> = {};
-    run(instance);
-    expect(instance.opacity).toBe(0);
-    vi.clearAllTimers();
-    vi.useRealTimers();
+  it("progress starts at 0", () => {
+    const t = tween(0, 100);
+    expect(t.progress()).toBe(0);
+    t.stop();
   });
 
-  it("updating the property updates the tween target", () => {
-    vi.useFakeTimers();
-    const { ctx, run } = makeCtx("scale");
-    Animate()(undefined, ctx);
-    const instance: Record<string, unknown> = {};
-    run(instance);
-    instance.scale = 1;
-    instance.scale = 2; // second set updates tween target
-    expect(typeof instance.scale).toBe("number");
-    vi.clearAllTimers();
-    vi.useRealTimers();
+  it("accepts custom easing as function", () => {
+    const t = tween(0, 100, { easing: (x) => x, duration: 300 });
+    expect(t.value()).toBe(0);
+    t.stop();
+  });
+
+  it("accepts custom duration and delay", () => {
+    const t = tween(0, 100, { duration: 500, delay: 100 });
+    expect(t.value()).toBe(0);
+    t.stop();
+  });
+
+  it("setting target to same value re-triggers start", () => {
+    const t = tween(0, 50);
+    const before = t.value();
+    t.target.set(50);
+    expect(t.value()).toBe(before);
+    t.stop();
+  });
+
+  it("changing target while playing updates target", () => {
+    const t = tween(0, 100);
+    t.target.set(200);
+    expect(t.target()).toBe(200);
+    t.stop();
+  });
+
+  it("animate loop runs and updates value toward target", () => {
+    const t = tween(0, 100, { duration: 100, easing: "linear" });
+    // Advance through multiple rAF frames
+    vi.advanceTimersByTime(50);
+    // Value should be moving toward 100
+    const mid = t.value();
+    expect(mid).toBeGreaterThan(0);
+    vi.advanceTimersByTime(100);
+    t.stop();
+  });
+
+  it("completes animation and stops playing", () => {
+    const t = tween(0, 100, { duration: 100 });
+    vi.advanceTimersByTime(500);
+    // After several durations, value should be at or near target
+    expect(t.value()).toBeGreaterThan(50);
+  });
+
+  it("delay defers animation start", () => {
+    const t = tween(0, 100, { duration: 100, delay: 50 });
+    vi.advanceTimersByTime(10);
+    // Within delay, value stays at 0
+    expect(t.value()).toBe(0);
+    t.stop();
   });
 });

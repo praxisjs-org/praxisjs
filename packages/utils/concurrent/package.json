@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@praxisjs/core": "workspace:*",
+    "@praxisjs/decorators": "workspace:*",
     "@praxisjs/shared": "workspace:*"
   }
 }

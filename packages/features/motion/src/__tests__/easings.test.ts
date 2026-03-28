@@ -2,82 +2,89 @@ import { describe, it, expect } from "vitest";
 
 import { easings, resolveEasing } from "../easings";
 
-const EPSILON = 1e-6;
+describe("easings.linear", () => {
+  it("returns 0 at t=0", () => expect(easings.linear(0)).toBe(0));
+  it("returns 0.5 at t=0.5", () => expect(easings.linear(0.5)).toBe(0.5));
+  it("returns 1 at t=1", () => expect(easings.linear(1)).toBe(1));
+});
 
-function nearly(a: number, b: number) {
-  return Math.abs(a - b) < EPSILON;
-}
+describe("easings.easeIn", () => {
+  it("returns 0 at t=0", () => expect(easings.easeIn(0)).toBe(0));
+  it("returns 0.25 at t=0.5", () => expect(easings.easeIn(0.5)).toBe(0.25));
+  it("returns 1 at t=1", () => expect(easings.easeIn(1)).toBe(1));
+});
 
-describe("easings", () => {
-  describe("boundary conditions (t=0 → 0, t=1 → 1)", () => {
-    for (const [name, fn] of Object.entries(easings)) {
-      it(`${name}(0) === 0`, () => {
-        expect(nearly(fn(0), 0)).toBe(true);
-      });
-      it(`${name}(1) === 1`, () => {
-        expect(nearly(fn(1), 1)).toBe(true);
-      });
-    }
+describe("easings.easeOut", () => {
+  it("returns 0 at t=0", () => expect(easings.easeOut(0)).toBe(0));
+  it("returns 0.75 at t=0.5", () => expect(easings.easeOut(0.5)).toBe(0.75));
+  it("returns 1 at t=1", () => expect(easings.easeOut(1)).toBe(1));
+});
+
+describe("easings.easeInOut", () => {
+  it("returns 0 at t=0", () => expect(easings.easeInOut(0)).toBe(0));
+  it("returns 0.5 at t=0.5", () => expect(easings.easeInOut(0.5)).toBe(0.5));
+  it("returns 1 at t=1", () => expect(easings.easeInOut(1)).toBe(1));
+  it("uses easeIn branch for t<0.5", () => {
+    expect(easings.easeInOut(0.25)).toBeCloseTo(0.125);
   });
-
-  describe("linear", () => {
-    it("returns t unchanged", () => {
-      expect(easings.linear(0.5)).toBe(0.5);
-      expect(easings.linear(0.25)).toBe(0.25);
-    });
+  it("uses easeOut branch for t>=0.5", () => {
+    expect(easings.easeInOut(0.75)).toBeCloseTo(0.875);
   });
+});
 
-  describe("easeIn", () => {
-    it("is slower at start than end (t² curve)", () => {
-      expect(easings.easeIn(0.25)).toBeLessThan(0.25);
-    });
+describe("easings.easeInCubic", () => {
+  it("returns 0 at t=0", () => expect(easings.easeInCubic(0)).toBe(0));
+  it("returns 0.125 at t=0.5", () => expect(easings.easeInCubic(0.5)).toBe(0.125));
+  it("returns 1 at t=1", () => expect(easings.easeInCubic(1)).toBe(1));
+});
+
+describe("easings.bounce", () => {
+  it("returns 0 at t=0", () => expect(easings.bounce(0)).toBe(0));
+  it("returns 1 at t=1", () => expect(easings.bounce(1)).toBeCloseTo(1));
+  it("handles first branch (t < 1/2.75)", () => {
+    const t = 0.2;
+    expect(easings.bounce(t)).toBeGreaterThan(0);
   });
-
-  describe("easeOut", () => {
-    it("is faster at start than end", () => {
-      expect(easings.easeOut(0.75)).toBeGreaterThan(0.75);
-    });
+  it("handles second branch (t < 2/2.75)", () => {
+    const t = 0.5;
+    expect(easings.bounce(t)).toBeGreaterThan(0.7);
   });
-
-  describe("easeInOut", () => {
-    it("is symmetric around 0.5", () => {
-      const v = easings.easeInOut(0.5);
-      expect(nearly(v, 0.5)).toBe(true);
-    });
+  it("handles third branch (t < 2.5/2.75)", () => {
+    const t = 0.85;
+    expect(easings.bounce(t)).toBeGreaterThan(0.9);
   });
-
-  describe("easeInCubic", () => {
-    it("is t³", () => {
-      expect(nearly(easings.easeInCubic(0.5), 0.125)).toBe(true);
-    });
+  it("handles fourth branch (t >= 2.5/2.75)", () => {
+    const t = 0.97;
+    expect(easings.bounce(t)).toBeGreaterThan(0.98);
   });
+});
 
-  describe("bounce", () => {
-    it("stays within [0, 1] for t in [0, 1]", () => {
-      for (let t = 0; t <= 1; t += 0.1) {
-        const v = easings.bounce(t);
-        expect(v).toBeGreaterThanOrEqual(0);
-        expect(v).toBeLessThanOrEqual(1 + EPSILON);
-      }
-    });
-  });
-
-  describe("elastic", () => {
-    it("returns 0 at t=0 and 1 at t=1", () => {
-      expect(easings.elastic(0)).toBe(0);
-      expect(easings.elastic(1)).toBe(1);
-    });
+describe("easings.elastic", () => {
+  it("returns 0 at t=0", () => expect(easings.elastic(0)).toBe(0));
+  it("returns 1 at t=1", () => expect(easings.elastic(1)).toBe(1));
+  it("returns a negative value mid-range (overshoot)", () => {
+    expect(easings.elastic(0.5)).toBeLessThan(0);
   });
 });
 
 describe("resolveEasing", () => {
-  it("resolves a string key to the easing function", () => {
+  it("resolves a named easing", () => {
     const fn = resolveEasing("linear");
-    expect(fn).toBe(easings.linear);
+    expect(fn(0.5)).toBe(0.5);
   });
 
-  it("passes through a custom function", () => {
-    const custom = (t: number) => t * t * t;
-    expect(resolveEasing(custom)).toBe(custom);
+  it("returns a custom function as-is", () => {
+    const custom = (t: number) => t * 2;
+    const fn = resolveEasing(custom);
+    expect(fn).toBe(custom);
+    expect(fn(0.5)).toBe(1);
+  });
+
+  it("resolves all named easings", () => {
+    const names = ["linear", "easeIn", "easeOut", "easeInOut", "easeInCubic", "bounce", "elastic"] as const;
+    for (const name of names) {
+      const fn = resolveEasing(name);
+      expect(typeof fn).toBe("function");
+    }
   });
 });

@@ -11,6 +11,17 @@ describe("Store decorator", () => {
       { Store()(CounterStore, {} as ClassDecoratorContext); },
     ).not.toThrow();
   });
+
+  it("StoreBehavior.create() is invoked when an enhanced instance is constructed", () => {
+    class MyStore {
+      value = 42;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Enhanced = Store()(MyStore as any, {} as ClassDecoratorContext);
+    // Creating an instance calls StoreBehavior.create() internally (returns {})
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(() => new (Enhanced as any)()).not.toThrow();
+  });
 });
 
 describe("UseStore decorator", () => {

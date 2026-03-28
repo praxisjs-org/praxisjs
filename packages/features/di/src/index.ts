@@ -4,12 +4,11 @@ export {
   Injectable,
   Inject,
   InjectContainer,
-  useService,
-  createScope,
+  Scope,
 } from "./decorators";
 export { Container, container, Token, token } from "./container";
 export type {
-  Scope,
+  Scope as ScopeType,
   InjectableOptions,
   Constructor,
   ServiceDescriptor,

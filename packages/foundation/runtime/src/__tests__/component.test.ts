@@ -39,6 +39,16 @@ class ErrorComp extends StatefulComponent {
   }
 }
 
+class NonErrorThrowComp extends StatefulComponent {
+  static __isComponent = true as const;
+  static __isStateless = false;
+  onError(_err: Error) {}
+  render(): never {
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
+    throw "string render error";
+  }
+}
+
 class LifecycleComp extends StatefulComponent {
   static __isComponent = true as const;
   static __isStateless = false;
@@ -117,6 +127,16 @@ describe("mountComponent", () => {
     const onError = vi.spyOn(ErrorComp.prototype, "onError");
     mountComponent(ErrorComp, {}, scope);
     expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    onError.mockRestore();
+    scope.dispose();
+  });
+
+  it("wraps non-Error throws in Error before passing to onError", () => {
+    const scope = new Scope();
+    const onError = vi.spyOn(NonErrorThrowComp.prototype, "onError");
+    mountComponent(NonErrorThrowComp, {}, scope);
+    expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    expect((onError.mock.calls[0][0] as Error).message).toBe("string render error");
     onError.mockRestore();
     scope.dispose();
   });

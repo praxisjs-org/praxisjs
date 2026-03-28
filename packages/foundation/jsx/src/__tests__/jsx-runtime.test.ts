@@ -42,6 +42,13 @@ describe("Fragment", () => {
     expect(result[0]).toBe(a);
     expect(result[1]).toBe(b);
   });
+
+  it("returns [] when children is a non-Node non-Array value (e.g. plain object)", () => {
+    const result = withScope(() =>
+      jsx(Fragment, { children: { foo: "bar" } as unknown }),
+    );
+    expect(result).toEqual([]);
+  });
 });
 
 describe("jsx — string tag", () => {
@@ -67,6 +74,26 @@ describe("jsx — string tag", () => {
   it("creates an SVG element for svg tags", () => {
     const el = withScope(() => jsx("svg", {})) as SVGElement;
     expect(el).toBeInstanceOf(SVGElement);
+  });
+});
+
+describe("jsx — component", () => {
+  it("mounts a component via isComponent check and returns its nodes", () => {
+    // A minimal class that satisfies isComponent (has __isComponent) and mountComponent
+    class MyComp {
+      static __isComponent = true as const;
+      static __isStateless = false as const;
+      static __name = "MyComp";
+      _anchor?: Comment;
+      constructor(_props?: Record<string, unknown>) {}
+      render() { return document.createTextNode("hi"); }
+    }
+
+    const result = withScope(() =>
+      jsx(MyComp as unknown as string, {}),
+    ) as Node[];
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBeGreaterThan(0);
   });
 });
 

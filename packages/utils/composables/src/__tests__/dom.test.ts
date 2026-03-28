@@ -1,212 +1,261 @@
 // @vitest-environment jsdom
-import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { createRef, useWindowSize, useScrollPosition, useFocus, useElementSize, useIntersection } from "../dom";
+import { signal } from "@praxisjs/core/internal";
 
-// ---------- createRef ----------
+import { WindowSize, ScrollPosition, ElementSize, Intersection, Focus } from "../dom";
 
-describe("createRef", () => {
-  it("starts with current = null", () => {
-    const ref = createRef();
-    expect(ref.current).toBeNull();
-  });
+// ── WindowSize ────────────────────────────────────────────────────────────────
 
-  it("can be assigned an element", () => {
-    const ref = createRef();
-    const el = document.createElement("div");
-    ref.current = el;
-    expect(ref.current).toBe(el);
-  });
-});
+describe("WindowSize", () => {
+  it("reads initial window dimensions", () => {
+    Object.defineProperty(window, "innerWidth", { value: 1024, configurable: true });
+    Object.defineProperty(window, "innerHeight", { value: 768, configurable: true });
 
-// ---------- useWindowSize ----------
-
-describe("useWindowSize", () => {
-  it("returns the current window dimensions", () => {
-    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 1024 });
-    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 768 });
-
-    const { width, height } = useWindowSize();
+    const ws = new WindowSize();
+    const { width, height } = ws.setup() as { width: () => number; height: () => number };
     expect(width()).toBe(1024);
     expect(height()).toBe(768);
   });
 
   it("updates on resize event", () => {
-    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 800 });
-    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 600 });
+    Object.defineProperty(window, "innerWidth", { value: 800, configurable: true });
+    Object.defineProperty(window, "innerHeight", { value: 600, configurable: true });
 
-    const { width, height } = useWindowSize();
+    const ws = new WindowSize();
+    const { width, height } = ws.setup() as { width: () => number; height: () => number };
 
-    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 1280 });
-    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 720 });
+    Object.defineProperty(window, "innerWidth", { value: 1280, configurable: true });
+    Object.defineProperty(window, "innerHeight", { value: 900, configurable: true });
     window.dispatchEvent(new Event("resize"));
 
     expect(width()).toBe(1280);
-    expect(height()).toBe(720);
+    expect(height()).toBe(900);
+  });
+
+  it("removes listener on unmount", () => {
+    const remove = vi.spyOn(window, "removeEventListener");
+    const ws = new WindowSize();
+    ws.setup();
+    ws.onUnmount();
+    expect(remove).toHaveBeenCalledWith("resize", expect.any(Function));
   });
 });
 
-// ---------- useScrollPosition ----------
+// ── ScrollPosition ────────────────────────────────────────────────────────────
 
-describe("useScrollPosition", () => {
+describe("ScrollPosition", () => {
   it("starts at (0, 0)", () => {
-    const { x, y } = useScrollPosition(window);
+    const sp = new ScrollPosition(window);
+    const { x, y } = sp.setup() as { x: () => number; y: () => number };
     expect(x()).toBe(0);
     expect(y()).toBe(0);
   });
 
-  it("updates on element scroll", () => {
-    const el = document.createElement("div");
-    const { x, y } = useScrollPosition(el);
+  it("updates on scroll event for window", () => {
+    const sp = new ScrollPosition(window);
+    const { x, y } = sp.setup() as { x: () => number; y: () => number };
 
-    Object.defineProperty(el, "scrollLeft", { configurable: true, value: 50 });
-    Object.defineProperty(el, "scrollTop", { configurable: true, value: 80 });
+    Object.defineProperty(window, "scrollX", { value: 100, configurable: true });
+    Object.defineProperty(window, "scrollY", { value: 200, configurable: true });
+    window.dispatchEvent(new Event("scroll"));
+
+    expect(x()).toBe(100);
+    expect(y()).toBe(200);
+  });
+
+  it("updates on scroll event for element", () => {
+    const el = document.createElement("div");
+    const sp = new ScrollPosition(el);
+    const { x, y } = sp.setup() as { x: () => number; y: () => number };
+
+    Object.defineProperty(el, "scrollLeft", { value: 50, configurable: true });
+    Object.defineProperty(el, "scrollTop", { value: 75, configurable: true });
     el.dispatchEvent(new Event("scroll"));
 
     expect(x()).toBe(50);
-    expect(y()).toBe(80);
+    expect(y()).toBe(75);
+  });
+
+  it("removes listener on unmount", () => {
+    const el = document.createElement("div");
+    const remove = vi.spyOn(el, "removeEventListener");
+    const sp = new ScrollPosition(el);
+    sp.setup();
+    sp.onUnmount();
+    expect(remove).toHaveBeenCalledWith("scroll", expect.any(Function));
   });
 });
 
-// ---------- useFocus ----------
+// ── ElementSize ───────────────────────────────────────────────────────────────
 
-describe("useFocus", () => {
-  it("starts as not focused", () => {
-    const el = document.createElement("input");
-    document.body.appendChild(el);
-    const ref = { current: el };
-    const focused = useFocus(ref);
-    expect(focused()).toBe(false);
-    document.body.removeChild(el);
-  });
-
-  it("becomes true on focus event", () => {
-    const el = document.createElement("input");
-    document.body.appendChild(el);
-    const ref = { current: el };
-    const focused = useFocus(ref);
-    el.dispatchEvent(new FocusEvent("focus"));
-    expect(focused()).toBe(true);
-    document.body.removeChild(el);
-  });
-
-  it("becomes false on blur event", () => {
-    const el = document.createElement("input");
-    document.body.appendChild(el);
-    const ref = { current: el };
-    const focused = useFocus(ref);
-    el.dispatchEvent(new FocusEvent("focus"));
-    el.dispatchEvent(new FocusEvent("blur"));
-    expect(focused()).toBe(false);
-    document.body.removeChild(el);
-  });
-
-  it("does nothing when ref.current is null", () => {
-    const ref: { current: HTMLElement | null } = { current: null };
-    expect(() => useFocus(ref)).not.toThrow();
-  });
-});
-
-// ---------- useElementSize ----------
-
-describe("useElementSize", () => {
-  let observerCallback: ResizeObserverCallback = () => {};
-  let mockDisconnect: ReturnType<typeof vi.fn>;
+describe("ElementSize", () => {
+  let observerCallback: ResizeObserverCallback;
 
   beforeEach(() => {
-    mockDisconnect = vi.fn();
-    observerCallback = () => {};
-
-    // Class-based mock so `new ResizeObserver(cb)` works correctly
-    globalThis.ResizeObserver = class {
+    vi.stubGlobal("ResizeObserver", class {
       constructor(cb: ResizeObserverCallback) { observerCallback = cb; }
       observe = vi.fn();
-      disconnect = mockDisconnect;
-    } as unknown as typeof ResizeObserver;
+      disconnect = vi.fn();
+    });
   });
 
-  afterEach(() => {
-    // @ts-expect-error – removing test stub
-    delete globalThis.ResizeObserver;
-  });
-
-  it("starts at (0, 0) when ref.current is null", () => {
-    const ref: { current: HTMLElement | null } = { current: null };
-    const { width, height } = useElementSize(ref);
+  it("starts at (0, 0) with no element", () => {
+    const ref = { current: null };
+    const es = new ElementSize(ref);
+    const { width, height } = es.setup() as { width: () => number; height: () => number };
     expect(width()).toBe(0);
     expect(height()).toBe(0);
   });
 
-  it("calls stop() to disconnect the ResizeObserver", () => {
+  it("updates via ResizeObserver callback", () => {
     const el = document.createElement("div");
     const ref = { current: el };
-    const { stop } = useElementSize(ref);
-    stop();
-    expect(mockDisconnect).toHaveBeenCalled();
-  });
-
-  it("updates width and height when ResizeObserver fires", () => {
-    const el = document.createElement("div");
-    const ref = { current: el };
-    const { width, height } = useElementSize(ref);
+    const es = new ElementSize(ref);
+    const { width, height } = es.setup() as { width: () => number; height: () => number };
 
     observerCallback(
-      [{ contentRect: { width: 300, height: 200 } } as ResizeObserverEntry],
-      null as unknown as ResizeObserver,
+      [{ contentRect: { width: 300, height: 150 } } as ResizeObserverEntry],
+      {} as ResizeObserver,
     );
 
     expect(width()).toBe(300);
-    expect(height()).toBe(200);
+    expect(height()).toBe(150);
+  });
+
+  it("disconnects observer on unmount", () => {
+    const disconnect = vi.fn();
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(cb: ResizeObserverCallback) { observerCallback = cb; }
+      observe = vi.fn();
+      disconnect = disconnect;
+    });
+
+    const ref = { current: null };
+    const es = new ElementSize(ref);
+    es.setup();
+    es.onUnmount();
+    expect(disconnect).toHaveBeenCalled();
   });
 });
 
-// ---------- useIntersection ----------
+// ── Intersection ──────────────────────────────────────────────────────────────
 
-describe("useIntersection", () => {
-  let intersectionCallback: IntersectionObserverCallback = () => {};
-  let capturedOptions: IntersectionObserverInit | undefined;
+describe("Intersection", () => {
+  let observerCallback: IntersectionObserverCallback;
 
   beforeEach(() => {
-    intersectionCallback = () => {};
-    capturedOptions = undefined;
-
-    globalThis.IntersectionObserver = class {
-      constructor(cb: IntersectionObserverCallback, opts?: IntersectionObserverInit) {
-        intersectionCallback = cb;
-        capturedOptions = opts;
-      }
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(cb: IntersectionObserverCallback) { observerCallback = cb; }
       observe = vi.fn();
       disconnect = vi.fn();
-    } as unknown as typeof IntersectionObserver;
+    });
   });
 
-  afterEach(() => {
-    // @ts-expect-error – removing test stub
-    delete globalThis.IntersectionObserver;
-  });
-
-  it("starts as false when ref.current is null", () => {
-    const ref: { current: HTMLElement | null } = { current: null };
-    const visible = useIntersection(ref);
+  it("starts as not visible", () => {
+    const ref = { current: null };
+    const int = new Intersection(ref);
+    const { visible } = int.setup() as { visible: () => boolean };
     expect(visible()).toBe(false);
   });
 
-  it("becomes true when IntersectionObserver fires with isIntersecting=true", () => {
+  it("becomes visible when intersecting", () => {
     const el = document.createElement("div");
     const ref = { current: el };
-    const visible = useIntersection(ref);
+    const int = new Intersection(ref);
+    const { visible } = int.setup() as { visible: () => boolean };
 
-    intersectionCallback(
+    observerCallback(
       [{ isIntersecting: true } as IntersectionObserverEntry],
-      null as unknown as IntersectionObserver,
+      {} as IntersectionObserver,
     );
+
     expect(visible()).toBe(true);
   });
 
-  it("passes options to IntersectionObserver", () => {
-    const ref: { current: HTMLElement | null } = { current: null };
-    const options = { threshold: 0.5 };
-    useIntersection(ref, options);
-    expect(capturedOptions).toEqual(options);
+  it("disconnects on unmount", () => {
+    const disconnect = vi.fn();
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(cb: IntersectionObserverCallback) { observerCallback = cb; }
+      observe = vi.fn();
+      disconnect = disconnect;
+    });
+
+    const ref = { current: null };
+    const int = new Intersection(ref);
+    int.setup();
+    int.onUnmount();
+    expect(disconnect).toHaveBeenCalled();
+  });
+});
+
+// ── Focus ─────────────────────────────────────────────────────────────────────
+
+describe("Focus", () => {
+  it("starts as not focused", () => {
+    const el = document.createElement("input");
+    const ref = { current: el };
+    const focus = new Focus(ref);
+    const { focused } = focus.setup() as { focused: () => boolean };
+    expect(focused()).toBe(false);
+  });
+
+  it("sets focused=true on focus event", () => {
+    const el = document.createElement("input");
+    document.body.appendChild(el);
+    const ref = { current: el };
+    const focus = new Focus(ref);
+    const { focused } = focus.setup() as { focused: () => boolean };
+
+    el.dispatchEvent(new Event("focus"));
+    expect(focused()).toBe(true);
+
+    document.body.removeChild(el);
+  });
+
+  it("sets focused=false on blur event", () => {
+    const el = document.createElement("input");
+    document.body.appendChild(el);
+    const ref = { current: el };
+    const focus = new Focus(ref);
+    const { focused } = focus.setup() as { focused: () => boolean };
+
+    el.dispatchEvent(new Event("focus"));
+    el.dispatchEvent(new Event("blur"));
+    expect(focused()).toBe(false);
+
+    document.body.removeChild(el);
+  });
+
+  it("does not throw when ref is null", () => {
+    const ref = { current: null };
+    const focus = new Focus(ref);
+    expect(() => focus.setup()).not.toThrow();
+  });
+
+  it("removes focus/blur listeners when reactive ref changes (effect cleanup)", () => {
+    const el1 = document.createElement("input");
+    document.body.appendChild(el1);
+
+    // Make ref.current reactive so the effect tracks it and re-runs on change
+    const refSignal = signal<HTMLElement | null>(el1);
+    const ref = { get current() { return refSignal(); } };
+
+    const focus = new Focus(ref);
+    focus.setup();
+
+    const removeEl1 = vi.spyOn(el1, "removeEventListener");
+
+    // Changing the signal causes the effect to re-run, calling cleanup for el1
+    // This covers the cleanup function at dom.ts:134-135
+    const el2 = document.createElement("input");
+    document.body.appendChild(el2);
+    refSignal.set(el2);
+
+    expect(removeEl1).toHaveBeenCalledWith("focus", expect.any(Function));
+    expect(removeEl1).toHaveBeenCalledWith("blur", expect.any(Function));
+
+    document.body.removeChild(el1);
+    document.body.removeChild(el2);
   });
 });

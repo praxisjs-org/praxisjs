@@ -96,4 +96,12 @@ describe("mountChildren", () => {
     expect(el.textContent).toBe("42");
     scope.dispose();
   });
+
+  it("reactive function returning an unrecognized type renders nothing", () => {
+    const el = container();
+    const scope = new Scope();
+    mountChildren(el, () => ({ unknown: "object" }) as unknown, scope);
+    expect(el.textContent).toBe(""); // normalizeToNodes returns [] for unknown types
+    scope.dispose();
+  });
 });
