@@ -19,6 +19,16 @@ export function runEffect(effect: Effect | null) {
   activeEffect = effect;
 }
 
+export function untrack<T>(fn: () => T): T {
+  const prev = activeEffect;
+  activeEffect = null;
+  try {
+    return fn();
+  } finally {
+    activeEffect = prev;
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
 type Cleanup = (() => void) | void;
 

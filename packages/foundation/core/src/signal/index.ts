@@ -3,4 +3,4 @@ export { peek } from "./peek";
 export { signal } from "./signal";
 export { computed } from "./computed";
 export { type PersistedSignalOptions, persistedSignal } from "./persisted";
-export { effect } from "./effect";
+export { effect, untrack } from "./effect";

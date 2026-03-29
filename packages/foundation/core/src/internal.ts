@@ -12,6 +12,7 @@ export {
   computed,
   batch,
   effect,
+  untrack,
   type PersistedSignalOptions,
 } from "./signal";
 export { RootComponent } from "./component";
