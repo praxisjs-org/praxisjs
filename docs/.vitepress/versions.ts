@@ -29,3 +29,7 @@ export const VERSIONS = {
   'vite':                  '^7.3.1',
   'typescript':            '^5.9.3',
 } as const
+
+export function v(pkg: keyof typeof VERSIONS): string {
+  return VERSIONS[pkg].replace('^', '')
+}

@@ -2,12 +2,7 @@ import { defineConfig } from "vitepress";
 import llmstxt, {
   copyOrDownloadAsMarkdownButtons,
 } from "vitepress-plugin-llms";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
-const { version } = require("../../packages/foundation/core/package.json") as {
-  version: string;
-};
+import { v } from "./versions";
 
 export default defineConfig({
   title: "PraxisJS",
@@ -17,7 +12,6 @@ export default defineConfig({
   appearance: true,
   themeConfig: {
     logo: "/logo.svg",
-    version,
     search: {
       provider: "local",
     },
@@ -27,7 +21,7 @@ export default defineConfig({
       { text: "Ecosystem", link: "/ecosystem/router" },
       { text: "Changelog", link: "/changelog/core" },
       {
-        text: `v${version}`,
+        text: `v${v('@praxisjs/core')}`,
         items: [
           { text: "Project Status", link: "/guide/project-status" },
           {

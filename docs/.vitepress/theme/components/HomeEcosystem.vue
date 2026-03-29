@@ -1,34 +1,21 @@
 <script setup lang="ts">
+import { VERSIONS, v } from "../../versions";
+// VERSIONS is used only for the satisfies constraint below
+
 const packages = [
   { label: "@praxisjs/core", href: "/essentials/components", status: "stable" },
-  {
-    label: "@praxisjs/decorators",
-    href: "/decorators/state",
-    status: "stable",
-  },
+  { label: "@praxisjs/decorators", href: "/decorators/state", status: "stable" },
   { label: "@praxisjs/jsx", href: "/essentials/jsx", status: "stable" },
-  {
-    label: "@praxisjs/runtime",
-    href: "/guide/getting-started",
-    status: "stable",
-  },
+  { label: "@praxisjs/runtime", href: "/guide/getting-started", status: "stable" },
   { label: "@praxisjs/router", href: "/ecosystem/router", status: "stable" },
   { label: "@praxisjs/store", href: "/ecosystem/store", status: "stable" },
   { label: "@praxisjs/di", href: "/ecosystem/di", status: "stable" },
   { label: "@praxisjs/motion", href: "/ecosystem/motion", status: "stable" },
   { label: "@praxisjs/fsm", href: "/ecosystem/fsm", status: "stable" },
-  {
-    label: "@praxisjs/composables",
-    href: "/composables/dom",
-    status: "stable",
-  },
-  {
-    label: "@praxisjs/concurrent",
-    href: "/composables/concurrency",
-    status: "stable",
-  },
+  { label: "@praxisjs/composables", href: "/composables/dom", status: "stable" },
+  { label: "@praxisjs/concurrent", href: "/composables/concurrency", status: "stable" },
   { label: "@praxisjs/devtools", href: "/tooling/devtools", status: "beta" },
-];
+] satisfies { label: keyof typeof VERSIONS; href: string; status: string }[];
 </script>
 
 <template>
@@ -50,7 +37,10 @@ const packages = [
           :data-status="p.status"
         >
           <span class="ph-pkg-name">{{ p.label }}</span>
-          <span class="ph-pkg-badge">{{ p.status }}</span>
+          <span class="ph-pkg-meta">
+            <span class="ph-pkg-version">{{ v(p.label) }}</span>
+            <span class="ph-pkg-badge">{{ p.status }}</span>
+          </span>
         </a>
       </div>
     </div>
@@ -125,6 +115,20 @@ const packages = [
 
 .ph-pkg:hover .ph-pkg-name {
   color: var(--vp-c-brand-1);
+}
+
+.ph-pkg-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.ph-pkg-version {
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.65rem;
+  color: var(--vp-c-text-3);
+  white-space: nowrap;
 }
 
 .ph-pkg-badge {

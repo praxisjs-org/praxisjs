@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { useData } from "vitepress";
+import { v } from "../../versions";
 
-const { theme } = useData();
-const version = theme.value.version as string;
+const version = v('@praxisjs/core');
 </script>
 
 <template>
