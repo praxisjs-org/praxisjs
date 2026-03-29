@@ -166,4 +166,67 @@ describe("createStore", () => {
     expect(state).toHaveProperty("a", 2);
     expect(state).toHaveProperty("b", 3);
   });
+
+  it("$patch({ count: undefined }) — skips that key (count unchanged)", () => {
+    const store = makeCounter();
+    (store as unknown as { $patch: (p: Record<string, unknown>) => void }).$patch({ count: undefined });
+    expect(store.count).toBe(0);
+  });
+
+  it("$patch({ count: null }) — sets count to null (valid update)", () => {
+    const store = makeCounter();
+    (store as unknown as { $patch: (p: Record<string, unknown>) => void }).$patch({ count: null });
+    expect(store.count).toBeNull();
+  });
+
+  it("getter reads two signals — getter result updates when either signal changes", () => {
+    // Use a non-enumerable getter so it is NOT captured by Object.entries
+    // and instead goes through the live desc.get.call(store) path.
+    const definition: Record<string, unknown> = { a: 10, b: 20 };
+    Object.defineProperty(definition, "total", {
+      enumerable: false,
+      configurable: true,
+      get() {
+        return (this as unknown as { a: number; b: number }).a +
+          (this as unknown as { a: number; b: number }).b;
+      },
+    });
+
+    const store = createStore(definition as { a: number; b: number })();
+    type S = { a: number; b: number; total: number };
+    const s = store as unknown as S;
+
+    expect(s.total).toBe(30);
+    Reflect.set(store as object, "a", 5);
+    expect(s.total).toBe(25);
+    Reflect.set(store as object, "b", 5);
+    expect(s.total).toBe(10);
+  });
+
+  it("$subscribe listener called with the correct new value", () => {
+    const store = makeCounter();
+    const received: number[] = [];
+    type StoreType = { $subscribe: (fn: (s: Record<string, unknown>) => void) => () => void };
+    (store as unknown as StoreType).$subscribe((s) => received.push(s.count as number));
+    (store as unknown as { count: number }).count = 7;
+    expect(received).toContain(7);
+  });
+
+  it("$reset restores all signals to initial values after multiple mutations", () => {
+    const store = makeCounter();
+    (store as unknown as { count: number }).count = 10;
+    (store as unknown as { step: number }).step = 5;
+    (store as unknown as { $reset: () => void }).$reset();
+    expect(store.count).toBe(0);
+    expect(store.step).toBe(1);
+  });
+
+  it("two store factory calls with same definition — produce independent stores", () => {
+    const definition = { count: 0 };
+    const storeA = createStore({ ...definition })();
+    const storeB = createStore({ ...definition })();
+    (storeA as unknown as { count: number }).count = 42;
+    expect(storeA.count).toBe(42);
+    expect(storeB.count).toBe(0); // independent — storeB unaffected
+  });
 });
