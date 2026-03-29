@@ -1,50 +1,94 @@
-import { createMethodDecorator } from "@praxisjs/decorators";
+import { createFieldDecorator } from "@praxisjs/decorators";
+import type { Computed } from "@praxisjs/shared";
 
 import { pool } from "./pool";
 import { queue } from "./queue";
 import { task } from "./task";
 
-export function Task() {
-  return createMethodDecorator({
-    wrap(original, instance, name) {
-      const self = instance as Record<string, unknown>;
-      const t = task((original as (...args: unknown[]) => Promise<unknown>).bind(instance));
-      self[`${name}_loading`] = t.loading;
-      self[`${name}_error`] = t.error;
-      self[`${name}_lastResult`] = t.lastResult;
-      return (...args: unknown[]) => t(...args);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyAsyncFn = (this: any, ...args: any[]) => Promise<any>;
+
+// ── Decorated types ────────────────────────────────────────────────────────────
+
+export type TaskDecorated<T extends AnyAsyncFn> =
+  ((...args: Parameters<T>) => ReturnType<T>) & {
+    loading: Computed<boolean>;
+    error: Computed<Error | null>;
+    lastResult: Computed<Awaited<ReturnType<T>> | null>;
+    cancelAll(): void;
+  };
+
+export type QueueDecorated<T extends AnyAsyncFn> =
+  ((...args: Parameters<T>) => ReturnType<T>) & {
+    loading: Computed<boolean>;
+    pending: Computed<number>;
+    error: Computed<Error | null>;
+    clear(): void;
+  };
+
+export type PoolDecorated<T extends AnyAsyncFn> =
+  ((...args: Parameters<T>) => ReturnType<T>) & {
+    loading: Computed<boolean>;
+    active: Computed<number>;
+    pending: Computed<number>;
+    error: Computed<Error | null>;
+  };
+
+// ── Type helpers ───────────────────────────────────────────────────────────────
+
+export type TaskOf<C, K extends keyof C> =
+  C[K] extends AnyAsyncFn ? TaskDecorated<C[K]> : never;
+
+export type QueueOf<C, K extends keyof C> =
+  C[K] extends AnyAsyncFn ? QueueDecorated<C[K]> : never;
+
+export type PoolOf<C, K extends keyof C> =
+  C[K] extends AnyAsyncFn ? PoolDecorated<C[K]> : never;
+
+// ── @Task ──────────────────────────────────────────────────────────────────────
+
+export function Task(methodName: string) {
+  return createFieldDecorator({
+    bind(instance: object, _name: string) {
+      const inst = instance as Record<string, AnyAsyncFn>;
+      return {
+        descriptor: {
+          value: task(inst[methodName].bind(instance)) as unknown,
+          writable: true,
+        },
+      };
     },
-  // Concurrent decorators work on any class, not just StatefulComponent
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (value: (...args: any[]) => Promise<any>, context: ClassMethodDecoratorContext<any>) => void;
+  });
 }
 
-export function Queue() {
-  return createMethodDecorator({
-    wrap(original, instance, name) {
-      const self = instance as Record<string, unknown>;
-      const q = queue((original as (...args: unknown[]) => Promise<unknown>).bind(instance));
-      self[`${name}_loading`] = q.loading;
-      self[`${name}_pending`] = q.pending;
-      self[`${name}_error`] = q.error;
-      self[`${name}_clear`] = () => { q.clear(); };
-      return (...args: unknown[]) => q(...args);
+// ── @Queue ─────────────────────────────────────────────────────────────────────
+
+export function Queue(methodName: string) {
+  return createFieldDecorator({
+    bind(instance: object, _name: string) {
+      const inst = instance as Record<string, AnyAsyncFn>;
+      return {
+        descriptor: {
+          value: queue(inst[methodName].bind(instance)) as unknown,
+          writable: true,
+        },
+      };
     },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (value: (...args: any[]) => Promise<any>, context: ClassMethodDecoratorContext<any>) => void;
+  });
 }
 
-export function Pool(concurrency: number) {
-  return createMethodDecorator({
-    wrap(original, instance, name) {
-      const self = instance as Record<string, unknown>;
-      const p = pool(concurrency, (original as (...args: unknown[]) => Promise<unknown>).bind(instance));
-      self[`${name}_loading`] = p.loading;
-      self[`${name}_active`] = p.active;
-      self[`${name}_pending`] = p.pending;
-      self[`${name}_error`] = p.error;
-      return (...args: unknown[]) => p(...args);
+// ── @Pool ──────────────────────────────────────────────────────────────────────
+
+export function Pool(methodName: string, concurrency = 1) {
+  return createFieldDecorator({
+    bind(instance: object, _name: string) {
+      const inst = instance as Record<string, AnyAsyncFn>;
+      return {
+        descriptor: {
+          value: pool(concurrency, inst[methodName].bind(instance)) as unknown,
+          writable: true,
+        },
+      };
     },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (value: (...args: any[]) => Promise<any>, context: ClassMethodDecoratorContext<any>) => void;
+  });
 }
