@@ -162,4 +162,70 @@ describe("createMachine", () => {
     m.send("NEXT");
     expect(onTransition).toHaveBeenCalledWith("a", "NEXT", "b");
   });
+
+  it("state with on:{} — can() returns false for all events", () => {
+    const m = createMachine<"idle", "START" | "STOP">({
+      initial: "idle",
+      states: {
+        idle: { on: {} },
+      },
+    });
+    expect(m.can("START")).toBe(false);
+    expect(m.can("STOP")).toBe(false);
+  });
+
+  it("circular transition A→B→A — history contains correct entries", () => {
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: "b" } },
+        b: { on: { NEXT: "a" } },
+      },
+    });
+    m.send("NEXT"); // a→b
+    m.send("NEXT"); // b→a
+    const h = m.history();
+    expect(h).toHaveLength(2);
+    expect(h[0]).toEqual({ from: "a", event: "NEXT", to: "b" });
+    expect(h[1]).toEqual({ from: "b", event: "NEXT", to: "a" });
+  });
+
+  it("send() with undefined event — does not crash, returns false", () => {
+    const m = trafficLight();
+    // Cast to bypass TypeScript — runtime guard should handle it gracefully
+    expect(m.send(undefined as unknown as TrafficEvent)).toBe(false);
+  });
+
+  it("onEnter callback is called AFTER the state has changed", () => {
+    let stateAtOnEnter: string | undefined;
+    const m = createMachine<"idle" | "active", "START">({
+      initial: "idle",
+      states: {
+        idle: { on: { START: "active" } },
+        active: {
+          onEnter() {
+            stateAtOnEnter = m.state();
+          },
+        },
+      },
+    });
+    m.send("START");
+    expect(stateAtOnEnter).toBe("active");
+  });
+
+  it("history not polluted by failed transitions (onExit throws)", () => {
+    const m = createMachine<"idle" | "active", "START">({
+      initial: "idle",
+      states: {
+        idle: {
+          on: { START: "active" },
+          onExit: () => { throw new Error("blocked"); },
+        },
+        active: {},
+      },
+    });
+    expect(() => m.send("START")).toThrow("blocked");
+    expect(m.history()).toHaveLength(0);
+    expect(m.state()).toBe("idle");
+  });
 });

@@ -122,4 +122,46 @@ describe("Transition decorator", () => {
     method(42);
     expect(original).toHaveBeenCalledWith(42);
   });
+
+  it("@Transition on method in class without @StateMachine — warns and returns undefined", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const original = vi.fn(() => "ran");
+    const ctx = mockMethodContext("doTransition");
+    Transition("machine", "toggle")(original, ctx as unknown as ClassMethodDecoratorContext);
+
+    // Instance has no "machine" property at all
+    const instance = {} as Record<string, unknown>;
+    ctx.runInitializers(instance);
+    const method = (instance as Record<string, () => unknown>).doTransition;
+
+    const result = method();
+    expect(result).toBeUndefined();
+    expect(original).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("[Transition]"));
+    warn.mockRestore();
+  });
+});
+
+// ── StateMachine on subclass ───────────────────────────────────────────────────
+
+describe("StateMachine decorator on subclass", () => {
+  it("machine is accessible on subclass instance", () => {
+    class Base {}
+    class Child extends Base {}
+    const Wrapped = StateMachine(TOGGLE_DEF)(Child, {} as ClassDecoratorContext) as unknown as typeof Child;
+    const instance = new Wrapped() as Record<string, unknown>;
+    expect(instance.machine).toBeDefined();
+    expect((instance.machine as ReturnType<typeof createMachine>).state()).toBe("off");
+  });
+
+  it("instances of the decorated subclass are isolated", () => {
+    class Base {}
+    class Child extends Base {}
+    const Wrapped = StateMachine(TOGGLE_DEF)(Child, {} as ClassDecoratorContext) as unknown as typeof Child;
+    const a = new Wrapped() as Record<string, unknown>;
+    const b = new Wrapped() as Record<string, unknown>;
+    (a.machine as ReturnType<typeof createMachine>).send("toggle");
+    expect((a.machine as ReturnType<typeof createMachine>).state()).toBe("on");
+    expect((b.machine as ReturnType<typeof createMachine>).state()).toBe("off");
+  });
 });
