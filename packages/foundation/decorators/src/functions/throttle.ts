@@ -9,7 +9,7 @@ export function Throttle(ms: number) {
         const now = Date.now();
         if (now - last < clampedMs) return;
         last = now;
-        return original.apply(instance, args);
+        return original.apply(instance, args) as unknown;
       };
     },
   });

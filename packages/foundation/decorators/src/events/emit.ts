@@ -8,8 +8,8 @@ export function Emit(propName: string) {
     wrap(original, instance) {
       const comp = instance as StatefulComponent;
       return (...args: unknown[]) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-        const result = original.apply(instance, args) as any;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const result = original.apply(instance, args);
 
         const callback = readProp(comp, propName);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return

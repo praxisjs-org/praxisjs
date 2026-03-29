@@ -38,7 +38,7 @@ export function Memo() {
         const key = serializeArgs(args);
         let memoized = cache.get(key);
         if (!memoized) {
-          memoized = computed(() => original.apply(instance, args));
+          memoized = computed(() => original.apply(instance, args) as unknown);
           cache.set(key, memoized);
         }
         return memoized();

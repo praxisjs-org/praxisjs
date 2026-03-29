@@ -25,7 +25,7 @@ export function Log(options: LogOptions = {}) {
           typeof process !== "undefined" &&
           process.env.NODE_ENV === "production"
         ) {
-          return original.apply(instance, args);
+          return original.apply(instance, args) as unknown;
         }
 
         const className =
@@ -36,7 +36,7 @@ export function Log(options: LogOptions = {}) {
         if (logArgs) logger(`${label} args:`, args);
 
         const start = time ? performance.now() : 0;
-        const output = original.apply(instance, args);
+        const output: unknown = original.apply(instance, args) as unknown;
 
         if (output instanceof Promise) {
           return (output as Promise<unknown>)
