@@ -1,5 +1,21 @@
 # @praxisjs/motion
 
+## 1.1.0
+
+### Minor Changes
+
+- 029ef04: `@Spring` now throws when `stiffness` is `0` or negative. `@Tween` clamps `duration` to a minimum of `1ms`. Unknown easing names throw an error listing valid options. Errors thrown in `onEnter`/`onLeave` transition callbacks now reject the transition promise instead of going unhandled.
+
+### Patch Changes
+
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+  - @praxisjs/core@1.1.0
+  - @praxisjs/decorators@0.6.0
+
 ## 1.0.0
 
 ### Major Changes

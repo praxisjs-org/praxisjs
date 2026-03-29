@@ -1,5 +1,15 @@
 # @praxisjs/composables
 
+## 1.0.1
+
+### Patch Changes
+
+- 029ef04: All composables now cache their view object so calling `setup()` multiple times returns the same signals. `KeyCombo` gains meta key support and validates that at least one non-modifier key is present. `Clipboard` clears its reset timer on unmount. `Geolocation` ignores success/error callbacks after unmount. `Pagination` throws when `pageSize` is zero or negative.
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+  - @praxisjs/core@1.1.0
+
 ## 1.0.0
 
 ### Major Changes

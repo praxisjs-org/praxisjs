@@ -1,5 +1,18 @@
 # @praxisjs/store
 
+## 1.0.1
+
+### Patch Changes
+
+- 029ef04: `$patch` now skips `undefined` values, preventing partial updates from overwriting existing state with `undefined`.
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+  - @praxisjs/core@1.1.0
+  - @praxisjs/decorators@0.6.0
+
 ## 1.0.0
 
 ### Major Changes

@@ -1,5 +1,21 @@
 # @praxisjs/di
 
+## 1.1.0
+
+### Minor Changes
+
+- 029ef04: Circular dependencies are now detected during resolution and throw a descriptive error showing the full dependency chain (e.g. `ServiceA → ServiceB → ServiceA`).
+
+### Patch Changes
+
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+  - @praxisjs/core@1.1.0
+  - @praxisjs/decorators@0.6.0
+
 ## 1.0.0
 
 ### Major Changes
