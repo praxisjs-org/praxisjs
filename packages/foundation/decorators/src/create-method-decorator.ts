@@ -2,15 +2,18 @@ import type { StatefulComponent } from "@praxisjs/core";
 
 export interface MethodBehavior {
   wrap(
-    original: (...args: unknown[]) => unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    original: (...args: any[]) => any,
     instance: object,
     name: string,
-  ): (...args: unknown[]) => unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): (...args: any[]) => any;
 }
 
 export function createMethodDecorator(behavior: MethodBehavior) {
   return function (
-    value: (this: object, ...args: unknown[]) => unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    value: (this: object, ...args: any[]) => any,
     context: ClassMethodDecoratorContext<StatefulComponent>,
   ): void {
     context.addInitializer(function (this: unknown) {

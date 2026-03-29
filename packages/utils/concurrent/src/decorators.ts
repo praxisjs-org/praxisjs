@@ -16,7 +16,7 @@ export function Task() {
     },
   // Concurrent decorators work on any class, not just StatefulComponent
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (value: (...args: unknown[]) => Promise<unknown>, context: ClassMethodDecoratorContext<any>) => void;
+  }) as unknown as (value: (...args: any[]) => Promise<any>, context: ClassMethodDecoratorContext<any>) => void;
 }
 
 export function Queue() {
@@ -31,7 +31,7 @@ export function Queue() {
       return (...args: unknown[]) => q(...args);
     },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (value: (...args: unknown[]) => Promise<unknown>, context: ClassMethodDecoratorContext<any>) => void;
+  }) as unknown as (value: (...args: any[]) => Promise<any>, context: ClassMethodDecoratorContext<any>) => void;
 }
 
 export function Pool(concurrency: number) {
@@ -46,5 +46,5 @@ export function Pool(concurrency: number) {
       return (...args: unknown[]) => p(...args);
     },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (value: (...args: unknown[]) => Promise<unknown>, context: ClassMethodDecoratorContext<any>) => void;
+  }) as unknown as (value: (...args: any[]) => Promise<any>, context: ClassMethodDecoratorContext<any>) => void;
 }
