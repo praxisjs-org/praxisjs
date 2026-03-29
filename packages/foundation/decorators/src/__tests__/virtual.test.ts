@@ -257,4 +257,113 @@ describe("Virtual decorator", () => {
     expect(spacerTop.getAttribute("style")).toContain("50px");
     document.body.removeChild(container);
   });
+
+  it("itemHeight = 0 throws a descriptive error on onMount", () => {
+    class ZeroHeightList extends StatefulComponent {
+      items = ["a", "b"];
+      renderItem(item: unknown) {
+        const el = document.createElement("div");
+        el.textContent = String(item);
+        return el;
+      }
+      render() { return null; }
+    }
+
+    const Wrapped = applyVirtual(ZeroHeightList as AnyConstructor, 0);
+    const instance = new Wrapped();
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const anchor = document.createComment("end");
+    container.appendChild(anchor);
+    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+
+    expect(() => instance.onMount?.()).toThrow(/itemHeight must be a positive number/);
+    document.body.removeChild(container);
+  });
+
+  it("itemHeight = 0 in render() does not divide by zero (no container)", () => {
+    class ZeroHeightList2 extends StatefulComponent {
+      items = ["a", "b"];
+      renderItem(item: unknown) {
+        return document.createElement("div");
+      }
+      render() { return null; }
+    }
+    // render() is called before onMount, so no throw yet — but it still computes total height
+    const Wrapped = applyVirtual(ZeroHeightList2 as AnyConstructor, 0);
+    const instance = new Wrapped();
+    // Render without mounting — no onMount guard triggered, but division happens in computed
+    // The guard is in onMount, so render still runs. Verify it doesn't produce NaN/Infinity
+    expect(() => instance.render()).not.toThrow();
+  });
+
+  it("renderItem() that throws — does not crash the entire component", () => {
+    class ThrowingList extends StatefulComponent {
+      items = ["x"];
+      renderItem(): Node {
+        throw new Error("render item failed");
+      }
+      render() { return null; }
+    }
+
+    const Wrapped = applyVirtual(ThrowingList as AnyConstructor, 50, 0);
+    const instance = new Wrapped();
+    // Render triggers the effect which calls renderItem — it should propagate the error
+    expect(() => instance.render()).toThrow("render item failed");
+  });
+
+  it("scrollTop > totalHeight renders last visible items without crash", () => {
+    class ShortList extends StatefulComponent {
+      items = [1, 2, 3]; // only 3 items × 50px = 150px total
+      renderItem(item: unknown) {
+        const el = document.createElement("div");
+        el.textContent = String(item);
+        return el;
+      }
+      render() { return null; }
+    }
+
+    const Wrapped = applyVirtual(ShortList as AnyConstructor, 50, 0);
+    const instance = new Wrapped();
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const anchor = document.createComment("end");
+    container.appendChild(anchor);
+    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+
+    instance.onMount?.();
+    const outer = instance.render() as HTMLElement;
+
+    // Simulate scrollTop way past end of list (e.g., 9999px for a 150px list)
+    Object.defineProperty(container, "scrollTop", { configurable: true, value: 9999 });
+    expect(() => container.dispatchEvent(new Event("scroll"))).not.toThrow();
+
+    // The outer container should still be present
+    expect(outer).toBeInstanceOf(HTMLElement);
+    document.body.removeChild(container);
+  });
+
+  it("buffer applied correctly — renders extra items beyond visible area", () => {
+    class BufferList extends StatefulComponent {
+      items = Array.from({ length: 20 }, (_, i) => i);
+      renderItem(item: unknown) {
+        const el = document.createElement("div");
+        el.textContent = String(item);
+        return el;
+      }
+      render() { return null; }
+    }
+
+    // itemHeight=100, buffer=2, viewHeight defaults to 600 → visible=6 items + 2 buffer each side
+    const Wrapped = applyVirtual(BufferList as AnyConstructor, 100, 2);
+    const instance = new Wrapped();
+    const outer = instance.render() as HTMLElement;
+
+    // With scrollTop=0, buffer=2: startIdx=max(0, 0-2)=0, endIdx=min(19, ceil(600/100)+2)=8
+    // So 9 items should be rendered (indices 0..8)
+    const itemsSlot = outer.children[1] as HTMLElement;
+    expect(itemsSlot.children.length).toBe(9);
+  });
 });

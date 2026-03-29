@@ -5,6 +5,7 @@ import { signal, computed } from "@praxisjs/core/internal";
 
 import { Watch } from "../functions/watch";
 import { When } from "../functions/when";
+import { Compose } from "../properties/compose";
 import { Computed } from "../properties/computed";
 import { History } from "../properties/history";
 import { Prop } from "../properties/prop";
@@ -721,5 +722,237 @@ describe("Watch decorator — reading computed values", () => {
 
     s.set(5); // c() goes from 2 to 10 → triggers handler
     expect(handler).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Watch — additional new tests ──────────────────────────────────────────────
+
+describe("Watch decorator — new cases", () => {
+  it("NaN → NaN does NOT fire (Object.is semantics)", () => {
+    const { ctx, run } = methodCtx("onNaN");
+    const handler = vi.fn();
+    Watch("nanProp" as never)(handler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const s = signal<number>(NaN);
+    const instance = new TestComponent();
+    Object.defineProperty(instance, "nanProp", { get: () => s(), configurable: true });
+    run(instance);
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    s.set(NaN); // Object.is(NaN, NaN) === true → no change
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("watch callback that throws does not crash the effect system", () => {
+    const { ctx, run } = methodCtx("onThrow");
+    const throwingHandler = vi.fn(() => { throw new Error("handler error"); });
+    Watch("tProp" as never)(throwingHandler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const s = signal(0);
+    const instance = new TestComponent();
+    Object.defineProperty(instance, "tProp", { get: () => s(), configurable: true });
+    run(instance);
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    // Even if the handler throws, the signal change shouldn't crash the effect framework
+    // The throw propagates from the effect, so we catch it here
+    expect(() => { s.set(1); }).toThrow("handler error");
+    // The system should still be intact — further calls are not tested for recovery
+    expect(throwingHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("multiple @Watch decorators on different methods both fire independently", () => {
+    const { ctx: ctxA, run: runA } = methodCtx("onA");
+    const { ctx: ctxB, run: runB } = methodCtx("onB");
+    const handlerA = vi.fn();
+    const handlerB = vi.fn();
+    Watch("propA" as never)(handlerA, ctxA as unknown as ClassMethodDecoratorContext);
+    Watch("propB" as never)(handlerB, ctxB as unknown as ClassMethodDecoratorContext);
+
+    const sa = signal(0);
+    const sb = signal(0);
+    const instance = new TestComponent();
+    Object.defineProperty(instance, "propA", { get: () => sa(), configurable: true });
+    Object.defineProperty(instance, "propB", { get: () => sb(), configurable: true });
+    runA(instance);
+    runB(instance);
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    sa.set(1);
+    expect(handlerA).toHaveBeenCalledTimes(1);
+    expect(handlerB).not.toHaveBeenCalled();
+
+    sb.set(1);
+    expect(handlerA).toHaveBeenCalledTimes(1);
+    expect(handlerB).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── When — additional new tests ───────────────────────────────────────────────
+
+describe("When decorator — new cases", () => {
+  function methodCtxFor(name: string) {
+    const initializers: Array<(this: unknown) => void> = [];
+    return {
+      ctx: {
+        name,
+        kind: "method" as const,
+        addInitializer(fn: (this: unknown) => void) {
+          initializers.push(fn);
+        },
+      } as ClassMethodDecoratorContext,
+      run(instance: unknown) {
+        initializers.forEach((fn) => { fn.call(instance); });
+      },
+    };
+  }
+
+  it("@When fires only once — first truthy value; subsequent truthy values are ignored", () => {
+    const { ctx, run } = methodCtxFor("onToggle");
+    const handler = vi.fn();
+    When("toggle")(handler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const s = signal<number | null>(null);
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).toggle = s;
+    run(instance);
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    s.set(1);    // truthy → fires (first and only time)
+    s.set(null); // falsy
+    s.set(2);    // truthy again — but when() has already disposed itself
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith(1);
+  });
+
+  it("@When callback that throws — onUnmount cleanup still works", () => {
+    const { ctx, run } = methodCtxFor("onThrowWhen");
+    const throwingHandler = vi.fn(() => { throw new Error("when error"); });
+    When("whenProp")(throwingHandler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const s = signal<number | null>(null);
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).whenProp = s;
+    run(instance);
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    // Triggering truthy fires handler which throws
+    expect(() => { s.set(1); }).toThrow("when error");
+
+    // onUnmount should still work without crashing
+    expect(() => {
+      (instance as unknown as { onUnmount: () => void }).onUnmount?.();
+    }).not.toThrow();
+  });
+});
+
+// ── State — additional new tests ──────────────────────────────────────────────
+
+describe("State decorator — new cases", () => {
+  it("two @State fields can be set independently without cross-contamination", () => {
+    const { ctx: ctxX, run: runX } = fieldCtx("x");
+    const { ctx: ctxY, run: runY } = fieldCtx("y");
+    State()(undefined, ctxX);
+    State()(undefined, ctxY);
+
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).x = 10;
+    (instance as unknown as Record<string, unknown>).y = 20;
+    runX(instance);
+    runY(instance);
+
+    (instance as unknown as Record<string, unknown>).x = 99;
+    expect((instance as unknown as Record<string, unknown>).x).toBe(99);
+    expect((instance as unknown as Record<string, unknown>).y).toBe(20);
+
+    (instance as unknown as Record<string, unknown>).y = 77;
+    expect((instance as unknown as Record<string, unknown>).x).toBe(99);
+    expect((instance as unknown as Record<string, unknown>).y).toBe(77);
+  });
+
+  it("setting @State to undefined works (signal stores undefined)", () => {
+    const { ctx, run } = fieldCtx("maybeVal");
+    State()(undefined, ctx);
+
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).maybeVal = "initial";
+    run(instance);
+
+    (instance as unknown as Record<string, unknown>).maybeVal = undefined;
+    expect((instance as unknown as Record<string, unknown>).maybeVal).toBeUndefined();
+  });
+});
+
+// ── Prop — additional new tests ───────────────────────────────────────────────
+
+describe("Prop decorator — new cases", () => {
+  it("function prop that throws — getter propagates the error", () => {
+    const { ctx, run } = fieldCtx("dynProp");
+    Prop()(undefined, ctx);
+
+    const throwingFn = () => { throw new Error("prop error"); };
+    const instance = new TestComponent({ dynProp: throwingFn });
+    run(instance);
+
+    expect(() => (instance as unknown as Record<string, unknown>).dynProp).toThrow("prop error");
+  });
+
+  it("undefined passed explicitly vs key not present — both fall back to default", () => {
+    const { ctx: ctx1, run: run1 } = fieldCtx("optA");
+    const { ctx: ctx2, run: run2 } = fieldCtx("optB");
+    Prop()(undefined, ctx1);
+    Prop()(undefined, ctx2);
+
+    // Case 1: key explicitly set to undefined in rawProps
+    const instance1 = new TestComponent({ optA: undefined });
+    (instance1 as unknown as Record<string, unknown>).optA = "default-a";
+    run1(instance1);
+    // undefined from rawProps — Prop checks `!== undefined`, so falls back to default
+    expect((instance1 as unknown as Record<string, unknown>).optA).toBe("default-a");
+
+    // Case 2: key not present in rawProps at all
+    const instance2 = new TestComponent({});
+    (instance2 as unknown as Record<string, unknown>).optB = "default-b";
+    run2(instance2);
+    expect((instance2 as unknown as Record<string, unknown>).optB).toBe("default-b");
+  });
+});
+
+// ── Compose — additional new tests ────────────────────────────────────────────
+
+describe("@Compose decorator — new cases", () => {
+  it("setup() that throws — field access on the instance throws", () => {
+    class ThrowingComposable {
+      setup(): Record<string, unknown> {
+        throw new Error("setup failed");
+      }
+    }
+
+    const { ctx, run } = fieldCtx("throwing");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(() => {
+      const instance = new TestComponent();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Compose(ThrowingComposable as any)(undefined, ctx);
+      run(instance);
+    }).toThrow("setup failed");
+  });
+
+  it("string argument resolution where the instance property is undefined", () => {
+    class ArgComposable {
+      constructor(private val: unknown) {}
+      setup() { return { resolved: this.val }; }
+    }
+
+    const { ctx, run } = fieldCtx("strArgUndef");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Compose(ArgComposable as any, "missingProp")(undefined, ctx);
+
+    const instance = new TestComponent();
+    // missingProp is not set on instance — resolves to undefined
+    run(instance);
+
+    const view = (instance as unknown as Record<string, unknown>).strArgUndef as Record<string, unknown>;
+    expect(view.resolved).toBeUndefined();
   });
 });

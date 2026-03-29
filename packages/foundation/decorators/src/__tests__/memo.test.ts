@@ -138,4 +138,71 @@ describe("Memo", () => {
     method(sym);
     expect(fn).toHaveBeenCalledTimes(1);
   });
+
+  it("circular object argument does not crash — falls back to stable identity key", () => {
+    const fn = vi.fn((o: unknown) => o);
+    const ctx = mockCtx("circular");
+    Memo()(fn, ctx);
+
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => unknown>).circular;
+
+    // Create a circular reference
+    const circ: Record<string, unknown> = {};
+    circ.self = circ;
+
+    expect(() => method(circ)).not.toThrow();
+    // Calling again with the same object should hit cache (not call fn again)
+    method(circ);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("two circular objects produce different cache keys", () => {
+    const fn = vi.fn((o: unknown) => o);
+    const ctx = mockCtx("circular2");
+    Memo()(fn, ctx);
+
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => unknown>).circular2;
+
+    const a: Record<string, unknown> = {};
+    a.self = a;
+    const b: Record<string, unknown> = {};
+    b.self = b;
+
+    method(a);
+    method(b);
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("undefined vs null as arguments produce different cache keys", () => {
+    const fn = vi.fn((x: unknown) => x);
+    const ctx = mockCtx("nullUndef");
+    Memo()(fn, ctx);
+
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => unknown>).nullUndef;
+
+    method(undefined);
+    method(null);
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("BigInt argument does not crash JSON.stringify path", () => {
+    const fn = vi.fn((x: unknown) => x);
+    const ctx = mockCtx("bigint");
+    Memo()(fn, ctx);
+
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => unknown>).bigint;
+
+    // BigInt is a non-object, non-symbol primitive — goes through String() path
+    expect(() => method(BigInt(42))).not.toThrow();
+    method(BigInt(42));
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
 });

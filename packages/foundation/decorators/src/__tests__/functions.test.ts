@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
+import { StatefulComponent } from "@praxisjs/core";
+
 import { Bind } from "../functions/bind";
 import { Debounce } from "../functions/debounce";
 import { Log } from "../functions/log";
@@ -587,6 +589,52 @@ describe("Debounce", () => {
     expect(fn).toHaveBeenCalledWith("a");
     vi.useRealTimers();
   });
+
+  it("timer is cleared if onUnmount fires before debounce completes", () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const ctx = mockMethodContext("debounced");
+
+    class TestComp extends StatefulComponent {
+      render() { return null; }
+    }
+    Debounce(100)(fn, ctx as unknown as ClassMethodDecoratorContext);
+
+    const instance = new TestComp();
+    ctx.runInitializers(instance);
+    const method = (instance as unknown as Record<string, (...a: unknown[]) => void>).debounced;
+
+    method("hello");
+    // Unmount before the 100ms debounce fires
+    instance.onUnmount?.();
+
+    vi.advanceTimersByTime(200);
+    expect(fn).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it("original method is NOT called after unmount if timer was pending", () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const ctx = mockMethodContext("debouncedOp");
+
+    class TestComp2 extends StatefulComponent {
+      render() { return null; }
+    }
+    Debounce(50)(fn, ctx as unknown as ClassMethodDecoratorContext);
+
+    const instance = new TestComp2();
+    ctx.runInitializers(instance);
+    const method = (instance as unknown as Record<string, (...a: unknown[]) => void>).debouncedOp;
+
+    method("arg1");
+    method("arg2");
+    instance.onUnmount?.();
+
+    vi.runAllTimers();
+    expect(fn).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
 });
 
 // ── Throttle ─────────────────────────────────────────────────────────────────
@@ -674,6 +722,38 @@ describe("Throttle", () => {
     m1("a");
     m2("b");
     // Both first calls go through
+    expect(fn).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it("negative delay is treated as 0 — first call always executes", () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const ctx = mockMethodContext("negDelay");
+    Throttle(-100)(fn, ctx as unknown as ClassMethodDecoratorContext);
+
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => void>).negDelay;
+
+    method();
+    expect(fn).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it("call at exactly the ms boundary executes again", () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const ctx = mockMethodContext("boundary");
+    Throttle(100)(fn, ctx as unknown as ClassMethodDecoratorContext);
+
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => void>).boundary;
+
+    method(); // first call at t=0
+    vi.advanceTimersByTime(100); // advance to exactly 100ms
+    method(); // second call at t=100 — should pass (now - last === ms, not less than ms)
     expect(fn).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
   });

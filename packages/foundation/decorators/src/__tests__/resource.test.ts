@@ -110,4 +110,32 @@ describe("@Resource", () => {
     const r = instance.r as { data: () => string };
     expect(r.data()).toBe("default");
   });
+
+  it("cancel() called when not pending — no-op, no crash", () => {
+    const { ctx, run } = makeFieldCtx("r");
+    Resource(() => Promise.resolve(42), { immediate: false })(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    const r = instance.r as { cancel: () => void; status: () => string };
+    // Not pending (immediate=false → idle)
+    expect(r.status()).toBe("idle");
+    expect(() => r.cancel()).not.toThrow();
+    expect(r.status()).toBe("idle");
+  });
+
+  it("refetch() called after successful load — re-fetches", async () => {
+    let callCount = 0;
+    const { ctx, run } = makeFieldCtx("r");
+    Resource(() => Promise.resolve(++callCount))(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    const r = instance.r as { refetch: () => void; data: () => number; status: () => string };
+
+    await vi.waitFor(() => r.status() === "success");
+    expect(r.data()).toBe(1);
+
+    r.refetch();
+    await vi.waitFor(() => r.status() === "success" && r.data() === 2);
+    expect(callCount).toBe(2);
+  });
 });
