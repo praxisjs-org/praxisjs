@@ -60,6 +60,7 @@ export function createStore<T extends Record<string, unknown>>(
 
   function patch(partial: Partial<Record<string, unknown>>): void {
     for (const [k, v] of Object.entries(partial)) {
+      if (v === undefined) continue;
       if (k in signals) signals[k].set(v);
     }
   }
