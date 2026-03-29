@@ -27,6 +27,7 @@ export function Queue() {
       self[`${name}_loading`] = q.loading;
       self[`${name}_pending`] = q.pending;
       self[`${name}_error`] = q.error;
+      self[`${name}_clear`] = () => { q.clear(); };
       return (...args: unknown[]) => q(...args);
     },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

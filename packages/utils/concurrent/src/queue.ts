@@ -1,6 +1,13 @@
 import { signal, computed } from "@praxisjs/core/internal";
 import type { Computed } from "@praxisjs/shared";
 
+export class QueueClearedError extends Error {
+  constructor() {
+    super("Queue cleared");
+    this.name = "QueueClearedError";
+  }
+}
+
 export interface QueueInstance<T> {
   (...args: unknown[]): Promise<T>;
   loading: Computed<boolean>;
@@ -27,7 +34,7 @@ export function queue<T>(
     if (_running || _queue.length === 0) return;
     _running = true;
     _loading.set(true);
-    while (_queue.length > 0 && !_cleared) {
+    while (_queue.length > 0) {
       const item = _queue.shift();
       if (!item) break;
       const { args, resolve, reject } = item;
@@ -46,6 +53,9 @@ export function queue<T>(
   }
 
   function enqueue(...args: unknown[]): Promise<T> {
+    if (_cleared) {
+      _cleared = false;
+    }
     return new Promise<T>((resolve, reject) => {
       _queue.push({ args, resolve, reject });
       _pending.update((n) => n + 1);
@@ -57,7 +67,10 @@ export function queue<T>(
   enqueue.pending = computed(() => _pending());
   enqueue.error = computed(() => _error());
   enqueue.clear = () => {
-    _queue.length = 0;
+    // Reject all currently queued (not-yet-started) items
+    while (_queue.length > 0) {
+      _queue.shift()?.reject(new QueueClearedError());
+    }
     _pending.set(0);
     _cleared = true;
   };

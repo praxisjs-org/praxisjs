@@ -13,6 +13,7 @@ export function pool<T>(
   concurrency: number,
   fn: (...args: unknown[]) => Promise<T>,
 ): PoolInstance<T> {
+  concurrency = Math.max(1, concurrency);
   const _active = signal(0);
   const _pending = signal(0);
   const _error = signal<Error | null>(null);
