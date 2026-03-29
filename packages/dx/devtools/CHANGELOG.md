@@ -1,5 +1,21 @@
 # @praxisjs/devtools
 
+## 0.2.7
+
+### Patch Changes
+
+- 029ef04: Event bus handlers no longer short-circuit on the first error — all handlers run and errors are collected into an `AggregateError`.
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+  - @praxisjs/core@1.1.0
+  - @praxisjs/decorators@0.6.0
+  - @praxisjs/runtime@0.2.6
+  - @praxisjs/jsx@0.3.5
+
 ## 0.2.6
 
 ### Patch Changes

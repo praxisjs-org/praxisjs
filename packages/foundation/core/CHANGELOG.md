@@ -1,5 +1,16 @@
 # @praxisjs/core
 
+## 1.1.0
+
+### Minor Changes
+
+- 029ef04: `debounced()` now returns a signal with a `.stop()` method to cancel the pending timer and its effect. Synchronous throws inside a `resource` fetcher are now caught and set the resource to error state instead of propagating uncaught.
+
+### Patch Changes
+
+- 029ef04: Fix nested `batch()` calls overwriting the outer queue, and preserve `dirty` flag in computed signals when the compute function throws.
+- 029ef04: Isolate subscriber errors during signal updates — all subscribers now run even when one throws, and the last error is re-thrown after all have executed.
+
 ## 1.0.0
 
 ### Major Changes

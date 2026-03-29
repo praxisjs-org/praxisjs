@@ -1,5 +1,19 @@
 # @praxisjs/decorators
 
+## 0.6.0
+
+### Minor Changes
+
+- 029ef04: Add `@Until(propName)` decorator. Replaces the decorated method with one that returns a `Promise` resolving to the first truthy value of the named signal or computed property.
+
+### Patch Changes
+
+- 029ef04: `@Memo` falls back to object identity for non-JSON-serializable arguments (circular references, class instances). `@Debounce` cancels its pending timer on component unmount. `@Throttle` clamps negative `ms` values to `0`. `@Virtual` throws when `itemHeight` is `0` or negative.
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+  - @praxisjs/core@1.1.0
+
 ## 0.5.0
 
 ### Minor Changes

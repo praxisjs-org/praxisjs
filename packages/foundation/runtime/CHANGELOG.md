@@ -1,5 +1,18 @@
 # @praxisjs/runtime
 
+## 0.2.6
+
+### Patch Changes
+
+- 029ef04: CSS custom properties (keys starting with `--`) are now applied via `setProperty()` so they work correctly in style objects. Scope cleanup functions no longer halt on the first error — all cleanups run and errors are collected into an `AggregateError`.
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+  - @praxisjs/core@1.1.0
+  - @praxisjs/decorators@0.6.0
+
 ## 0.2.5
 
 ### Patch Changes

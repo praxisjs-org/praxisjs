@@ -4,25 +4,25 @@
  */
 export const VERSIONS = {
   // Foundation
-  '@praxisjs/core':          '^1.0.0',
-  '@praxisjs/decorators':    '^0.5.0',
-  '@praxisjs/jsx':           '^0.3.4',
-  '@praxisjs/runtime':       '^0.2.5',
+  '@praxisjs/core':          '^1.1.0',
+  '@praxisjs/decorators':    '^0.6.0',
+  '@praxisjs/jsx':           '^0.3.5',
+  '@praxisjs/runtime':       '^0.2.6',
   '@praxisjs/shared':        '^0.2.0',
 
   // Ecosystem
-  '@praxisjs/router':        '^1.0.1',
-  '@praxisjs/store':         '^1.0.0',
-  '@praxisjs/di':            '^1.0.0',
-  '@praxisjs/motion':        '^1.0.0',
-  '@praxisjs/fsm':           '^1.0.0',
+  '@praxisjs/router':        '^1.0.2',
+  '@praxisjs/store':         '^1.0.1',
+  '@praxisjs/di':            '^1.1.0',
+  '@praxisjs/motion':        '^1.1.0',
+  '@praxisjs/fsm':           '^1.0.1',
 
   // Utils
-  '@praxisjs/composables':   '^1.0.0',
-  '@praxisjs/concurrent':    '^1.0.0',
+  '@praxisjs/composables':   '^1.0.1',
+  '@praxisjs/concurrent':    '^1.1.0',
 
   // DX
-  '@praxisjs/devtools':      '^0.2.6',
+  '@praxisjs/devtools':      '^0.2.7',
   '@praxisjs/vite-plugin':   '^0.1.0',
 
   // Peer deps

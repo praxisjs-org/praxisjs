@@ -1,5 +1,21 @@
 # @praxisjs/concurrent
 
+## 1.1.0
+
+### Minor Changes
+
+- 029ef04: `@Queue` now exposes a `{method}_clear()` method that cancels all queued calls, rejecting each promise with `QueueClearedError` (exported from `@praxisjs/concurrent`). `@Pool` clamps `concurrency` to a minimum of `1`.
+
+### Patch Changes
+
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+- Updated dependencies [029ef04]
+  - @praxisjs/core@1.1.0
+  - @praxisjs/decorators@0.6.0
+
 ## 1.0.0
 
 ### Major Changes
