@@ -8,6 +8,7 @@ export {
   Debounce,
   Throttle,
   When,
+  Until,
   Watch,
   type WatchVal,
   type WatchVals,
