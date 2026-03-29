@@ -1,5 +1,11 @@
 # create-praxisjs
 
+## 0.3.11
+
+### Patch Changes
+
+- 46c0593: Update template dependencies to pick up `untrack` and component mounting isolation from `@praxisjs/core` and `@praxisjs/runtime`
+
 ## 0.3.10
 
 ### Patch Changes

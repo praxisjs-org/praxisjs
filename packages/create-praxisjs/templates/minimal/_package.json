@@ -10,10 +10,10 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@praxisjs/core": "^1.1.0",
-    "@praxisjs/decorators": "^0.7.0",
-    "@praxisjs/jsx": "^0.3.7",
-    "@praxisjs/runtime": "^0.2.8"
+    "@praxisjs/core": "^1.2.0",
+    "@praxisjs/decorators": "^0.7.1",
+    "@praxisjs/jsx": "^0.3.8",
+    "@praxisjs/runtime": "^0.2.9"
   },
   "devDependencies": {
     "@praxisjs/vite-plugin": "^0.1.0",
