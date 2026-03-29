@@ -1,18 +1,34 @@
 <script setup lang="ts">
 const packages = [
-  { label: '@praxisjs/core', href: '/essentials/components', status: 'beta' },
-  { label: '@praxisjs/decorators', href: '/decorators/state', status: 'beta' },
-  { label: '@praxisjs/jsx', href: '/essentials/jsx', status: 'beta' },
-  { label: '@praxisjs/runtime', href: '/guide/getting-started', status: 'beta' },
-  { label: '@praxisjs/router', href: '/ecosystem/router', status: 'beta' },
-  { label: '@praxisjs/store', href: '/ecosystem/store', status: 'beta' },
-  { label: '@praxisjs/di', href: '/ecosystem/di', status: 'beta' },
-  { label: '@praxisjs/motion', href: '/ecosystem/motion', status: 'beta' },
-  { label: '@praxisjs/fsm', href: '/ecosystem/fsm', status: 'beta' },
-  { label: '@praxisjs/composables', href: '/composables/dom', status: 'beta' },
-  { label: '@praxisjs/concurrent', href: '/composables/concurrency', status: 'beta' },
-  { label: '@praxisjs/devtools', href: '/tooling/devtools', status: 'alpha' },
-]
+  { label: "@praxisjs/core", href: "/essentials/components", status: "stable" },
+  {
+    label: "@praxisjs/decorators",
+    href: "/decorators/state",
+    status: "stable",
+  },
+  { label: "@praxisjs/jsx", href: "/essentials/jsx", status: "stable" },
+  {
+    label: "@praxisjs/runtime",
+    href: "/guide/getting-started",
+    status: "stable",
+  },
+  { label: "@praxisjs/router", href: "/ecosystem/router", status: "stable" },
+  { label: "@praxisjs/store", href: "/ecosystem/store", status: "stable" },
+  { label: "@praxisjs/di", href: "/ecosystem/di", status: "stable" },
+  { label: "@praxisjs/motion", href: "/ecosystem/motion", status: "stable" },
+  { label: "@praxisjs/fsm", href: "/ecosystem/fsm", status: "stable" },
+  {
+    label: "@praxisjs/composables",
+    href: "/composables/dom",
+    status: "stable",
+  },
+  {
+    label: "@praxisjs/concurrent",
+    href: "/composables/concurrency",
+    status: "stable",
+  },
+  { label: "@praxisjs/devtools", href: "/tooling/devtools", status: "beta" },
+];
 </script>
 
 <template>
@@ -20,7 +36,10 @@ const packages = [
     <div class="ph-container">
       <div class="ph-section-head">
         <h2>First-party ecosystem</h2>
-        <p>Every package ships with PraxisJS and follows the same design philosophy.</p>
+        <p>
+          Every package ships with PraxisJS and follows the same design
+          philosophy.
+        </p>
       </div>
       <div class="ph-pkgs">
         <a
@@ -118,12 +137,12 @@ const packages = [
   letter-spacing: 0.05em;
 }
 
-.ph-pkg[data-status='beta'] .ph-pkg-badge {
+.ph-pkg[data-status="beta"] .ph-pkg-badge {
   background: rgba(109, 91, 189, 0.12);
   color: var(--vp-c-brand-1);
 }
 
-.ph-pkg[data-status='alpha'] .ph-pkg-badge {
+.ph-pkg[data-status="alpha"] .ph-pkg-badge {
   background: rgba(251, 191, 36, 0.12);
   color: #d97706;
 }
