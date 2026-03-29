@@ -7,10 +7,6 @@ description: What PraxisJS is, why it exists, and how it approaches frontend rea
 
 PraxisJS is a **signal-driven frontend framework** written in TypeScript. It combines fine-grained reactivity with class components and decorators to give you an architecture that is explicit, traceable, and fully typed.
 
-::: warning Experimental Software
-PraxisJS is under active development. APIs may change without notice. Not recommended for production. [See project status →](/guide/project-status)
-:::
-
 ## The core idea
 
 Most frameworks abstract away reactivity. You write templates, the runtime figures out what to update. PraxisJS takes the opposite approach: **reactivity is always explicit**.

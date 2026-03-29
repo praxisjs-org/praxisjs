@@ -13,8 +13,6 @@ Fine-grained reactivity · Class components · Decorator-first API · Complete e
 
 [Documentation](https://praxisjs.org) · [Getting Started](https://praxisjs.org/guide/getting-started) · [GitHub](https://github.com/praxisjs-org/praxisjs)
 
-> **⚠️ Early beta** — API is unstable and subject to breaking changes. Not recommended for production use.
-
 </div>
 
 ---

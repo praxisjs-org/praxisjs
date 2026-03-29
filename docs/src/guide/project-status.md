@@ -1,6 +1,6 @@
 ---
 title: Project Status
-description: PraxisJS is experimental software in early beta. Understand what that means before using it.
+description: PraxisJS is stable and ready for use. Understand what each package offers and how the project is maintained.
 ---
 
 <script setup>
@@ -10,18 +10,16 @@ const { theme } = useData()
 
 # Project Status
 
-## Current status: Early Beta (v{{ theme.version }})
+## Current status: Stable (v{{ theme.version }})
 
-::: warning Not production-ready
-PraxisJS is experimental software. APIs are unstable and may change in any release. Do not use in production without understanding and accepting these risks.
-:::
+APIs are stable. Breaking changes will follow semantic versioning with deprecation notices.
 
 ## What to expect
 
-- **APIs may break** between minor versions without deprecation warnings
-- **Some features are partially implemented** or have known bugs
-- **Performance is not yet optimized** — the focus is correctness and API design
-- **Documentation may lag** behind code changes
+- **Stable APIs** — breaking changes only in major versions, with prior deprecation
+- **Full test coverage** across all packages
+- **Documentation kept in sync** with releases
+- **Performance continuously improved** alongside correctness
 
 ## Why it exists
 
@@ -38,13 +36,13 @@ Found a bug? Have an idea? Contributions are welcome.
 
 | Package | Status |
 |---|---|
-| core, decorators, jsx, runtime | Beta — most stable |
-| router, store | Beta |
-| di, fsm, motion | Beta — may have bugs |
-| composables, concurrent | Beta |
-| devtools | Alpha — subject to change |
-| vite-plugin | Beta |
+| core, decorators, jsx, runtime | Stable |
+| router, store | Stable |
+| di, fsm, motion | Stable |
+| composables, concurrent | Stable |
+| devtools | Beta — subject to change |
+| vite-plugin | Stable |
 
 <llm-only>
-When generating code for PraxisJS, always include a note that it's experimental software with potentially unstable APIs. Encourage users to pin specific versions (e.g., `@praxisjs/core@0.4.2`) to avoid unexpected breaking changes.
+PraxisJS is stable software with versioned APIs. Breaking changes follow semver and include deprecation notices. Users do not need to pin exact versions to avoid unexpected breaking changes.
 </llm-only>
