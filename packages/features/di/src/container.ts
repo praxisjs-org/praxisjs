@@ -59,38 +59,70 @@ export class Container {
     return this;
   }
 
-  resolve<T>(target: Constructor<T> | Token<T>): T {
-    const entry = this.services.get(target as Constructor | Token<unknown>);
+  resolve<T>(
+    target: Constructor<T> | Token<T>,
+    resolutionStack = new Set<Constructor | Token<unknown>>(),
+  ): T {
+    const key = target as Constructor | Token<unknown>;
 
-    if (target instanceof Token) {
-      if (entry !== undefined) return entry as T;
-      if (this.parent) return this.parent.resolve(target);
-      throw new Error(`[DI] Token not registered: ${target.toString()}`);
+    if (resolutionStack.has(key)) {
+      const chain = [...resolutionStack, key]
+        .map((k) =>
+          k instanceof Token ? k.toString() : (k).name,
+        )
+        .join(" → ");
+      throw new Error(`[DI] Circular dependency detected: ${chain}`);
     }
 
-    if (!entry) {
-      if (this.parent) return this.parent.resolve(target);
-      throw new Error(
-        `[DI] Service not registered: ${(target as Constructor).name}`,
-      );
+    resolutionStack.add(key);
+    try {
+      const entry = this.services.get(key);
+
+      if (target instanceof Token) {
+        if (entry !== undefined) return entry as T;
+        if (this.parent) return this.parent.resolve(target);
+        throw new Error(`[DI] Token not registered: ${target.toString()}`);
+      }
+
+      if (!entry) {
+        if (this.parent) return this.parent.resolve(target);
+        throw new Error(
+          `[DI] Service not registered: ${(target as Constructor).name}`,
+        );
+      }
+
+      const descriptor = entry as ServiceDescriptor;
+
+      if (descriptor.scope === "singleton") {
+        descriptor.instance ??= this.instantiate(descriptor.target, resolutionStack);
+        return descriptor.instance as T;
+      }
+
+      return this.instantiate(descriptor.target, resolutionStack) as T;
+    } finally {
+      resolutionStack.delete(key);
     }
-
-    const descriptor = entry as ServiceDescriptor;
-
-    if (descriptor.scope === "singleton") {
-      descriptor.instance ??= this.instantiate(descriptor.target);
-      return descriptor.instance as T;
-    }
-
-    return this.instantiate(descriptor.target) as T;
   }
 
-  private instantiate<T>(target: Constructor<T>): T {
+  private instantiate<T>(
+    target: Constructor<T>,
+    resolutionStack = new Set<Constructor | Token<unknown>>(),
+  ): T {
     const deps: Array<Constructor | Token<unknown>> =
       (Reflect.getMetadata("di:inject", target) as Array<Constructor | Token<unknown>> | undefined) ?? [];
 
-    const resolvedDeps = deps.map((dep) => this.resolve(dep as Constructor));
-    const instance = new target(...resolvedDeps);
+    const resolvedDeps = deps.map((dep) =>
+      this.resolve(dep as Constructor, resolutionStack),
+    );
+    let instance: T;
+    try {
+      instance = new target(...resolvedDeps);
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith("[DI]")) throw err;
+      throw new Error(
+        `[DI] Failed to instantiate "${target.name}": ${(err as Error).message}`,
+      );
+    }
 
     const rawPropInjections: unknown = Reflect.getMetadata("di:props", target.prototype as object);
     const propInjections =
@@ -99,6 +131,7 @@ export class Container {
     for (const [prop, dep] of propInjections) {
       (instance as Record<string, unknown>)[prop] = this.resolve(
         dep as Constructor,
+        resolutionStack,
       );
     }
 

@@ -95,12 +95,17 @@ export function Inject<T>(dep: Constructor<T> | Token<T>) {
 // ── @InjectContainer ──────────────────────────────────────────────────────────
 
 export function InjectContainer() {
+  const cache = new WeakMap<object, Container>();
+
   return createFieldDecorator({
     bind(_instance, _name, _initialValue): FieldBinding {
       return {
         descriptor: {
           get(this: object) {
-            return resolveFrom(this);
+            if (!cache.has(this)) {
+              cache.set(this, resolveFrom(this));
+            }
+            return cache.get(this);
           },
         },
       };
