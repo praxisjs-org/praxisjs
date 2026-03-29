@@ -13,6 +13,8 @@ export class Clipboard extends Composable {
   declare content: string;
   declare copy: (text: string) => Promise<void>;
 
+  private _resetTimer?: ReturnType<typeof setTimeout>;
+
   constructor(private readonly resetDelay = 2000) {
     super();
   }
@@ -27,13 +29,18 @@ export class Clipboard extends Composable {
         await navigator.clipboard.writeText(text);
         content.set(text);
         copied.set(true);
-        setTimeout(() => { copied.set(false); }, resetDelay);
+        clearTimeout(this._resetTimer);
+        this._resetTimer = setTimeout(() => { copied.set(false); }, resetDelay);
       } catch {
         console.warn("[Clipboard] Falha ao copiar");
       }
     };
 
     return { copied, content, copy };
+  }
+
+  onUnmount() {
+    clearTimeout(this._resetTimer);
   }
 }
 
@@ -42,6 +49,8 @@ export class Geolocation extends Composable {
   declare lng: number | null;
   declare error: GeolocationPositionError | null;
   declare loading: boolean;
+
+  private _active = true;
 
   constructor(private readonly options?: PositionOptions) {
     super();
@@ -55,11 +64,13 @@ export class Geolocation extends Composable {
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (!this._active) return;
         lat.set(pos.coords.latitude);
         lng.set(pos.coords.longitude);
         loading.set(false);
       },
       (err) => {
+        if (!this._active) return;
         error.set(err);
         loading.set(false);
       },
@@ -67,6 +78,10 @@ export class Geolocation extends Composable {
     );
 
     return { lat, lng, error, loading };
+  }
+
+  onUnmount() {
+    this._active = false;
   }
 }
 
@@ -127,6 +142,9 @@ export class Pagination extends Composable {
 
   constructor(private readonly options: PaginationOptions) {
     super();
+    if (options.pageSize <= 0) {
+      throw new Error("pageSize must be greater than 0");
+    }
   }
 
   setup() {

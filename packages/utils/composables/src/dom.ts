@@ -7,8 +7,10 @@ export class WindowSize extends Composable {
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   private _handler = () => {};
+  private _view?: Record<string, unknown>;
 
   setup() {
+    if (this._view) return this._view;
     const width = signal(window.innerWidth);
     const height = signal(window.innerHeight);
     this._handler = () => {
@@ -16,7 +18,8 @@ export class WindowSize extends Composable {
       height.set(window.innerHeight);
     };
     window.addEventListener("resize", this._handler);
-    return { width, height };
+    this._view = { width, height };
+    return this._view;
   }
 
   onUnmount() {
@@ -31,6 +34,7 @@ export class ScrollPosition extends Composable {
   private readonly _target: HTMLElement | Window;
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   private _handler = () => {};
+  private _view?: Record<string, unknown>;
 
   constructor(target: HTMLElement | Window = window) {
     super();
@@ -38,6 +42,7 @@ export class ScrollPosition extends Composable {
   }
 
   setup() {
+    if (this._view) return this._view;
     const x = signal(0);
     const y = signal(0);
     const t = this._target;
@@ -46,7 +51,8 @@ export class ScrollPosition extends Composable {
       y.set(t === window ? window.scrollY : (t as HTMLElement).scrollTop);
     };
     t.addEventListener("scroll", this._handler);
-    return { x, y };
+    this._view = { x, y };
+    return this._view;
   }
 
   onUnmount() {
@@ -59,12 +65,14 @@ export class ElementSize extends Composable {
   declare height: number;
 
   private _observer?: ResizeObserver;
+  private _view?: Record<string, unknown>;
 
   constructor(private readonly ref: { current: HTMLElement | null }) {
     super();
   }
 
   setup() {
+    if (this._view) return this._view;
     const width = signal(0);
     const height = signal(0);
     this._observer = new ResizeObserver(([entry]) => {
@@ -78,7 +86,8 @@ export class ElementSize extends Composable {
         height.set(this.ref.current.offsetHeight);
       }
     });
-    return { width, height };
+    this._view = { width, height };
+    return this._view;
   }
 
   onUnmount() {
@@ -90,6 +99,7 @@ export class Intersection extends Composable {
   declare visible: boolean;
 
   private _observer?: IntersectionObserver;
+  private _view?: Record<string, unknown>;
 
   constructor(
     private readonly ref: { current: HTMLElement | null },
@@ -99,6 +109,7 @@ export class Intersection extends Composable {
   }
 
   setup() {
+    if (this._view) return this._view;
     const visible = signal(false);
     this._observer = new IntersectionObserver(([entry]) => {
       visible.set(entry.isIntersecting);
@@ -106,7 +117,8 @@ export class Intersection extends Composable {
     effect(() => {
       if (this.ref.current) this._observer?.observe(this.ref.current);
     });
-    return { visible };
+    this._view = { visible };
+    return this._view;
   }
 
   onUnmount() {
@@ -117,11 +129,14 @@ export class Intersection extends Composable {
 export class Focus extends Composable {
   declare focused: boolean;
 
+  private _view?: Record<string, unknown>;
+
   constructor(private readonly ref: { current: HTMLElement | null }) {
     super();
   }
 
   setup() {
+    if (this._view) return this._view;
     const focused = signal(false);
     effect(() => {
       const el = this.ref.current;
@@ -135,6 +150,7 @@ export class Focus extends Composable {
         el.removeEventListener("blur", onBlur);
       };
     });
-    return { focused };
+    this._view = { focused };
+    return this._view;
   }
 }
