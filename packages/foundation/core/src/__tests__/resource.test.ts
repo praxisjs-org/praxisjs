@@ -108,3 +108,58 @@ describe("createResource", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("resource — additional cases", () => {
+  it("two concurrent refetch() calls — last result wins, stale result is discarded", async () => {
+    let resolveFirst!: (v: string) => void;
+    let resolveSecond!: (v: string) => void;
+
+    let call = 0;
+    const r = resource(
+      () => {
+        call++;
+        if (call === 1) return new Promise<string>((res) => { resolveFirst = res; });
+        return new Promise<string>((res) => { resolveSecond = res; });
+      },
+      { immediate: false },
+    );
+
+    r.refetch(); // call 1
+    r.refetch(); // call 2 — supersedes call 1
+
+    resolveSecond("second");
+    resolveFirst("first"); // stale
+
+    await vi.waitFor(() => r.status() === "success");
+    expect(r.data()).toBe("second");
+  });
+
+  it("fetcher() throws synchronously — error is captured, does not crash", async () => {
+    const r = resource(() => {
+      throw new Error("sync throw");
+    });
+    await vi.waitFor(() => r.status() === "error");
+    expect((r.error() as Error).message).toBe("sync throw");
+  });
+
+  it("keepPreviousData: true — data is preserved while refetching", async () => {
+    let call = 0;
+    let resolve!: (v: number) => void;
+    const r = resource(
+      () => {
+        call++;
+        if (call === 1) return Promise.resolve(1);
+        return new Promise<number>((res) => { resolve = res; });
+      },
+      { keepPreviousData: true },
+    );
+
+    await vi.waitFor(() => r.data() === 1);
+    r.refetch();
+    // During refetch with keepPreviousData, old data is preserved
+    expect(r.data()).toBe(1);
+    expect(r.status()).toBe("pending");
+    resolve(2);
+    await vi.waitFor(() => r.data() === 2);
+  });
+});

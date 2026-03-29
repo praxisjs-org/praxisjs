@@ -106,4 +106,35 @@ describe("signal", () => {
     expect(a).toContain(7);
     expect(b).toContain(7);
   });
+
+  it("subscriber B still fires when subscriber A throws", () => {
+    const s = signal(0);
+    const received: number[] = [];
+    s.subscribe((v) => { if (v !== 0) throw new Error("sub A throws"); });
+    s.subscribe((v) => received.push(v));
+    expect(() => s.set(1)).toThrow("sub A throws");
+    expect(received).toContain(1);
+  });
+
+  it("unsubscribe during notification does not crash", () => {
+    const s = signal(0);
+    let unsub: (() => void) | undefined;
+    unsub = s.subscribe(() => {
+      unsub?.();
+    });
+    expect(() => s.set(1)).not.toThrow();
+  });
+
+  it("set() with mutated object reference (same ref) does NOT notify — Object.is semantics", () => {
+    const obj = { count: 0 };
+    const s = signal(obj);
+    const calls: unknown[] = [];
+    s.subscribe((v) => calls.push(v));
+    const before = calls.length;
+    // Mutate the object in-place and set the same reference
+    obj.count = 99;
+    s.set(obj);
+    // Object.is(obj, obj) === true, so no notification
+    expect(calls.length).toBe(before);
+  });
 });

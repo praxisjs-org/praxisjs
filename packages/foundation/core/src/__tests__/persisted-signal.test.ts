@@ -148,4 +148,47 @@ describe("persistedSignal", () => {
     s.set(undefined);
     expect(localStorage.getItem("key15")).toBeNull();
   });
+
+  it("localStorage.setItem throws QuotaExceededError — signal state is updated but no crash", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      const err = new DOMException("QuotaExceededError", "QuotaExceededError");
+      throw err;
+    });
+
+    const s = persistedSignal("key16", 0);
+    expect(() => s.set(42)).not.toThrow();
+    // The in-memory signal value is still updated despite storage failure
+    expect(s()).toBe(42);
+
+    setItemSpy.mockRestore();
+    warn.mockRestore();
+  });
+
+  it("syncTabs=true — storage event with empty string newValue is handled", () => {
+    const s = persistedSignal("key17", 99);
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: "key17",
+        newValue: "",
+        storageArea: localStorage,
+      }),
+    );
+    // Empty string is falsy, so falls back to initialValue
+    expect(s()).toBe(99);
+  });
+
+  it("syncTabs=true — storage event from sessionStorage is ignored", () => {
+    const s = persistedSignal("key18", 10);
+    s.set(20);
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: "key18",
+        newValue: "999",
+        storageArea: sessionStorage,
+      }),
+    );
+    // Should stay at 20 since the event is from sessionStorage, not localStorage
+    expect(s()).toBe(20);
+  });
 });

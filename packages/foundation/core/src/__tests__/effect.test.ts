@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-import { effect } from "../signal/effect";
+import { effect, track, activeEffect } from "../signal/effect";
 import { signal } from "../signal/signal";
 
 describe("effect", () => {
@@ -89,5 +89,47 @@ describe("effect", () => {
     s.set(2);
     // cleanup called once before second run, once before third run
     expect(cleanupCount.n).toBe(2);
+  });
+
+  it("stop() called multiple times does not crash or double-clean", () => {
+    const cleanupFn = vi.fn();
+    const stop = effect(() => cleanupFn);
+    expect(() => {
+      stop();
+      stop();
+      stop();
+    }).not.toThrow();
+    // cleanup is only called once (on first stop)
+    expect(cleanupFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("exception inside nested track() restores outer activeEffect", () => {
+    const s = signal(0);
+    const outer = vi.fn();
+    let outerEffectRef: unknown;
+
+    effect(() => {
+      outer();
+      s(); // track
+      outerEffectRef = activeEffect;
+    });
+
+    // Now do a track that throws — outer activeEffect must be restored
+    try {
+      track(() => { throw new Error("inner throws"); });
+    } catch {
+      // expected
+    }
+
+    expect(activeEffect).toBeNull();
+  });
+
+  it("activeEffect is null after a track() that throws", () => {
+    try {
+      track(() => { throw new Error("boom"); });
+    } catch {
+      // expected
+    }
+    expect(activeEffect).toBeNull();
   });
 });

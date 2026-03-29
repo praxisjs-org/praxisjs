@@ -53,6 +53,13 @@ describe("when", () => {
     s.set(0);
     expect(fn).not.toHaveBeenCalled();
   });
+
+  it("with source that fires immediately on subscription does not crash", () => {
+    const s = signal(1); // immediately truthy
+    const fn = vi.fn();
+    expect(() => when(s, fn)).not.toThrow();
+    expect(fn).toHaveBeenCalledWith(1);
+  });
 });
 
 // ---------- until ----------
@@ -69,6 +76,15 @@ describe("until", () => {
     const promise = until(s);
     s.set(7);
     expect(await promise).toBe(7);
+  });
+
+  it("the promise remains pending if source is always falsy (no-timeout behavior)", async () => {
+    const s = signal<number>(0);
+    let resolved = false;
+    until(s).then(() => { resolved = true; });
+    // Never set a truthy value
+    await new Promise((res) => setTimeout(res, 10));
+    expect(resolved).toBe(false);
   });
 });
 
@@ -123,6 +139,22 @@ describe("debounced", () => {
     expect(d()).toBe("a"); // not yet
     vi.advanceTimersByTime(0);
     expect(d()).toBe("b");
+    vi.useRealTimers();
+  });
+
+  it("the inner effect is cleaned up when stop is called (no leak)", () => {
+    vi.useFakeTimers();
+    const s = signal(0);
+    const d = debounced(s, 100);
+
+    s.set(1);
+    // Stop the debounced effect before the timer fires
+    d.stop();
+
+    // Advance time — the timer should not fire and update the signal
+    vi.advanceTimersByTime(200);
+    expect(d()).toBe(0); // still initial value, effect was stopped
+
     vi.useRealTimers();
   });
 });
@@ -241,5 +273,32 @@ describe("history", () => {
     h.clear();
     expect(h.canUndo()).toBe(false);
     expect(h.canRedo()).toBe(false);
+  });
+
+  it("undo() called more times than history entries — state stays consistent", () => {
+    const s = signal(0);
+    const h = history(s);
+    s.set(1);
+    h.undo();
+    // No more history — undo is a no-op
+    h.undo();
+    h.undo();
+    expect(h.current()).toBe(0);
+    expect(h.canUndo()).toBe(false);
+  });
+
+  it("values() returns a snapshot — each call after source change yields a fresh array", () => {
+    const s = signal("a");
+    const h = history(s);
+    s.set("b");
+    s.set("c");
+    const snapshot1 = h.values();
+    expect(snapshot1).toEqual(["a", "b", "c"]);
+    // Trigger a change so the computed re-evaluates on next read
+    s.set("d");
+    const snapshot2 = h.values();
+    expect(snapshot2).toEqual(["a", "b", "c", "d"]);
+    // snapshot1 and snapshot2 are different array instances
+    expect(snapshot1).not.toBe(snapshot2);
   });
 });
