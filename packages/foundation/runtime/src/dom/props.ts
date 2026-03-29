@@ -18,7 +18,13 @@ function applyStyle(el: Element, value: unknown): void {
   } else if (typeof value === "object") {
     const htmlEl = el as HTMLElement;
     htmlEl.removeAttribute("style");
-    Object.assign(htmlEl.style, value);
+    for (const [k, v] of Object.entries(value as Record<string, string>)) {
+      if (k.startsWith("--")) {
+        htmlEl.style.setProperty(k, v);
+      } else {
+        (htmlEl.style as unknown as Record<string, string>)[k] = v;
+      }
+    }
   } else {
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
     el.setAttribute("style", String(value));

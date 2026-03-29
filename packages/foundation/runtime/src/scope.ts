@@ -19,7 +19,17 @@ export class Scope {
   }
 
   dispose(): void {
-    this.#cleanups.forEach((fn) => { fn(); });
+    const cleanups = this.#cleanups;
     this.#cleanups = [];
+    const errors: unknown[] = [];
+    for (const fn of cleanups) {
+      try {
+        fn();
+      } catch (e) {
+        errors.push(e);
+      }
+    }
+    if (errors.length === 1) throw errors[0];
+    if (errors.length > 1) throw new AggregateError(errors, "[PraxisJS] Multiple errors during dispose()");
   }
 }
