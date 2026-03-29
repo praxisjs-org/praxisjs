@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { v } from "../../versions";
-
-const version = v('@praxisjs/core');
+const version = v("@praxisjs/core");
 </script>
 
 <template>
@@ -13,25 +12,31 @@ const version = v('@praxisjs/core');
     </div>
 
     <div class="ph-container ph-hero-inner">
-      <div class="ph-hero-copy">
+      <!-- Copy -->
+      <div class="ph-copy">
         <a class="ph-badge" href="/guide/project-status">
           <span class="ph-badge-dot" />
-          v{{ version }} &nbsp;&middot;&nbsp; Stable
+          v{{ version }} &nbsp;·&nbsp; Stable
         </a>
 
         <h1 class="ph-headline">
-          The TypeScript framework<br />
-          that renders <span class="ph-gradient">exactly once.</span>
+          Update exactly<br />
+          <span class="ph-gradient">what changed.</span>
         </h1>
 
         <p class="ph-sub">
-          Fine-grained signals. Class components with decorators. No virtual
-          DOM, no re-renders, no magic.
+          Signals connect state directly to the DOM nodes that depend on it. No
+          virtual DOM. No component re-renders. No guesswork.
         </p>
+
+        <div class="ph-install">
+          <span class="ph-install-prompt">$</span>
+          <code class="ph-install-cmd">npm create praxisjs@latest</code>
+        </div>
 
         <div class="ph-ctas">
           <a href="/guide/getting-started" class="ph-btn ph-btn-primary">
-            Get Started
+            Get started
             <svg
               width="14"
               height="14"
@@ -48,29 +53,45 @@ const version = v('@praxisjs/core');
               />
             </svg>
           </a>
-          <a href="/guide/introduction" class="ph-btn ph-btn-ghost">
-            What is PraxisJS?
-          </a>
+          <a href="/guide/introduction" class="ph-btn ph-btn-ghost"
+            >Why PraxisJS?</a
+          >
         </div>
 
         <div class="ph-pills">
           <span class="ph-pill">No Virtual DOM</span>
           <span class="ph-pill">TypeScript-first</span>
           <span class="ph-pill">Decorator API</span>
-          <span class="ph-pill">Signals</span>
+          <span class="ph-pill">Fine-grained signals</span>
         </div>
+      </div>
+
+      <!-- Logo -->
+      <div class="ph-logo-wrap" aria-hidden="true">
+        <img src="/logo.svg" alt="" class="ph-logo" />
       </div>
     </div>
   </section>
 </template>
 
 <style scoped>
+/* ── Layout ─────────────────────────────────────────────────────── */
 .ph-hero {
   position: relative;
   padding: calc(var(--vp-nav-height, 64px) + 4rem) 0 5rem;
   overflow: hidden;
 }
 
+.ph-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+/* ── Background ──────────────────────────────────────────────────── */
 .ph-hero-bg {
   position: absolute;
   inset: 0;
@@ -136,18 +157,12 @@ const version = v('@praxisjs/core');
   );
 }
 
-.ph-hero-inner {
-  position: relative;
-  z-index: 1;
+/* ── Copy ────────────────────────────────────────────────────────── */
+.ph-copy {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 1.75rem;
-}
-
-.ph-hero-copy {
-  display: contents;
+  gap: 1.5rem;
+  align-items: flex-start;
 }
 
 .ph-badge {
@@ -190,10 +205,10 @@ const version = v('@praxisjs/core');
 }
 
 .ph-headline {
-  font-size: clamp(2.2rem, 3.5vw, 3.2rem);
+  font-size: clamp(2.4rem, 3.8vw, 3.6rem);
   font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
   color: var(--vp-c-text-1);
   margin: 0;
 }
@@ -228,6 +243,33 @@ const version = v('@praxisjs/core');
   line-height: 1.7;
   color: var(--vp-c-text-2);
   margin: 0;
+  max-width: 42ch;
+}
+
+.ph-install {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  background: var(--vp-c-bg-alt);
+  border: 1px solid var(--vp-c-border);
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.85rem;
+  width: fit-content;
+}
+
+.ph-install-prompt {
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+  user-select: none;
+}
+
+.ph-install-cmd {
+  color: var(--vp-c-text-1);
+  font-family: inherit;
+  background: none;
+  padding: 0;
 }
 
 .ph-ctas {
@@ -292,93 +334,52 @@ const version = v('@praxisjs/core');
   letter-spacing: 0.01em;
 }
 
-/* ── Right column — flat code block ────────────────────────────── */
-.ph-hero-code {
-  border-radius: 12px;
-  background: var(--vp-c-bg-alt);
-  border: 1px solid var(--vp-c-border);
-  overflow: hidden;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.05),
-    0 8px 28px rgba(0, 0, 0, 0.07);
+/* ── Logo ────────────────────────────────────────────────────────── */
+.ph-logo-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.dark .ph-hero-code {
-  background: #0d0b19;
-  border-color: rgba(155, 144, 230, 0.16);
-  box-shadow:
-    0 8px 40px rgba(0, 0, 0, 0.3),
-    0 0 50px rgba(109, 91, 189, 0.04);
+.ph-logo {
+  width: 250px;
+  height: 250px;
+  animation: ph-float 6s ease-in-out infinite;
+  filter: drop-shadow(0 0 48px rgba(109, 91, 189, 0.35));
 }
 
-.ph-code {
-  display: block;
-  margin: 0;
-  padding: 1.5rem 1.6rem 1.2rem;
-  font-family: var(--vp-font-family-mono);
-  font-size: 0.82rem;
-  line-height: 1.9;
-  color: #c9c5e8;
-  background: transparent;
-  white-space: pre;
-  overflow-x: auto;
+@keyframes ph-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
 }
 
-.dark .ph-code {
-  color: #d4d0f0;
-}
-
-:deep(.hl-dec) {
-  color: #c084fc;
-  font-weight: 600;
-}
-:deep(.hl-kw) {
-  color: #818cf8;
-}
-:deep(.hl-cls) {
-  color: #f9a8d4;
-}
-:deep(.hl-type) {
-  color: #67e8f9;
-}
-:deep(.hl-str) {
-  color: #86efac;
-}
-:deep(.hl-num) {
-  color: #fbbf24;
-}
-:deep(.hl-react) {
-  color: #38bdf8;
-  font-weight: 600;
-}
-:deep(.hl-th) {
-  color: #c084fc;
-}
-:deep(.hl-fn) {
-  color: #94a3b8;
-}
-:deep(.hl-attr) {
-  color: #7dd3fc;
-}
-
-.ph-code-label {
-  padding: 0.4rem 1rem;
-  border-top: 1px solid var(--vp-c-border);
-  font-family: var(--vp-font-family-mono);
-  font-size: 0.65rem;
-  color: var(--vp-c-text-3);
-  text-align: right;
-}
-
-.dark .ph-code-label {
-  border-color: rgba(155, 144, 230, 0.1);
-}
-
-/* ── Responsive ────────────────────────────────────────────────── */
+/* ── Responsive ──────────────────────────────────────────────────── */
 @media (max-width: 960px) {
   .ph-hero-inner {
     grid-template-columns: 1fr;
-    gap: 2.5rem;
+    gap: 3rem;
+    text-align: center;
+  }
+
+  .ph-logo-wrap {
+    order: -1;
+  }
+
+  .ph-copy {
+    align-items: center;
+  }
+
+  .ph-sub {
+    max-width: 52ch;
+  }
+
+  .ph-viz {
+    justify-content: center;
   }
 
   .ph-hero {
@@ -399,6 +400,12 @@ const version = v('@praxisjs/core');
 
   .ph-ctas {
     flex-direction: column;
+    width: 100%;
+  }
+
+  .ph-viz-card {
+    width: 290px;
+    height: 270px;
   }
 }
 </style>
