@@ -120,33 +120,36 @@ Setting the value to `null` or `undefined` removes the entry from localStorage.
 
 ---
 
-## `@History(limit?)`
+## `@History(fieldName, limit?)`
 
-Adds undo/redo to a `@State` property. The generated `{prop}History` object exposes `undo()`, `redo()`, `canUndo`, `canRedo`, `values`, and `clear()`.
+Adds undo/redo to a `@State` property. Declare a separate field decorated with `@History('fieldName')` and type it with `HistoryOf<Class, 'fieldName'>` for full intellisense.
 
 ```tsx
+import { History, HistoryOf } from '@praxisjs/decorators'
+
 @Component()
 class Editor extends StatefulComponent {
-  @History(100)
   @State()
   text = ''
 
-  undo() { this.textHistory.undo() }
-  redo() { this.textHistory.redo() }
+  @History('text', 100)
+  textHistory!: HistoryOf<Editor, 'text'>
+  // textHistory.undo()    ✓
+  // textHistory.redo()    ✓
+  // textHistory.canUndo() ✓
+  // textHistory.canRedo() ✓
 
   render() {
     return (
       <div>
         <textarea value={() => this.text}
           onInput={(e) => { this.text = (e.target as HTMLTextAreaElement).value }} />
-        <button onClick={() => this.undo()} disabled={() => !this.textHistory.canUndo}>Undo</button>
-        <button onClick={() => this.redo()} disabled={() => !this.textHistory.canRedo}>Redo</button>
+        <button onClick={() => this.textHistory.undo()} disabled={() => !this.textHistory.canUndo()}>Undo</button>
+        <button onClick={() => this.textHistory.redo()} disabled={() => !this.textHistory.canRedo()}>Redo</button>
       </div>
     )
   }
 }
-// Declare the generated type:
-interface Editor extends WithHistory<Editor, 'text'> {}
 ```
 
 ---
@@ -189,12 +192,10 @@ The field exposes `.data()`, `.pending()`, `.error()`, `.status()`, `.refetch()`
 Import paths:
 - @State, @Prop, @Computed, @Persisted, @History, @Resource — all from '@praxisjs/decorators'
 - ResourceInstance type — from '@praxisjs/decorators'
-- WithHistory type — from '@praxisjs/decorators'
+- HistoryOf type — from '@praxisjs/decorators'
 - StatefulComponent — from '@praxisjs/core'
 
-@History generates a {propName}History property at runtime. TypeScript cannot infer this automatically, so users must either:
-1. Use interface merging: `interface MyClass extends WithHistory<MyClass, 'propName'> {}`
-2. Or use declare: `declare propNameHistory: WithHistory<MyClass, 'propName'>['propNameHistory']`
+@History(fieldName, limit?) decorates a separate field (not the state field itself). The first argument is the name of the @State field to track. Type the decorated field as HistoryOf<ClassName, 'fieldName'> for full intellisense. No interface merging or declare workarounds needed.
 
 @Resource sets up the field at initialization time — declare it with `!` (definite assignment assertion).
 </llm-only>

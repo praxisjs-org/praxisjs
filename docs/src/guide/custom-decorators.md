@@ -281,5 +281,5 @@ Decorator factory facts:
 - Use WeakMap<object, T> for per-instance state in field and method decorators — never close over a single value.
 - ClassBehavior.initialize(Enhanced, original) is called once after the class is created — use it to set static properties.
 - Import from '@praxisjs/decorators': createFieldDecorator, createMethodDecorator, createLifecycleMethodDecorator, createGetterDecorator, createGetterObserverDecorator, createClassDecorator, ClassBehavior
-- FieldBinding.additional lets you define extra properties on the instance alongside the main one (e.g. @History uses this to add the {prop}History companion).
+- FieldBinding.additional lets you define extra properties on the instance alongside the main one (e.g. a decorator can define a companion signal next to the decorated field).
 </llm-only>
