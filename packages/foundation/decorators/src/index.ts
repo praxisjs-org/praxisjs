@@ -21,7 +21,7 @@ export {
   Slot,
   initSlots,
   History,
-  type WithHistory,
+  type HistoryOf,
   Compose,
   Resource,
   type ResourceInstance,

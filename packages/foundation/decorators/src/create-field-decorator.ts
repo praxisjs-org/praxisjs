@@ -9,26 +9,26 @@ export interface FieldBinding {
   onUnmount?: () => void;
 }
 
-export interface FieldBehavior {
+export interface FieldBehavior<T = object> {
   bind(
-    instance: StatefulComponent,
+    instance: T,
     name: string,
     initialValue: unknown,
   ): FieldBinding;
 }
 
-export function createFieldDecorator(behavior: FieldBehavior) {
+export function createFieldDecorator<T = StatefulComponent>(behavior: FieldBehavior<T>) {
   return function (
     _value: undefined,
-    context: ClassFieldDecoratorContext<StatefulComponent>,
+    context: ClassFieldDecoratorContext<T>,
   ): void {
     context.addInitializer(function (this: unknown) {
-      const instance = this as StatefulComponent & Record<string, unknown>;
+      const instance = this as T & StatefulComponent & Record<string, unknown>;
       const name = context.name as string;
       const initialValue = instance[name];
 
       const { descriptor, additional, onMount, onUnmount } = behavior.bind(
-        instance,
+        instance as T,
         name,
         initialValue,
       );

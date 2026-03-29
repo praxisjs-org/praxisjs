@@ -255,17 +255,17 @@ describe("Watch decorator", () => {
 // ── History ───────────────────────────────────────────────────────────────────
 
 describe("History decorator", () => {
-  it("creates a {name}History property on the instance", () => {
-    const { ctx, run } = fieldCtx("score");
-    History()(undefined, ctx);
+  it("creates the history field on the instance", () => {
+    const { ctx, run } = fieldCtx("scoreHistory");
+    History("score")(undefined, ctx);
     const instance = new TestComponent();
     run(instance);
     expect((instance as unknown as Record<string, unknown>).scoreHistory).toBeDefined();
   });
 
   it("history tracks changes to the property", () => {
-    const { ctx, run } = fieldCtx("score");
-    History()(undefined, ctx);
+    const { ctx, run } = fieldCtx("scoreHistory");
+    History("score")(undefined, ctx);
 
     const s = signal(0);
     const instance = new TestComponent();
@@ -286,8 +286,8 @@ describe("History decorator", () => {
   });
 
   it("canUndo becomes true after a value change", () => {
-    const { ctx, run } = fieldCtx("num");
-    History()(undefined, ctx);
+    const { ctx, run } = fieldCtx("numHistory");
+    History("num")(undefined, ctx);
 
     const s = signal(0);
     const instance = new TestComponent();
@@ -308,8 +308,8 @@ describe("History decorator", () => {
   });
 
   it("values() contains the current value", () => {
-    const { ctx, run } = fieldCtx("x");
-    History()(undefined, ctx);
+    const { ctx, run } = fieldCtx("xHistory");
+    History("x")(undefined, ctx);
 
     const s = signal(42);
     const instance = new TestComponent();
@@ -330,8 +330,8 @@ describe("History decorator", () => {
   });
 
   it("undo() reverts the property to the previous value", () => {
-    const { ctx, run } = fieldCtx("score2");
-    History()(undefined, ctx);
+    const { ctx, run } = fieldCtx("score2History");
+    History("score2")(undefined, ctx);
 
     const s = signal(0);
     const instance = new TestComponent();
@@ -353,8 +353,8 @@ describe("History decorator", () => {
   });
 
   it("redo() moves forward after undo", () => {
-    const { ctx, run } = fieldCtx("score3");
-    History()(undefined, ctx);
+    const { ctx, run } = fieldCtx("score3History");
+    History("score3")(undefined, ctx);
 
     const s = signal(0);
     const instance = new TestComponent();
@@ -380,8 +380,8 @@ describe("History decorator", () => {
   });
 
   it("respects a custom history limit", () => {
-    const { ctx, run } = fieldCtx("v");
-    History(3)(undefined, ctx);
+    const { ctx, run } = fieldCtx("vHistory");
+    History("v", 3)(undefined, ctx);
 
     const s = signal(0);
     const instance = new TestComponent();
@@ -402,8 +402,8 @@ describe("History decorator", () => {
   });
 
   it("returns the same history instance on repeated access", () => {
-    const { ctx, run } = fieldCtx("z");
-    History()(undefined, ctx);
+    const { ctx, run } = fieldCtx("zHistory");
+    History("z")(undefined, ctx);
     const instance = new TestComponent();
     run(instance);
     const h1 = (instance as unknown as Record<string, unknown>).zHistory;
@@ -546,8 +546,8 @@ describe("Prop decorator — additional branches", () => {
 
 describe("History decorator — undo with no previous value", () => {
   it("undo() does nothing when there is no previous value", () => {
-    const { ctx, run } = fieldCtx("pts");
-    History()(undefined, ctx);
+    const { ctx, run } = fieldCtx("ptsHistory");
+    History("pts")(undefined, ctx);
 
     const s = signal(0);
     const instance = new TestComponent();
@@ -574,10 +574,10 @@ describe("History decorator — undo with no previous value", () => {
 
 describe("History decorator — multiple History properties on same instance", () => {
   it("two History fields are independent", () => {
-    const { ctx: ctxX, run: runX } = fieldCtx("x");
-    const { ctx: ctxY, run: runY } = fieldCtx("y");
-    History()(undefined, ctxX);
-    History()(undefined, ctxY);
+    const { ctx: ctxX, run: runX } = fieldCtx("xHistory");
+    const { ctx: ctxY, run: runY } = fieldCtx("yHistory");
+    History("x")(undefined, ctxX);
+    History("y")(undefined, ctxY);
 
     const sx = signal(0);
     const sy = signal(0);
@@ -609,8 +609,8 @@ describe("History decorator — multiple History properties on same instance", (
   });
 
   it("clear() after undo removes redo entries", () => {
-    const { ctx, run } = fieldCtx("val");
-    History()(undefined, ctx);
+    const { ctx, run } = fieldCtx("valHistory");
+    History("val")(undefined, ctx);
 
     const s = signal(0);
     const instance = new TestComponent();

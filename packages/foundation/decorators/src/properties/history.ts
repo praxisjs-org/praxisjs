@@ -4,49 +4,38 @@ import type { Signal } from "@praxisjs/shared";
 
 import { createFieldDecorator } from "../create-field-decorator";
 
-export type WithHistory<T, K extends keyof T> = Record<
-  `${string & K}History`,
-  HistoryElement<T[K]>
->;
+export type HistoryOf<C, K extends keyof C> = HistoryElement<C[K]>;
 
-export function History(limit = 50) {
+export function History(fieldName: string, limit = 50) {
   return createFieldDecorator({
-    bind(instance: StatefulComponent, name: string, _initialValue: unknown) {
-      const historyKey = `${name}History`;
+    bind(instance: StatefulComponent, _name: string) {
       const inst = instance as unknown as Record<string, unknown>;
       let h: HistoryElement<unknown> | undefined;
 
+      const source = () => inst[fieldName];
+
       return {
-        // descriptor omitted — @History does not replace the original field
-        additional: {
-          [historyKey]: {
-            get(): HistoryElement<unknown> {
-              if (!h) {
-                const source = () => inst[name];
-                const hInst = history(source as Signal<unknown>, limit);
-
-                const _undo = hInst.undo.bind(hInst);
-                const _redo = hInst.redo.bind(hInst);
-
-                hInst.undo = () => {
-                  const prev = hInst.values()[hInst.values().length - 2];
-                  if (prev === undefined) return;
-                  _undo();
-                  inst[name] = prev;
-                };
-
-                hInst.redo = () => {
-                  _redo();
-                  inst[name] = hInst.current();
-                };
-
-                h = hInst;
-              }
-              return h;
-            },
-            enumerable: false,
-            configurable: true,
+        descriptor: {
+          get(): HistoryElement<unknown> {
+            if (!h) {
+              const hInst = history(source as Signal<unknown>, limit);
+              const _undo = hInst.undo.bind(hInst);
+              const _redo = hInst.redo.bind(hInst);
+              hInst.undo = () => {
+                const prev = hInst.values()[hInst.values().length - 2];
+                if (prev === undefined) return;
+                _undo();
+                inst[fieldName] = prev;
+              };
+              hInst.redo = () => {
+                _redo();
+                inst[fieldName] = hInst.current();
+              };
+              h = hInst;
+            }
+            return h;
           },
+          enumerable: false,
         },
       };
     },
