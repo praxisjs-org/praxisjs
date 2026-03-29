@@ -12,8 +12,22 @@ export class EventBus {
   }
 
   emit(event: string, payload: unknown): void {
-    this.handlers.get(event)?.forEach((h) => {
-      h(payload);
-    });
+    const handlers = this.handlers.get(event);
+    if (!handlers) return;
+
+    const errors: unknown[] = [];
+    for (const h of handlers) {
+      try {
+        h(payload);
+      } catch (err) {
+        errors.push(err);
+      }
+    }
+
+    if (errors.length === 1) {
+      throw errors[0];
+    } else if (errors.length > 1) {
+      throw new AggregateError(errors, "Multiple event handler errors");
+    }
   }
 }
