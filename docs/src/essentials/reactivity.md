@@ -104,6 +104,57 @@ class Label extends StatefulComponent {
 }
 ```
 
+## Reading without tracking
+
+Sometimes you need to read a signal's current value without creating a reactive subscription — for example, inside a `@Watch` to compare a previous value, or inside a method that should not trigger re-subscriptions.
+
+### `peek(signal)`
+
+Reads a signal once without subscribing to it:
+
+```tsx
+import { peek } from '@praxisjs/core'
+
+@Component()
+class Counter extends StatefulComponent {
+  @State() count = 0
+  @State() max = 10
+
+  increment() {
+    // read max without subscribing to it inside a reactive context
+    if (peek(this.max) > peek(this.count)) {
+      this.count++
+    }
+  }
+
+  render() {
+    return <button onClick={() => this.increment()}>{() => this.count}</button>
+  }
+}
+```
+
+`peek` accepts any `Signal<T>` or `Computed<T>` and returns the current value without registering a dependency.
+
+### `untrack(fn)`
+
+Runs an arbitrary function without tracking any signal reads inside it:
+
+```tsx
+import { untrack } from '@praxisjs/core'
+
+@Watch('items')
+onItemsChange() {
+  // read totalCost without subscribing to it
+  const snapshot = untrack(() => this.totalCost)
+  console.log('items changed, cost was:', snapshot)
+}
+```
+
+::: tip When to use each
+- Use `peek(signal)` when you have a direct signal reference and want a clean, explicit read.
+- Use `untrack(fn)` when you want to suppress tracking for a block of code that may read multiple signals.
+:::
+
 ## What's next?
 
 - [JSX Syntax](/essentials/jsx) — reactive and static expressions in templates
@@ -116,4 +167,7 @@ Signal system internals:
 - @Prop creates a getter that reads from the props object passed to the component at creation
 - The renderer's arrow function handling: when it encounters () => expr, it runs the function inside an effect() that patches only the specific DOM node when rerun
 - Deep reactivity is NOT supported — always replace references
+- peek(signal) temporarily sets activeEffect = null, reads the signal, then restores activeEffect — same as untrack but typed for Signal/Computed
+- untrack(fn) sets activeEffect = null for the duration of fn, then restores — suppresses all tracking for any signals read inside fn
+- render() itself always runs untracked (activeEffect = null during mountComponent) — so eager reads like {this.count} in JSX are always static snapshots, not subscriptions
 </llm-only>
