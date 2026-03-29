@@ -4,13 +4,12 @@ description: PraxisJS is stable and ready for use. Understand what each package 
 ---
 
 <script setup>
-import { useData } from 'vitepress'
-const { theme } = useData()
+import { v } from '../../.vitepress/versions'
 </script>
 
 # Project Status
 
-## Current status: Stable (v{{ theme.version }})
+## Current status: Stable (v{{ v('@praxisjs/core') }})
 
 APIs are stable. Breaking changes will follow semantic versioning with deprecation notices.
 
