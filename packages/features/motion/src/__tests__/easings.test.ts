@@ -87,4 +87,26 @@ describe("resolveEasing", () => {
       expect(typeof fn).toBe("function");
     }
   });
+
+  it('resolveEasing("notARealEasing") throws a descriptive error', () => {
+    expect(() => resolveEasing("notARealEasing" as never)).toThrow(/notARealEasing/);
+  });
+
+  it("all easings with t < 0 — do not crash", () => {
+    const names = ["linear", "easeIn", "easeOut", "easeInOut", "easeInCubic", "bounce", "elastic"] as const;
+    for (const name of names) {
+      expect(() => easings[name](-0.1)).not.toThrow();
+    }
+  });
+
+  it("all easings with t > 1 — do not crash", () => {
+    const names = ["linear", "easeIn", "easeOut", "easeInOut", "easeInCubic", "bounce", "elastic"] as const;
+    for (const name of names) {
+      expect(() => easings[name](1.1)).not.toThrow();
+    }
+  });
+
+  it("easeInOut(0.5) returns exactly 0.5 (smooth boundary)", () => {
+    expect(easings.easeInOut(0.5)).toBe(0.5);
+  });
 });

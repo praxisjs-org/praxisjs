@@ -100,4 +100,53 @@ describe("createTransition()", () => {
     await p;
     expect(el.classList.contains("x-enter-to")).toBe(false);
   });
+
+  it("enter() interrupted by leave() before completion — no mixed CSS classes left", async () => {
+    const t = createTransition({ name: "fade", duration: 300 });
+    const el = makeEl();
+
+    // Start enter but don't resolve it yet
+    const enterP = t.enter(el);
+    vi.advanceTimersByTime(20); // past rAF, enter-to is now present
+
+    // Immediately start leave
+    const leaveP = t.leave(el);
+    vi.advanceTimersByTime(300);
+
+    await leaveP;
+    // Advance well past enter duration too
+    vi.advanceTimersByTime(300);
+    await enterP;
+
+    // After both complete, no transition classes should remain
+    expect(el.classList.contains("fade-enter-from")).toBe(false);
+    expect(el.classList.contains("fade-enter-to")).toBe(false);
+    expect(el.classList.contains("fade-leave-from")).toBe(false);
+    expect(el.classList.contains("fade-leave-to")).toBe(false);
+  });
+
+  it("onEnter callback throws — promise rejects with that error", async () => {
+    const t = createTransition({
+      onEnter: () => { throw new Error("enter callback error"); },
+    });
+    const el = makeEl();
+    await expect(t.enter(el)).rejects.toThrow("enter callback error");
+  });
+
+  it("onLeave callback throws — promise rejects with that error", async () => {
+    const t = createTransition({
+      onLeave: () => { throw new Error("leave callback error"); },
+    });
+    const el = makeEl();
+    await expect(t.leave(el)).rejects.toThrow("leave callback error");
+  });
+
+  it("duration = 0 — resolves immediately without hanging", async () => {
+    const t = createTransition({ name: "fast", duration: 0 });
+    const el = makeEl();
+    const p = t.enter(el);
+    vi.advanceTimersByTime(0);
+    await p;
+    expect(el.classList.contains("fast-enter-to")).toBe(false);
+  });
 });

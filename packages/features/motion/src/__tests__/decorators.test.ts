@@ -150,3 +150,47 @@ describe("@Spring", () => {
     vi.useRealTimers();
   });
 });
+
+// ── Edge case tests ───────────────────────────────────────────────────────────
+
+describe("@Tween edge cases", () => {
+  it("setting NaN on @Tween field does not crash", () => {
+    vi.useFakeTimers();
+    const { ctx, run } = makeCtx("opacity");
+    Tween()(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    expect(() => { instance.opacity = NaN; }).not.toThrow();
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
+  it("two @Tween fields on same class — independent animations", () => {
+    vi.useFakeTimers();
+    const { ctx: ctxX, run: runX } = makeCtx("x");
+    const { ctx: ctxY, run: runY } = makeCtx("y");
+    Tween()(undefined, ctxX);
+    Tween()(undefined, ctxY);
+    const instance: Record<string, unknown> = {};
+    runX(instance);
+    runY(instance);
+    instance.x = 10;
+    instance.y = 50;
+    expect(instance.x).not.toBe(instance.y);
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+});
+
+describe("@Spring edge cases", () => {
+  it("setting Infinity on @Spring field does not crash", () => {
+    vi.useFakeTimers();
+    const { ctx, run } = makeCtx("scale");
+    Spring()(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    expect(() => { instance.scale = Infinity; }).not.toThrow();
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+});

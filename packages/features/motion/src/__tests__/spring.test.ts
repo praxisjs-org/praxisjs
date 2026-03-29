@@ -89,4 +89,28 @@ describe("spring()", () => {
     // Value should have moved significantly toward target
     expect(s.value()).toBeGreaterThan(10);
   });
+
+  it("stiffness = 0 throws a descriptive error", () => {
+    expect(() => spring(0, { stiffness: 0 })).toThrow("stiffness must be greater than 0");
+  });
+
+  it("initial value already equals target — animation stops immediately (no rAF loop)", () => {
+    const s = spring(50, { stiffness: 0.5, damping: 0.8, precision: 0.001 });
+    // target is also 50 (the default), so the spring should converge instantly
+    const initial = s.value();
+    vi.advanceTimersByTime(200);
+    // Value should remain at (or very close to) 50 — no drift
+    expect(s.value()).toBeCloseTo(initial, 3);
+    s.stop();
+  });
+
+  it("stop() called while animating — value is frozen and does not continue to change", () => {
+    const s = spring(0, { stiffness: 0.5, damping: 0.8 });
+    s.target.set(100);
+    vi.advanceTimersByTime(50);
+    s.stop();
+    const valueAfterStop = s.value();
+    vi.advanceTimersByTime(500);
+    expect(s.value()).toBe(valueAfterStop);
+  });
 });

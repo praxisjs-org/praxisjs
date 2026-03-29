@@ -115,4 +115,41 @@ describe("tween()", () => {
     expect(t.value()).toBe(0);
     t.stop();
   });
+
+  it("duration = 0 — resolves immediately with value at `to`", () => {
+    // duration is clamped to 1ms minimum; after a single rAF the tween should complete
+    const t = tween(0, 100, { duration: 0, easing: "linear" });
+    vi.advanceTimersByTime(50);
+    expect(t.value()).toBe(100);
+    expect(t.playing()).toBe(false);
+  });
+
+  it("from === to — resolves immediately without animating", () => {
+    const t = tween(42, 42, { duration: 300, easing: "linear" });
+    // Even before any rAF fires the start value equals the target
+    expect(t.value()).toBe(42);
+    vi.advanceTimersByTime(300);
+    expect(t.value()).toBe(42);
+    t.stop();
+  });
+
+  it("progress() is 0 during delay phase before animation starts", () => {
+    const t = tween(0, 100, { duration: 100, delay: 200 });
+    vi.advanceTimersByTime(50); // well within delay
+    expect(t.progress()).toBe(0);
+    t.stop();
+  });
+
+  it("easing function is called with t in [0,1] range only", () => {
+    const tValues: number[] = [];
+    const captureEasing = (t: number) => { tValues.push(t); return t; };
+    const tw = tween(0, 100, { duration: 100, easing: captureEasing });
+    vi.advanceTimersByTime(300);
+    tw.stop();
+    expect(tValues.length).toBeGreaterThan(0);
+    for (const t of tValues) {
+      expect(t).toBeGreaterThanOrEqual(0);
+      expect(t).toBeLessThanOrEqual(1);
+    }
+  });
 });
