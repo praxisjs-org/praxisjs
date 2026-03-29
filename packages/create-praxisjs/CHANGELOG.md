@@ -1,5 +1,11 @@
 # create-praxisjs
 
+## 0.3.8
+
+### Patch Changes
+
+- 029ef04: Scoped package names (`@org/pkg`) are now preserved correctly during scaffolding. Template and `_package.json` errors report actionable messages instead of raw exceptions.
+
 ## 0.3.7
 
 ### Patch Changes
