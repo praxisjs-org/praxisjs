@@ -23,5 +23,10 @@ export const easings = {
 export type Easing = keyof typeof easings | ((t: number) => number);
 
 export function resolveEasing(easing: Easing): (t: number) => number {
-  return typeof easing === "function" ? easing : easings[easing];
+  if (typeof easing === "function") return easing;
+  const fn = easings[easing];
+  if (typeof fn !== "function") {
+    throw new Error(`[resolveEasing] Unknown easing: "${easing}". Valid names are: ${Object.keys(easings).join(", ")}.`);
+  }
+  return fn;
 }

@@ -15,6 +15,10 @@ export function spring(initial: number, options: SpringOptions = {}) {
     precision = 0.001,
   } = options;
 
+  if (stiffness <= 0) {
+    throw new Error("stiffness must be greater than 0");
+  }
+
   const _value = signal(initial);
   const _target = signal(initial);
   let velocity = 0;

@@ -23,7 +23,8 @@ export function tween(
   to: number,
   options: TweenOptions = {},
 ): Tween {
-  const { duration = 300, easing = "easeOut", delay = 0 } = options;
+  const { duration: rawDuration = 300, easing = "easeOut", delay = 0 } = options;
+  const duration = Math.max(1, rawDuration);
   const easeFn = resolveEasing(easing);
 
   const _value = signal(from);
