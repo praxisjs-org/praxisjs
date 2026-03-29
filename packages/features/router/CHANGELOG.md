@@ -1,5 +1,13 @@
 # @praxisjs/router
 
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [2b8c768]
+  - @praxisjs/decorators@0.7.0
+  - @praxisjs/jsx@0.3.7
+
 ## 1.0.3
 
 ### Patch Changes
