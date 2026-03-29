@@ -49,6 +49,48 @@ describe("Scope", () => {
     expect(childCleanup).toHaveBeenCalledOnce();
   });
 
+  it("cleanup that throws does not prevent other cleanups from running", () => {
+    const scope = new Scope();
+    const ran: number[] = [];
+    scope.add(() => { ran.push(1); });
+    scope.add(() => { throw new Error("boom"); });
+    scope.add(() => { ran.push(3); });
+    expect(() => { scope.dispose(); }).toThrow();
+    expect(ran).toEqual([1, 3]);
+  });
+
+  it("grandchild scopes: parent.fork().fork() — disposing parent disposes all descendants", () => {
+    const parent = new Scope();
+    const child = parent.fork();
+    const grandchild = child.fork();
+    const grandchildFn = vi.fn();
+    const childFn = vi.fn();
+    grandchild.add(grandchildFn);
+    child.add(childFn);
+    parent.dispose();
+    expect(childFn).toHaveBeenCalledOnce();
+    expect(grandchildFn).toHaveBeenCalledOnce();
+  });
+
+  it("dispose() called during a cleanup does not crash", () => {
+    const scope = new Scope();
+    scope.add(() => {
+      // calling dispose() again during a cleanup — should be safe (no-op, cleanups already cleared)
+      scope.dispose();
+    });
+    expect(() => { scope.dispose(); }).not.toThrow();
+  });
+
+  it("cleanup added inside a cleanup is NOT called in the same dispose cycle", () => {
+    const scope = new Scope();
+    const inner = vi.fn();
+    scope.add(() => {
+      scope.add(inner);
+    });
+    scope.dispose();
+    expect(inner).not.toHaveBeenCalled();
+  });
+
   it("fork() child can be disposed independently before parent", () => {
     const parent = new Scope();
     const child = parent.fork();

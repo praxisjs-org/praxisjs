@@ -104,4 +104,58 @@ describe("mountChildren", () => {
     expect(el.textContent).toBe(""); // normalizeToNodes returns [] for unknown types
     scope.dispose();
   });
+
+  it("deeply nested arrays [[[[\"text\"]]]] — all values flattened", () => {
+    const el = container();
+    const scope = new Scope();
+    mountChildren(el, [[[["deep"]]]] as unknown, scope);
+    expect(el.textContent).toBe("deep");
+    scope.dispose();
+  });
+
+  it("mixed content [\"text\", 42, null, false, domNode, () => \"reactive\"] — each handled correctly", () => {
+    const el = container();
+    const scope = new Scope();
+    const span = document.createElement("span");
+    span.textContent = "node";
+    mountChildren(el, ["text", 42, null, false, span, () => "reactive"], scope);
+    // "text", "42", span ("node"), "reactive" — null and false are skipped
+    expect(el.textContent).toBe("text42nodereactive");
+    scope.dispose();
+  });
+
+  it("reactive function that changes return type (string → array → null) — old nodes cleaned up", () => {
+    const el = container();
+    const scope = new Scope();
+    const s = signal<unknown>("hello");
+    mountChildren(el, () => s(), scope);
+    expect(el.textContent).toBe("hello");
+    s.set(["a", "b"]);
+    expect(el.textContent).toBe("ab");
+    s.set(null);
+    expect(el.textContent).toBe("");
+    scope.dispose();
+  });
+
+  it("same Node instance passed twice — second append moves the node (not duplicated)", () => {
+    const el = container();
+    const scope = new Scope();
+    const node = document.createElement("span");
+    node.textContent = "x";
+    mountChildren(el, [node, node], scope);
+    // DOM spec: inserting an already-inserted node moves it, so there's only one instance
+    expect(el.querySelectorAll("span").length).toBe(1);
+    scope.dispose();
+  });
+
+  it("reactive function returning null after returning content — content is removed", () => {
+    const el = container();
+    const scope = new Scope();
+    const s = signal<string | null>("visible");
+    mountChildren(el, () => s(), scope);
+    expect(el.textContent).toBe("visible");
+    s.set(null);
+    expect(el.textContent).toBe("");
+    scope.dispose();
+  });
 });

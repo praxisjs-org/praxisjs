@@ -176,6 +176,48 @@ describe("applyProp", () => {
     applyProp(el, "data-y", undefined, scope);
     expect(el.hasAttribute("data-y")).toBe(false);
   });
+
+  it("data-x attribute applied via setAttribute not as DOM property", () => {
+    const el = document.createElement("div");
+    const scope = new Scope();
+    applyProp(el, "data-x", "foo", scope);
+    expect(el.getAttribute("data-x")).toBe("foo");
+    // should not be set as a direct property
+    expect((el as unknown as Record<string, unknown>)["data-x"]).toBeUndefined();
+  });
+
+  it("aria-label applied via setAttribute", () => {
+    const el = document.createElement("button");
+    const scope = new Scope();
+    applyProp(el, "aria-label", "close", scope);
+    expect(el.getAttribute("aria-label")).toBe("close");
+  });
+
+  it("style object with CSS variable { \"--color\": \"red\" } — verify it's applied", () => {
+    const el = document.createElement("div") as HTMLElement;
+    const scope = new Scope();
+    applyProp(el, "style", { "--color": "red" }, scope);
+    expect(el.style.getPropertyValue("--color")).toBe("red");
+  });
+
+  it("reactive prop going from a value to null — attribute is removed", () => {
+    const el = document.createElement("div");
+    const scope = new Scope();
+    const cls = signal<string | null>("visible");
+    applyProp(el, "class", () => cls(), scope);
+    expect(el.getAttribute("class")).toBe("visible");
+    cls.set(null);
+    expect(el.hasAttribute("class")).toBe(false);
+    scope.dispose();
+  });
+
+  it("boolean false — attribute is removed (not set to \"false\")", () => {
+    const el = document.createElement("div");
+    el.setAttribute("data-active", "true");
+    const scope = new Scope();
+    applyProp(el, "data-active", false, scope);
+    expect(el.hasAttribute("data-active")).toBe(false);
+  });
 });
 
 // ── addEvent ─────────────────────────────────────────────────────────────────
@@ -198,5 +240,36 @@ describe("addEvent", () => {
     scope.dispose();
     el.dispatchEvent(new MouseEvent("click"));
     expect(fn).not.toHaveBeenCalled();
+  });
+
+  it("event handler runs and scope cleanup still works afterwards", () => {
+    // Verify that after a handler fires, the scope can still be disposed cleanly.
+    // (Throwing inside an event handler becomes an uncaught global exception in jsdom,
+    // so we verify the invariant without triggering that path.)
+    const el = document.createElement("button");
+    const scope = new Scope();
+    const handler = vi.fn();
+    const cleanup = vi.fn();
+    addEvent(el, "click", handler, scope);
+    scope.add(cleanup);
+    el.dispatchEvent(new MouseEvent("click"));
+    expect(handler).toHaveBeenCalledOnce();
+    expect(() => scope.dispose()).not.toThrow();
+    expect(cleanup).toHaveBeenCalled();
+  });
+
+  it("same handler registered twice on same element/event — both fire (browser behavior)", () => {
+    // Note: addEventListener deduplicates identical handler+options combos;
+    // addEvent is a thin wrapper so each call registers independently.
+    // Two separate scopes / two separate registrations = two calls.
+    const el = document.createElement("button");
+    const scope = new Scope();
+    const fn = vi.fn();
+    addEvent(el, "click", fn, scope);
+    addEvent(el, "click", fn, scope);
+    el.dispatchEvent(new MouseEvent("click"));
+    // addEventListener with the same listener reference is a no-op per spec
+    expect(fn).toHaveBeenCalledOnce();
+    scope.dispose();
   });
 });

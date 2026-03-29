@@ -71,6 +71,36 @@ describe("render", () => {
     document.body.removeChild(container);
   });
 
+  it("render() factory function throws — container remains cleared, error propagates", () => {
+    const container = document.createElement("div");
+    container.innerHTML = "<p>old content</p>";
+    document.body.appendChild(container);
+
+    expect(() => {
+      render(() => {
+        throw new Error("factory error");
+      }, container);
+    }).toThrow("factory error");
+
+    // container was cleared before factory ran
+    expect(container.innerHTML).toBe("");
+    document.body.removeChild(container);
+  });
+
+  it("unmount() called twice — does not crash", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const unmount = render(() => {
+      const scope = new Scope();
+      return mountElement("p", { children: "hi" }, scope);
+    }, container);
+
+    unmount();
+    expect(() => unmount()).not.toThrow();
+    document.body.removeChild(container);
+  });
+
   it("reactive content re-renders on signal change", () => {
     const container = document.createElement("div");
     document.body.appendChild(container);

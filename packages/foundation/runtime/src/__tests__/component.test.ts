@@ -165,4 +165,52 @@ describe("mountComponent", () => {
     expect(container.textContent).toBe("ab");
     scope.dispose();
   });
+
+  it("onError handler that itself throws — outer error propagates", () => {
+    class ThrowingErrorComp extends StatefulComponent {
+      static __isComponent = true as const;
+      static __isStateless = false;
+      onError(_err: Error) {
+        throw new Error("onError also throws");
+      }
+      render(): never {
+        throw new Error("render error");
+      }
+    }
+    const scope = new Scope();
+    expect(() => mountComponent(ThrowingErrorComp, {}, scope)).toThrow("onError also throws");
+    scope.dispose();
+  });
+
+  it("onMount microtask fires after dispose() — onMount is still called (current behavior)", async () => {
+    class MountAfterDisposeComp extends StatefulComponent {
+      static __isComponent = true as const;
+      static __isStateless = false;
+      onMount() {}
+      render() { return null; }
+    }
+    const scope = new Scope();
+    const onMount = vi.spyOn(MountAfterDisposeComp.prototype, "onMount");
+    mountComponent(MountAfterDisposeComp, {}, scope);
+    scope.dispose(); // dispose before microtask flushes
+    await Promise.resolve(); // flush microtask
+    // The queueMicrotask callback runs regardless — documents current behavior
+    expect(onMount).toHaveBeenCalled();
+    onMount.mockRestore();
+  });
+
+  it("component with no render() method — error reaches onError handler", () => {
+    let caughtError: Error | undefined;
+    class NoRenderComp extends StatefulComponent {
+      static __isComponent = true as const;
+      static __isStateless = false;
+      onError(err: Error) { caughtError = err; }
+      render(): Node[] { throw new TypeError("render is not implemented"); }
+    }
+    const scope = new Scope();
+    // mountComponent catches the TypeError and routes it through onError
+    expect(() => mountComponent(NoRenderComp as never, {}, scope)).not.toThrow();
+    expect(caughtError).toBeInstanceOf(Error);
+    scope.dispose();
+  });
 });
