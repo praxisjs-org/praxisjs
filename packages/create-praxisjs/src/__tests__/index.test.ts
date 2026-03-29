@@ -576,6 +576,73 @@ describe("create-praxisjs index – next steps display", () => {
   });
 });
 
+describe("create-praxisjs index – template directory missing", () => {
+  it("fails with a clear error message when the template directory does not exist", async () => {
+    const mockExit = vi.fn();
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const clack = makeClack();
+    const fsMock = makeFs();
+
+    // Make readdirSync throw for any templates path, simulating a missing template dir
+    fsMock.default.readdirSync = vi.fn().mockImplementation((p: string) => {
+      if (String(p).includes("templates")) {
+        throw Object.assign(new Error("ENOENT: no such file or directory"), { code: "ENOENT" });
+      }
+      return [];
+    });
+
+    vi.doMock("picocolors", () => makePc());
+    vi.doMock("@clack/prompts", () => clack);
+    vi.doMock("node:fs", () => fsMock);
+    vi.doMock("node:process", () => ({
+      argv: ["node", "create-praxisjs", "my-app"],
+      cwd: () => "/fake/cwd",
+      exit: mockExit,
+    }));
+
+    await runMain();
+
+    expect(consoleSpy).toHaveBeenCalled();
+    const errorArg = consoleSpy.mock.calls[0]?.[0];
+    expect(String(errorArg)).toContain("Template directory not found");
+    expect(mockExit).toHaveBeenCalledWith(1);
+
+    consoleSpy.mockRestore();
+  });
+});
+
+describe("create-praxisjs index – malformed _package.json", () => {
+  it("fails with a clear error message when _package.json contains invalid JSON", async () => {
+    const mockExit = vi.fn();
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const clack = makeClack();
+    // templateFiles includes _package.json so the readdirSync succeeds,
+    // but readFileSync returns invalid JSON for it
+    const fsMock = makeFs({ templateFiles: ["_package.json"] });
+    fsMock.default.readFileSync = vi.fn().mockReturnValue("{ not valid json !!!");
+
+    vi.doMock("picocolors", () => makePc());
+    vi.doMock("@clack/prompts", () => clack);
+    vi.doMock("node:fs", () => fsMock);
+    vi.doMock("node:process", () => ({
+      argv: ["node", "create-praxisjs", "my-app"],
+      cwd: () => "/fake/cwd",
+      exit: mockExit,
+    }));
+
+    await runMain();
+
+    expect(consoleSpy).toHaveBeenCalled();
+    const errorArg = consoleSpy.mock.calls[0]?.[0];
+    expect(String(errorArg)).toContain("_package.json");
+    expect(mockExit).toHaveBeenCalledWith(1);
+
+    consoleSpy.mockRestore();
+  });
+});
+
 describe("create-praxisjs index – error handling", () => {
   it("logs and exits with code 1 on unexpected error", async () => {
     const mockExit = vi.fn();

@@ -73,6 +73,18 @@ describe("toValidPackageName", () => {
   it("handles already-valid package names unchanged", () => {
     expect(toValidPackageName("my-awesome-lib")).toBe("my-awesome-lib");
   });
+
+  it("preserves a valid scoped package name as-is", () => {
+    expect(toValidPackageName("@org/pkg")).toBe("@org/pkg");
+  });
+
+  it("sanitizes parts of a scoped package name but keeps @ and /", () => {
+    expect(toValidPackageName("@My Org/My Pkg")).toBe("@my-org/my-pkg");
+  });
+
+  it("sanitizes an invalid scope but keeps the structure", () => {
+    expect(toValidPackageName("@My.Org/My_Pkg")).toBe("@my-org/my-pkg");
+  });
 });
 
 // ── isEmpty ───────────────────────────────────────────────────────────────────
@@ -106,6 +118,12 @@ describe("isEmpty", () => {
     fs.mkdirSync(path.join(tmpDir, ".git"));
     fs.writeFileSync(path.join(tmpDir, "README.md"), "");
     expect(isEmpty(tmpDir)).toBe(false);
+  });
+
+  it("returns true for a path that does not exist (does not throw)", () => {
+    const nonExistent = path.join(tmpDir, "does-not-exist");
+    expect(() => isEmpty(nonExistent)).not.toThrow();
+    expect(isEmpty(nonExistent)).toBe(true);
   });
 });
 
@@ -147,6 +165,18 @@ describe("emptyDir", () => {
 
   it("does nothing if the directory does not exist", () => {
     expect(() => emptyDir(path.join(tmpDir, "nonexistent"))).not.toThrow();
+  });
+
+  it("emptyDir on a directory containing a read-only file — documents behavior (rmSync with force:true succeeds)", () => {
+    // emptyDir uses { force: true } so it succeeds even for read-only files on most systems.
+    // On systems where force still fails (e.g. root-owned files), the error surfaces from rmSync.
+    const readonlyFile = path.join(tmpDir, "readonly.txt");
+    fs.writeFileSync(readonlyFile, "content");
+    fs.chmodSync(readonlyFile, 0o444); // read-only
+
+    // With { force: true, recursive: true }, rmSync removes read-only files on macOS/Linux
+    expect(() => emptyDir(tmpDir)).not.toThrow();
+    expect(fs.readdirSync(tmpDir)).toHaveLength(0);
   });
 });
 
