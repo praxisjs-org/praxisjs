@@ -131,15 +131,33 @@ async function main(): Promise<void> {
   const s = spinner();
   s.start("Scaffolding project...");
 
-  for (const file of fs
-    .readdirSync(templateDir)
-    .filter((f) => f !== "_package.json")) {
+  let templateFiles: string[];
+  try {
+    templateFiles = fs.readdirSync(templateDir);
+  } catch {
+    s.stop("Failed.");
+    throw new Error(
+      `Template directory not found: "${templateDir}". ` +
+        `Make sure the "${template}" template exists.`,
+    );
+  }
+
+  for (const file of templateFiles.filter((f) => f !== "_package.json")) {
     writeFile(file);
   }
 
-  const pkg = JSON.parse(
-    fs.readFileSync(path.join(templateDir, "_package.json"), "utf-8"),
-  ) as Record<string, unknown>;
+  let pkg: Record<string, unknown>;
+  try {
+    pkg = JSON.parse(
+      fs.readFileSync(path.join(templateDir, "_package.json"), "utf-8"),
+    ) as Record<string, unknown>;
+  } catch {
+    s.stop("Failed.");
+    throw new Error(
+      `Failed to parse "_package.json" in template "${template}". ` +
+        `Ensure the file exists and contains valid JSON.`,
+    );
+  }
   pkg.name = pkgName;
   writeFile("package.json", JSON.stringify(pkg, null, 2) + "\n");
 

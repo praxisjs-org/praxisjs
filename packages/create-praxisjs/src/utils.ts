@@ -5,8 +5,8 @@ export function formatTargetDir(targetDir: string): string {
   return targetDir.trim().replace(/\/+$/g, "");
 }
 
-export function toValidPackageName(name: string): string {
-  return name
+function sanitizeNamePart(part: string): string {
+  return part
     .trim()
     .toLowerCase()
     .replace(/\s+/g, "-")
@@ -14,8 +14,26 @@ export function toValidPackageName(name: string): string {
     .replace(/[^a-z\d\-~]+/g, "-");
 }
 
+export function toValidPackageName(name: string): string {
+  const trimmed = name.trim();
+  // Preserve scoped package names: @scope/pkg — sanitize scope and pkg separately
+  if (trimmed.startsWith("@") && trimmed.includes("/")) {
+    const slashIdx = trimmed.indexOf("/");
+    const scope = trimmed.slice(1, slashIdx); // e.g. "org"
+    const pkg = trimmed.slice(slashIdx + 1);   // e.g. "pkg"
+    return `@${sanitizeNamePart(scope)}/${sanitizeNamePart(pkg)}`;
+  }
+  return sanitizeNamePart(trimmed);
+}
+
 export function isEmpty(dirPath: string): boolean {
-  const files = fs.readdirSync(dirPath);
+  let files: string[];
+  try {
+    files = fs.readdirSync(dirPath);
+  } catch {
+    // Directory does not exist — treat as empty
+    return true;
+  }
   return files.length === 0 || (files.length === 1 && files[0] === ".git");
 }
 
