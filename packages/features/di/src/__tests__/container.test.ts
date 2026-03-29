@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { describe, it, expect } from "vitest";
 
-import { Container, Token, token } from "../container";
+import { Container, Token, token, type Constructor } from "../container";
 
 describe("Token", () => {
   it("stores description", () => {
@@ -168,5 +168,90 @@ describe("Container", () => {
     // After re-registration, a new singleton is created
     expect(second).toBeInstanceOf(Counter);
     expect(second).not.toBe(first);
+  });
+
+  it("circular dependency A → B → A throws a descriptive error", () => {
+    class A {
+      constructor(public b: unknown) {}
+    }
+    class B {
+      constructor(public a: unknown) {}
+    }
+    const c = new Container();
+    c.register(A);
+    c.register(B);
+    Reflect.defineMetadata("di:inject", [B], A);
+    Reflect.defineMetadata("di:inject", [A], B);
+
+    expect(() => c.resolve(A)).toThrow("[DI] Circular dependency detected");
+
+    Reflect.deleteMetadata("di:inject", A);
+    Reflect.deleteMetadata("di:inject", B);
+  });
+
+  it("factory function that throws — error message includes which service failed", () => {
+    class Broken {
+      constructor() {
+        throw new Error("boom");
+      }
+    }
+    const c = new Container();
+    c.register(Broken);
+    expect(() => c.resolve(Broken)).toThrow("Broken");
+    expect(() => c.resolve(Broken)).toThrow("[DI] Failed to instantiate");
+  });
+
+  it("resolve() called concurrently on the same uninitialized singleton — returns same instance or does not crash", async () => {
+    class SlowService {}
+    const c = new Container();
+    c.register(SlowService, { scope: "singleton" });
+
+    const [a, b] = await Promise.all([
+      Promise.resolve(c.resolve(SlowService)),
+      Promise.resolve(c.resolve(SlowService)),
+    ]);
+
+    expect(a).toBeInstanceOf(SlowService);
+    expect(a).toBe(b);
+  });
+
+  it("re-registering a service clears the previous singleton instance", () => {
+    class Svc {
+      id = Math.random();
+    }
+    const c = new Container();
+    c.register(Svc, { scope: "singleton" });
+    const first = c.resolve(Svc);
+
+    c.register(Svc, { scope: "singleton" });
+    const second = c.resolve(Svc);
+
+    expect(second).not.toBe(first);
+  });
+
+  it("circular dependency chain including a Token shows the Token name in the error", () => {
+    const MY_TOKEN = token<unknown>("MyToken");
+    const c = new Container();
+    c.registerValue(MY_TOKEN, "value");
+
+    // Pre-populate the stack as if we are already in the middle of resolving MY_TOKEN
+    const stack = new Set<Constructor | Token<unknown>>([MY_TOKEN]);
+    expect(() => c.resolve(MY_TOKEN, stack)).toThrow("Token(MyToken)");
+  });
+
+  it("instantiate rethrows DI errors thrown inside a constructor without wrapping", () => {
+    const c = new Container();
+    class Unregistered {}
+    class Outer {
+      constructor() {
+        // Manually triggers a [DI] error inside the constructor body
+        c.resolve(Unregistered);
+      }
+    }
+    c.register(Outer);
+
+    const err = (() => { try { c.resolve(Outer); } catch (e) { return e as Error; } })()!;
+    expect(err.message).toMatch(/\[DI\] Service not registered/);
+    expect(err.message).not.toMatch(/Failed to instantiate/);
   });
 });

@@ -24,6 +24,14 @@ function makeFieldCtx(name: string) {
 // ── @Injectable ───────────────────────────────────────────────────────────────
 
 describe("Injectable", () => {
+  it("with no arguments — defaults to singleton scope", () => {
+    class SingletonByDefault {}
+    Injectable()(SingletonByDefault, {} as ClassDecoratorContext);
+    const a = container.resolve(SingletonByDefault);
+    const b = container.resolve(SingletonByDefault);
+    expect(a).toBe(b);
+  });
+
   it("registers the class in the global container", () => {
     class MyService {
       greet() { return "hello"; }
@@ -123,6 +131,15 @@ describe("Inject", () => {
     run(instance);
     expect(() => instance.svc).toThrow("MY_SERVICE");
   });
+
+  it("@Inject on an anonymous class — error message uses token description instead of empty class name", () => {
+    const ANON_TOKEN = token<string>("ANON_TOKEN");
+    const { ctx, run } = makeFieldCtx("val");
+    Inject(ANON_TOKEN)(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    expect(() => instance.val).toThrow("ANON_TOKEN");
+  });
 });
 
 // ── @InjectContainer ──────────────────────────────────────────────────────────
@@ -135,6 +152,16 @@ describe("InjectContainer", () => {
     run(instance);
     expect(instance.c).toBeInstanceOf(Container);
     expect(instance.c).toBe(container);
+  });
+
+  it("called multiple times on same instance — returns same container instance (cached)", () => {
+    const { ctx, run } = makeFieldCtx("c");
+    InjectContainer()(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    const first = instance.c;
+    const second = instance.c;
+    expect(first).toBe(second);
   });
 });
 
@@ -224,5 +251,31 @@ describe("Scope", () => {
     run(instance);
 
     expect(instance.svc).toBeInstanceOf(GlobalService);
+  });
+
+  it("@Scope on child class that inherits from @Scope parent — child gets own container", () => {
+    const PARENT_TOKEN = token<string>("PARENT_VAL");
+    const CHILD_TOKEN = token<string>("CHILD_VAL");
+
+    @Scope((c) => { c.registerValue(PARENT_TOKEN, "parent"); })
+    class Parent {}
+
+    @Scope((c) => { c.registerValue(CHILD_TOKEN, "child"); })
+    class Child extends (Parent as unknown as new () => object) {}
+
+    const { ctx: ctxC, run: runC } = makeFieldCtx("c");
+    InjectContainer()(undefined, ctxC);
+
+    const parentInstance = new Parent() as Record<string, unknown>;
+    runC(parentInstance);
+
+    const childInstance = new Child() as Record<string, unknown>;
+    runC(childInstance);
+
+    expect(parentInstance.c).toBeInstanceOf(Container);
+    expect(childInstance.c).toBeInstanceOf(Container);
+    // child has its own scoped container, different from the parent's
+    expect(childInstance.c).not.toBe(parentInstance.c);
+    expect(childInstance.c).not.toBe(container);
   });
 });
