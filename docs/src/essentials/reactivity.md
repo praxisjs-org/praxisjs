@@ -89,9 +89,77 @@ this.config.theme = 'dark'
 
 Always replace with a new reference when updating arrays or objects.
 
+## Passing props to child components
+
+Props can be passed as **static values** or **reactive getters** — the difference determines whether the child updates when the parent's state changes.
+
+### Static prop — snapshot at render time
+
+```tsx
+// ✅ valid — passes the current value of count at the moment Home renders
+<Badge value={this.count} />
+```
+
+The child receives `0` (or whatever the current value is). If `count` changes later, `Badge` is **not** notified — it keeps the original value. Use this when the child only needs the value once, or when the prop never changes.
+
+### Reactive prop — updates when the parent's state changes
+
+```tsx
+// ✅ reactive — Badge re-evaluates value whenever count changes
+<Badge value={() => this.count} />
+```
+
+Passing a getter `() => this.count` lets the child pull the current value at any time. When `count` changes, any node inside `Badge` that reads `this.value` via `{() => this.value}` updates automatically.
+
+### Full example
+
+```tsx
+interface BadgeProps {
+  value: number
+}
+
+@Component()
+class Badge extends StatelessComponent<BadgeProps> {
+  render() {
+    // this.props.value is whatever the parent passed —
+    // if the parent passed () => this.count, the function itself lands here
+    // and the renderer handles it reactively automatically
+    return <span class="badge">{this.props.value}</span>
+  }
+}
+
+@Component()
+class Counter extends StatefulComponent {
+  @State() count = 0
+
+  render() {
+    return (
+      <div>
+        {/* ✅ reactive — Badge updates when count changes */}
+        <Badge value={() => this.count} />
+
+        {/* ✅ static — Badge shows the value at render time, never updates */}
+        <Badge value={this.count} />
+
+        <button onClick={() => this.count++}>+</button>
+      </div>
+    )
+  }
+}
+```
+
+::: tip Rule of thumb
+- Pass `() => this.state` when the child should stay in sync with the parent.
+- Pass `this.state` when you want to capture the value at the current moment and the child doesn't need to react to future changes.
+:::
+
+Both forms are valid and safe — `render()` always runs untracked, so eager reads never cause unexpected side effects.
+
 ## Props are reactive too
 
-`@Prop()` values are also reactive. When a parent changes a prop, the child re-renders only the nodes that read that prop:
+The pattern differs depending on whether the child uses `@Prop()` or raw `this.props`.
+
+**With `@Prop()`** — the decorator unwraps the getter, so you need `{() => this.text}` to create the reactive binding:
 
 ```tsx
 @Component()
@@ -99,7 +167,22 @@ class Label extends StatefulComponent {
   @Prop() text = ''
 
   render() {
+    // @Prop() calls () => this.text internally and returns the value —
+    // wrap in () => so the renderer subscribes to it
     return <span>{() => this.text}</span>
+  }
+}
+```
+
+**With raw `this.props`** (StatelessComponent) — `this.props.text` returns whatever the parent passed, including the function itself if the parent passed a getter. The renderer detects the function and makes it reactive automatically:
+
+```tsx
+@Component()
+class Label extends StatelessComponent<{ text: string }> {
+  render() {
+    // if parent passed text={() => this.name}, this.props.text IS the function —
+    // no extra () => needed
+    return <span>{this.props.text}</span>
   }
 }
 ```
@@ -170,4 +253,6 @@ Signal system internals:
 - peek(signal) temporarily sets activeEffect = null, reads the signal, then restores activeEffect — same as untrack but typed for Signal/Computed
 - untrack(fn) sets activeEffect = null for the duration of fn, then restores — suppresses all tracking for any signals read inside fn
 - render() itself always runs untracked (activeEffect = null during mountComponent) — so eager reads like {this.count} in JSX are always static snapshots, not subscriptions
+- Props passed as plain values (description={this.count}) are static — the child gets the value at mount time and never sees future changes
+- Props passed as getters (description={() => this.count}) are reactive — with @Prop(), the decorator unwraps the getter on each read, so {() => this.prop} in the child subscribes transitively; with raw this.props, the function itself is returned and the renderer handles it as a reactive child automatically (no extra () => wrapper needed)
 </llm-only>
