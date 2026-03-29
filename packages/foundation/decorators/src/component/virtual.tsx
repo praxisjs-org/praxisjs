@@ -27,6 +27,11 @@ class VirtualBehavior extends ClassBehavior {
 
     return {
       onMount() {
+        if (itemHeight <= 0) {
+          throw new Error(
+            `[Virtual] itemHeight must be a positive number, got ${String(itemHeight)}`,
+          );
+        }
         container = host._anchor?.parentElement ?? undefined;
         if (!container) return;
 
