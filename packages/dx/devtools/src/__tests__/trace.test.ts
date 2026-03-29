@@ -110,6 +110,57 @@ describe("Trace — onBeforeMount()", () => {
   });
 });
 
+describe("Trace — class with no render() method", () => {
+  it("does not crash and no duration is recorded when render is absent", () => {
+    class NoRender {
+      onBeforeMount() {}
+    }
+    const Traced = applyTrace(NoRender);
+    const instance = new Traced() as unknown as Record<string, () => void>;
+
+    const registry = Registry.instance;
+    instance.onBeforeMount();
+
+    // render does not exist — calling it should not be attempted
+    expect(instance.render).toBeUndefined();
+
+    // No component:render timeline entries should exist
+    const renderEntries = registry.getTimeline().filter((e) => e.type === "component:render");
+    expect(renderEntries).toHaveLength(0);
+  });
+});
+
+describe("Trace — lifecycle hook call order", () => {
+  it("calls onBeforeMount → render → (async) onMount in correct order", async () => {
+    const order: string[] = [];
+
+    class App {
+      onBeforeMount() { order.push("onBeforeMount"); }
+      render() { order.push("render"); return "html"; }
+      onMount() { order.push("onMount"); }
+    }
+    const Traced = applyTrace(App);
+    const instance = new Traced() as {
+      onBeforeMount: () => void;
+      render: () => string;
+      onMount: () => void;
+    };
+
+    const registry = Registry.instance;
+
+    // Simulate the component lifecycle
+    instance.onBeforeMount();
+    instance.render();
+
+    // onMount is called async (via the framework's create() hook), simulate it
+    registry.registerComponent(instance, "App");
+    instance.onMount();
+
+    // The original methods (including Trace wrappers) run in call order
+    expect(order).toEqual(["onBeforeMount", "render", "onMount"]);
+  });
+});
+
 describe("Trace — lifecycle hooks", () => {
   const hooks = ["onMount", "onUnmount", "onBeforeUpdate", "onUpdate", "onAfterUpdate"] as const;
 

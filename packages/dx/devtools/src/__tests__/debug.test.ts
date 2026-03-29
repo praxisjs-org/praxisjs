@@ -241,6 +241,62 @@ describe("Debug — field decorator with computed value", () => {
   });
 });
 
+// ── Async method decorator ────────────────────────────────────────────────────
+
+describe("Debug — async method decorator", () => {
+  it("timing is recorded for the synchronous wrapper (documents limitation: async duration is not measured)", () => {
+    // @Debug wraps methods synchronously. For async methods, the recorded duration
+    // covers only until the Promise is returned, not until it resolves.
+    const ctx = mockMethodCtx("fetchData");
+    const original = vi.fn(async () => {
+      await new Promise((r) => setTimeout(r, 10));
+      return "done";
+    });
+
+    Debug()(original as never, ctx);
+
+    class Comp { async fetchData() { return "done"; } }
+    const instance = new Comp();
+    ctx.runInitializers(instance);
+    Registry.instance.registerComponent(instance, "Comp");
+
+    // Call and await
+    const promise = (instance as unknown as Record<string, () => unknown>).fetchData() as Promise<unknown>;
+    expect(promise).toBeInstanceOf(Promise);
+
+    // Timeline entry is recorded synchronously (before the promise resolves)
+    const entry = Registry.instance.getTimeline().find((t) => t.type === "method:call");
+    expect(entry).toBeDefined();
+    expect(entry?.label).toContain("fetchData");
+    // Duration is near-zero since it only measured until Promise was returned
+    expect(typeof entry?.data.duration).toBe("number");
+
+    return promise;
+  });
+});
+
+// ── Empty constructor name ─────────────────────────────────────────────────────
+
+describe("Debug — class with empty constructor name", () => {
+  it("falls back gracefully when constructor.name is empty string", () => {
+    const ctx = mockMethodCtx("doWork");
+    const original = vi.fn(() => 42);
+
+    Debug()(original as never, ctx);
+
+    // Simulate a class whose constructor.name is empty (e.g. minified code)
+    const instance = Object.create({ constructor: { name: "" } }) as object;
+    ctx.runInitializers(instance);
+
+    expect(() => {
+      (instance as Record<string, () => void>).doWork();
+    }).not.toThrow();
+
+    const entry = Registry.instance.getTimeline().find((t) => t.type === "method:call");
+    expect(entry).toBeDefined();
+  });
+});
+
 // ── Getter decorator ──────────────────────────────────────────────────────────
 
 describe("Debug — getter decorator", () => {

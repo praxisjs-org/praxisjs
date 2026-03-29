@@ -329,3 +329,58 @@ describe("Registry timeline cap", () => {
     expect(registry.getTimeline().length).toBe(200);
   });
 });
+
+describe("Registry — rapid signal updates", () => {
+  it("records all rapid updates within the same millisecond separately", () => {
+    const registry = Registry.instance;
+    const instance = {};
+    registry.registerSignal(instance, "count", 0, "Counter");
+
+    // Perform multiple rapid updates (may share the same Date.now() value)
+    registry.updateSignal(instance, "count", 1, 0);
+    registry.updateSignal(instance, "count", 2, 1);
+    registry.updateSignal(instance, "count", 3, 2);
+
+    const signal = registry.getSignals()[0];
+    // initial + 3 updates = 4 history entries
+    expect(signal.history).toHaveLength(4);
+    expect(signal.history.map((h) => h.value)).toEqual([0, 1, 2, 3]);
+  });
+});
+
+describe("Registry — re-registering same signal", () => {
+  it("overwrites the previous entry when the same instance+key is re-registered", () => {
+    const registry = Registry.instance;
+    const instance = {};
+    registry.registerSignal(instance, "x", 10, "Comp");
+    registry.registerSignal(instance, "x", 99, "Comp");
+
+    const signals = registry.getSignals();
+    expect(signals).toHaveLength(1);
+    expect(signals[0].value).toBe(99);
+    expect(signals[0].history).toHaveLength(1);
+    expect(signals[0].history[0].value).toBe(99);
+  });
+});
+
+describe("Registry timeline cap — oldest entry removed", () => {
+  it("removes the oldest entry when the 201st entry is pushed", () => {
+    const registry = Registry.instance;
+    const instance = {};
+    registry.registerComponent(instance, "Comp");
+    registry.registerSignal(instance, "n", 0, "Comp");
+
+    // Push exactly 200 entries
+    for (let i = 1; i <= 200; i++) {
+      registry.updateSignal(instance, "n", i, i - 1);
+    }
+    const firstId = registry.getTimeline()[0].id;
+
+    // Push one more — the oldest should be evicted
+    registry.updateSignal(instance, "n", 201, 200);
+
+    const timeline = registry.getTimeline();
+    expect(timeline).toHaveLength(200);
+    expect(timeline[0].id).not.toBe(firstId);
+  });
+});
