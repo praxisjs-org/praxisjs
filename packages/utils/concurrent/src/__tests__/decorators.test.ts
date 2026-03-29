@@ -75,6 +75,35 @@ describe("Queue decorator", () => {
   });
 });
 
+// ── Queue (additional) ────────────────────────────────────────────────────────
+
+describe("Queue decorator (additional)", () => {
+  it("clear() is accessible on the instance via method_clear property", async () => {
+    const { ctx, run } = methodCtx("save");
+    let resolveFirst!: () => void;
+    const original = async (_: unknown, idx: unknown) =>
+      idx === 0
+        ? new Promise<void>((r) => { resolveFirst = r; })
+        : Promise.resolve();
+    Queue()(original, ctx);
+
+    const instance: Record<string, unknown> = {};
+    run(instance);
+
+    expect(typeof instance.save_clear).toBe("function");
+
+    const save = instance.save as (...args: unknown[]) => Promise<unknown>;
+    save(null, 0);
+    const p1 = save(null, 1);
+
+    // Call clear via the exposed property
+    (instance.save_clear as () => void)();
+
+    await expect(p1).rejects.toThrow("Queue cleared");
+    resolveFirst();
+  });
+});
+
 // ── Pool ──────────────────────────────────────────────────────────────────────
 
 describe("Pool decorator", () => {
@@ -115,5 +144,67 @@ describe("Pool decorator", () => {
 
     resolvers.forEach((r) => { r(); });
     await Promise.all([t1, t2]);
+  });
+
+  it("Pool(-1, fn) — clamps to 1, does not allow unlimited concurrency", async () => {
+    const { ctx, run } = methodCtx("work");
+    const resolvers: Array<() => void> = [];
+    const original = async () => new Promise<void>((r) => resolvers.push(r));
+    Pool(-1)(original, ctx);
+
+    const instance: Record<string, unknown> = {};
+    run(instance);
+
+    const work = instance.work as () => Promise<void>;
+    const t1 = work();
+    const t2 = work();
+
+    // With concurrency clamped to 1, only one task should be active at a time
+    expect((instance.work_active as () => number)()).toBe(1);
+    expect((instance.work_pending as () => number)()).toBe(1);
+
+    resolvers[0]();
+    await t1;
+    resolvers[1]();
+    await t2;
+  });
+
+  it("decorated method called concurrently up to pool limit — active() signal is accurate", async () => {
+    const { ctx, run } = methodCtx("process");
+    const resolvers: Array<() => void> = [];
+    const original = async () => new Promise<void>((r) => resolvers.push(r));
+    Pool(3)(original, ctx);
+
+    const instance: Record<string, unknown> = {};
+    run(instance);
+
+    const process = instance.process as () => Promise<void>;
+    const active = instance.process_active as () => number;
+
+    const t1 = process();
+    expect(active()).toBe(1);
+
+    const t2 = process();
+    expect(active()).toBe(2);
+
+    const t3 = process();
+    expect(active()).toBe(3);
+
+    // 4th task exceeds limit, goes to pending
+    const t4 = process();
+    expect(active()).toBe(3);
+    expect((instance.process_pending as () => number)()).toBe(1);
+
+    // Resolve t1 first — this will allow t4 to start and push its resolver
+    resolvers[0]();
+    await t1;
+
+    // Now t4 has started and pushed a resolver
+    resolvers[1]();
+    resolvers[2]();
+    resolvers[3]();
+    await Promise.all([t2, t3, t4]);
+
+    expect(active()).toBe(0);
   });
 });

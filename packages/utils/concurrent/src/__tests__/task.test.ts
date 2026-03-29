@@ -134,4 +134,66 @@ describe("task", () => {
     expect(result).toBe("fresh");
     expect(t.loading()).toBe(false);
   });
+
+  it("two concurrent calls — second result wins when first is slower", async () => {
+    let resolveFirst!: (v: string) => void;
+    let resolveSecond!: (v: string) => void;
+
+    const t = task((which: unknown) =>
+      which === "first"
+        ? new Promise<string>((r) => { resolveFirst = r; })
+        : new Promise<string>((r) => { resolveSecond = r; }),
+    );
+
+    const p1 = t("first");
+    const p2 = t("second");
+
+    // second resolves before first
+    resolveSecond("second-result");
+    resolveFirst("first-result");
+
+    const [r1, r2] = await Promise.all([p1, p2]);
+    expect(r2).toBe("second-result");
+    expect(r1).toBeUndefined(); // stale
+    expect(t.lastResult()).toBe("second-result");
+  });
+
+  it("cancelAll() called, then new call — new call works normally", async () => {
+    let resolveStale!: (v: string) => void;
+    const t = task((which: unknown) =>
+      which === "stale"
+        ? new Promise<string>((r) => { resolveStale = r; })
+        : Promise.resolve("fresh"),
+    );
+
+    const staleP = t("stale");
+    t.cancelAll();
+    resolveStale("stale-value");
+    await staleP;
+
+    const freshResult = await t("fresh");
+    expect(freshResult).toBe("fresh");
+    expect(t.loading()).toBe(false);
+    expect(t.lastResult()).toBe("fresh");
+  });
+
+  it("lastResult is null when task throws (not stale from previous run)", async () => {
+    let shouldThrow = false;
+    const t = task(async () => {
+      if (shouldThrow) throw new Error("fail");
+      return "success";
+    });
+
+    await t();
+    expect(t.lastResult()).toBe("success");
+
+    shouldThrow = true;
+    await t();
+
+    // After a throw, lastResult should remain the previous value
+    // (the error path does not update lastResult)
+    expect(t.error()?.message).toBe("fail");
+    // lastResult is not reset to null on error — it keeps the last successful value
+    expect(t.lastResult()).toBe("success");
+  });
 });

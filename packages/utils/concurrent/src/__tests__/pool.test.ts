@@ -129,16 +129,15 @@ describe("pool", () => {
     expect(results[1]).toBe(1);         // subsequent task ran
   });
 
-  it("concurrency=0 — tasks are enqueued but never executed", async () => {
+  it("concurrency=0 — clamps to 1, tasks execute serially", async () => {
     const fn = vi.fn(async () => "result");
     const p = pool(0, fn);
 
-    // Queue a task — tryRun() bails immediately because _active(0) >= concurrency(0)
-    void p();
-    await new Promise((r) => setTimeout(r, 0));
-
-    expect(fn).not.toHaveBeenCalled();
-    expect(p.pending()).toBe(1);
+    // concurrency=0 is clamped to 1, so the task runs immediately
+    const result = await p();
+    expect(fn).toHaveBeenCalledOnce();
+    expect(result).toBe("result");
+    expect(p.pending()).toBe(0);
     expect(p.loading()).toBe(false);
   });
 
@@ -153,5 +152,53 @@ describe("pool", () => {
 
     await Promise.all([p(), p(), p(), p()]);
     expect(maxObservedActive).toBeLessThanOrEqual(concurrency);
+  });
+
+  it("pool(-5, fn) — clamps to 1, runs tasks serially", async () => {
+    const order: number[] = [];
+    let resolveFirst!: () => void;
+
+    const p = pool(-5, async (n: unknown) => {
+      if (n === 0) await new Promise<void>((r) => { resolveFirst = r; });
+      order.push(n as number);
+    });
+
+    const t1 = p(0);
+    const t2 = p(1);
+
+    expect(p.active()).toBe(1);
+    expect(p.pending()).toBe(1);
+
+    resolveFirst();
+    await t1;
+    await t2;
+
+    expect(order).toEqual([0, 1]);
+  });
+
+  it("multiple tasks error — error signal reflects last error", async () => {
+    let callCount = 0;
+    const p = pool(1, async () => {
+      callCount++;
+      throw new Error(`error ${callCount}`);
+    });
+
+    await p();
+    await p();
+    await p();
+
+    expect(p.error()?.message).toBe("error 3");
+  });
+
+  it("active() never goes negative even if task throws synchronously", async () => {
+    const p = pool(2, async () => {
+      throw new Error("sync-ish throw");
+    });
+
+    await p();
+    await p();
+
+    expect(p.active()).toBeGreaterThanOrEqual(0);
+    expect(p.active()).toBe(0);
   });
 });
