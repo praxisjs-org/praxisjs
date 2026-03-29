@@ -1,5 +1,11 @@
 # create-praxisjs
 
+## 0.3.9
+
+### Patch Changes
+
+- 72cd9a8: Update template dependencies to pick up latest bug fixes in `@praxisjs/decorators` and `@praxisjs/concurrent`
+
 ## 0.3.8
 
 ### Patch Changes
