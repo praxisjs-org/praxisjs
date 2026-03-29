@@ -43,14 +43,23 @@ export function debounced<T>(source: Signal<T> | Computed<T>, ms: number) {
   const current = signal<T>(source());
   let timeout: ReturnType<typeof setTimeout> | undefined;
 
-  effect(() => {
+  const stop = effect(() => {
     const value = source();
     if (timeout) clearTimeout(timeout);
     timeout = setTimeout(() => {
       current.set(value);
       timeout = undefined;
     }, ms);
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = undefined;
+      }
+    };
   });
 
-  return current;
+  const debouncedSignal = current as Signal<T> & { stop: () => void };
+  debouncedSignal.stop = stop;
+
+  return debouncedSignal;
 }

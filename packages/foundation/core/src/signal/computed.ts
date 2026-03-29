@@ -22,9 +22,12 @@ export function computed<T>(computeFn: () => T): Computed<T> {
     if (dirty) {
       const prevEffect = activeEffect;
       runEffect(recompute);
-      cachedValue = computeFn();
-      dirty = false;
-      runEffect(prevEffect);
+      try {
+        cachedValue = computeFn();
+        dirty = false;
+      } finally {
+        runEffect(prevEffect);
+      }
     }
 
     return cachedValue;

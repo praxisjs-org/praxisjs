@@ -2,13 +2,26 @@ import type { Effect } from "./effect";
 
 let batchQueue: Set<Effect> | null = null;
 
+export function isBatching(): boolean {
+  return batchQueue !== null;
+}
+
+export function enqueueEffect(effect: Effect): void {
+  batchQueue?.add(effect);
+}
+
 export function batch(fn: () => void) {
-  batchQueue = new Set();
+  const isOuter = batchQueue === null;
+  if (isOuter) {
+    batchQueue = new Set();
+  }
   try {
     fn();
   } finally {
-    const effectsToRun = batchQueue;
-    batchQueue = null;
-    effectsToRun.forEach((eff) => { eff(); });
+    if (isOuter) {
+      const effectsToRun = batchQueue ?? new Set<Effect>();
+      batchQueue = null;
+      effectsToRun.forEach((eff) => { eff(); });
+    }
   }
 }

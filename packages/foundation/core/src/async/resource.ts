@@ -59,12 +59,23 @@ export function resource<T>(
   }
 
   function execute() {
-    _execute(fetcher());
+    try {
+      _execute(fetcher());
+    } catch (err: unknown) {
+      _runId++;
+      _error.set(err instanceof Error ? err : new Error(String(err)));
+      _status.set("error");
+    }
   }
 
   if (immediate) {
     effect(() => {
-      _execute(fetcher());
+      try {
+        _execute(fetcher());
+      } catch (err: unknown) {
+        _error.set(err instanceof Error ? err : new Error(String(err)));
+        _status.set("error");
+      }
     });
   }
 

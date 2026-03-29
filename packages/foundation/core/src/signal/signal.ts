@@ -1,5 +1,6 @@
 import type { Signal } from "@praxisjs/shared";
 
+import { isBatching, enqueueEffect } from "./batch";
 import { activeEffect, type Effect } from "./effect";
 
 export function signal<T>(initialValue: T): Signal<T> {
@@ -16,9 +17,19 @@ export function signal<T>(initialValue: T): Signal<T> {
   function set(newValue: T) {
     if (Object.is(value, newValue)) return;
     value = newValue;
+    if (isBatching()) {
+      [...subscribers].forEach((sub) => { enqueueEffect(sub); });
+      return;
+    }
+    const errors: unknown[] = [];
     [...subscribers].forEach((sub) => {
-      sub();
+      try {
+        sub();
+      } catch (e) {
+        errors.push(e);
+      }
     });
+    if (errors.length > 0) throw errors[errors.length - 1];
   }
 
   function update(fn: (prev: T) => T) {
