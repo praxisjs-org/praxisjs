@@ -5,7 +5,9 @@ import llmstxt, {
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { version } = require("../../packages/foundation/core/package.json") as { version: string };
+const { version } = require("../../packages/foundation/core/package.json") as {
+  version: string;
+};
 
 export default defineConfig({
   title: "PraxisJS",
@@ -24,7 +26,7 @@ export default defineConfig({
       { text: "Essentials", link: "/essentials/components" },
       { text: "Ecosystem", link: "/ecosystem/router" },
       {
-        text: `v${version} beta`,
+        text: `v${version}`,
         items: [
           { text: "Project Status", link: "/guide/project-status" },
           {

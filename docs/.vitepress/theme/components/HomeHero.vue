@@ -17,7 +17,7 @@ const version = theme.value.version as string;
       <div class="ph-hero-copy">
         <a class="ph-badge" href="/guide/project-status">
           <span class="ph-badge-dot" />
-          v{{ version }} &nbsp;&middot;&nbsp; Early Beta
+          v{{ version }} &nbsp;&middot;&nbsp; Stable
         </a>
 
         <h1 class="ph-headline">
