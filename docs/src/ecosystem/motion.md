@@ -98,10 +98,14 @@ class DragHandle extends StatefulComponent {
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `stiffness` | `number` | `0.15` | Spring strength — higher = snappier |
+| `stiffness` | `number` | `0.15` | Spring strength — higher = snappier. Must be greater than `0`. |
 | `damping` | `number` | `0.8` | Resistance — lower = more bounce |
 | `mass` | `number` | `1` | Object mass — higher = more inertia |
 | `precision` | `number` | `0.001` | Settlement threshold |
+
+::: warning Validation
+`stiffness` must be greater than `0`. Passing `0` or a negative value throws an error.
+:::
 
 ---
 
@@ -112,6 +116,8 @@ Available easing names for `@Tween`:
 ```ts
 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'easeInCubic' | 'bounce' | 'elastic'
 ```
+
+Passing an unrecognised name throws an error listing the valid options.
 
 Custom easing: pass any `(t: number) => number` function where `t` is in `[0, 1]`:
 

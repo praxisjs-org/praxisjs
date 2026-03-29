@@ -1,6 +1,6 @@
 ---
 title: Watchers
-description: React to state changes with @Watch and @When — declarative side-effect handlers for reactive properties.
+description: React to state changes with @Watch, @When, and @Until — declarative side-effect handlers and async waiters for reactive properties.
 ---
 
 # Watchers
@@ -77,6 +77,35 @@ class DataLoader extends StatefulComponent {
 
 Use `@When` for one-time initialization that depends on a value arriving (e.g., first API response, user authentication).
 
+---
+
+## `@Until(propName)`
+
+Replaces the decorated method with one that returns a `Promise` resolving to the first truthy value of the named property. Each call to the method returns a fresh promise.
+
+```tsx
+import { Component, State, Until } from '@praxisjs/decorators'
+
+@Component()
+class UserProfile extends StatefulComponent {
+  @State() user: User | null = null
+
+  @Until('user')
+  waitForUser(): Promise<User> { return Promise.resolve(null!) }
+
+  async loadProfile() {
+    const user = await this.waitForUser()
+    console.log('User ready:', user.name)
+  }
+
+  render() { /* ... */ }
+}
+```
+
+The original method body is ignored — the decorator replaces it entirely. If the property is already truthy when the method is called, the promise resolves on the next microtask.
+
+Use `@Until` when downstream code needs to await a reactive value rather than react to it via a side effect.
+
 <llm-only>
 @Watch details:
 - Runs after the component is mounted; initial value does NOT trigger a call
@@ -88,4 +117,12 @@ Use `@When` for one-time initialization that depends on a value arriving (e.g., 
 - Only fires once — subsequent changes do not trigger it again
 - The method fires when the signal transitions from falsy to truthy
 - Automatically cleaned up after firing or on unmount
+
+@Until details:
+- Replaces the decorated method body entirely; the original implementation is ignored
+- Returns a new Promise on every call — each promise independently waits for the first truthy value
+- Resolves with the NonNullable<T> truthy value of the signal/computed
+- If the property is already truthy, the promise resolves immediately (microtask)
+- Works with both Signal and Computed properties
+- No automatic lifecycle cleanup — the promise resolves once and discards the watcher
 </llm-only>

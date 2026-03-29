@@ -88,6 +88,29 @@ render() {
 
 Reactive state: `{method}_loading()`, `{method}_error()`, `{method}_pending()`
 
+### Clearing the queue
+
+`@Queue()` exposes a `{method}_clear()` method that cancels all queued (not-yet-started) calls. Each cancelled call's promise rejects with a `QueueClearedError`.
+
+```tsx
+import { QueueClearedError } from '@praxisjs/concurrent'
+
+// Cancel all pending saves when the component unmounts
+onUnmount() {
+  this.saveDocument_clear()
+}
+
+// Handle rejection at the call site
+async saveAll() {
+  try {
+    await this.saveDocument(data)
+  } catch (e) {
+    if (e instanceof QueueClearedError) return  // expected — ignore
+    throw e
+  }
+}
+```
+
 ---
 
 ## `@Pool(concurrency)`
@@ -128,6 +151,7 @@ Reactive state: `{method}_loading()`, `{method}_error()`, `{method}_active()`, `
 | `{method}_lastResult()` | ✓ | | | Return value of last successful call |
 | `{method}_pending()` | | ✓ | ✓ | Calls waiting in the queue |
 | `{method}_active()` | | | ✓ | Calls currently running |
+| `{method}_clear()` | | ✓ | | Cancels all queued calls with `QueueClearedError` |
 
 <llm-only>
 Concurrency facts:
@@ -136,6 +160,8 @@ Concurrency facts:
 - The method itself is called normally: `this.uploadFile(file)` — no .run() wrapper
 - @Task cancels stale in-flight calls — if a new call starts before the previous one settles, only the newest updates loading/error/lastResult
 - @Queue preserves order — if B arrives while A is running, B is enqueued and runs after A completes
-- @Pool(n) allows n concurrent calls; extras are queued. loading() is true when active() > 0
+- @Queue exposes {method}_clear() — rejects all queued (not-yet-started) calls with QueueClearedError; the currently running call is not affected
+- QueueClearedError is exported from '@praxisjs/concurrent' — check with instanceof to distinguish intentional cancellation from real errors
+- @Pool(n) allows n concurrent calls; extras are queued. loading() is true when active() > 0. concurrency is clamped to minimum 1.
 - All reactive state values are Computed<T> signals — call them as functions in JSX arrow functions
 </llm-only>

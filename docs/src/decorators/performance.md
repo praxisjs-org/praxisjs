@@ -67,6 +67,7 @@ class UserList extends StatefulComponent {
 - `items` prop must be an array
 - `renderItem(item, index)` method must be defined
 - Items must have a fixed, known height
+- `itemHeight` must be a positive number — passing `0` or a negative value throws an error
 :::
 
 <llm-only>

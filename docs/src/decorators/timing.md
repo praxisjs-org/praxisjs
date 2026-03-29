@@ -42,6 +42,10 @@ class SearchBox extends StatefulComponent {
 
 The `search` method waits 300ms after the last call before executing. Rapid keystrokes result in only one fetch.
 
+::: tip Automatic cleanup
+Any pending timer is automatically cancelled when the component unmounts. You do not need to cancel debounced methods manually in `onUnmount`.
+:::
+
 ---
 
 ## `@Throttle(ms)`
@@ -86,7 +90,7 @@ class ScrollTracker extends StatefulComponent {
 | Animation frame updates | `@Throttle` |
 
 <llm-only>
-@Debounce: uses setTimeout internally, clears and resets on each call
-@Throttle: fires immediately on first call, then ignores calls for `ms` milliseconds (leading-edge throttle)
+@Debounce: uses setTimeout internally, clears and resets on each call. Pending timer is cleared in onUnmount to prevent executing after component is destroyed.
+@Throttle: fires immediately on first call, then ignores calls for `ms` milliseconds (leading-edge throttle). Negative ms values are clamped to 0.
 Both decorators work on any class method in a StatefulComponent or plain class.
 </llm-only>

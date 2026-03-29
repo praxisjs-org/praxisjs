@@ -151,6 +151,18 @@ Each `UserModule` instance gets its own isolated container that inherits all glo
 
 ---
 
+## Circular dependency detection
+
+When a circular dependency is detected, the container throws an error describing the full resolution chain:
+
+```
+Circular dependency detected: ServiceA → ServiceB → ServiceA
+```
+
+This prevents infinite loops during service resolution and makes the dependency cycle easy to identify and fix.
+
+---
+
 ## Container API
 
 ```ts

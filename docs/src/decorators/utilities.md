@@ -96,7 +96,7 @@ When `this.discount` changes, both cached values recompute. Each argument combin
 
 ::: tip Argument caching
 Arguments are serialized as a string cache key:
-- Objects/null → `JSON.stringify`
+- Objects/null → `JSON.stringify` (falls back to object identity for non-serializable values such as circular references or class instances)
 - Symbols → `symbol.toString()`
 - Everything else → `String(value)`
 :::
