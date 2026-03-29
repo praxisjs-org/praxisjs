@@ -1,0 +1,3 @@
+---
+"@praxisjs/fsm": patch
+---
