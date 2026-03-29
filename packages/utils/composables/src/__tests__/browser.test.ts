@@ -224,4 +224,164 @@ describe("Idle", () => {
     composable.onUnmount();
     expect(remove).toHaveBeenCalled();
   });
+
+  it("fires on scroll event", () => {
+    vi.useFakeTimers();
+    const composable = new Idle(500);
+    const { idle: isIdle } = composable.setup() as { idle: () => boolean };
+    vi.advanceTimersByTime(500);
+    expect(isIdle()).toBe(true);
+    window.dispatchEvent(new Event("scroll"));
+    expect(isIdle()).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it("fires on click event", () => {
+    vi.useFakeTimers();
+    const composable = new Idle(500);
+    const { idle: isIdle } = composable.setup() as { idle: () => boolean };
+    vi.advanceTimersByTime(500);
+    expect(isIdle()).toBe(true);
+    window.dispatchEvent(new MouseEvent("click"));
+    expect(isIdle()).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it("fires on keydown event", () => {
+    vi.useFakeTimers();
+    const composable = new Idle(500);
+    const { idle: isIdle } = composable.setup() as { idle: () => boolean };
+    vi.advanceTimersByTime(500);
+    expect(isIdle()).toBe(true);
+    window.dispatchEvent(new KeyboardEvent("keydown"));
+    expect(isIdle()).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it("activity after becoming idle resets the timer", () => {
+    vi.useFakeTimers();
+    const composable = new Idle(500);
+    const { idle: isIdle } = composable.setup() as { idle: () => boolean };
+    vi.advanceTimersByTime(500);
+    expect(isIdle()).toBe(true);
+    window.dispatchEvent(new MouseEvent("mousemove"));
+    expect(isIdle()).toBe(false);
+    // Should become idle again after full timeout elapses
+    vi.advanceTimersByTime(500);
+    expect(isIdle()).toBe(true);
+    vi.useRealTimers();
+  });
+});
+
+// ── KeyCombo (additional) ─────────────────────────────────────────────────────
+
+describe("KeyCombo (additional)", () => {
+  it("fires on meta+s keydown", () => {
+    const kc = new KeyCombo("meta+s");
+    const { pressed } = kc.setup() as { pressed: () => boolean };
+    window.dispatchEvent(new KeyboardEvent("keydown", { metaKey: true, key: "s" }));
+    expect(pressed()).toBe(true);
+  });
+
+  it("modifier-only combo (ctrl+shift) never fires", () => {
+    const kc = new KeyCombo("ctrl+shift");
+    const { pressed } = kc.setup() as { pressed: () => boolean };
+    window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, shiftKey: true, key: "Control" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, shiftKey: true, key: "Shift" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, shiftKey: true, key: "a" }));
+    expect(pressed()).toBe(false);
+  });
+
+  it("whitespace in combo string (ctrl + s) is handled gracefully — fires on ctrl+s", () => {
+    // Parts are trimmed, so "ctrl + s" becomes ["ctrl", "s"] after trim
+    const kc = new KeyCombo("ctrl + s");
+    const { pressed } = kc.setup() as { pressed: () => boolean };
+    window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "s" }));
+    expect(pressed()).toBe(true);
+  });
+
+  it("setup() called twice registers only one set of listeners", () => {
+    const add = vi.spyOn(window, "addEventListener");
+    const kc = new KeyCombo("ctrl+s");
+    kc.setup();
+    kc.setup();
+    const keydownCalls = add.mock.calls.filter((c) => c[0] === "keydown").length;
+    expect(keydownCalls).toBe(1);
+  });
+});
+
+// ── MediaQuery (additional) ───────────────────────────────────────────────────
+
+describe("MediaQuery (additional)", () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it("setup() called twice registers only one listener", () => {
+    const mql = mockMatchMedia(false);
+    const mq = new MediaQuery("(min-width: 768px)");
+    mq.setup();
+    mq.setup();
+    expect((mql.addEventListener as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── ColorScheme (additional) ──────────────────────────────────────────────────
+
+describe("ColorScheme (additional)", () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it("setup() called twice registers only one listener", () => {
+    const mql = mockMatchMedia(false);
+    const cs = new ColorScheme();
+    cs.setup();
+    cs.setup();
+    expect((mql.addEventListener as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Mouse (additional) ────────────────────────────────────────────────────────
+
+describe("Mouse (additional)", () => {
+  it("setup() called twice returns the same view object", () => {
+    const mouse = new Mouse();
+    const view1 = mouse.setup();
+    const view2 = mouse.setup();
+    expect(view1).toBe(view2);
+  });
+
+  it("setup() called twice registers only one mousemove listener", () => {
+    const add = vi.spyOn(window, "addEventListener");
+    const mouse = new Mouse();
+    mouse.setup();
+    mouse.setup();
+    const moveCalls = add.mock.calls.filter((c) => c[0] === "mousemove").length;
+    expect(moveCalls).toBe(1);
+    vi.restoreAllMocks();
+  });
+});
+
+// ── Idle (additional) ─────────────────────────────────────────────────────────
+
+describe("Idle (additional)", () => {
+  it("setup() called twice returns the same view object", () => {
+    vi.useFakeTimers();
+    const idle = new Idle(500);
+    const view1 = idle.setup();
+    const view2 = idle.setup();
+    expect(view1).toBe(view2);
+    idle.onUnmount();
+    vi.useRealTimers();
+  });
+
+  it("setup() called twice registers activity listeners only once", () => {
+    vi.useFakeTimers();
+    const add = vi.spyOn(window, "addEventListener");
+    const idle = new Idle(500);
+    idle.setup();
+    idle.setup();
+    const moveCalls = add.mock.calls.filter((c) => c[0] === "mousemove").length;
+    expect(moveCalls).toBe(1);
+    idle.onUnmount();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
 });

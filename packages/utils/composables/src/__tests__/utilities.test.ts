@@ -56,6 +56,17 @@ describe("Clipboard", () => {
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
   });
+
+  it("setTimeout is cleared on onUnmount", async () => {
+    vi.useFakeTimers();
+    const clearTimeoutSpy = vi.spyOn(globalThis, "clearTimeout");
+    const cb = new Clipboard(1000);
+    const { copy } = cb.setup() as { copy: (t: string) => Promise<void> };
+    await copy("hello");
+    cb.onUnmount();
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+    vi.useRealTimers();
+  });
 });
 
 // ── Geolocation ───────────────────────────────────────────────────────────────
@@ -111,6 +122,42 @@ describe("Geolocation", () => {
     expect(loading()).toBe(false);
     expect(error()).toBe(mockError);
   });
+
+  it("success callback after unmount does not update state", () => {
+    let capturedSuccess: PositionCallback | undefined;
+    mockGeolocation((success) => { capturedSuccess = success; });
+
+    const geo = new Geolocation();
+    const { lat, lng, loading } = geo.setup() as {
+      lat: () => number | null;
+      lng: () => number | null;
+      loading: () => boolean;
+    };
+
+    geo.onUnmount();
+    capturedSuccess!({ coords: { latitude: 99, longitude: 99 } } as GeolocationPosition);
+
+    expect(lat()).toBeNull();
+    expect(lng()).toBeNull();
+    expect(loading()).toBe(true);
+  });
+
+  it("error callback after unmount does not update state", () => {
+    let capturedError: PositionErrorCallback | undefined;
+    mockGeolocation((_success, error) => { capturedError = error ?? undefined; });
+
+    const geo = new Geolocation();
+    const { error, loading } = geo.setup() as {
+      error: () => GeolocationPositionError | null;
+      loading: () => boolean;
+    };
+
+    geo.onUnmount();
+    capturedError!({ code: 1, message: "denied" } as GeolocationPositionError);
+
+    expect(error()).toBeNull();
+    expect(loading()).toBe(true);
+  });
 });
 
 // ── TimeAgo ───────────────────────────────────────────────────────────────────
@@ -164,6 +211,13 @@ describe("TimeAgo", () => {
     ta.setup();
     ta.onUnmount();
     expect(clearInterval).toHaveBeenCalled();
+  });
+
+  it("future date produces a positive relative time string (e.g. 'in 30 seconds')", () => {
+    // A future timestamp produces a positive diff; Intl.RelativeTimeFormat formats it as "in X"
+    const ta = new TimeAgo(() => now + 30_000, "en");
+    const { value } = ta.setup() as { value: () => string };
+    expect(value()).toContain("in 30 seconds");
   });
 });
 
@@ -250,5 +304,13 @@ describe("Pagination", () => {
     const p = new Pagination({ total: 25, pageSize: 10 });
     const { totalPages } = p.setup() as { totalPages: () => number };
     expect(totalPages()).toBe(3);
+  });
+
+  it("throws when pageSize is 0", () => {
+    expect(() => new Pagination({ total: 10, pageSize: 0 })).toThrow("pageSize must be greater than 0");
+  });
+
+  it("throws when pageSize is negative", () => {
+    expect(() => new Pagination({ total: 10, pageSize: -1 })).toThrow("pageSize must be greater than 0");
   });
 });

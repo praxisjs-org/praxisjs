@@ -189,6 +189,82 @@ describe("Intersection", () => {
   });
 });
 
+// ── ElementSize (additional) ──────────────────────────────────────────────────
+
+describe("ElementSize (additional)", () => {
+  it("ref.current changes to a new element: old observer is disconnected and new one started", () => {
+    const disconnectFn = vi.fn();
+    const observeFn = vi.fn();
+
+    vi.stubGlobal("ResizeObserver", class {
+      observe = observeFn;
+      disconnect = disconnectFn;
+    });
+
+    const el1 = document.createElement("div");
+    const ref = { current: el1 as HTMLElement | null };
+    const es = new ElementSize(ref);
+    es.setup();
+
+    // Disconnect old observer and create new one for el2
+    es.onUnmount();
+    expect(disconnectFn).toHaveBeenCalled();
+
+    const el2 = document.createElement("div");
+    ref.current = el2;
+    const es2 = new ElementSize(ref);
+    es2.setup();
+    expect(observeFn).toHaveBeenCalledWith(el2);
+  });
+});
+
+// ── Intersection (additional) ─────────────────────────────────────────────────
+
+describe("Intersection (additional)", () => {
+  let observerCallback: IntersectionObserverCallback;
+
+  beforeEach(() => {
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(cb: IntersectionObserverCallback) { observerCallback = cb; }
+      observe = vi.fn();
+      disconnect = vi.fn();
+    });
+  });
+
+  it("visibility toggles false after being true", () => {
+    const el = document.createElement("div");
+    const ref = { current: el };
+    const int = new Intersection(ref);
+    const { visible } = int.setup() as { visible: () => boolean };
+
+    observerCallback(
+      [{ isIntersecting: true } as IntersectionObserverEntry],
+      {} as IntersectionObserver,
+    );
+    expect(visible()).toBe(true);
+
+    observerCallback(
+      [{ isIntersecting: false } as IntersectionObserverEntry],
+      {} as IntersectionObserver,
+    );
+    expect(visible()).toBe(false);
+  });
+});
+
+// ── ScrollPosition (additional) ───────────────────────────────────────────────
+
+describe("ScrollPosition (additional)", () => {
+  it("setup() called twice registers only one scroll listener", () => {
+    const el = document.createElement("div");
+    const add = vi.spyOn(el, "addEventListener");
+    const sp = new ScrollPosition(el);
+    sp.setup();
+    sp.setup();
+    const scrollCalls = add.mock.calls.filter((c) => c[0] === "scroll").length;
+    expect(scrollCalls).toBe(1);
+  });
+});
+
 // ── Focus ─────────────────────────────────────────────────────────────────────
 
 describe("Focus", () => {
@@ -257,5 +333,73 @@ describe("Focus", () => {
 
     document.body.removeChild(el1);
     document.body.removeChild(el2);
+  });
+
+  it("setup() called twice registers only one listener pair", () => {
+    const el = document.createElement("input");
+    document.body.appendChild(el);
+    const add = vi.spyOn(el, "addEventListener");
+    const ref = { current: el };
+    const focus = new Focus(ref);
+    focus.setup();
+    focus.setup();
+    const focusCalls = add.mock.calls.filter((c) => c[0] === "focus").length;
+    expect(focusCalls).toBe(1);
+    document.body.removeChild(el);
+  });
+});
+
+// ── WindowSize (additional) ───────────────────────────────────────────────────
+
+describe("WindowSize (additional)", () => {
+  it("setup() called twice returns the same view object", () => {
+    const ws = new WindowSize();
+    const view1 = ws.setup();
+    const view2 = ws.setup();
+    expect(view1).toBe(view2);
+    ws.onUnmount();
+  });
+
+  it("setup() called twice registers only one resize listener", () => {
+    const add = vi.spyOn(window, "addEventListener");
+    const ws = new WindowSize();
+    ws.setup();
+    ws.setup();
+    const resizeCalls = add.mock.calls.filter((c) => c[0] === "resize").length;
+    expect(resizeCalls).toBe(1);
+    ws.onUnmount();
+    vi.restoreAllMocks();
+  });
+});
+
+// ── ElementSize (cache) ───────────────────────────────────────────────────────
+
+describe("ElementSize (cache)", () => {
+  it("setup() called twice returns the same view object", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const ref = { current: el };
+    const es = new ElementSize(ref);
+    const view1 = es.setup();
+    const view2 = es.setup();
+    expect(view1).toBe(view2);
+    es.onUnmount();
+    document.body.removeChild(el);
+  });
+});
+
+// ── Intersection (cache) ──────────────────────────────────────────────────────
+
+describe("Intersection (cache)", () => {
+  it("setup() called twice returns the same view object", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const ref = { current: el };
+    const inter = new Intersection(ref);
+    const view1 = inter.setup();
+    const view2 = inter.setup();
+    expect(view1).toBe(view2);
+    inter.onUnmount();
+    document.body.removeChild(el);
   });
 });
