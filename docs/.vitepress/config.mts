@@ -21,7 +21,7 @@ export default defineConfig({
       { text: "Ecosystem", link: "/ecosystem/router" },
       { text: "Changelog", link: "/changelog/core" },
       {
-        text: `v${v('@praxisjs/core')}`,
+        text: `v${v("@praxisjs/core")}`,
         items: [
           { text: "Project Status", link: "/guide/project-status" },
           {
@@ -156,5 +156,8 @@ export default defineConfig({
     config(md) {
       md.use(copyOrDownloadAsMarkdownButtons);
     },
+  },
+  sitemap: {
+    hostname: "https://praxisjs.org",
   },
 });
