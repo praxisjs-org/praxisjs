@@ -1,11 +1,11 @@
 ---
 title: Lifecycle Hooks
-description: PraxisJS components expose four lifecycle hooks — onBeforeMount, onMount, onUnmount, and onError.
+description: PraxisJS components expose four lifecycle hooks — onBeforeMount, onMount, onUnmount, and onError — available on both StatefulComponent and StatelessComponent.
 ---
 
 # Lifecycle Hooks
 
-Override these methods in a `StatefulComponent` to hook into the component lifecycle.
+Lifecycle hooks are defined on the base component class, so they are available on both `StatefulComponent` and `StatelessComponent`. Override these methods to hook into the component lifecycle.
 
 ## Overview
 
@@ -13,6 +13,23 @@ Override these methods in a `StatefulComponent` to hook into the component lifec
 [created] → onBeforeMount() → [DOM rendered] → onMount() → onUnmount() → [destroyed]
                                                               ↑ error ↓
                                                            onError(err)
+```
+
+## Usage in `StatelessComponent`
+
+`StatelessComponent` also inherits all lifecycle hooks. Use them the same way — no `@State` required:
+
+```tsx
+@Component()
+class Banner extends StatelessComponent<{ text: string }> {
+  onMount() {
+    console.log('Banner mounted:', this.props.text)
+  }
+
+  render() {
+    return <div>{this.props.text}</div>
+  }
+}
 ```
 
 ## `onBeforeMount()`
@@ -115,6 +132,7 @@ Lifecycle execution order:
 4. onMount() — DOM is available
 5. onUnmount() — DOM is removed, cleanup
 
+Lifecycle hooks (onBeforeMount, onMount, onUnmount, onError) are defined on the base component class and available on both StatefulComponent and StatelessComponent.
 Watchers (@Watch) are set up during mount and cleaned up during unmount automatically.
 Reactive effects triggered by signal changes happen between mount and unmount.
 </llm-only>
