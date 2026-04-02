@@ -17,8 +17,7 @@
   "packageManager": "pnpm@10.30.2",
   "dependencies": {
     "@praxisjs/core": "workspace:*",
-    "@praxisjs/decorators": "workspace:*",
-    "reflect-metadata": "^0.2.2"
+    "@praxisjs/decorators": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",

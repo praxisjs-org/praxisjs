@@ -40,8 +40,8 @@ export class Router {
       window.location.search,
       window.location.hash,
     );
-    this._location = signal<RouteLocation>(initial);
-    this._loading = signal<boolean>(false);
+    this._location = signal(initial);
+    this._loading = signal(false);
     this._component = signal<RouteComponent | null>(null);
 
     this.location = this._location;

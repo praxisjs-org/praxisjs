@@ -1,13 +1,7 @@
-import "reflect-metadata";
 import { describe, it, expect, vi } from "vitest";
 
 import { Container, container, token } from "../container";
-import {
-  Injectable,
-  Inject,
-  InjectContainer,
-  Scope,
-} from "../decorators";
+import { Injectable, Inject, InjectContainer, Scope } from "../decorators";
 
 function makeFieldCtx(name: string) {
   const initializers: Array<(this: unknown) => void> = [];
@@ -15,9 +9,15 @@ function makeFieldCtx(name: string) {
     ctx: {
       name,
       kind: "field" as const,
-      addInitializer(fn: (this: unknown) => void) { initializers.push(fn); },
+      addInitializer(fn: (this: unknown) => void) {
+        initializers.push(fn);
+      },
     } as ClassFieldDecoratorContext,
-    run(instance: unknown) { initializers.forEach((fn) => { fn.call(instance); }); },
+    run(instance: unknown) {
+      initializers.forEach((fn) => {
+        fn.call(instance);
+      });
+    },
   };
 }
 
@@ -34,7 +34,9 @@ describe("Injectable", () => {
 
   it("registers the class in the global container", () => {
     class MyService {
-      greet() { return "hello"; }
+      greet() {
+        return "hello";
+      }
     }
     Injectable()(MyService, {} as ClassDecoratorContext);
     expect(container.resolve(MyService)).toBeInstanceOf(MyService);
@@ -44,7 +46,9 @@ describe("Injectable", () => {
   it("registers with transient scope — each resolve returns a new instance", () => {
     class TmpService {}
     Injectable({ scope: "transient" })(TmpService, {} as ClassDecoratorContext);
-    expect(container.resolve(TmpService)).not.toBe(container.resolve(TmpService));
+    expect(container.resolve(TmpService)).not.toBe(
+      container.resolve(TmpService),
+    );
   });
 });
 
@@ -53,7 +57,9 @@ describe("Injectable", () => {
 describe("Inject", () => {
   it("injects a registered service via property", () => {
     class Logger {
-      log(msg: string) { return msg; }
+      log(msg: string) {
+        return msg;
+      }
     }
     Injectable()(Logger, {} as ClassDecoratorContext);
 
@@ -188,7 +194,9 @@ describe("Scope", () => {
   it("services registered in configure are resolvable within the scope", () => {
     const DB_URL = token<string>("DB_URL");
 
-    @Scope((c) => { c.registerValue(DB_URL, "postgres://localhost"); })
+    @Scope((c) => {
+      c.registerValue(DB_URL, "postgres://localhost");
+    })
     class DataModule {}
 
     const { ctx, run } = makeFieldCtx("db");
@@ -225,7 +233,9 @@ describe("Scope", () => {
   });
 
   it("@InjectContainer returns the scoped child container", () => {
-    @Scope((c) => { c.registerValue(token<number>("X"), 42); })
+    @Scope((c) => {
+      c.registerValue(token<number>("X"), 42);
+    })
     class Service {}
 
     const { ctx, run } = makeFieldCtx("container");
@@ -257,10 +267,14 @@ describe("Scope", () => {
     const PARENT_TOKEN = token<string>("PARENT_VAL");
     const CHILD_TOKEN = token<string>("CHILD_VAL");
 
-    @Scope((c) => { c.registerValue(PARENT_TOKEN, "parent"); })
+    @Scope((c) => {
+      c.registerValue(PARENT_TOKEN, "parent");
+    })
     class Parent {}
 
-    @Scope((c) => { c.registerValue(CHILD_TOKEN, "child"); })
+    @Scope((c) => {
+      c.registerValue(CHILD_TOKEN, "child");
+    })
     class Child extends (Parent as unknown as new () => object) {}
 
     const { ctx: ctxC, run: runC } = makeFieldCtx("c");

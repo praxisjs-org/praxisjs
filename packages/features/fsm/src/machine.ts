@@ -28,7 +28,7 @@ export interface Machine<S extends string, E extends string> {
 export function createMachine<S extends string, E extends string>(
   definition: MachineDefinition<S, E>,
 ): Machine<S, E> {
-  const _state = signal<S>(definition.initial);
+  const _state = signal(definition.initial);
   const _history = signal<Array<{ from: S; event: E; to: S }>>([]);
 
   function send(event: E): boolean {

@@ -20,7 +20,7 @@ export function history<T>(
 ): HistoryElement<T> {
   const _past = signal<T[]>([]);
   const _future = signal<T[]>([]);
-  const _current = signal<T>(source());
+  const _current = signal(source());
 
   let _ignoreNext = false;
   let _initialized = false;

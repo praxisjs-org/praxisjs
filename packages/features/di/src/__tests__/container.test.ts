@@ -1,7 +1,6 @@
-import "reflect-metadata";
 import { describe, it, expect } from "vitest";
 
-import { Container, Token, token, type Constructor } from "../container";
+import { Container, Token, token, setConstructorDeps, setPropDep, type Constructor } from "../container";
 
 describe("Token", () => {
   it("stores description", () => {
@@ -104,16 +103,10 @@ describe("Container", () => {
     c.register(Logger);
     c.register(Service);
 
-    // Simulate what the @Inject decorator does — set di:props metadata
-    const propsMap = new Map<string, unknown>();
-    propsMap.set("logger", Logger);
-    Reflect.defineMetadata("di:props", propsMap, Service.prototype);
+    setPropDep(Service.prototype, "logger", Logger);
 
     const instance = c.resolve(Service);
     expect(instance.logger).toBeInstanceOf(Logger);
-
-    // Cleanup
-    Reflect.deleteMetadata("di:props", Service.prototype);
   });
 
   it("child container falls back to parent for unregistered service", () => {
@@ -143,14 +136,11 @@ describe("Container", () => {
     c.register(Engine);
     c.register(Car);
 
-    // Simulate what a @Inject constructor param decorator would set
-    Reflect.defineMetadata("di:inject", [Engine], Car);
+    setConstructorDeps(Car, [Engine]);
 
     const car = c.resolve(Car);
     expect(car).toBeInstanceOf(Car);
     expect(car.engine).toBeInstanceOf(Engine);
-
-    Reflect.deleteMetadata("di:inject", Car);
   });
 
   it("registering the same class twice replaces the previous registration", () => {
@@ -180,13 +170,10 @@ describe("Container", () => {
     const c = new Container();
     c.register(A);
     c.register(B);
-    Reflect.defineMetadata("di:inject", [B], A);
-    Reflect.defineMetadata("di:inject", [A], B);
+    setConstructorDeps(A, [B]);
+    setConstructorDeps(B, [A]);
 
     expect(() => c.resolve(A)).toThrow("[DI] Circular dependency detected");
-
-    Reflect.deleteMetadata("di:inject", A);
-    Reflect.deleteMetadata("di:inject", B);
   });
 
   it("factory function that throws — error message includes which service failed", () => {
@@ -250,7 +237,13 @@ describe("Container", () => {
     }
     c.register(Outer);
 
-    const err = (() => { try { c.resolve(Outer); } catch (e) { return e as Error; } })()!;
+    const err = (() => {
+      try {
+        c.resolve(Outer);
+      } catch (e) {
+        return e as Error;
+      }
+    })()!;
     expect(err.message).toMatch(/\[DI\] Service not registered/);
     expect(err.message).not.toMatch(/Failed to instantiate/);
   });

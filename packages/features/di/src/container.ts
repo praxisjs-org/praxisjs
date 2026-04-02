@@ -13,6 +13,34 @@ export interface ServiceDescriptor {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Constructor<T = unknown> = new (...args: any[]) => T;
 
+// TC39-compatible metadata storage
+const constructorDepsMap = new WeakMap<
+  Constructor,
+  Array<Constructor | Token<unknown>>
+>();
+const propDepsMap = new WeakMap<
+  object,
+  Map<string, Constructor | Token<unknown>>
+>();
+
+export function setConstructorDeps(
+  target: Constructor,
+  deps: Array<Constructor | Token<unknown>>,
+): void {
+  constructorDepsMap.set(target, deps);
+}
+
+export function setPropDep(
+  prototype: object,
+  prop: string,
+  dep: Constructor | Token<unknown>,
+): void {
+  if (!propDepsMap.has(prototype)) {
+    propDepsMap.set(prototype, new Map());
+  }
+  propDepsMap.get(prototype)?.set(prop, dep);
+}
+
 export class Token<_T> {
   readonly description: string;
   constructor(description: string) {
@@ -28,10 +56,7 @@ export function token<T>(description: string): Token<T> {
 }
 
 export class Container {
-  private readonly services = new Map<
-    Constructor | Token<unknown>,
-    unknown
-  >();
+  private readonly services = new Map<Constructor | Token<unknown>, unknown>();
   private readonly parent?: Container;
 
   constructor(parent?: Container) {
@@ -67,9 +92,7 @@ export class Container {
 
     if (resolutionStack.has(key)) {
       const chain = [...resolutionStack, key]
-        .map((k) =>
-          k instanceof Token ? k.toString() : (k).name,
-        )
+        .map((k) => (k instanceof Token ? k.toString() : k.name))
         .join(" → ");
       throw new Error(`[DI] Circular dependency detected: ${chain}`);
     }
@@ -94,7 +117,10 @@ export class Container {
       const descriptor = entry as ServiceDescriptor;
 
       if (descriptor.scope === "singleton") {
-        descriptor.instance ??= this.instantiate(descriptor.target, resolutionStack);
+        descriptor.instance ??= this.instantiate(
+          descriptor.target,
+          resolutionStack,
+        );
         return descriptor.instance as T;
       }
 
@@ -108,8 +134,7 @@ export class Container {
     target: Constructor<T>,
     resolutionStack = new Set<Constructor | Token<unknown>>(),
   ): T {
-    const deps: Array<Constructor | Token<unknown>> =
-      (Reflect.getMetadata("di:inject", target) as Array<Constructor | Token<unknown>> | undefined) ?? [];
+    const deps = constructorDepsMap.get(target as Constructor) ?? [];
 
     const resolvedDeps = deps.map((dep) =>
       this.resolve(dep as Constructor, resolutionStack),
@@ -124,9 +149,9 @@ export class Container {
       );
     }
 
-    const rawPropInjections: unknown = Reflect.getMetadata("di:props", target.prototype as object);
     const propInjections =
-      (rawPropInjections as Map<string, Constructor | Token<unknown>> | undefined) ?? new Map<string, Constructor | Token<unknown>>();
+      propDepsMap.get(target.prototype as object) ??
+      new Map<string, Constructor | Token<unknown>>();
 
     for (const [prop, dep] of propInjections) {
       (instance as Record<string, unknown>)[prop] = this.resolve(

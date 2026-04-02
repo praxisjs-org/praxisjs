@@ -8,45 +8,45 @@ Signal-driven TypeScript frontend framework. Monorepo managed with pnpm workspac
 
 ### Foundation (framework core)
 
-| Package | Role |
-|---|---|
-| `@praxisjs/core` | Reactivity engine — `signal`, `computed`, `effect`, `peek`, `untrack`, `batch`, `resource` |
-| `@praxisjs/shared` | Shared types and internal utilities used across packages |
-| `@praxisjs/decorators` | Class component decorators — `@State`, `@Prop`, `@Computed`, `@Watch`, `@Emit`, etc. |
-| `@praxisjs/jsx` | JSX runtime (`jsx-runtime`, `jsx-dev-runtime`) |
-| `@praxisjs/runtime` | DOM renderer — mounts components, manages scopes, handles reactive children |
+| Package                | Role                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| `@praxisjs/core`       | Reactivity engine — `signal`, `computed`, `effect`, `peek`, `untrack`, `batch`, `resource` |
+| `@praxisjs/shared`     | Shared types and internal utilities used across packages                                   |
+| `@praxisjs/decorators` | Class component decorators — `@State`, `@Prop`, `@Computed`, `@Watch`, `@Emit`, etc.       |
+| `@praxisjs/jsx`        | JSX runtime (`jsx-runtime`, `jsx-dev-runtime`)                                             |
+| `@praxisjs/runtime`    | DOM renderer — mounts components, manages scopes, handles reactive children                |
 
 ### Features (first-party plugins)
 
-| Package | Role |
-|---|---|
+| Package            | Role                                       |
+| ------------------ | ------------------------------------------ |
 | `@praxisjs/router` | Client-side router with `@Route` decorator |
-| `@praxisjs/store` | Global state management |
-| `@praxisjs/motion` | Animation and transitions |
-| `@praxisjs/di` | Dependency injection via `reflect-metadata` |
-| `@praxisjs/fsm` | Finite state machine |
+| `@praxisjs/store`  | Global state management                    |
+| `@praxisjs/motion` | Animation and transitions                  |
+| `@praxisjs/di`     | Dependency injection                       |
+| `@praxisjs/fsm`    | Finite state machine                       |
 
 ### Utils
 
-| Package | Role |
-|---|---|
-| `@praxisjs/composables` | DOM, browser, and concurrency composables |
-| `@praxisjs/concurrent` | `@Task`, `@Queue`, `@Pool` field decorators for async control |
+| Package                 | Role                                                          |
+| ----------------------- | ------------------------------------------------------------- |
+| `@praxisjs/composables` | DOM, browser, and concurrency composables                     |
+| `@praxisjs/concurrent`  | `@Task`, `@Queue`, `@Pool` field decorators for async control |
 
 ### DX
 
-| Package | Role |
-|---|---|
-| `@praxisjs/devtools` | In-app devtools overlay (Vite + UnoCSS build) |
-| `@praxisjs/vite-plugin` | Vite plugin (`praxisjs({ hmr: true })`) |
-| `create-praxisjs` | CLI scaffolding tool (tsdown build) |
+| Package                 | Role                                          |
+| ----------------------- | --------------------------------------------- |
+| `@praxisjs/devtools`    | In-app devtools overlay (Vite + UnoCSS build) |
+| `@praxisjs/vite-plugin` | Vite plugin (`praxisjs({ hmr: true })`)       |
+| `create-praxisjs`       | CLI scaffolding tool (tsdown build)           |
 
 ### Private
 
-| Package | Role |
-|---|---|
-| `playground` | Vite dev app for manual testing |
-| `@praxisjs/docs` | VitePress documentation site |
+| Package          | Role                            |
+| ---------------- | ------------------------------- |
+| `playground`     | Vite dev app for manual testing |
+| `@praxisjs/docs` | VitePress documentation site    |
 
 ---
 
@@ -163,6 +163,7 @@ pnpm release          # publish to npm
 ```
 
 Bump types:
+
 - **patch** — bugfixes, internal refactors with no API change
 - **minor** — new exports, new decorator options, backwards-compatible features
 - **major** — breaking API changes
@@ -192,6 +193,7 @@ Do not open a changeset or consider a task done without corresponding tests. If 
 ## Linting
 
 ESLint with typescript-eslint strict rules. Key constraints:
+
 - `import type` / `export type` required for type-only imports
 - Import order: builtins → externals → `@praxisjs/*` → relative → types
 - No `any`, no non-null assertions (`!`), no floating promises

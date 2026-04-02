@@ -40,7 +40,7 @@ export function until<T>(source: Signal<T> | Computed<T>) {
 }
 
 export function debounced<T>(source: Signal<T> | Computed<T>, ms: number) {
-  const current = signal<T>(source());
+  const current = signal(source());
   let timeout: ReturnType<typeof setTimeout> | undefined;
 
   const stop = effect(() => {

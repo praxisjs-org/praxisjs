@@ -31,7 +31,7 @@ export function resource<T>(
     keepPreviousData = false,
   } = options;
 
-  const _data = signal<T | null>(initialData);
+  const _data = signal(initialData);
   const _error = signal<Error | null>(null);
   const _status = signal<ResourceStatus>("idle");
 

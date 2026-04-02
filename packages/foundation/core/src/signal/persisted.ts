@@ -41,7 +41,7 @@ export function persistedSignal<T>(
     }
   }
 
-  const inner = signal<T>(getStoredValue());
+  const inner = signal(getStoredValue());
 
   function read() {
     return inner();

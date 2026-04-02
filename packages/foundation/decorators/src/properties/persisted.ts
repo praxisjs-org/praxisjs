@@ -33,9 +33,9 @@ export function Persisted<T>(
       return {
         descriptor: {
           get: () =>
-            getOrCreateSignal<T>(instance, storageKey, undefined as T, options)(),
+            getOrCreateSignal(instance, storageKey, undefined as T, options)(),
           set: (value: T) =>
-            { getOrCreateSignal<T>(instance, storageKey, undefined as T, options).set(value); },
+            { getOrCreateSignal(instance, storageKey, undefined as T, options).set(value); },
         },
       };
     },
