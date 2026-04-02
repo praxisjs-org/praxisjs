@@ -1,5 +1,11 @@
 # create-praxisjs
 
+## 0.3.14
+
+### Patch Changes
+
+- b8e0c8d: Update eslint from 10.0.2 to 10.1.0
+
 ## 0.3.13
 
 ### Patch Changes
