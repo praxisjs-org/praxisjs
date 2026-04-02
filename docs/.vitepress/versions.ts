@@ -13,7 +13,7 @@ export const VERSIONS = {
   // Ecosystem
   '@praxisjs/router':        '^1.0.6',
   '@praxisjs/store':         '^1.0.5',
-  '@praxisjs/di':            '^1.1.4',
+  '@praxisjs/di':            '^1.2.0',
   '@praxisjs/motion':        '^1.1.4',
   '@praxisjs/fsm':           '^1.0.5',
 
