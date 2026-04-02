@@ -1,5 +1,16 @@
 # @praxisjs/di
 
+## 1.1.4
+
+### Patch Changes
+
+- 2c61a25: Refresh dependencies across workspace to improve stability and security.
+
+  Bumped versions of several packages, including @types/node, eslint, and unocss, to enhance compatibility and security.
+
+- Updated dependencies [2c61a25]
+  - @praxisjs/decorators@0.7.2
+
 ## 1.1.3
 
 ### Patch Changes
