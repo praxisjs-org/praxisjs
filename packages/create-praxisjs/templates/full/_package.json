@@ -14,7 +14,7 @@
     "@praxisjs/concurrent": "^1.2.2",
     "@praxisjs/core": "^1.2.0",
     "@praxisjs/decorators": "^0.7.2",
-    "@praxisjs/di": "^1.2.0",
+    "@praxisjs/di": "^1.2.1",
     "@praxisjs/jsx": "^0.3.9",
     "@praxisjs/router": "^1.0.6",
     "@praxisjs/runtime": "^0.2.10",

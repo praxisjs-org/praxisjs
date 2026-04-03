@@ -1,5 +1,12 @@
 # playground
 
+## 0.1.17
+
+### Patch Changes
+
+- Updated dependencies [7e90df6]
+  - @praxisjs/di@1.2.1
+
 ## 0.1.16
 
 ### Patch Changes
