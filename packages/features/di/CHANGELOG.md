@@ -1,5 +1,11 @@
 # @praxisjs/di
 
+## 1.2.1
+
+### Patch Changes
+
+- 7e90df6: Refactor `@Injectable` and `@Scope` to use `ClassBehavior` / `createClassDecorator` from `@praxisjs/decorators`. Simplify `Container.instantiate` to plain `new target()`, removing the internal TC39 metadata maps (`constructorDepsMap`, `propDepsMap`) and the associated `setConstructorDeps` / `setPropDep` helpers.
+
 ## 1.2.0
 
 ### Minor Changes

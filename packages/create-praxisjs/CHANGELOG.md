@@ -1,5 +1,11 @@
 # create-praxisjs
 
+## 0.3.15
+
+### Patch Changes
+
+- 7e90df6: Refactor `@Injectable` and `@Scope` to use `ClassBehavior` / `createClassDecorator` from `@praxisjs/decorators`. Simplify `Container.instantiate` to plain `new target()`, removing the internal TC39 metadata maps (`constructorDepsMap`, `propDepsMap`) and the associated `setConstructorDeps` / `setPropDep` helpers.
+
 ## 0.3.14
 
 ### Patch Changes
