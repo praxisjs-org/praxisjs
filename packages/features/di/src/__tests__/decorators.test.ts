@@ -25,27 +25,27 @@ function makeFieldCtx(name: string) {
 
 describe("Injectable", () => {
   it("with no arguments — defaults to singleton scope", () => {
+    @Injectable()
     class SingletonByDefault {}
-    Injectable()(SingletonByDefault, {} as ClassDecoratorContext);
     const a = container.resolve(SingletonByDefault);
     const b = container.resolve(SingletonByDefault);
     expect(a).toBe(b);
   });
 
   it("registers the class in the global container", () => {
+    @Injectable()
     class MyService {
       greet() {
         return "hello";
       }
     }
-    Injectable()(MyService, {} as ClassDecoratorContext);
     expect(container.resolve(MyService)).toBeInstanceOf(MyService);
     expect(container.resolve(MyService).greet()).toBe("hello");
   });
 
   it("registers with transient scope — each resolve returns a new instance", () => {
+    @Injectable({ scope: "transient" })
     class TmpService {}
-    Injectable({ scope: "transient" })(TmpService, {} as ClassDecoratorContext);
     expect(container.resolve(TmpService)).not.toBe(
       container.resolve(TmpService),
     );
@@ -56,12 +56,12 @@ describe("Injectable", () => {
 
 describe("Inject", () => {
   it("injects a registered service via property", () => {
+    @Injectable()
     class Logger {
       log(msg: string) {
         return msg;
       }
     }
-    Injectable()(Logger, {} as ClassDecoratorContext);
 
     const { ctx, run } = makeFieldCtx("logger");
     Inject(Logger)(undefined, ctx);
@@ -83,8 +83,8 @@ describe("Inject", () => {
   });
 
   it("warns on direct assignment in non-production", () => {
+    @Injectable()
     class Dep2 {}
-    Injectable()(Dep2, {} as ClassDecoratorContext);
     const { ctx, run } = makeFieldCtx("dep2");
     Inject(Dep2)(undefined, ctx);
     const instance: Record<string, unknown> = {};
@@ -96,10 +96,10 @@ describe("Inject", () => {
   });
 
   it("returns cached value on second access (cache hit)", () => {
+    @Injectable()
     class CachedService {
       id = Math.random();
     }
-    Injectable()(CachedService, {} as ClassDecoratorContext);
 
     const { ctx, run } = makeFieldCtx("svc");
     Inject(CachedService)(undefined, ctx);
@@ -112,8 +112,8 @@ describe("Inject", () => {
   });
 
   it("does not warn on direct assignment in production mode", () => {
+    @Injectable()
     class ProdDep {}
-    Injectable()(ProdDep, {} as ClassDecoratorContext);
     const { ctx, run } = makeFieldCtx("dep");
     Inject(ProdDep)(undefined, ctx);
     const instance: Record<string, unknown> = {};
@@ -249,8 +249,8 @@ describe("Scope", () => {
   });
 
   it("child container inherits registrations from the parent", () => {
+    @Injectable()
     class GlobalService {}
-    Injectable()(GlobalService, {} as ClassDecoratorContext);
 
     @Scope()
     class Child {}

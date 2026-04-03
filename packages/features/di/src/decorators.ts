@@ -1,4 +1,5 @@
-import { createFieldDecorator, type FieldBinding } from "@praxisjs/decorators";
+import type { RootComponent } from "@praxisjs/core/internal";
+import { createFieldDecorator, createClassDecorator, ClassBehavior, type FieldBinding, type ClassEnhancement } from "@praxisjs/decorators";
 
 import { container, type Container, Token, type Constructor, type InjectableOptions } from "./container";
 
@@ -11,10 +12,24 @@ function resolveFrom(instance: object) {
 
 // ── @Injectable ───────────────────────────────────────────────────────────────
 
+class InjectableBehavior extends ClassBehavior {
+  constructor(private readonly options: InjectableOptions) {
+    super();
+  }
+
+  create(_instance: RootComponent): ClassEnhancement {
+    return {};
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  initialize(Enhanced: new (...args: any[]) => unknown, _original: new (...args: any[]) => unknown): void {
+    container.register(Enhanced as Constructor, this.options);
+  }
+}
+
 export function Injectable(options: InjectableOptions = {}) {
-  return function (value: Constructor, _context: ClassDecoratorContext): void {
-    container.register(value, options);
-  };
+   
+  return createClassDecorator(new InjectableBehavior(options)) as unknown as (value: Constructor, _context: ClassDecoratorContext) => void;
 }
 
 // ── @Scope ────────────────────────────────────────────────────────────────────
@@ -32,21 +47,22 @@ export function Injectable(options: InjectableOptions = {}) {
  *   @Inject(UserRepository) repo!: UserRepository;
  * }
  */
+class ScopeBehavior extends ClassBehavior {
+  constructor(private readonly configure?: (c: Container) => void) {
+    super();
+  }
+
+  create(instance: RootComponent): ClassEnhancement {
+    const child = container.createChild();
+    this.configure?.(child);
+    scopedContainers.set(instance as object, child);
+    return {};
+  }
+}
+
 export function Scope(configure?: (c: Container) => void) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function(cls: new (...args: any[]) => any, _ctx: ClassDecoratorContext): any {
-     
-    return class extends cls {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      constructor(...args: any[]) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        super(...args);
-        const child = container.createChild();
-        configure?.(child);
-        scopedContainers.set(this as object, child);
-      }
-    };
-  };
+  return createClassDecorator(new ScopeBehavior(configure)) as unknown as (cls: new (...args: any[]) => any, _ctx: ClassDecoratorContext) => any;
 }
 
 // ── @Inject ───────────────────────────────────────────────────────────────────

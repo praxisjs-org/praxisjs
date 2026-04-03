@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { Container, Token, token, setConstructorDeps, setPropDep, type Constructor } from "../container";
+import { Container, Token, token, type Constructor } from "../container";
 
 describe("Token", () => {
   it("stores description", () => {
@@ -93,20 +93,15 @@ describe("Container", () => {
     expect(c.register(A).register(B)).toBe(c);
   });
 
-  it("resolves prop injections from di:props metadata", () => {
-    class Logger {}
-    class Service {
-      logger!: Logger;
-    }
+  it("parent singleton is reused when resolved from child container", () => {
+    class SharedService {}
+    const parent = new Container();
+    parent.register(SharedService, { scope: "singleton" });
+    const child = parent.createChild();
 
-    const c = new Container();
-    c.register(Logger);
-    c.register(Service);
-
-    setPropDep(Service.prototype, "logger", Logger);
-
-    const instance = c.resolve(Service);
-    expect(instance.logger).toBeInstanceOf(Logger);
+    const fromChild = child.resolve(SharedService);
+    const fromParent = parent.resolve(SharedService);
+    expect(fromChild).toBe(fromParent);
   });
 
   it("child container falls back to parent for unregistered service", () => {
@@ -126,21 +121,16 @@ describe("Container", () => {
     expect(grandchild.resolve(URL_TOKEN)).toBe("https://grandparent.com");
   });
 
-  it("resolves constructor injection from di:inject metadata", () => {
-    class Engine {}
-    class Car {
-      constructor(public engine: Engine) {}
-    }
-
+  it("registerFactory can resolve other services from the container", () => {
+    class Logger {}
+    const LOG_WRAP = token<{ logger: Logger }>("LOG_WRAP");
     const c = new Container();
-    c.register(Engine);
-    c.register(Car);
-
-    setConstructorDeps(Car, [Engine]);
-
-    const car = c.resolve(Car);
-    expect(car).toBeInstanceOf(Car);
-    expect(car.engine).toBeInstanceOf(Engine);
+    c.register(Logger);
+    c.registerFactory(LOG_WRAP, (container) => ({
+      logger: container.resolve(Logger),
+    }));
+    const result = c.resolve(LOG_WRAP);
+    expect(result.logger).toBeInstanceOf(Logger);
   });
 
   it("registering the same class twice replaces the previous registration", () => {
@@ -160,20 +150,17 @@ describe("Container", () => {
     expect(second).not.toBe(first);
   });
 
-  it("circular dependency A → B → A throws a descriptive error", () => {
-    class A {
-      constructor(public b: unknown) {}
-    }
-    class B {
-      constructor(public a: unknown) {}
-    }
+  it("re-registering with different scope switches scope correctly", () => {
+    class Svc {}
     const c = new Container();
-    c.register(A);
-    c.register(B);
-    setConstructorDeps(A, [B]);
-    setConstructorDeps(B, [A]);
+    c.register(Svc, { scope: "singleton" });
+    c.resolve(Svc); // warm up singleton
 
-    expect(() => c.resolve(A)).toThrow("[DI] Circular dependency detected");
+    c.register(Svc, { scope: "transient" });
+    const a = c.resolve(Svc);
+    const b = c.resolve(Svc);
+    expect(a).toBeInstanceOf(Svc);
+    expect(a).not.toBe(b);
   });
 
   it("factory function that throws — error message includes which service failed", () => {

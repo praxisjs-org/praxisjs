@@ -182,11 +182,12 @@ child.resolve(MyService)  // MyService can inject REQUEST_TOKEN
 
 <llm-only>
 DI facts:
-- @Injectable() registers the class in the global singleton container — must be applied before container.resolve()
-- @Inject() resolves lazily on first property access — cached per instance in a WeakMap
+- @Injectable() is built on createClassDecorator (ClassBehavior from @praxisjs/decorators) — it registers the Enhanced subclass in the global container via the initialize() hook; must be applied as a real decorator (not called imperatively) so TypeScript reassigns the class variable to Enhanced
+- @Inject() resolves lazily on first property access — cached per instance in a WeakMap; built on createFieldDecorator
+- @InjectContainer() is also built on createFieldDecorator — works on any class, not just StatefulComponent
 - @Inject and @InjectContainer are field decorators — they work on any class, not just StatefulComponent
 - Inside a @Scope class, @Inject resolves from the instance's child container; if not found, it falls back to the parent chain
-- @Scope creates a new child container in the constructor — configure callback receives the child container
+- @Scope is built on createClassDecorator (ClassBehavior) — the child container is created in the ClassBehavior.create(instance) hook, which runs per instance during construction; configure callback receives the child container
 - token<T>(description) creates a typed injection token — use for non-class deps (interfaces, primitives)
 - container.registerFactory(token, fn) — fn receives the container and should return the service instance
 - container.createChild() — child inherits parent registrations but can override them with local registrations

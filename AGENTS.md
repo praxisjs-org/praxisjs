@@ -150,6 +150,89 @@ count = 0
 
 `createFieldDecorator` uses `context.addInitializer`, so initialization happens during `new ctor(...)` in the order decorators were registered.
 
+Class decorators also apply **bottom-up**. When stacking `@Scope` with `@Component`, `@Component` must be innermost so it runs first:
+
+```ts
+// ✅ correct
+@Scope(...)
+@Component()
+class MyModule extends StatefulComponent { /* ... */ }
+```
+
+---
+
+## Building decorators
+
+### Field decorators — `createFieldDecorator`
+
+Use for property-level behavior. The `bind` callback runs once per instance during construction.
+
+```ts
+import { createFieldDecorator, type FieldBinding } from '@praxisjs/decorators'
+
+function MyDecorator() {
+  return createFieldDecorator({
+    bind(instance, name, initialValue): FieldBinding {
+      return {
+        descriptor: {
+          get(this: object) { /* ... */ },
+          set(this: object, v: unknown) { /* ... */ },
+        },
+        onMount() { /* ... */ },
+        onUnmount() { /* ... */ },
+      }
+    },
+  })
+}
+```
+
+### Class decorators — `createClassDecorator` / `ClassBehavior`
+
+Use for class-level behavior. Extend `ClassBehavior` and implement its two hooks:
+
+| Hook | When it runs | Use for |
+|---|---|---|
+| `create(instance)` | Once per instance, in the constructor | Per-instance setup (state, side-effects) |
+| `initialize(Enhanced, original)` | Once after the class is decorated | Static setup — registrations, metadata on the constructor |
+
+```ts
+import { createClassDecorator, ClassBehavior, type ClassEnhancement } from '@praxisjs/decorators'
+import type { RootComponent } from '@praxisjs/core/internal'
+
+class MyBehavior extends ClassBehavior {
+  create(instance: RootComponent): ClassEnhancement {
+    // runs per instance
+    return {
+      onMount() { /* ... */ },
+      onUnmount() { /* ... */ },
+    }
+  }
+
+  initialize(Enhanced: new (...args: unknown[]) => unknown, _original: new (...args: unknown[]) => unknown): void {
+    // runs once — set static properties on Enhanced
+  }
+}
+
+export function MyDecorator() {
+  return createClassDecorator(new MyBehavior())
+}
+```
+
+`createClassDecorator` wraps the class in an `Enhanced` subclass. The original class name is preserved via `Object.defineProperty`. Decorators built this way must be used as real decorators (not called imperatively with the return value discarded) so TypeScript reassigns the class variable to `Enhanced`.
+
+---
+
+## Internal imports
+
+`@praxisjs/core` and `@praxisjs/shared` each expose a `/internal` sub-path for types and utilities that are meant for other framework packages but not for end users:
+
+```ts
+import type { RootComponent } from '@praxisjs/core/internal'   // framework-internal base class
+import type { ComponentConstructor } from '@praxisjs/shared/internal'
+```
+
+Use the public path (`@praxisjs/core`) in application code and in packages that ship to users. Use `/internal` only inside `packages/foundation/**` or `packages/features/**` when implementing framework primitives that need access to the base class or internal types.
+
 ---
 
 ## Changesets
@@ -176,7 +259,12 @@ Bump types:
 
 Tests live in `packages/**/src/__tests__/**/*.test.ts`. Vitest uses path aliases so cross-package imports resolve to source files without building first.
 
-Browser-dependent tests (DOM, decorators) use `@vitest/browser` with playwright.
+The default environment is `node`. Tests that need DOM APIs (localStorage, `document`, etc.) opt in per-file with an inline docblock:
+
+```ts
+// @vitest-environment jsdom
+import { describe, it, expect } from 'vitest'
+```
 
 **Tests are required for every implementation.** This includes:
 
