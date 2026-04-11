@@ -110,4 +110,5 @@ results!: ResourceInstance<SearchResult[]>
 - .cancel() increments the internal runId, causing any in-flight .then/.catch to be ignored, and sets status back to 'idle'
 - ResourceInstance<T> type is exported from '@praxisjs/decorators'
 - The field must be declared with `!` (definite assignment assertion) since @Resource sets it up at initialization time
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

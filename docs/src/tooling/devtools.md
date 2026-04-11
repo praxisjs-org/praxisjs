@@ -216,4 +216,5 @@ DevTools facts:
 - `DevTools.registerPlugin(plugin)` ignores duplicate ids (idempotent)
 - Built-in plugins: SignalsPlugin, ComponentsPlugin, TimelinePlugin — all exported from the package
 - A DevtoolsPlugin needs: id (string), label (string), component (ComponentElement), and optionally setup(registry)
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

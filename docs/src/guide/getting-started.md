@@ -165,4 +165,5 @@ IMPORTANT for code generation:
 - The jsxImportSource in tsconfig.json must be "@praxisjs/jsx"
 - useDefineForClassFields in tsconfig.json MUST be false — decorator signal wiring breaks if it is true
 - render() is called ONCE — all dynamic values in JSX MUST be arrow functions: {() => this.value}
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

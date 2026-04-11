@@ -71,4 +71,5 @@ PraxisJS key architectural facts:
 - Decorators from @praxisjs/decorators are required for reactive state (@State, @Prop, etc.)
 - The @Component() decorator is required on every component class
 - Components extend StatefulComponent (with state) or StatelessComponent<Props> (without state)
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

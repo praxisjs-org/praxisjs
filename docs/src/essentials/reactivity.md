@@ -255,4 +255,5 @@ Signal system internals:
 - render() itself always runs untracked (activeEffect = null during mountComponent) — so eager reads like {this.count} in JSX are always static snapshots, not subscriptions
 - Props passed as plain values (description={this.count}) are static — the child gets the value at mount time and never sees future changes
 - Props passed as getters (description={() => this.count}) are reactive — with @Prop(), the decorator unwraps the getter on each read, so {() => this.prop} in the child subscribes transitively; with raw this.props, the function itself is returned and the renderer handles it as a reactive child automatically (no extra () => wrapper needed)
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

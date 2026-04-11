@@ -175,4 +175,5 @@ DX decorator facts:
 - @Trace must be written above @Component() due to decorator execution order (bottom-up)
 - @Trace tracks these hooks automatically: onBeforeMount, onMount, onBeforeUpdate, onUpdate, onAfterUpdate, onUnmount
 - Registry stores max 20 history entries per signal and max 200 timeline entries
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

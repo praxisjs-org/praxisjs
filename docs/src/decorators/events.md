@@ -144,4 +144,5 @@ seek.subscribe((time) => console.log('seek to', time))
 - Command is an imperative event bus — useful for triggering component behavior from a parent without prop drilling
 - createCommand() returns a Command object with .trigger() and .subscribe() methods
 - @OnCommand auto-subscribes on mount and unsubscribes on unmount
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

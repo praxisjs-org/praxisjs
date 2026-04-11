@@ -282,4 +282,5 @@ Decorator factory facts:
 - ClassBehavior.initialize(Enhanced, original) is called once after the class is created — use it to set static properties.
 - Import from '@praxisjs/decorators': createFieldDecorator, createMethodDecorator, createLifecycleMethodDecorator, createGetterDecorator, createGetterObserverDecorator, createClassDecorator, ClassBehavior
 - FieldBinding.additional lets you define extra properties on the instance alongside the main one (e.g. a decorator can define a companion signal next to the decorated field).
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

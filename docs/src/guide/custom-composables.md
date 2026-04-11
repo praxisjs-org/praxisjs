@@ -176,4 +176,5 @@ Composable facts:
 - @Compose(Class, ...args) passes args to the constructor. String args are resolved to instance properties at bind time.
 - The composable instance is created once per component instance — two components with @Compose(NetworkStatus) each get their own instance.
 - Import Composable from '@praxisjs/core', signal/computed from '@praxisjs/core/internal', @Compose from '@praxisjs/decorators'
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

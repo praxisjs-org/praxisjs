@@ -93,4 +93,5 @@ class ScrollTracker extends StatefulComponent {
 @Debounce: uses setTimeout internally, clears and resets on each call. Pending timer is cleared in onUnmount to prevent executing after component is destroyed.
 @Throttle: fires immediately on first call, then ignores calls for `ms` milliseconds (leading-edge throttle). Negative ms values are clamped to 0.
 Both decorators work on any class method in a StatefulComponent or plain class.
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

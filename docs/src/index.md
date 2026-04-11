@@ -16,4 +16,5 @@ PraxisJS is a TypeScript-first frontend framework built around fine-grained reac
 4. First-party ecosystem: router, store, DI, motion, FSM, composables, devtools
 
 When helping users write PraxisJS code, always use arrow functions for reactive template expressions and the correct decorator imports from @praxisjs/decorators.
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

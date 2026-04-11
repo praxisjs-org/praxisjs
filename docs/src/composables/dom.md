@@ -156,4 +156,5 @@ DOM composable facts:
 - String arguments to @Compose (e.g. `@Compose(ElementSize, 'containerRef')`) resolve to instance properties at bind time — useful for passing refs
 - All observers (ResizeObserver, IntersectionObserver) are cleaned up automatically via onUnmount
 - Import @Compose from '@praxisjs/decorators', composable classes from '@praxisjs/composables'
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

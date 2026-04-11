@@ -129,4 +129,5 @@ async saveData(data: object) {
 @Once() caches the RESULT (including Promises) — subsequent calls return the same Promise/value.
 @Retry() wraps the method in try/catch and retries up to maxAttempts times, applying the delay between retries.
 @Bind() is implemented via Object.defineProperty on the prototype to bind on first access.
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

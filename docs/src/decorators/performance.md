@@ -76,4 +76,5 @@ class UserList extends StatefulComponent {
 @Virtual internals: calculates visible range based on scrollTop and itemHeight, only renders items in [startIndex - buffer, endIndex + buffer]. The container has a fixed height and uses absolute positioning or padding to simulate the full list height.
 
 Both decorators must be applied BEFORE @Component() in the decorator stack (decorators apply bottom-up).
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

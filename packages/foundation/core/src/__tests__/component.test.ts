@@ -79,4 +79,22 @@ describe("StatelessComponent", () => {
     c._setProps({});
     expect((c._rawProps as Record<string, unknown>).name).toBeUndefined();
   });
+
+  it("accepts and exposes children via props.children", () => {
+    const c = new ConcreteStateless({ name: "x", children: "hello" });
+    expect(c.props.children).toBe("hello");
+  });
+
+  it("children is optional and defaults to undefined", () => {
+    const c = new ConcreteStateless({ name: "x" });
+    expect(c.props.children).toBeUndefined();
+  });
+
+  it("works with default generic (no explicit T)", () => {
+    class Bare extends StatelessComponent {
+      render() { return null; }
+    }
+    const c = new Bare({ children: "hi" });
+    expect(c.props.children).toBe("hi");
+  });
 });

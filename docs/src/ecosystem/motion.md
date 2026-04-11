@@ -136,4 +136,5 @@ Motion facts:
 - TweenOptions type from '@praxisjs/motion', SpringOptions type from '@praxisjs/motion'
 - tween(), spring() are internal — not in the public API
 - There is no useMotion() or @Animate() — only @Tween and @Spring decorators
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

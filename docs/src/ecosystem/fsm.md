@@ -172,4 +172,5 @@ FSM facts:
 - Per-state onEnter/onExit are in the state definition object, not the machine instance
 - onTransition is at the top level of the definition, called after every successful transition
 - Import: StateMachine, Transition from '@praxisjs/fsm'; Machine, MachineDefinition, StateMap types from '@praxisjs/fsm'
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

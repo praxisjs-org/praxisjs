@@ -261,4 +261,5 @@ Router facts:
 - @Route(path) sets __routePath on the class; passing the class directly to @RouterConfig uses that path automatically — no { path, component } object needed
 - @RouterConfig accepts a mix of RouteDefinition objects and @Route-annotated classes in the same array
 - Import all decorators and components from '@praxisjs/router'
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

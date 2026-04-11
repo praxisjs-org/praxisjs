@@ -194,4 +194,5 @@ DI facts:
 - Singleton scope: one instance per container (not global — each child container has its own singleton)
 - Transient scope: new instance on every container.resolve() call
 - Import: Injectable, Inject, InjectContainer, Scope from '@praxisjs/di'; Container, container, token, Token from '@praxisjs/di'
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

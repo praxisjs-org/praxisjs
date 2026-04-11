@@ -140,4 +140,5 @@ JSX rendering rules:
 - Event handlers: onClick, onInput, onChange, onKeyDown, onKeyUp, onFocus, onBlur, onSubmit, etc.
 - class prop (not className) for CSS classes
 - style accepts an object or reactive function returning an object
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

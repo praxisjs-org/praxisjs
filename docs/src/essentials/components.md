@@ -60,6 +60,31 @@ class Card extends StatelessComponent<CardProps> {
 }
 ```
 
+### Children
+
+`StatelessComponent` exposes an optional typed `children` prop. Use the component with nested content and access `this.props.children` in `render()`:
+
+```tsx
+@Component()
+class Card extends StatelessComponent<CardProps> {
+  render() {
+    return (
+      <div class="card">
+        <h2>{this.props.title}</h2>
+        {this.props.children}
+      </div>
+    )
+  }
+}
+
+// usage:
+<Card title="Features">
+  <p>Everything you need.</p>
+</Card>
+```
+
+There is no need to declare `children` in your `T` — it is available automatically on every `StatelessComponent`.
+
 ::: tip When to use which?
 Use `StatelessComponent` when the component has no `@State`, `@Watch`, or `@Emit` — just renders from props. It's more explicit about the component's intent.
 :::
@@ -96,6 +121,7 @@ render(() => <App />, document.getElementById('app')!)
 
 <llm-only>
 StatefulComponent supports: @State, @Prop, @Computed, @Watch, @When, @Emit, @Slot, @OnCommand and all other decorators.
-StatelessComponent only has props via `this.props` — no decorators for state or watchers.
+StatelessComponent only has props via `this.props` — no decorators for state or watchers. It has a built-in optional `children?: Children` prop (typed via `@praxisjs/shared`) — no need to declare it in T. Access via `this.props.children`.
 Both require @Component() decorator and must extend the correct base class.
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

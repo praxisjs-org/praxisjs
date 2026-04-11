@@ -198,4 +198,5 @@ Import paths:
 @History(fieldName, limit?) decorates a separate field (not the state field itself). The first argument is the name of the @State field to track. Type the decorated field as HistoryOf<ClassName, 'fieldName'> for full intellisense. No interface merging or declare workarounds needed.
 
 @Resource sets up the field at initialization time — declare it with `!` (definite assignment assertion).
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

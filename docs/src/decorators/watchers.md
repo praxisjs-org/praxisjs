@@ -125,4 +125,5 @@ Use `@Until` when downstream code needs to await a reactive value rather than re
 - If the property is already truthy, the promise resolves immediately (microtask)
 - Works with both Signal and Computed properties
 - No automatic lifecycle cleanup — the promise resolves once and discards the watcher
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

@@ -123,4 +123,5 @@ Plugin facts:
 - Registry.getSignals() / getComponents() / getTimeline() return snapshots (arrays)
 - Registry.bus is an EventBus — subscribe with bus.on(event, handler)
 - Built-in plugins: SignalsPlugin, ComponentsPlugin, TimelinePlugin
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

@@ -225,4 +225,5 @@ Browser composable facts:
 - Pagination.pages returns an array of page numbers (for rendering page number buttons)
 - Idle monitors mousemove, keydown, click, scroll, and touchstart to reset the inactivity timer
 - Import @Compose from '@praxisjs/decorators', composable classes from '@praxisjs/composables'
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

@@ -215,4 +215,5 @@ Concurrency facts:
 - @Pool('method', n) allows n concurrent calls; extras are queued. loading() is true when active() > 0. concurrency is clamped to minimum 1.
 - All reactive state values are Computed<T> signals — call them as functions in JSX arrow functions
 - TaskOf, QueueOf, PoolOf are type helpers exported from '@praxisjs/concurrent'
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

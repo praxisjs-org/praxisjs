@@ -160,4 +160,5 @@ Store facts:
 - There is no createStore(), $patch(), $reset(), or $subscribe() — only @Store and @UseStore decorators
 - Import: Store, UseStore from '@praxisjs/store'; State, Computed from '@praxisjs/decorators'
 - The store singleton is created once globally — not per component, not per container
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

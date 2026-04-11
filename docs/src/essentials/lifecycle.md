@@ -135,4 +135,5 @@ Lifecycle execution order:
 Lifecycle hooks (onBeforeMount, onMount, onUnmount, onError) are defined on the base component class and available on both StatefulComponent and StatelessComponent.
 Watchers (@Watch) are set up during mount and cleaned up during unmount automatically.
 Reactive effects triggered by signal changes happen between mount and unmount.
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

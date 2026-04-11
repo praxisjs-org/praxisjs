@@ -89,4 +89,5 @@ Vite plugin facts:
 - Without the plugin, decorators will not work and JSX will not compile
 - HMR requires components to be exported — anonymous default exports may not HMR correctly
 - The plugin does NOT configure tsconfig.json — users must set jsxImportSource manually
+Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>
