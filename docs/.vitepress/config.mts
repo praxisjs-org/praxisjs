@@ -150,7 +150,13 @@ export default defineConfig({
   head: [["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }]],
   vite: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    plugins: [llmstxt() as any],
+    plugins: [
+      llmstxt({
+        ignoreFiles: ["changelog/**/*.md"],
+        description:
+          "PraxisJS is a signal-driven frontend framework with class components and a complete ecosystem.",
+      }) as any,
+    ],
   },
   markdown: {
     config(md) {
