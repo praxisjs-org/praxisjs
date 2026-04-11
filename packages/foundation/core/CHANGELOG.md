@@ -1,5 +1,11 @@
 # @praxisjs/core
 
+## 1.3.0
+
+### Minor Changes
+
+- 5a10864: `StatelessComponent` now exposes an optional typed `children` prop. Accessing `this.props.children` is now valid without declaring `children` in the generic type parameter `T`.
+
 ## 1.2.0
 
 ### Minor Changes
