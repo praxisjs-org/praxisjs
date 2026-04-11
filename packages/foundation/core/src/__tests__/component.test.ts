@@ -5,11 +5,15 @@ import { StatefulComponent } from "../component/stateful";
 import { StatelessComponent } from "../component/stateless";
 
 class ConcreteRoot extends RootComponent<{ name: string }> {
-  render() { return null; }
+  render() {
+    return null;
+  }
 }
 
 class ConcreteStateful extends StatefulComponent {
-  render() { return null; }
+  render() {
+    return null;
+  }
 }
 
 describe("RootComponent", () => {
@@ -53,13 +57,15 @@ describe("StatefulComponent", () => {
   it("_setProps replaces _rawProps contents", () => {
     const c = new ConcreteStateful({ x: 1 });
     c._setProps({ y: 2 });
-    expect((c._rawProps).x).toBeUndefined();
-    expect((c._rawProps).y).toBe(2);
+    expect(c._rawProps.x).toBeUndefined();
+    expect(c._rawProps.y).toBe(2);
   });
 });
 
 class ConcreteStateless extends StatelessComponent<{ name: string }> {
-  render() { return null; }
+  render() {
+    return null;
+  }
 }
 
 describe("StatelessComponent", () => {
@@ -92,7 +98,9 @@ describe("StatelessComponent", () => {
 
   it("works with default generic (no explicit T)", () => {
     class Bare extends StatelessComponent {
-      render() { return null; }
+      render() {
+        return null;
+      }
     }
     const c = new Bare({ children: "hi" });
     expect(c.props.children).toBe("hi");
