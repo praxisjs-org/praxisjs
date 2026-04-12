@@ -1,5 +1,17 @@
 # @praxisjs/devtools
 
+## 0.2.13
+
+### Patch Changes
+
+- 994c581: Updated internals to use the new `StatelessComponent` default type parameter and automatic `@Prop()` JSX prop inference from `@praxisjs/core` and `@praxisjs/jsx`.
+- Updated dependencies [994c581]
+- Updated dependencies [994c581]
+  - @praxisjs/jsx@0.4.0
+  - @praxisjs/core@1.4.0
+  - @praxisjs/decorators@0.7.4
+  - @praxisjs/runtime@0.2.12
+
 ## 0.2.12
 
 ### Patch Changes

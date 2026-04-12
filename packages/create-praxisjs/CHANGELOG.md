@@ -1,5 +1,11 @@
 # create-praxisjs
 
+## 0.3.17
+
+### Patch Changes
+
+- 994c581: Sync template `package.json` dependency versions with the latest package releases.
+
 ## 0.3.16
 
 ### Patch Changes
