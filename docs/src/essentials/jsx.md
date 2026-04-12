@@ -112,21 +112,19 @@ render() {
 
 ## ref
 
-Use `createRef()` from `@praxisjs/composables` to get a reference to a DOM element:
+Pass a callback to `ref` to capture a DOM element. The callback receives the element once it is mounted:
 
 ```tsx
-import { createRef } from '@praxisjs/composables'
-
 @Component()
 class InputFocus extends StatefulComponent {
-  input = createRef<HTMLInputElement>()
+  private inputEl: HTMLInputElement | null = null
 
   onMount() {
-    this.input.el?.focus()
+    this.inputEl?.focus()
   }
 
   render() {
-    return <input ref={this.input} />
+    return <input ref={(el) => { this.inputEl = el }} />
   }
 }
 ```
@@ -136,7 +134,7 @@ JSX rendering rules:
 - Arrow functions () => expr are wrapped in reactive effects that patch only the DOM node when dependencies change
 - Plain expressions are evaluated once and never re-evaluated
 - key prop is required for list items to enable efficient reconciliation
-- ref prop accepts a Ref object from createRef() — the .el property is set after mount
+- ref prop accepts a callback (el: T) => void — the element is passed in after mount
 - Event handlers: onClick, onInput, onChange, onKeyDown, onKeyUp, onFocus, onBlur, onSubmit, etc.
 - class prop (not className) for CSS classes
 - style accepts an object or reactive function returning an object

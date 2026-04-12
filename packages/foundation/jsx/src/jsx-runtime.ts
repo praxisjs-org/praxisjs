@@ -3,21 +3,72 @@ import {
   mountComponent,
   getCurrentScope,
 } from "@praxisjs/runtime";
-import type { Children } from "@praxisjs/shared";
 import {
   isComponent,
   type ComponentConstructor,
 } from "@praxisjs/shared/internal";
 
+import type {
+  Reactive,
+  HTMLAttributes,
+  AnchorHTMLAttributes,
+  AreaHTMLAttributes,
+  AudioHTMLAttributes,
+  BaseHTMLAttributes,
+  BlockquoteHTMLAttributes,
+  ButtonHTMLAttributes,
+  CanvasHTMLAttributes,
+  ColHTMLAttributes,
+  ColgroupHTMLAttributes,
+  DataHTMLAttributes,
+  DatalistHTMLAttributes,
+  DelHTMLAttributes,
+  DetailsHTMLAttributes,
+  DialogHTMLAttributes,
+  EmbedHTMLAttributes,
+  FieldsetHTMLAttributes,
+  FormHTMLAttributes,
+  IframeHTMLAttributes,
+  ImgHTMLAttributes,
+  InputHTMLAttributes,
+  InsHTMLAttributes,
+  LabelHTMLAttributes,
+  LiHTMLAttributes,
+  LinkHTMLAttributes,
+  MapHTMLAttributes,
+  MenuHTMLAttributes,
+  MetaHTMLAttributes,
+  MeterHTMLAttributes,
+  ObjectHTMLAttributes,
+  OlHTMLAttributes,
+  OptgroupHTMLAttributes,
+  OptionHTMLAttributes,
+  OutputHTMLAttributes,
+  ProgressHTMLAttributes,
+  ScriptHTMLAttributes,
+  SelectHTMLAttributes,
+  SlotHTMLAttributes,
+  SourceHTMLAttributes,
+  StyleHTMLAttributes,
+  TableHTMLAttributes,
+  TdHTMLAttributes,
+  TextareaHTMLAttributes,
+  ThHTMLAttributes,
+  TimeHTMLAttributes,
+  TrackHTMLAttributes,
+  VideoHTMLAttributes,
+  SVGAttributes,
+} from "./dom-types";
+
 export const Fragment = Symbol("Fragment");
 
 type PropsOf<T> = T extends string
-  ? JSX.IntrinsicElements[T]
+  ? T extends keyof JSX.IntrinsicElements
+    ? JSX.IntrinsicElements[T]
+    : HTMLAttributes
   : T extends ComponentConstructor<infer P>
     ? { [K in keyof P]: Reactive<P[K]> }
     : Record<string, unknown>;
-
-type Reactive<T> = T | (() => T);
 
 export function jsx<T extends string | ComponentConstructor | symbol>(
   type: T,
@@ -51,35 +102,32 @@ export const jsxDEV = jsx;
 export namespace JSX {
   export type Element = Node | Node[];
 
-  interface GlobalAttributes {
-    key?: string | number | symbol;
-  }
-
   // Resolves to `true` when T is the `any` type.
   type IsAny<T> = 0 extends 1 & T ? true : false;
 
-  // Infer props from the class instance properties
-  // (excludes lifecycle and methods)
+  // Internal framework property names excluded from JSX prop inference.
+  // `_${string}` covers all underscore-prefixed internals without enumeration.
+  type FrameworkKeys =
+    | `_${string}`
+    | "props"
+    | "render"
+    | "onBeforeMount"
+    | "onMount"
+    | "onUnmount"
+    | "onError"
+    | "onUpdate";
+
+  // Infer typed props:
+  // - StatelessComponent<T> with an explicit T → use _rawProps keys directly.
+  // - StatefulComponent (wide record) → walk instance properties, strip framework
+  //   internals via FrameworkKeys and method filter, leaving @Prop/@State fields.
   type InstancePropsOf<C> = C extends { prototype: infer I }
     ? IsAny<I> extends true
       ? never // raw construct-type alias — prototype resolves to `any`
       : I extends { _rawProps: infer RawProps extends object }
         ? [string] extends [keyof RawProps]
           ? {
-              [K in keyof I as K extends
-                | "_defaults"
-                | "_stateDirty"
-                | "_rawProps"
-                | "_mounted"
-                | "_anchor"
-                | "_setProps"
-                | "props"
-                | "onBeforeMount"
-                | "onMount"
-                | "onUnmount"
-                | "onError"
-                | "render"
-                | "onUpdate"
+              [K in keyof I as K extends FrameworkKeys
                 ? never
                 : I[K] extends (...args: unknown[]) => unknown
                   ? never
@@ -90,222 +138,245 @@ export namespace JSX {
     : never;
 
   export type LibraryManagedAttributes<C, P> = C extends string
-    ? P & GlobalAttributes
+    ? P & { key?: string | number | symbol }
     : [InstancePropsOf<C>] extends [never]
       ? C extends new (props: infer CtorProps) => unknown
-        ? { [K in keyof CtorProps]?: Reactive<CtorProps[K]> } & GlobalAttributes
-        : Record<string, unknown> & GlobalAttributes
-      : InstancePropsOf<C> & GlobalAttributes;
+        ? {
+            [K in keyof CtorProps]?: Reactive<CtorProps[K]>;
+          } & { key?: string | number | symbol }
+        : Record<string, unknown> & { key?: string | number | symbol }
+      : InstancePropsOf<C> & { key?: string | number | symbol };
 
   export interface IntrinsicElements {
-    div: HTMLAttributes;
-    span: HTMLAttributes;
-    p: HTMLAttributes;
-    h1: HTMLAttributes;
-    h2: HTMLAttributes;
-    h3: HTMLAttributes;
-    h4: HTMLAttributes;
-    h5: HTMLAttributes;
-    h6: HTMLAttributes;
-    button: ButtonAttributes;
-    input: InputAttributes;
-    form: FormAttributes;
-    ul: HTMLAttributes;
-    ol: HTMLAttributes;
-    li: HTMLAttributes;
-    a: AnchorAttributes;
-    img: ImgAttributes;
-    section: HTMLAttributes;
-    header: HTMLAttributes;
-    main: HTMLAttributes;
-    footer: HTMLAttributes;
-    nav: HTMLAttributes;
+    // --- Metadata ---
+    base: BaseHTMLAttributes;
+    head: HTMLAttributes;
+    html: HTMLAttributes<HTMLHtmlElement>;
+    link: LinkHTMLAttributes;
+    meta: MetaHTMLAttributes;
+    noscript: HTMLAttributes;
+    script: ScriptHTMLAttributes;
+    style: StyleHTMLAttributes;
+    title: HTMLAttributes<HTMLTitleElement>;
+
+    // --- Sectioning ---
+    address: HTMLAttributes;
     article: HTMLAttributes;
     aside: HTMLAttributes;
-    label: LabelAttributes;
-    select: SelectAttributes;
-    option: OptionAttributes;
-    textarea: TextareaAttributes;
-    table: HTMLAttributes;
-    thead: HTMLAttributes;
-    tbody: HTMLAttributes;
-    tfoot: HTMLAttributes;
-    tr: HTMLAttributes;
-    th: ThAttributes;
-    td: TdAttributes;
-    pre: HTMLAttributes;
+    body: HTMLAttributes<HTMLBodyElement>;
+    footer: HTMLAttributes;
+    header: HTMLAttributes;
+    h1: HTMLAttributes<HTMLHeadingElement>;
+    h2: HTMLAttributes<HTMLHeadingElement>;
+    h3: HTMLAttributes<HTMLHeadingElement>;
+    h4: HTMLAttributes<HTMLHeadingElement>;
+    h5: HTMLAttributes<HTMLHeadingElement>;
+    h6: HTMLAttributes<HTMLHeadingElement>;
+    hgroup: HTMLAttributes;
+    main: HTMLAttributes;
+    nav: HTMLAttributes;
+    search: HTMLAttributes;
+    section: HTMLAttributes;
+
+    // --- Grouping content ---
+    blockquote: BlockquoteHTMLAttributes;
+    dd: HTMLAttributes;
+    div: HTMLAttributes<HTMLDivElement>;
+    dl: HTMLAttributes<HTMLDListElement>;
+    dt: HTMLAttributes;
+    figcaption: HTMLAttributes;
+    figure: HTMLAttributes;
+    hr: HTMLAttributes<HTMLHRElement>;
+    li: LiHTMLAttributes;
+    menu: MenuHTMLAttributes;
+    ol: OlHTMLAttributes;
+    p: HTMLAttributes<HTMLParagraphElement>;
+    pre: HTMLAttributes<HTMLPreElement>;
+    ul: HTMLAttributes<HTMLUListElement>;
+
+    // --- Text-level semantics ---
+    a: AnchorHTMLAttributes;
+    abbr: HTMLAttributes;
+    b: HTMLAttributes;
+    bdi: HTMLAttributes;
+    bdo: HTMLAttributes;
+    br: HTMLAttributes<HTMLBRElement>;
+    cite: HTMLAttributes;
     code: HTMLAttributes;
-    strong: HTMLAttributes;
+    data: DataHTMLAttributes;
+    dfn: HTMLAttributes;
     em: HTMLAttributes;
+    i: HTMLAttributes;
+    kbd: HTMLAttributes;
+    mark: HTMLAttributes;
+    q: BlockquoteHTMLAttributes;
+    rp: HTMLAttributes;
+    rt: HTMLAttributes;
+    ruby: HTMLAttributes;
+    s: HTMLAttributes;
+    samp: HTMLAttributes;
     small: HTMLAttributes;
-    hr: HTMLAttributes;
-    br: HTMLAttributes;
-    [key: string]: HTMLAttributes;
-  }
+    span: HTMLAttributes;
+    strong: HTMLAttributes;
+    sub: HTMLAttributes;
+    sup: HTMLAttributes;
+    time: TimeHTMLAttributes;
+    u: HTMLAttributes;
+    var: HTMLAttributes;
+    wbr: HTMLAttributes;
 
-  interface HTMLAttributes {
-    id?: Reactive<string>;
-    class?: Reactive<string>;
-    className?: Reactive<string>;
-    style?: Reactive<string | Partial<CSSStyleDeclaration>>;
-    children?: Children;
-    key?: string | number;
-    ref?: (el: HTMLElement) => void;
-    tabIndex?: Reactive<number>;
-    title?: Reactive<string>;
-    hidden?: Reactive<boolean>;
-    draggable?: Reactive<boolean>;
-    role?: Reactive<string>;
-    // Aria
-    "aria-label"?: Reactive<string>;
-    "aria-hidden"?: Reactive<boolean | "true" | "false">;
-    "aria-expanded"?: Reactive<boolean | "true" | "false">;
-    "aria-checked"?: Reactive<boolean | "true" | "false" | "mixed">;
-    "aria-disabled"?: Reactive<boolean | "true" | "false">;
-    "aria-selected"?: Reactive<boolean | "true" | "false">;
-    "aria-controls"?: Reactive<string>;
-    "aria-describedby"?: Reactive<string>;
-    "aria-labelledby"?: Reactive<string>;
-    // Mouse Events
-    onClick?: (e: MouseEvent) => void;
-    onDblClick?: (e: MouseEvent) => void;
-    onMouseDown?: (e: MouseEvent) => void;
-    onMouseUp?: (e: MouseEvent) => void;
-    onMouseEnter?: (e: MouseEvent) => void;
-    onMouseLeave?: (e: MouseEvent) => void;
-    onMouseMove?: (e: MouseEvent) => void;
-    onContextMenu?: (e: MouseEvent) => void;
-    // Keyboard Events
-    onKeyDown?: (e: KeyboardEvent) => void;
-    onKeyUp?: (e: KeyboardEvent) => void;
-    onKeyPress?: (e: KeyboardEvent) => void;
-    // Focus Events
-    onFocus?: (e: FocusEvent) => void;
-    onBlur?: (e: FocusEvent) => void;
-    // Form Events
-    onChange?: (e: Event) => void;
-    onInput?: (e: InputEvent) => void;
-    onSubmit?: (e: SubmitEvent) => void;
-    onReset?: (e: Event) => void;
-    // Drag Events
-    onDragStart?: (e: DragEvent) => void;
-    onDragEnd?: (e: DragEvent) => void;
-    onDragOver?: (e: DragEvent) => void;
-    onDrop?: (e: DragEvent) => void;
-    // Touch Events
-    onTouchStart?: (e: TouchEvent) => void;
-    onTouchEnd?: (e: TouchEvent) => void;
-    onTouchMove?: (e: TouchEvent) => void;
-    // Other Events
-    onScroll?: (e: Event) => void;
-    onWheel?: (e: WheelEvent) => void;
-    onAnimationEnd?: (e: AnimationEvent) => void;
-    onTransitionEnd?: (e: TransitionEvent) => void;
-    [key: string]: unknown;
-  }
+    // --- Edits ---
+    del: DelHTMLAttributes;
+    ins: InsHTMLAttributes;
 
-  interface ButtonAttributes extends HTMLAttributes {
-    type?: "button" | "submit" | "reset";
-    disabled?: Reactive<boolean>;
-    form?: string;
-    name?: string;
-    value?: Reactive<string>;
-  }
+    // --- Embedded content ---
+    area: AreaHTMLAttributes;
+    audio: AudioHTMLAttributes;
+    canvas: CanvasHTMLAttributes;
+    embed: EmbedHTMLAttributes;
+    iframe: IframeHTMLAttributes;
+    img: ImgHTMLAttributes;
+    map: MapHTMLAttributes;
+    object: ObjectHTMLAttributes;
+    picture: HTMLAttributes;
+    source: SourceHTMLAttributes;
+    track: TrackHTMLAttributes;
+    video: VideoHTMLAttributes;
 
-  interface InputAttributes extends HTMLAttributes {
-    type?: string;
-    value?: Reactive<string | number>;
-    defaultValue?: string | number;
-    placeholder?: Reactive<string>;
-    disabled?: Reactive<boolean>;
-    checked?: Reactive<boolean>;
-    defaultChecked?: boolean;
-    name?: string;
-    min?: Reactive<string | number>;
-    max?: Reactive<string | number>;
-    step?: Reactive<string | number>;
-    minLength?: number;
-    maxLength?: number;
-    pattern?: string;
-    required?: Reactive<boolean>;
-    readOnly?: Reactive<boolean>;
-    multiple?: boolean;
-    accept?: string;
-    autoComplete?: string;
-    autoFocus?: boolean;
-  }
+    // --- Forms ---
+    button: ButtonHTMLAttributes;
+    datalist: DatalistHTMLAttributes;
+    fieldset: FieldsetHTMLAttributes;
+    form: FormHTMLAttributes;
+    input: InputHTMLAttributes;
+    label: LabelHTMLAttributes;
+    legend: HTMLAttributes<HTMLLegendElement>;
+    meter: MeterHTMLAttributes;
+    optgroup: OptgroupHTMLAttributes;
+    option: OptionHTMLAttributes;
+    output: OutputHTMLAttributes;
+    progress: ProgressHTMLAttributes;
+    select: SelectHTMLAttributes;
+    textarea: TextareaHTMLAttributes;
 
-  interface FormAttributes extends HTMLAttributes {
-    action?: string;
-    method?: "get" | "post";
-    encType?: string;
-    noValidate?: boolean;
-    target?: string;
-    name?: string;
-  }
+    // --- Interactive ---
+    details: DetailsHTMLAttributes;
+    dialog: DialogHTMLAttributes;
+    slot: SlotHTMLAttributes;
+    summary: HTMLAttributes;
 
-  interface AnchorAttributes extends HTMLAttributes {
-    href?: Reactive<string>;
-    target?: "_blank" | "_self" | "_parent" | "_top";
-    rel?: string;
-    download?: string | boolean;
-  }
+    // --- Tabular ---
+    caption: HTMLAttributes<HTMLTableCaptionElement>;
+    col: ColHTMLAttributes;
+    colgroup: ColgroupHTMLAttributes;
+    table: TableHTMLAttributes;
+    tbody: HTMLAttributes<HTMLTableSectionElement>;
+    td: TdHTMLAttributes;
+    tfoot: HTMLAttributes<HTMLTableSectionElement>;
+    th: ThHTMLAttributes;
+    thead: HTMLAttributes<HTMLTableSectionElement>;
+    tr: HTMLAttributes<HTMLTableRowElement>;
 
-  interface ImgAttributes extends HTMLAttributes {
-    src?: Reactive<string>;
-    alt?: string;
-    width?: Reactive<number | string>;
-    height?: Reactive<number | string>;
-    loading?: "lazy" | "eager";
-    decoding?: "async" | "sync" | "auto";
-  }
+    // --- Scripting ---
+    template: HTMLAttributes<HTMLTemplateElement>;
 
-  interface LabelAttributes extends HTMLAttributes {
-    for?: string;
-    htmlFor?: string;
-    form?: string;
-  }
-
-  interface SelectAttributes extends HTMLAttributes {
-    value?: Reactive<string>;
-    multiple?: boolean;
-    size?: number;
-    disabled?: Reactive<boolean>;
-    required?: Reactive<boolean>;
-    name?: string;
-  }
-
-  interface OptionAttributes extends HTMLAttributes {
-    value?: string;
-    selected?: Reactive<boolean>;
-    disabled?: Reactive<boolean>;
-    label?: string;
-  }
-
-  interface TextareaAttributes extends HTMLAttributes {
-    value?: Reactive<string>;
-    defaultValue?: string;
-    placeholder?: Reactive<string>;
-    rows?: number;
-    cols?: number;
-    disabled?: Reactive<boolean>;
-    required?: Reactive<boolean>;
-    readOnly?: Reactive<boolean>;
-    minLength?: number;
-    maxLength?: number;
-    name?: string;
-    autoFocus?: boolean;
-    resize?: "none" | "both" | "horizontal" | "vertical";
-  }
-
-  interface ThAttributes extends HTMLAttributes {
-    colSpan?: number;
-    rowSpan?: number;
-    scope?: "col" | "row" | "colgroup" | "rowgroup";
-  }
-
-  interface TdAttributes extends HTMLAttributes {
-    colSpan?: number;
-    rowSpan?: number;
+    // --- SVG ---
+    svg: SVGAttributes<SVGSVGElement>;
+    path: SVGAttributes<SVGPathElement>;
+    circle: SVGAttributes<SVGCircleElement>;
+    rect: SVGAttributes<SVGRectElement>;
+    line: SVGAttributes<SVGLineElement>;
+    polyline: SVGAttributes<SVGPolylineElement>;
+    polygon: SVGAttributes<SVGPolygonElement>;
+    ellipse: SVGAttributes<SVGEllipseElement>;
+    text: SVGAttributes<SVGTextElement>;
+    g: SVGAttributes<SVGGElement>;
+    defs: SVGAttributes<SVGDefsElement>;
+    use: SVGAttributes<SVGUseElement>;
+    symbol: SVGAttributes<SVGSymbolElement>;
+    marker: SVGAttributes<SVGMarkerElement>;
+    clipPath: SVGAttributes<SVGClipPathElement>;
+    mask: SVGAttributes<SVGMaskElement>;
+    pattern: SVGAttributes<SVGPatternElement>;
+    image: SVGAttributes<SVGImageElement>;
+    linearGradient: SVGAttributes<SVGLinearGradientElement>;
+    radialGradient: SVGAttributes<SVGRadialGradientElement>;
+    stop: SVGAttributes<SVGStopElement>;
+    filter: SVGAttributes<SVGFilterElement>;
+    feGaussianBlur: SVGAttributes<SVGFEGaussianBlurElement>;
+    tspan: SVGAttributes<SVGTSpanElement>;
+    textPath: SVGAttributes<SVGTextPathElement>;
+    foreignObject: SVGAttributes<SVGForeignObjectElement>;
   }
 }
+
+// Re-export all HTML/SVG attribute types for use in application code.
+export type {
+  Reactive,
+  Booleanish,
+  CSSProperties,
+  HTMLInputTypeAttribute,
+  ButtonType,
+  FormMethod,
+  FormEncType,
+  LinkTarget,
+  ReferrerPolicy,
+  CrossOrigin,
+  Decoding,
+  Loading,
+  Dir,
+  AutoCapitalize,
+  InputMode,
+  EnterKeyHint,
+  AriaAttributes,
+  DOMAttributes,
+  HTMLAttributes,
+  AnchorHTMLAttributes,
+  AreaHTMLAttributes,
+  AudioHTMLAttributes,
+  BaseHTMLAttributes,
+  BlockquoteHTMLAttributes,
+  ButtonHTMLAttributes,
+  CanvasHTMLAttributes,
+  ColHTMLAttributes,
+  ColgroupHTMLAttributes,
+  DataHTMLAttributes,
+  DatalistHTMLAttributes,
+  DelHTMLAttributes,
+  DetailsHTMLAttributes,
+  DialogHTMLAttributes,
+  EmbedHTMLAttributes,
+  FieldsetHTMLAttributes,
+  FormHTMLAttributes,
+  IframeHTMLAttributes,
+  ImgHTMLAttributes,
+  InputHTMLAttributes,
+  InsHTMLAttributes,
+  LabelHTMLAttributes,
+  LiHTMLAttributes,
+  LinkHTMLAttributes,
+  MapHTMLAttributes,
+  MediaHTMLAttributes,
+  MenuHTMLAttributes,
+  MetaHTMLAttributes,
+  MeterHTMLAttributes,
+  ObjectHTMLAttributes,
+  OlHTMLAttributes,
+  OptgroupHTMLAttributes,
+  OptionHTMLAttributes,
+  OutputHTMLAttributes,
+  ProgressHTMLAttributes,
+  ScriptHTMLAttributes,
+  SelectHTMLAttributes,
+  SlotHTMLAttributes,
+  SourceHTMLAttributes,
+  StyleHTMLAttributes,
+  TableHTMLAttributes,
+  TdHTMLAttributes,
+  TextareaHTMLAttributes,
+  ThHTMLAttributes,
+  TimeHTMLAttributes,
+  TrackHTMLAttributes,
+  VideoHTMLAttributes,
+  SVGAttributes,
+} from "./dom-types";

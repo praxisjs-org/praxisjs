@@ -1,10 +1,8 @@
 import { StatelessComponent } from "@praxisjs/core";
 import { Component } from "@praxisjs/decorators";
-import type { Children } from "@praxisjs/shared";
 
 @Component()
 export class SidePanel extends StatelessComponent<{
-  children?: Children;
   width?: string;
 }> {
   render() {

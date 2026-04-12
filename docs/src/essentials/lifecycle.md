@@ -112,14 +112,14 @@ Watchers run after mount automatically. Use `onMount` when you need to access th
 ```tsx
 @Component()
 class AutoFocus extends StatefulComponent {
-  input = createRef<HTMLInputElement>()
+  private inputEl: HTMLInputElement | null = null
 
   onMount() {
-    this.input.el?.focus()
+    this.inputEl?.focus()
   }
 
   render() {
-    return <input ref={this.input} />
+    return <input ref={(el) => { this.inputEl = el }} />
   }
 }
 ```
