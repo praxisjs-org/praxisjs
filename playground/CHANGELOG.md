@@ -1,5 +1,22 @@
 # playground
 
+## 0.1.19
+
+### Patch Changes
+
+- Updated dependencies [994c581]
+- Updated dependencies [994c581]
+  - @praxisjs/jsx@0.4.0
+  - @praxisjs/core@1.4.0
+  - @praxisjs/router@1.0.8
+  - @praxisjs/di@1.2.3
+  - @praxisjs/motion@1.1.6
+  - @praxisjs/store@1.0.7
+  - @praxisjs/decorators@0.7.4
+  - @praxisjs/runtime@0.2.12
+  - @praxisjs/composables@1.0.4
+  - @praxisjs/concurrent@1.2.4
+
 ## 0.1.18
 
 ### Patch Changes
