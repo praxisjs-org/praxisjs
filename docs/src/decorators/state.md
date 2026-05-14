@@ -188,9 +188,78 @@ The field exposes `.data()`, `.pending()`, `.error()`, `.status()`, `.refetch()`
 
 → See [Async Data](/essentials/async-data) for full details.
 
+---
+
+## `@Synced(channelName?)`
+
+Like `@State`, but the value is synced in real-time across all open browser tabs via `BroadcastChannel`. `channelName` defaults to the field name.
+
+```tsx
+@Component()
+class CartButton extends StatefulComponent {
+  @Synced('cart') items: Product[] = []
+
+  render() {
+    return (
+      <button onClick={() => { this.items = [...this.items, newItem] }}>
+        Cart ({() => this.items.length})
+      </button>
+    )
+  }
+}
+```
+
+When any tab writes to `this.items`, all other open tabs update automatically. Combine with `@Persisted` for both persistence and live sync:
+
+```tsx
+@Synced('cart')
+@Persisted('cart')
+items: Product[] = []
+```
+
+::: warning
+Serialization uses `JSON.stringify`/`JSON.parse`. Values that are not JSON-serializable (functions, class instances, `undefined`) are not supported.
+:::
+
+---
+
+## `@DeepState()`
+
+Like `@State`, but uses a deep `Proxy` so nested mutations are reactive without needing to create new references.
+
+```tsx
+@Component()
+class ThemeEditor extends StatefulComponent {
+  @DeepState() config = { theme: { mode: 'light', accent: '#0070f3' }, fontSize: 14 }
+
+  render() {
+    return (
+      <div>
+        <p>Mode: {() => this.config.theme.mode}</p>
+        <button onClick={() => { this.config.theme.mode = 'dark' }}>Dark</button>
+        <button onClick={() => { this.config.fontSize++ }}>Larger</button>
+      </div>
+    )
+  }
+}
+```
+
+Any mutation at any depth — including `push`, index assignment, and property deletion — triggers reactive updates.
+
+::: tip When to use @DeepState vs @State
+- Use `@State` (preferred) when you control the shape and can replace references: `this.items = [...this.items, x]`
+- Use `@DeepState` when working with deeply nested structures where immutable patterns are too verbose
+
+`@DeepState` is coarse-grained: **any** nested mutation re-runs all effects that read the field, regardless of which property changed.
+:::
+
+::: warning Limitations
+`Map`, `Set`, and class instances are not tracked deeply — only plain objects and arrays. Mutations via their own methods (e.g. `map.set(k, v)`) will not trigger reactivity.
+:::
+
 <llm-only>
 Import paths:
-- @State, @Prop, @Computed, @Persisted, @History, @Resource — all from '@praxisjs/decorators'
+- @State, @Prop, @Computed, @Persisted, @History, @Resource, @Synced, @DeepState — all from '@praxisjs/decorators'
 - ResourceInstance type — from '@praxisjs/decorators'
 - HistoryOf type — from '@praxisjs/decorators'
 - StatefulComponent — from '@praxisjs/core'
