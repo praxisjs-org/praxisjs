@@ -153,6 +153,13 @@ describe("applyProp", () => {
     expect(el.hasAttribute("style")).toBe(false);
   });
 
+  it("sets boolean true as empty string for non-VALUE_PROPS attributes (applyAttr path)", () => {
+    const el = document.createElement("div");
+    const scope = new Scope();
+    applyProp(el, "aria-expanded", true, scope);
+    expect(el.getAttribute("aria-expanded")).toBe("");
+  });
+
   it("removes style attribute when value is undefined", () => {
     const el = document.createElement("div");
     el.setAttribute("style", "color: red;");

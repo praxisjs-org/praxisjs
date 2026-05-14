@@ -91,6 +91,22 @@ describe("Scope", () => {
     expect(inner).not.toHaveBeenCalled();
   });
 
+  it("multiple throwing cleanups — AggregateError is thrown with all errors", () => {
+    const scope = new Scope();
+    scope.add(() => { throw new Error("error 1"); });
+    scope.add(() => { throw new Error("error 2"); });
+    expect(() => { scope.dispose(); }).toThrow(AggregateError);
+    try {
+      const s2 = new Scope();
+      s2.add(() => { throw new Error("e1"); });
+      s2.add(() => { throw new Error("e2"); });
+      s2.dispose();
+    } catch (err) {
+      expect(err).toBeInstanceOf(AggregateError);
+      expect((err as AggregateError).errors).toHaveLength(2);
+    }
+  });
+
   it("fork() child can be disposed independently before parent", () => {
     const parent = new Scope();
     const child = parent.fork();

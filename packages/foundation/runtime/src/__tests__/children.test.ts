@@ -137,6 +137,13 @@ describe("mountChildren", () => {
     scope.dispose();
   });
 
+  it("non-array object passed directly — falls through and mounts nothing", () => {
+    const el = container();
+    const scope = new Scope();
+    mountChildren(el, { some: "object" } as unknown, scope);
+    expect(el.childNodes.length).toBe(0);
+  });
+
   it("same Node instance passed twice — second append moves the node (not duplicated)", () => {
     const el = container();
     const scope = new Scope();
