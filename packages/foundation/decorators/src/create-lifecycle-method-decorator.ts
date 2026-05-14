@@ -13,7 +13,8 @@ export function createLifecycleMethodDecorator<
   T extends StatefulComponent = StatefulComponent,
 >(behavior: LifecycleMethodBehavior<T>) {
   return function (
-    value: (this: T, ...args: unknown[]) => void,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    value: (this: T, ...args: any[]) => void,
     _context: ClassMethodDecoratorContext<T>,
   ): void {
     _context.addInitializer(function (this: unknown) {
