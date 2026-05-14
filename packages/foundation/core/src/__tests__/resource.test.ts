@@ -109,6 +109,48 @@ describe("createResource", () => {
   });
 });
 
+describe("resource — execute() sync throw via refetch()", () => {
+  it("refetch() captures a synchronous throw from the fetcher", async () => {
+    const r = resource(() => Promise.resolve(1), { immediate: false });
+    let calls = 0;
+    const r2 = resource(
+      () => {
+        calls++;
+        if (calls >= 2) throw new Error("sync in refetch");
+        return Promise.resolve(1);
+      },
+      { immediate: false },
+    );
+    r2.refetch(); // first call succeeds
+    await vi.waitFor(() => r2.status() === "success");
+    r2.refetch(); // second call throws synchronously
+    await vi.waitFor(() => r2.status() === "error");
+    expect((r2.error() as Error).message).toBe("sync in refetch");
+    void r;
+  });
+
+  it("refetch() wraps non-Error sync throws in Error", async () => {
+    let calls = 0;
+    const r = resource(
+      () => {
+        calls++;
+        if (calls >= 2) {
+          // eslint-disable-next-line @typescript-eslint/only-throw-error
+          throw "plain string sync";
+        }
+        return Promise.resolve(1);
+      },
+      { immediate: false },
+    );
+    r.refetch();
+    await vi.waitFor(() => r.status() === "success");
+    r.refetch();
+    await vi.waitFor(() => r.status() === "error");
+    expect(r.error()).toBeInstanceOf(Error);
+    expect((r.error() as Error).message).toBe("plain string sync");
+  });
+});
+
 describe("resource — additional cases", () => {
   it("two concurrent refetch() calls — last result wins, stale result is discarded", async () => {
     let resolveFirst!: (v: string) => void;

@@ -144,4 +144,30 @@ describe("syncedSignal", () => {
     expect(s.__isSignal).toBe(true);
     s.close();
   });
+
+  it("does not update value when onmessage fires while posting (posting guard)", () => {
+    // Use a self-delivering channel that echoes to itself during postMessage.
+    // This covers the `if (posting) return;` branch in synced.ts.
+    class SelfEchoChannel {
+      onmessage: ((e: MessageEvent) => void) | null = null;
+      postMessage(data: unknown) {
+        this.onmessage?.(new MessageEvent("message", { data }));
+      }
+      close() {}
+    }
+    vi.stubGlobal("BroadcastChannel", SelfEchoChannel);
+
+    const s = syncedSignal("echo-ch", 0);
+    const received: number[] = [];
+    s.subscribe((v) => received.push(v));
+
+    // set() triggers postMessage → onmessage fires → posting=true → early return
+    // Inner value should not be double-set
+    s.set(42);
+    expect(s()).toBe(42);
+    // Only two notifications: initial (0) + the set (42), no echo re-set
+    expect(received).toEqual([0, 42]);
+
+    s.close();
+  });
 });
