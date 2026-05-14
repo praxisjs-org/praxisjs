@@ -67,7 +67,7 @@ class Button extends StatefulComponent {
 
 ## `@Computed()`
 
-Declares a read-only derived getter backed by a cached reactive computation. Recomputes only when its signal dependencies change.
+Declares a read-only derived getter backed by a cached reactive computation. Recomputes only when its signal dependencies change. When multiple dependencies change in the same synchronous block, subscribers are notified **once** with the final value.
 
 ```tsx
 @Component()

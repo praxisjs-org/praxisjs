@@ -51,6 +51,16 @@ class Form extends StatefulComponent {
 }
 ```
 
+::: tip Coalesced updates
+When multiple watched props change in the same synchronous block, the callback fires **once** with the final values — not once per changed prop. Changes made to signals inside the callback are also automatically batched.
+
+```tsx
+// Both change in the same tick → onNameChange fires once with { firstName: 'Jane', lastName: 'Smith' }
+this.firstName = 'Jane'
+this.lastName = 'Smith'
+```
+:::
+
 ---
 
 ## `@When(propName)`
@@ -109,8 +119,9 @@ Use `@Until` when downstream code needs to await a reactive value rather than re
 <llm-only>
 @Watch details:
 - Runs after the component is mounted; initial value does NOT trigger a call
-- When watching a single property: (newVal, oldVal) => void
-- When watching multiple: (vals: { propA: T, propB: U }) => void — only current values, no old values for multi-watch
+- When watching a single property: (newVal, oldVal) => void — fires synchronously after the signal changes
+- When watching multiple: (vals: { propA: T, propB: U }) => void — coalesced via queueMicrotask; fires once per microtask boundary even if multiple props change in the same synchronous block; only current values provided, no old values for multi-watch
+- Signal writes inside any @Watch callback are automatically batched (wrapped in batch())
 - Set up and torn down automatically by the component lifecycle
 
 @When details:

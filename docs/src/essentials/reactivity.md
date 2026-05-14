@@ -73,6 +73,28 @@ class Cart extends StatefulComponent {
 A plain `get total()` recalculates every time it's read, including inside reactive effects. `@Computed()` caches the result and only recomputes when its signal dependencies change.
 :::
 
+When a computed depends on multiple signals, subscriber notifications are **coalesced** — if both dependencies change in the same synchronous block, the DOM updates once with the final derived value, never with an intermediate state:
+
+```tsx
+@Component()
+class FullName extends StatefulComponent {
+  @State() first = 'John'
+  @State() last = 'Doe'
+
+  @Computed()
+  get fullName() { return `${this.first} ${this.last}` }
+
+  render() {
+    return <p>{() => this.fullName}</p>
+  }
+}
+
+// Somewhere:
+this.first = 'Jane'
+this.last = 'Smith'
+// → DOM updates once with "Jane Smith", never shows "Jane Doe"
+```
+
 ## Reactive arrays and objects
 
 Signals track reference changes, not deep mutations:
@@ -247,6 +269,7 @@ onItemsChange() {
 Signal system internals:
 - @State wraps the property in a Signal<T> internally; reading it inside an effect subscribes; writing triggers effects
 - @Computed wraps a getter in a computed() that caches and only recomputes when dependencies change
+- computed() coalesces subscriber notifications via queueMicrotask: dirty propagation through chained computeds is synchronous (so reads always return the correct value), but leaf effects (DOM patches, @Watch, .subscribe()) are notified once per microtask boundary — never with intermediate values when multiple dependencies change in the same tick
 - @Prop creates a getter that reads from the props object passed to the component at creation
 - The renderer's arrow function handling: when it encounters () => expr, it runs the function inside an effect() that patches only the specific DOM node when rerun
 - Deep reactivity is NOT supported — always replace references
