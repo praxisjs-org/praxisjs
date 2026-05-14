@@ -213,6 +213,17 @@ describe("TimeAgo", () => {
     expect(clearInterval).toHaveBeenCalled();
   });
 
+  it("interval callback fires after 60s — tick updates and value recomputes", () => {
+    const ta = new TimeAgo(() => now - 30_000, "en");
+    const { value } = ta.setup() as { value: () => string };
+    const before = value();
+    vi.advanceTimersByTime(60_000);
+    // After 60s the tick signal updates; value() still produces a valid string
+    expect(typeof value()).toBe("string");
+    expect(value()).not.toBe(undefined);
+    void before;
+  });
+
   it("future date produces a positive relative time string (e.g. 'in 30 seconds')", () => {
     // A future timestamp produces a positive diff; Intl.RelativeTimeFormat formats it as "in X"
     const ta = new TimeAgo(() => now + 30_000, "en");

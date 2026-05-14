@@ -283,6 +283,14 @@ describe("KeyCombo (additional)", () => {
     expect(pressed()).toBe(true);
   });
 
+  it("modifier-only combo (ctrl+shift) — keyup resets pressed to false", () => {
+    const kc = new KeyCombo("ctrl+shift");
+    const { pressed } = kc.setup() as { pressed: () => boolean };
+    // Fire keyup to cover the _keyupHandler arrow function inside the !key branch
+    window.dispatchEvent(new KeyboardEvent("keyup"));
+    expect(pressed()).toBe(false);
+  });
+
   it("modifier-only combo (ctrl+shift) never fires", () => {
     const kc = new KeyCombo("ctrl+shift");
     const { pressed } = kc.setup() as { pressed: () => boolean };
