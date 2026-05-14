@@ -8,12 +8,14 @@ export {
 export {
   signal,
   persistedSignal,
+  syncedSignal,
   peek,
   computed,
   batch,
   effect,
   untrack,
   type PersistedSignalOptions,
+  type SyncedSignal,
 } from "./signal";
 export { RootComponent } from "./component";
 export {
