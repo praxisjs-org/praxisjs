@@ -26,6 +26,8 @@ export {
   Resource,
   type ResourceInstance,
   type ResourceOptions,
+  Synced,
+  DeepState,
 } from "./properties";
 export { type Command, createCommand, Emit, OnCommand } from "./events";
 export {
