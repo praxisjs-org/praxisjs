@@ -29,14 +29,14 @@ bun add @praxisjs/store
 
 ## `@Store()`
 
-Registers a class as a global singleton store. Use `@State` for reactive properties and plain methods for mutations.
+Registers a class as a global singleton store. Store classes must extend `ReactiveStore` to use `@State` and `@DeepState` on their fields.
 
 ```ts
-import { Store } from '@praxisjs/store'
+import { Store, ReactiveStore } from '@praxisjs/store'
 import { State, Computed } from '@praxisjs/decorators'
 
 @Store()
-class CartStore {
+class CartStore extends ReactiveStore {
   @State() items: Product[] = []
   @State() discount = 0
 
@@ -60,6 +60,10 @@ class CartStore {
 ```
 
 The class is instantiated once on first use and the same instance is shared across all consumers.
+
+::: tip Why `extends ReactiveStore`?
+`ReactiveStore` provides the internal `_stateDirty` flag that the `@State` and `@DeepState` decorators require. Extending it is also what makes TypeScript validate that `@State` is only used on classes designed to be reactive — plain classes without this base will produce a type error.
+:::
 
 ---
 
@@ -129,8 +133,11 @@ When `CartButton` calls `addItem()`, both `CartSummary` and `CheckoutPage` updat
 ## Auth store example
 
 ```ts
+import { Store, ReactiveStore } from '@praxisjs/store'
+import { State, Computed } from '@praxisjs/decorators'
+
 @Store()
-class AuthStore {
+class AuthStore extends ReactiveStore {
   @State() user: User | null = null
 
   @Computed()
@@ -152,13 +159,15 @@ class AuthStore {
 
 <llm-only>
 Store facts:
-- @Store() registers the class constructor in a global storeRegistry Map
+- Store classes must extend ReactiveStore (exported from '@praxisjs/store') to use @State and @DeepState
+- ReactiveStore provides _stateDirty: boolean which is required by the @State and @DeepState decorators
+- @Store() registers the class constructor in a global storeRegistry Map and requires T extends ReactiveStore
 - @UseStore(StoreClass) lazily instantiates the store on first property access — cached per component instance in a WeakMap, but all components share the same store instance
 - Store state uses @State from '@praxisjs/decorators' — same reactive signal system as components
 - @Computed() works in stores exactly as in components
 - Store methods are plain class methods — `this` refers to the store instance normally
 - There is no createStore(), $patch(), $reset(), or $subscribe() — only @Store and @UseStore decorators
-- Import: Store, UseStore from '@praxisjs/store'; State, Computed from '@praxisjs/decorators'
+- Import: Store, UseStore, ReactiveStore from '@praxisjs/store'; State, Computed from '@praxisjs/decorators'
 - The store singleton is created once globally — not per component, not per container
 Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>
