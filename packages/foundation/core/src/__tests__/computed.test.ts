@@ -59,6 +59,23 @@ describe("computed", () => {
     expect(quadrupled()).toBe(12);
   });
 
+  it("coalesces subscriber notifications when multiple dependencies change in the same tick", async () => {
+    const first = signal("John");
+    const last = signal("Doe");
+    const fullName = computed(() => `${first()} ${last()}`);
+
+    const calls: string[] = [];
+    fullName.subscribe((v) => calls.push(v));
+    expect(calls).toEqual(["John Doe"]); // immediate on subscribe
+
+    first.set("Jane");
+    last.set("Smith");
+    await Promise.resolve();
+
+    // Both changes in the same tick → single notification with final value
+    expect(calls).toEqual(["John Doe", "Jane Smith"]);
+  });
+
   it("subscribe fires immediately with computed value", () => {
     const s = signal(5);
     const c = computed(() => s() + 1);
@@ -67,13 +84,15 @@ describe("computed", () => {
     expect(received).toEqual([6]);
   });
 
-  it("subscribe fires when source changes", () => {
+  it("subscribe fires when source changes", async () => {
     const s = signal(0);
     const c = computed(() => s() * 3);
     const received: number[] = [];
     c.subscribe((v) => received.push(v));
     s.set(2);
+    await Promise.resolve();
     s.set(4);
+    await Promise.resolve();
     expect(received).toEqual([0, 6, 12]);
   });
 
@@ -112,7 +131,7 @@ describe("computed", () => {
     expect(c()).toBe(21);
   });
 
-  it("unsubscribe then re-subscribe works correctly", () => {
+  it("unsubscribe then re-subscribe works correctly", async () => {
     const s = signal(1);
     const c = computed(() => s() * 3);
     const received: number[] = [];
@@ -123,6 +142,7 @@ describe("computed", () => {
     // Re-subscribe
     c.subscribe((v) => received.push(v));
     s.set(2);
+    await Promise.resolve();
     expect(received).toContain(6);
   });
 

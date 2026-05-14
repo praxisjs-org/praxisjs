@@ -2,17 +2,36 @@ import type { Computed } from "@praxisjs/shared";
 
 import { activeEffect, runEffect, type Effect } from "./effect";
 
+type ComputedRecompute = Effect & { __isComputedRecompute: true };
+
 export function computed<T>(computeFn: () => T): Computed<T> {
   let cachedValue: T;
   let dirty = true;
   const subscribers = new Set<Effect>();
+  let scheduled = false;
 
-  const recompute = () => {
-    dirty = true;
-    [...subscribers].forEach((sub) => {
-      sub();
-    });
-  };
+  const recompute: ComputedRecompute = Object.assign(
+    () => {
+      dirty = true;
+      for (const sub of [...subscribers]) {
+        if ((sub as Partial<ComputedRecompute>).__isComputedRecompute) {
+          sub(); // propagate dirty synchronously through computed chain
+        }
+      }
+      if (!scheduled) {
+        scheduled = true;
+        queueMicrotask(() => {
+          scheduled = false;
+          for (const sub of [...subscribers]) {
+            if (!(sub as Partial<ComputedRecompute>).__isComputedRecompute) {
+              sub(); // notify leaf effects (DOM, @Watch, subscribe)
+            }
+          }
+        });
+      }
+    },
+    { __isComputedRecompute: true as const },
+  );
 
   function read() {
     if (activeEffect) {

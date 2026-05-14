@@ -235,11 +235,12 @@ describe("history", () => {
     expect(h.current()).toBe(10);
   });
 
-  it("works with computed source (read-only — no signal.set)", () => {
+  it("works with computed source (read-only — no signal.set)", async () => {
     const s = signal(1);
     const c = computed(() => s() * 2);
     const h = history(c);
     s.set(2);
+    await Promise.resolve();
     expect(h.current()).toBe(4);
     expect(h.canUndo()).toBe(true);
   });
