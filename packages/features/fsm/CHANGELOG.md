@@ -1,5 +1,14 @@
 # @praxisjs/fsm
 
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [9affc5c]
+- Updated dependencies [2f08576]
+  - @praxisjs/core@1.5.0
+  - @praxisjs/decorators@0.8.0
+
 ## 1.0.8
 
 ### Patch Changes
