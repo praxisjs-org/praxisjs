@@ -133,6 +133,30 @@ describe("@Synced decorator", () => {
     expect(inst.score).toBe(42);
   });
 
+  it("two @Synced fields on the same instance share the signalMap entry", () => {
+    const { ctx: ctx1, run: run1 } = fieldCtx("a");
+    const { ctx: ctx2, run: run2 } = fieldCtx("b");
+    Synced()(undefined, ctx1);
+    Synced()(undefined, ctx2);
+
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).a = 1;
+    (instance as unknown as Record<string, unknown>).b = 2;
+    run1(instance);
+    run2(instance);
+
+    const inst = instance as unknown as { a: number; b: number };
+    inst.a = 10;
+    inst.b = 20;
+    expect(inst.a).toBe(10);
+    expect(inst.b).toBe(20);
+
+    // Both fields have their own BroadcastChannel
+    expect(MockBroadcastChannel.instances.length).toBe(2);
+    instance.onUnmount?.();
+    expect(MockBroadcastChannel.instances.every((ch) => ch.closed)).toBe(true);
+  });
+
   it("onUnmount closes the BroadcastChannel", () => {
     const { ctx, run } = fieldCtx("data");
     Synced()(undefined, ctx);

@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { StatefulComponent } from "@praxisjs/core";
 import { signal, computed } from "@praxisjs/core/internal";
 
+import { createFieldDecorator } from "../create-field-decorator";
 import { Watch } from "../functions/watch";
 import { When } from "../functions/when";
 import { Compose } from "../properties/compose";
@@ -982,5 +983,37 @@ describe("@Compose decorator — new cases", () => {
 
     const view = (instance as unknown as Record<string, unknown>).strArgUndef as Record<string, unknown>;
     expect(view.resolved).toBeUndefined();
+  });
+});
+
+// ── createFieldDecorator — additional property ────────────────────────────────
+
+describe("createFieldDecorator — additional property", () => {
+  it("defines extra properties on the instance when additional is returned", () => {
+    const decorator = createFieldDecorator({
+      bind(_instance, _name, initialValue) {
+        return {
+          descriptor: {
+            get() { return initialValue; },
+            set() { /* no-op */ },
+          },
+          additional: {
+            extraProp: {
+              configurable: true,
+              get() { return "extra"; },
+            },
+          },
+        };
+      },
+    });
+
+    const { ctx, run } = fieldCtx("myField");
+    decorator(undefined, ctx);
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).myField = 42;
+    run(instance);
+
+    expect((instance as unknown as Record<string, unknown>).myField).toBe(42);
+    expect((instance as unknown as Record<string, unknown>).extraProp).toBe("extra");
   });
 });

@@ -144,6 +144,30 @@ describe("@DeepState decorator", () => {
     expect(log).toEqual([null, { x: 5 }]);
   });
 
+  it("setter with null value — proxy not created, value is null", () => {
+    const { ctx, run } = fieldCtx("nullable");
+    DeepState()(undefined, ctx);
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).nullable = { x: 1 };
+    run(instance);
+
+    const inst = instance as unknown as { nullable: { x: number } | null };
+    inst.nullable = null;
+    expect(inst.nullable).toBeNull();
+  });
+
+  it("setter with primitive value — value stored directly without proxy", () => {
+    const { ctx, run } = fieldCtx("num");
+    DeepState()(undefined, ctx);
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).num = { v: 0 };
+    run(instance);
+
+    const inst = instance as unknown as { num: number | { v: number } };
+    inst.num = 99;
+    expect(inst.num).toBe(99);
+  });
+
   it("deeply nested mutation triggers effect", () => {
     const { ctx, run } = fieldCtx("deep");
     DeepState()(undefined, ctx);
