@@ -5,8 +5,7 @@ export class WindowSize extends Composable {
   declare width: number;
   declare height: number;
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private _handler = () => {};
+  private _handler!: () => void;
   private _view?: Record<string, unknown>;
 
   setup() {
@@ -141,8 +140,12 @@ export class Focus extends Composable {
     effect(() => {
       const el = this.ref.current;
       if (!el) return;
-      const onFocus = () => { focused.set(true); };
-      const onBlur = () => { focused.set(false); };
+      const onFocus = () => {
+        focused.set(true);
+      };
+      const onBlur = () => {
+        focused.set(false);
+      };
       el.addEventListener("focus", onFocus);
       el.addEventListener("blur", onBlur);
       return () => {

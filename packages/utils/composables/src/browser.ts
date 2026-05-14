@@ -16,7 +16,9 @@ export class MediaQuery extends Composable {
     if (this._view) return this._view;
     this._mql = window.matchMedia(this.query);
     const matches = signal(this._mql.matches);
-    this._handler = (e) => { matches.set(e.matches); };
+    this._handler = (e) => {
+      matches.set(e.matches);
+    };
     this._mql.addEventListener("change", this._handler);
     this._view = { matches };
     return this._view;
@@ -42,7 +44,9 @@ export class ColorScheme extends Composable {
     this._mql = window.matchMedia("(prefers-color-scheme: dark)");
     const isDark = signal(this._mql.matches);
     const isLight = computed(() => !isDark());
-    this._handler = (e) => { isDark.set(e.matches); };
+    this._handler = (e) => {
+      isDark.set(e.matches);
+    };
     this._mql.addEventListener("change", this._handler);
     this._view = { isDark, isLight };
     return this._view;
@@ -59,15 +63,17 @@ export class Mouse extends Composable {
   declare x: number;
   declare y: number;
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private _handler = (_e: MouseEvent) => {};
+  private _handler!: (e: MouseEvent) => void;
   private _view?: Record<string, unknown>;
 
   setup() {
     if (this._view) return this._view;
     const x = signal(0);
     const y = signal(0);
-    this._handler = (e) => { x.set(e.clientX); y.set(e.clientY); };
+    this._handler = (e) => {
+      x.set(e.clientX);
+      y.set(e.clientY);
+    };
     window.addEventListener("mousemove", this._handler);
     this._view = { x, y };
     return this._view;
@@ -83,8 +89,7 @@ export class KeyCombo extends Composable {
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   private _keydownHandler = (_e: KeyboardEvent) => {};
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private _keyupHandler = () => {};
+  private _keyupHandler!: () => void;
   private _view?: Record<string, unknown>;
 
   constructor(private readonly combo: string) {
@@ -93,7 +98,10 @@ export class KeyCombo extends Composable {
 
   setup() {
     if (this._view) return this._view;
-    const parts = this.combo.toLowerCase().split("+").map((p) => p.trim());
+    const parts = this.combo
+      .toLowerCase()
+      .split("+")
+      .map((p) => p.trim());
     const pressed = signal(false);
 
     const modifiers = ["ctrl", "shift", "alt", "meta"];
@@ -101,7 +109,9 @@ export class KeyCombo extends Composable {
 
     // A combo with no non-modifier key is invalid and should never fire
     if (!key) {
-      this._keyupHandler = () => { pressed.set(false); };
+      this._keyupHandler = () => {
+        pressed.set(false);
+      };
       window.addEventListener("keydown", this._keydownHandler);
       window.addEventListener("keyup", this._keyupHandler);
       this._view = { pressed };
@@ -117,7 +127,9 @@ export class KeyCombo extends Composable {
         pressed.set(true);
       }
     };
-    this._keyupHandler = () => { pressed.set(false); };
+    this._keyupHandler = () => {
+      pressed.set(false);
+    };
 
     window.addEventListener("keydown", this._keydownHandler);
     window.addEventListener("keyup", this._keyupHandler);
@@ -148,13 +160,17 @@ export class Idle extends Composable {
     const reset = () => {
       idle.set(false);
       clearTimeout(this._timer);
-      this._timer = setTimeout(() => { idle.set(true); }, this.timeout);
+      this._timer = setTimeout(() => {
+        idle.set(true);
+      }, this.timeout);
     };
 
-    ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach((event) => {
-      window.addEventListener(event, reset, { passive: true });
-      this._listeners.push([event, reset]);
-    });
+    ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach(
+      (event) => {
+        window.addEventListener(event, reset, { passive: true });
+        this._listeners.push([event, reset]);
+      },
+    );
 
     reset();
     this._view = { idle };
