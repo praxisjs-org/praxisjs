@@ -18,12 +18,12 @@ export interface FieldBehavior<T = object> {
 }
 
 export function createFieldDecorator<T = StatefulComponent>(behavior: FieldBehavior<T>) {
-  return function (
+  return function <This extends T, Value = unknown>(
     _value: undefined,
-    context: ClassFieldDecoratorContext<T>,
+    context: ClassFieldDecoratorContext<This, Value>,
   ): void {
     context.addInitializer(function (this: unknown) {
-      const instance = this as T & StatefulComponent & Record<string, unknown>;
+      const instance = this as This & StatefulComponent & Record<string, unknown>;
       const name = context.name as string;
       const initialValue = instance[name];
 

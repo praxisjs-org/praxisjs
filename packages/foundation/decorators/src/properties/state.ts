@@ -2,8 +2,10 @@ import { signal } from "@praxisjs/core/internal";
 
 import { createFieldDecorator } from "../create-field-decorator";
 
+import type { ReactiveHost } from "../reactive-host";
+
 export function State() {
-  return createFieldDecorator({
+  return createFieldDecorator<ReactiveHost>({
     bind(instance, _name, initialValue) {
       const sig = signal(initialValue);
       return {

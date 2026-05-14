@@ -2,6 +2,8 @@ import { signal } from "@praxisjs/core/internal";
 
 import { createFieldDecorator } from "../create-field-decorator";
 
+import type { ReactiveHost } from "../reactive-host";
+
 function deepProxy<T extends object>(target: T, notify: () => void): T {
   return new Proxy(target, {
     get(obj, key, receiver) {
@@ -25,7 +27,7 @@ function deepProxy<T extends object>(target: T, notify: () => void): T {
 }
 
 export function DeepState() {
-  return createFieldDecorator({
+  return createFieldDecorator<ReactiveHost>({
     bind(instance, _name, initialValue) {
       const version = signal(0);
       let current = initialValue;
