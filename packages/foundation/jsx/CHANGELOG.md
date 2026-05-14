@@ -1,5 +1,11 @@
 # @praxisjs/jsx
 
+## 0.4.3
+
+### Patch Changes
+
+- @praxisjs/runtime@0.2.15
+
 ## 0.4.2
 
 ### Patch Changes
