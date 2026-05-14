@@ -232,7 +232,7 @@ describe("Watch decorator", () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it("multi-prop watch fires when any watched prop changes", () => {
+  it("multi-prop watch fires when any watched prop changes", async () => {
     const { ctx, run } = methodCtx("onMulti");
     const handler = vi.fn();
     Watch("a" as never, "b" as never)(handler, ctx as unknown as ClassMethodDecoratorContext);
@@ -246,9 +246,33 @@ describe("Watch decorator", () => {
     (instance as unknown as { onMount: () => void }).onMount?.();
 
     sa.set(1);
+    await Promise.resolve();
     expect(handler).toHaveBeenCalledTimes(1);
     sb.set(1);
+    await Promise.resolve();
     expect(handler).toHaveBeenCalledTimes(2);
+  });
+
+  it("multi-prop watch coalesces simultaneous changes into a single callback", async () => {
+    const { ctx, run } = methodCtx("onMulti");
+    const handler = vi.fn();
+    Watch("a" as never, "b" as never)(handler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const sa = signal(0);
+    const sb = signal(0);
+    const instance = new TestComponent();
+    Object.defineProperty(instance, "a", { get: () => sa(), configurable: true });
+    Object.defineProperty(instance, "b", { get: () => sb(), configurable: true });
+    run(instance);
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    // both change in the same synchronous block
+    sa.set(1);
+    sb.set(1);
+    await Promise.resolve();
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith({ a: 1, b: 1 }, { a: 0, b: 0 });
   });
 });
 
@@ -506,7 +530,7 @@ describe("When decorator", () => {
     expect(unmountSpy).toHaveBeenCalled();
   });
 
-  it("works when the watched prop is a computed value", () => {
+  it("works when the watched prop is a computed value", async () => {
     const { ctx, run } = methodCtxFor("onComputed");
     const handler = vi.fn();
     When("doubled")(handler, ctx as unknown as ClassMethodDecoratorContext);
@@ -521,6 +545,7 @@ describe("When decorator", () => {
     (instance as unknown as { onMount: () => void }).onMount?.();
 
     s.set(5); // doubled becomes 10 (truthy)
+    await Promise.resolve();
     expect(handler).toHaveBeenCalledTimes(1);
   });
 });
@@ -677,7 +702,7 @@ describe("Watch decorator — onUnmount cleanup", () => {
     expect(unmountSpy).toHaveBeenCalled();
   });
 
-  it("multi-prop watch does NOT fire when an unwatched prop changes", () => {
+  it("multi-prop watch does NOT fire when an unwatched prop changes", async () => {
     const { ctx, run } = methodCtx("onAB");
     const handler = vi.fn();
     Watch("a" as never, "b" as never)(handler, ctx as unknown as ClassMethodDecoratorContext);
@@ -694,9 +719,11 @@ describe("Watch decorator — onUnmount cleanup", () => {
     (instance as unknown as { onMount: () => void }).onMount?.();
 
     sc.set(99); // unwatched prop — handler must NOT fire
+    await Promise.resolve();
     expect(handler).not.toHaveBeenCalled();
 
     sa.set(1); // watched — handler fires
+    await Promise.resolve();
     expect(handler).toHaveBeenCalledTimes(1);
   });
 });
@@ -704,7 +731,7 @@ describe("Watch decorator — onUnmount cleanup", () => {
 // ── Watch (additional branches — computed readValue) ──────────────────────────
 
 describe("Watch decorator — reading computed values", () => {
-  it("reads the value of a computed field (not the computed object)", () => {
+  it("reads the value of a computed field (not the computed object)", async () => {
     const { ctx, run } = methodCtx("onDoubled");
     const handler = vi.fn();
     Watch("doubled" as never)(handler, ctx as unknown as ClassMethodDecoratorContext);
@@ -721,6 +748,7 @@ describe("Watch decorator — reading computed values", () => {
     (instance as unknown as { onMount: () => void }).onMount?.();
 
     s.set(5); // c() goes from 2 to 10 → triggers handler
+    await Promise.resolve();
     expect(handler).toHaveBeenCalledTimes(1);
   });
 });

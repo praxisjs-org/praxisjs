@@ -124,7 +124,7 @@ describe("Debug — field decorator wrapping @State", () => {
 // ── Field decorator (computed field) ─────────────────────────────────────────
 
 describe("Debug — field decorator with computed value", () => {
-  it("registers computed signal and tracks updates", () => {
+  it("registers computed signal and tracks updates", async () => {
     const registry = Registry.instance;
     const src = signal(1);
     const c = computed(() => src() * 2);
@@ -147,6 +147,7 @@ describe("Debug — field decorator with computed value", () => {
     expect(signals[0].value).toBe(2);
 
     src.set(5);
+    await Promise.resolve();
     expect(registry.getSignals()[0].value).toBe(10);
   });
 

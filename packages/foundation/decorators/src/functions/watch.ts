@@ -1,5 +1,5 @@
 import type { StatefulComponent } from "@praxisjs/core";
-import { effect } from "@praxisjs/core/internal";
+import { effect, batch } from "@praxisjs/core/internal";
 import type { Computed } from "@praxisjs/shared";
 import { isComputed } from "@praxisjs/shared/internal";
 
@@ -76,11 +76,23 @@ export function Watch<
       const read = () =>
         Object.fromEntries(props.map((p) => [p, readValue(inst, p)]));
       let oldVals = read();
+      let latestVals = oldVals;
+      let scheduled = false;
       return effect(() => {
         const newVals = read();
         if (props.some((p) => !Object.is(newVals[p], oldVals[p]))) {
-          callback(newVals, oldVals);
-          oldVals = newVals;
+          latestVals = newVals;
+          if (!scheduled) {
+            scheduled = true;
+            const prevVals = oldVals;
+            queueMicrotask(() => {
+              scheduled = false;
+              oldVals = latestVals;
+              batch(() => {
+                callback(latestVals, prevVals);
+              });
+            });
+          }
         }
       });
     },

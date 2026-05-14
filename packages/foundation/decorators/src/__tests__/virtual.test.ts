@@ -137,7 +137,7 @@ describe("Virtual decorator", () => {
     document.body.removeChild(container);
   });
 
-  it("re-renders visible items when scrollTop changes (covers while loop cleanup)", () => {
+  it("re-renders visible items when scrollTop changes (covers while loop cleanup)", async () => {
     class ScrollList extends StatefulComponent {
       items = Array.from({ length: 20 }, (_, i) => i);
       renderItem(item: unknown) {
@@ -164,6 +164,7 @@ describe("Virtual decorator", () => {
     // Change scrollTop to trigger effect re-run (covers the while loop removing old nodes)
     Object.defineProperty(container, "scrollTop", { configurable: true, value: 500 });
     container.dispatchEvent(new Event("scroll"));
+    await Promise.resolve();
 
     // buffer=0, itemHeight=50, scrollTop=500 → startIdx=10 → offsetTop=500px
     const spacerTop = outer.children[0] as HTMLElement;
@@ -234,7 +235,7 @@ describe("Virtual decorator", () => {
     expect(() => instance.onUnmount?.()).not.toThrow();
   });
 
-  it("updates scrollTop on scroll event", () => {
+  it("updates scrollTop on scroll event", async () => {
     const Wrapped = applyVirtual(ListComp as AnyConstructor, 50);
     const instance = new Wrapped();
     (instance as unknown as { items: unknown[] }).items = Array.from({ length: 20 }, (_, i) => i);
@@ -251,6 +252,7 @@ describe("Virtual decorator", () => {
 
     Object.defineProperty(container, "scrollTop", { configurable: true, value: 200 });
     container.dispatchEvent(new Event("scroll"));
+    await Promise.resolve();
 
     // buffer=3, itemHeight=50, scrollTop=200 → startIdx=1 → offsetTop=50px
     const spacerTop = outer.children[0] as HTMLElement;
