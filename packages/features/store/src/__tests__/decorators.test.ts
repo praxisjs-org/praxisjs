@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 
-import { Store, UseStore } from "../decorators";
+import { Store, UseStore, ReactiveStore } from "../decorators";
 
 describe("Store decorator", () => {
   it("registers the class without throwing", () => {
-    class CounterStore {
+    class CounterStore extends ReactiveStore {
       value = 0;
     }
     expect(() =>
@@ -12,15 +12,15 @@ describe("Store decorator", () => {
     ).not.toThrow();
   });
 
-  it("StoreBehavior.create() is invoked when an enhanced instance is constructed", () => {
-    class MyStore {
+  it("returns void and the original class remains directly instantiable", () => {
+    class MyStore extends ReactiveStore {
       value = 42;
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const Enhanced = Store()(MyStore as any, {} as ClassDecoratorContext);
-    // Creating an instance calls StoreBehavior.create() internally (returns {})
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(() => new (Enhanced as any)()).not.toThrow();
+    const result = Store()(MyStore as any, {} as ClassDecoratorContext);
+    expect(result).toBeUndefined();
+    expect(() => new MyStore()).not.toThrow();
+    expect(new MyStore().value).toBe(42);
   });
 });
 
@@ -38,7 +38,7 @@ function makeFieldCtx(name: string) {
 
 describe("UseStore decorator", () => {
   it("injects a singleton store instance via getter", () => {
-    class AppStore {
+    class AppStore extends ReactiveStore {
       name = "app";
     }
     Store()(AppStore, {} as ClassDecoratorContext);
@@ -54,7 +54,7 @@ describe("UseStore decorator", () => {
   });
 
   it("returns the same instance on repeated access (singleton)", () => {
-    class SharedStore {}
+    class SharedStore extends ReactiveStore {}
     Store()(SharedStore, {} as ClassDecoratorContext);
 
     const { ctx, run } = makeFieldCtx("sharedStore");
@@ -82,10 +82,10 @@ describe("UseStore decorator", () => {
   });
 
   it("@UseStore on two fields of same class — each field gets the correct store type independently", () => {
-    class StoreAlpha {
+    class StoreAlpha extends ReactiveStore {
       kind = "alpha";
     }
-    class StoreBeta {
+    class StoreBeta extends ReactiveStore {
       kind = "beta";
     }
     Store()(StoreAlpha, {} as ClassDecoratorContext);
@@ -107,7 +107,7 @@ describe("UseStore decorator", () => {
   });
 
   it("store singleton is shared across multiple class instances", () => {
-    class CounterStore {
+    class CounterStore extends ReactiveStore {
       count = 0;
     }
     Store()(CounterStore, {} as ClassDecoratorContext);

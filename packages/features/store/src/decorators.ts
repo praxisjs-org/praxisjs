@@ -1,32 +1,23 @@
-import type { RootComponent } from "@praxisjs/core/internal";
 import {
-  createClassDecorator,
-  ClassBehavior,
-  type ClassEnhancement,
   createFieldDecorator,
   type FieldBinding,
+  type ReactiveHost,
 } from "@praxisjs/decorators";
 
 const storeRegistry = new Map<new (...args: unknown[]) => unknown, unknown>();
 
-class StoreBehavior extends ClassBehavior {
-  create(_instance: RootComponent): ClassEnhancement {
-    return {};
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialize(Enhanced: new (...args: any[]) => unknown): void {
-    storeRegistry.set(Enhanced as new (...args: unknown[]) => unknown, null);
-  }
+/** Base class for store classes. Extend this to enable `@State` and `@DeepState` on store fields. */
+export class ReactiveStore implements ReactiveHost {
+  _stateDirty = false;
 }
 
-const storeBehavior = new StoreBehavior();
-
 export function Store() {
-  const decorator = createClassDecorator(storeBehavior);
-  // Store decorators work on any class, not just RootComponent
-   
-  return decorator as unknown as (value: new (...args: unknown[]) => unknown, context: ClassDecoratorContext) => new (...args: unknown[]) => unknown;
+  return function (
+    constructor: new (...args: unknown[]) => ReactiveStore,
+    _context: ClassDecoratorContext,
+  ): void {
+    storeRegistry.set(constructor, null);
+  };
 }
 
 export function UseStore(StoreConstructor: new () => unknown) {
@@ -51,7 +42,6 @@ export function UseStore(StoreConstructor: new () => unknown) {
         },
       };
     },
-  // Store decorators work on any class, not just StatefulComponent
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
 }

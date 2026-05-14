@@ -1,1 +1,1 @@
-export { Store, UseStore } from "./decorators";
+export { Store, UseStore, ReactiveStore } from "./decorators";
