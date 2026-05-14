@@ -18,10 +18,12 @@ export function batch(fn: () => void) {
   try {
     fn();
   } finally {
-    if (isOuter) {
-      const effectsToRun = batchQueue ?? new Set<Effect>();
+    if (isOuter && batchQueue) {
+      const effectsToRun = batchQueue;
       batchQueue = null;
-      effectsToRun.forEach((eff) => { eff(); });
+      effectsToRun.forEach((eff) => {
+        eff();
+      });
     }
   }
 }
