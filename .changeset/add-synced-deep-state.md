@@ -1,11 +1,13 @@
 ---
 "@praxisjs/core": minor
-"@praxisjs/decorators": minor
+"@praxisjs/composables": patch
 "create-praxisjs": patch
 ---
 
-Add `@Synced` decorator and `@DeepState` decorator.
+Add `syncedSignal` primitive and fix internal dead-code branches.
 
-`@Synced(channelName?)` syncs a signal across browser tabs in real-time via `BroadcastChannel`. Writes in any tab are broadcast to all other open tabs automatically. The channel name defaults to the field name. The underlying `syncedSignal` primitive is also exported from `@praxisjs/core` for direct use.
+`syncedSignal(channelName, initialValue)` creates a signal that stays in sync across browser tabs in real-time via `BroadcastChannel`. Writes in any tab are broadcast to all other open tabs automatically.
 
-`@DeepState()` wraps an object or array in a deep `Proxy` so nested mutations (`this.config.theme.mode = 'dark'`, `this.items.push(x)`) are reactive without needing to create new references. It is an opt-in complement to `@State`, which requires immutable updates. Reactivity is coarse-grained: any nested mutation re-runs all effects that read the field.
+`batch()` — simplified the flush path by replacing the unreachable `batchQueue ?? new Set()` fallback with a direct `if (isOuter && batchQueue)` guard.
+
+`@praxisjs/composables` — removed no-op class field initializers (`_handler = () => {}`) that were immediately overwritten in `setup()`. Fields are now declared with `!` or typed as optional to reflect their real lifecycle.
