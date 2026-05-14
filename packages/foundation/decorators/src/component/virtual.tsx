@@ -1,6 +1,15 @@
-import { computed, effect, type RootComponent, signal } from "@praxisjs/core/internal";
+import {
+  computed,
+  effect,
+  type RootComponent,
+  signal,
+} from "@praxisjs/core/internal";
 
-import { ClassBehavior, createClassDecorator, type ClassEnhancement } from "../create-class-decorator";
+import {
+  ClassBehavior,
+  createClassDecorator,
+  type ClassEnhancement,
+} from "../create-class-decorator";
 
 interface VirtualHost {
   _anchor?: Comment;
@@ -39,8 +48,9 @@ class VirtualBehavior extends ClassBehavior {
         container.style.position = "relative";
         viewHeight.set(container.clientHeight || 600);
 
+        const currentContainer = container;
         scrollHandler = () => {
-          if (container) scrollTop.set(container.scrollTop);
+          scrollTop.set(currentContainer.scrollTop);
         };
         container.addEventListener("scroll", scrollHandler);
       },
@@ -49,7 +59,9 @@ class VirtualBehavior extends ClassBehavior {
         if (container && scrollHandler) {
           container.removeEventListener("scroll", scrollHandler);
         }
-        cleanups.forEach((c) => { c(); });
+        cleanups.forEach((c) => {
+          c();
+        });
         cleanups.length = 0;
       },
 
@@ -84,10 +96,15 @@ class VirtualBehavior extends ClassBehavior {
           return result;
         });
         const offsetTop = computed(() => startIdx() * itemHeight);
-        const offsetBottom = computed(() => (total - 1 - endIdx()) * itemHeight);
+        const offsetBottom = computed(
+          () => (total - 1 - endIdx()) * itemHeight,
+        );
 
         const outer = document.createElement("div");
-        outer.setAttribute("style", `height:${String(totalH)}px; position:relative;`);
+        outer.setAttribute(
+          "style",
+          `height:${String(totalH)}px; position:relative;`,
+        );
 
         const spacerTop = document.createElement("div");
         cleanups.push(
@@ -99,7 +116,8 @@ class VirtualBehavior extends ClassBehavior {
         const itemsSlot = document.createElement("div");
         cleanups.push(
           effect(() => {
-            while (itemsSlot.firstChild) itemsSlot.removeChild(itemsSlot.firstChild);
+            while (itemsSlot.firstChild)
+              itemsSlot.removeChild(itemsSlot.firstChild);
             visibleItems().forEach(({ item, index }) => {
               const wrapper = document.createElement("div");
               wrapper.setAttribute(
@@ -108,9 +126,12 @@ class VirtualBehavior extends ClassBehavior {
               );
               const rendered = renderItem(item, index);
               if (rendered) {
-                (Array.isArray(rendered) ? rendered.flat() : [rendered]).forEach(
-                  (n) => { wrapper.appendChild(n); },
-                );
+                (Array.isArray(rendered)
+                  ? rendered.flat()
+                  : [rendered]
+                ).forEach((n) => {
+                  wrapper.appendChild(n);
+                });
               }
               itemsSlot.appendChild(wrapper);
             });
@@ -120,7 +141,10 @@ class VirtualBehavior extends ClassBehavior {
         const spacerBottom = document.createElement("div");
         cleanups.push(
           effect(() => {
-            spacerBottom.setAttribute("style", `height:${String(offsetBottom())}px;`);
+            spacerBottom.setAttribute(
+              "style",
+              `height:${String(offsetBottom())}px;`,
+            );
           }),
         );
 
