@@ -35,8 +35,9 @@ export function queue<T>(
     _running = true;
     _loading.set(true);
     while (_queue.length > 0) {
-      const item = _queue.shift();
-      if (!item) break;
+      const item = _queue[0];
+      _queue.shift();
+
       const { args, resolve, reject } = item;
       _pending.update((n) => n - 1);
       try {

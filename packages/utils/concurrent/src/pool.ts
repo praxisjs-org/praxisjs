@@ -24,8 +24,9 @@ export function pool<T>(
 
   async function tryRun(): Promise<void> {
     if (_active() >= concurrency || _queue.length === 0) return;
-    const item = _queue.shift();
-    if (!item) return;
+    const item = _queue[0];
+    _queue.shift();
+
     const { args, resolve } = item;
     _pending.update((n) => n - 1);
     _active.update((n) => n + 1);
