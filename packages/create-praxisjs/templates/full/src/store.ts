@@ -1,8 +1,8 @@
 import { State } from "@praxisjs/decorators";
-import { Store } from "@praxisjs/store";
+import { Store, ReactiveStore } from "@praxisjs/store";
 
 @Store()
-export class CounterStore {
+export class CounterStore extends ReactiveStore {
   @State() count = 0;
 
   increment() {
