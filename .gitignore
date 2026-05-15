@@ -48,6 +48,9 @@ docs/.vitepress/dist
 docs/.vitepress/cache
 docs/.vitepress/.temp
 
+# Storybook
+storybook/storybook-static/
+
 #codecove
 codecov
 codecov.SHA256SUM
