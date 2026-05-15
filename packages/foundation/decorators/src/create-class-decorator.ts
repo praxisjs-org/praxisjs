@@ -19,6 +19,12 @@ export abstract class ClassBehavior {
   initialize?(_Enhanced: new (...args: any[]) => unknown, _original: new (...args: any[]) => unknown): void;
 }
 
+// Tracks instances whose render is currently being called as `originalRender`
+// from within an enhancement. When set, the Enhanced render skips the
+// this._enh.render dispatch so stacked decorators (e.g. @Lazy + @Component)
+// don't re-enter the outermost enhancement recursively.
+const _originalRenderInProgress = new WeakSet();
+
 export function createClassDecorator(behavior: ClassBehavior) {
   return function <
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,12 +46,18 @@ export function createClassDecorator(behavior: ClassBehavior) {
       }
 
       render(...args: unknown[]): Node | Node[] | null {
-        const originalRender = () =>
-          (constructor.prototype as { render: (...a: unknown[]) => Node | Node[] | null }).render.apply(this, args);
-        if (this._enh.render) {
+        const originalRender = () => {
+          _originalRenderInProgress.add(this);
+          try {
+            return (constructor.prototype as { render: (...a: unknown[]) => Node | Node[] | null }).render.apply(this, args);
+          } finally {
+            _originalRenderInProgress.delete(this);
+          }
+        };
+        if (this._enh.render && !_originalRenderInProgress.has(this)) {
           return this._enh.render(originalRender);
         }
-        return originalRender();
+        return (constructor.prototype as { render: (...a: unknown[]) => Node | Node[] | null }).render.apply(this, args);
       }
     };
 
