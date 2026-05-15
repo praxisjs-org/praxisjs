@@ -48,7 +48,7 @@ class App extends StatefulComponent {
 
 Properties: `width: number`, `height: number`
 
-<StorybookLink story="composables-dom--window-size-story" label="Live demo — WindowSize" />
+<StorybookLink story="composables-dom-window-size--window-size-story" label="Live demo — WindowSize" />
 
 ---
 
@@ -87,7 +87,7 @@ Pass the property name as a string (`'containerRef'`) rather than the element it
 
 Properties: `x: number`, `y: number`
 
-<StorybookLink story="composables-dom--scroll-position-story" label="Live demo — ScrollPosition" />
+<StorybookLink story="composables-dom-scroll-position--scroll-position-story" label="Live demo — ScrollPosition" />
 
 ---
 
@@ -117,7 +117,7 @@ String arguments to `@Compose` resolve to instance properties at bind time. Use 
 
 Properties: `width: number`, `height: number`
 
-<StorybookLink story="composables-dom--element-size-story" label="Live demo — ElementSize" />
+<StorybookLink story="composables-dom-element-size--element-size-story" label="Live demo — ElementSize" />
 
 ---
 
@@ -147,7 +147,7 @@ Constructor: `new Intersection(ref, options?)` — `options` matches `Intersecti
 
 Properties: `visible: boolean`
 
-<StorybookLink story="composables-dom--intersection-story" label="Live demo — Intersection" />
+<StorybookLink story="composables-dom-intersection--intersection-story" label="Live demo — Intersection" />
 
 ---
 
@@ -176,7 +176,7 @@ class SearchBar extends StatefulComponent {
 
 Properties: `focused: boolean`
 
-<StorybookLink story="composables-dom--focus-story" label="Live demo — Focus" />
+<StorybookLink story="composables-dom-focus--focus-story" label="Live demo — Focus" />
 
 <llm-only>
 DOM composable facts:

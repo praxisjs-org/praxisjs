@@ -68,7 +68,7 @@ class App extends StatefulComponent {
 }
 ```
 
-<StorybookLink story="guide-custom-composables--network-status-story" label="Live demo — NetworkStatus" />
+<StorybookLink story="guide-custom-composables-network-status--network-status-story" label="Live demo — NetworkStatus" />
 
 ---
 
@@ -207,8 +207,8 @@ render() {
 }
 ```
 
-<StorybookLink story="guide-custom-composables--counter-story" label="Live demo — CounterComposable" />
-<StorybookLink story="guide-custom-composables--polling-story" label="Live demo — PollingResource" />
+<StorybookLink story="guide-custom-composables-counter-composable--counter-story" label="Live demo — CounterComposable" />
+<StorybookLink story="guide-custom-composables-polling-resource--polling-story" label="Live demo — PollingResource" />
 
 <llm-only>
 Composable facts:

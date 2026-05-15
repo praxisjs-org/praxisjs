@@ -23,7 +23,7 @@ class HeavyChart extends StatefulComponent {
 
 The argument is the placeholder height in pixels. This prevents layout shift when the component renders.
 
-<StorybookLink story="decorators-performance--lazy-story" label="Live demo — @Lazy" />
+<StorybookLink story="decorators-performance-lazy--lazy-story" label="Live demo — @Lazy" />
 
 To scope intersection to a specific scroll container instead of the viewport, pass an options object:
 

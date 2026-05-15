@@ -61,8 +61,8 @@ this.lastName = 'Smith'
 ```
 :::
 
-<StorybookLink story="decorators-watchers--watch-single-prop" label="Live demo — @Watch single prop" />
-<StorybookLink story="decorators-watchers--watch-multi-prop" label="Live demo — @Watch multi-prop coalescing" />
+<StorybookLink story="decorators-watchers-watch--watch-single-prop" label="Live demo — @Watch single prop" />
+<StorybookLink story="decorators-watchers-watch-multi--watch-multi-prop" label="Live demo — @Watch multi-prop coalescing" />
 
 ---
 
@@ -90,7 +90,7 @@ class DataLoader extends StatefulComponent {
 
 Use `@When` for one-time initialization that depends on a value arriving (e.g., first API response, user authentication).
 
-<StorybookLink story="decorators-watchers--when-once" label="Live demo — @When" />
+<StorybookLink story="decorators-watchers-when--when-once" label="Live demo — @When" />
 
 ---
 
@@ -121,7 +121,7 @@ The original method body is ignored — the decorator replaces it entirely. If t
 
 Use `@Until` when downstream code needs to await a reactive value rather than react to it via a side effect.
 
-<StorybookLink story="decorators-watchers--until-story" label="Live demo — @Until" />
+<StorybookLink story="decorators-watchers-until--until-story" label="Live demo — @Until" />
 
 <llm-only>
 @Watch details:

@@ -35,7 +35,7 @@ class SearchInput extends StatefulComponent {
 <SearchInput onSearch={(q) => console.log('searching:', q)} />
 ```
 
-<StorybookLink story="decorators-events-slots--emit-story" label="Live demo — @Emit" />
+<StorybookLink story="decorators-events-emit--emit-story" label="Live demo — @Emit" />
 
 ### Exposing the prop type without `@Prop`
 
@@ -85,7 +85,7 @@ class Card extends StatefulComponent {
 </Card>
 ```
 
-<StorybookLink story="decorators-events-slots--slot-story" label="Live demo — @Slot" />
+<StorybookLink story="decorators-events-slot--slot-story" label="Live demo — @Slot" />
 
 ---
 
@@ -133,7 +133,7 @@ seek.trigger(45.2)  // seek to 45.2 seconds
 seek.subscribe((time) => console.log('seek to', time))
 ```
 
-<StorybookLink story="decorators-events-slots--on-command-story" label="Live demo — @OnCommand" />
+<StorybookLink story="decorators-events-on-command--on-command-story" label="Live demo — @OnCommand" />
 
 <llm-only>
 @Emit:

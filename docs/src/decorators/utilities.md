@@ -27,7 +27,7 @@ class Panel extends StatefulComponent {
 }
 ```
 
-<StorybookLink story="decorators-utilities--bind-story" label="Live demo — @Bind" />
+<StorybookLink story="decorators-utilities-bind--bind-story" label="Live demo — @Bind" />
 
 ---
 
@@ -67,7 +67,7 @@ class AppConfig extends StatefulComponent {
 }
 ```
 
-<StorybookLink story="decorators-utilities--once-story" label="Live demo — @Once" />
+<StorybookLink story="decorators-utilities-once--once-story" label="Live demo — @Once" />
 
 ---
 
@@ -98,7 +98,7 @@ class PriceList extends StatefulComponent {
 
 When `this.discount` changes, both cached values recompute. Each argument combination has its own cache entry.
 
-<StorybookLink story="decorators-utilities--memo-story" label="Live demo — @Memo" />
+<StorybookLink story="decorators-utilities-memo--memo-story" label="Live demo — @Memo" />
 
 ::: tip Argument caching
 Arguments are serialized as a string cache key:
@@ -130,7 +130,7 @@ async saveData(data: object) {
 | `backoff` | `number` | Multiply delay by this factor on each retry (e.g. `2` doubles it) |
 | `onRetry` | `(error, attempt) => void` | Called before each retry |
 
-<StorybookLink story="decorators-utilities--retry-story" label="Live demo — @Retry" />
+<StorybookLink story="decorators-utilities-retry--retry-story" label="Live demo — @Retry" />
 
 <llm-only>
 @Memo() only works on StatefulComponent methods — it needs access to the component's reactive context to create computed() instances.

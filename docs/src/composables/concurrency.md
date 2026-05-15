@@ -88,7 +88,7 @@ class UserProfile extends StatefulComponent {
 
 Reactive state: `.loading()`, `.error()`, `.lastResult()`, `.cancelAll()`
 
-<StorybookLink story="composables-concurrency--task-story" label="Live demo — @Task" />
+<StorybookLink story="composables-concurrency-task--task-story" label="Live demo — @Task" />
 
 ---
 
@@ -123,7 +123,7 @@ class DocumentEditor extends StatefulComponent {
 
 Reactive state: `.loading()`, `.error()`, `.pending()`, `.clear()`
 
-<StorybookLink story="composables-concurrency--queue-story" label="Live demo — @Queue" />
+<StorybookLink story="composables-concurrency-queue--queue-story" label="Live demo — @Queue" />
 
 ### Clearing the queue
 
@@ -181,7 +181,7 @@ class FileUploader extends StatefulComponent {
 
 Reactive state: `.loading()`, `.error()`, `.active()`, `.pending()`
 
-<StorybookLink story="composables-concurrency--pool-story" label="Live demo — @Pool" />
+<StorybookLink story="composables-concurrency-pool--pool-story" label="Live demo — @Pool" />
 
 ---
 

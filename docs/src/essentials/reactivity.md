@@ -26,7 +26,7 @@ render() {
 
 Each arrow function `{() => expr}` becomes its own reactive effect — when any signal it reads changes, only that specific DOM node updates.
 
-<StorybookLink story="essentials-reactivity--reactive-vs-static" label="Live demo — reactive vs. static" />
+<StorybookLink story="essentials-reactivity-reactive-vs-static--reactive-vs-static" label="Live demo — reactive vs. static" />
 
 ## Signals via `@State`
 
@@ -97,7 +97,7 @@ this.last = 'Smith'
 // → DOM updates once with "Jane Smith", never shows "Jane Doe"
 ```
 
-<StorybookLink story="essentials-reactivity--computed-values" label="Live demo — @Computed" />
+<StorybookLink story="essentials-reactivity-computed--computed-values" label="Live demo — @Computed" />
 
 ## Reactive arrays and objects
 
@@ -115,7 +115,7 @@ this.config.theme = 'dark'
 
 Always replace with a new reference when updating arrays or objects.
 
-<StorybookLink story="essentials-reactivity--reactive-arrays" label="Live demo — reactive arrays" />
+<StorybookLink story="essentials-reactivity-reactive-arrays--reactive-arrays" label="Live demo — reactive arrays" />
 
 ## Passing props to child components
 
@@ -183,7 +183,7 @@ class Counter extends StatefulComponent {
 
 Both forms are valid and safe — `render()` always runs untracked, so eager reads never cause unexpected side effects.
 
-<StorybookLink story="essentials-components--reactive-props" label="Live demo — reactive props" />
+<StorybookLink story="essentials-components-reactive-props--reactive-props" label="Live demo — reactive props" />
 
 ## Props are reactive too
 

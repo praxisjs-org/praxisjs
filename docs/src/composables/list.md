@@ -71,7 +71,7 @@ class UserTable extends StatefulComponent {
 
 The inner structure uses three stacked elements: a top spacer, the visible items slice, and a bottom spacer. Together they fill the total scroll height while only a small window is in the DOM.
 
-<StorybookLink story="decorators-performance--virtual-list-story" label="Live demo — VirtualList" />
+<StorybookLink story="decorators-performance-virtual-list--virtual-list-story" label="Live demo — VirtualList" />
 
 ---
 

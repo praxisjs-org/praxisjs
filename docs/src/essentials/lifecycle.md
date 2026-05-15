@@ -48,7 +48,7 @@ class MyComponent extends StatefulComponent {
 }
 ```
 
-<StorybookLink story="essentials-lifecycle--lifecycle-order" label="Live demo — lifecycle order" />
+<StorybookLink story="essentials-lifecycle-lifecycle-order--lifecycle-order" label="Live demo — lifecycle order" />
 
 ## `onMount()`
 
@@ -74,7 +74,7 @@ class Timer extends StatefulComponent {
 }
 ```
 
-<StorybookLink story="essentials-lifecycle--timer" label="Live demo — onMount / onUnmount" />
+<StorybookLink story="essentials-lifecycle-timer--timer" label="Live demo — onMount / onUnmount" />
 
 ## `onUnmount()`
 

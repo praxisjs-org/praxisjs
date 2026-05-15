@@ -24,7 +24,7 @@ render() {
 }
 ```
 
-<StorybookLink story="essentials-jsx--reactive-vs-static" label="Live demo — reactive vs. static" />
+<StorybookLink story="essentials-jsx-reactive-vs-static--reactive-vs-static" label="Live demo — reactive vs. static" />
 
 ## Conditional rendering
 
@@ -60,7 +60,7 @@ PraxisJS does **not** do reconciliation. When the arrow function re-runs (becaus
 
 The `key` prop is accepted by the JSX types (for forward compatibility) but has **no runtime effect** — it is not processed by the renderer.
 
-<StorybookLink story="essentials-jsx--lists" label="Live demo — lists (no reconciliation)" />
+<StorybookLink story="essentials-jsx-lists--lists" label="Live demo — lists (no reconciliation)" />
 
 ## Event handlers
 
@@ -79,7 +79,7 @@ render() {
 
 Event handlers are plain arrow functions — they don't need to be reactive because they're callbacks, not DOM expressions.
 
-<StorybookLink story="essentials-jsx--event-handlers" label="Live demo — event handlers" />
+<StorybookLink story="essentials-jsx-event-handlers--event-handlers" label="Live demo — event handlers" />
 
 ## CSS classes
 

@@ -38,7 +38,7 @@ this.config.theme = 'dark'
 ```
 :::
 
-<StorybookLink story="decorators-state-props--state-basic" label="Live demo — @State" />
+<StorybookLink story="decorators-state-props-state--state-basic" label="Live demo — @State" />
 
 ---
 
@@ -65,7 +65,7 @@ class Button extends StatefulComponent {
 <Button label="Submit" disabled={false} />
 ```
 
-<StorybookLink story="decorators-state-props--prop-defaults" label="Live demo — @Prop" />
+<StorybookLink story="decorators-state-props-prop--prop-defaults" label="Live demo — @Prop" />
 
 ---
 
@@ -89,7 +89,7 @@ class Cart extends StatefulComponent {
 }
 ```
 
-<StorybookLink story="decorators-state-props--computed-cart" label="Live demo — @Computed" />
+<StorybookLink story="decorators-state-props-computed--computed-cart" label="Live demo — @Computed" />
 
 ---
 
@@ -124,7 +124,7 @@ Setting the value to `null` or `undefined` removes the entry from localStorage.
 | `deserialize` | `(s: string) => T` | `JSON.parse` | Custom deserializer |
 | `syncTabs` | `boolean` | `true` | Sync across browser tabs |
 
-<StorybookLink story="decorators-persistence--persisted-story" label="Live demo — @Persisted" />
+<StorybookLink story="decorators-persistence-persisted--persisted-story" label="Live demo — @Persisted" />
 
 ---
 
@@ -160,7 +160,7 @@ class Editor extends StatefulComponent {
 }
 ```
 
-<StorybookLink story="decorators-persistence--history-story" label="Live demo — @History" />
+<StorybookLink story="decorators-persistence-history--history-story" label="Live demo — @History" />
 
 ---
 
@@ -198,7 +198,7 @@ The field exposes `.data()`, `.pending()`, `.error()`, `.status()`, `.refetch()`
 
 → See [Async Data](/essentials/async-data) for full details.
 
-<StorybookLink story="essentials-async-data--pagination" label="Live demo — @Resource" />
+<StorybookLink story="essentials-async-data-resource--pagination" label="Live demo — @Resource" />
 
 ---
 

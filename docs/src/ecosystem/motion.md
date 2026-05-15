@@ -56,7 +56,7 @@ class ProgressBar extends StatefulComponent {
 
 Reading the field returns the current interpolated value. Assigning starts a new animation from where it currently is.
 
-<StorybookLink story="ecosystem-motion--tween-story" label="Live demo — @Tween" />
+<StorybookLink story="ecosystem-motion-tween--tween-story" label="Live demo — @Tween" />
 
 | Option | Type | Default | Description |
 |---|---|---|---|
@@ -109,7 +109,7 @@ class DragHandle extends StatefulComponent {
 `stiffness` must be greater than `0`. Passing `0` or a negative value throws an error.
 :::
 
-<StorybookLink story="ecosystem-motion--spring-story" label="Live demo — @Spring" />
+<StorybookLink story="ecosystem-motion-spring--spring-story" label="Live demo — @Spring" />
 
 ---
 

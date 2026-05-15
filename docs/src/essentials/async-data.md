@@ -34,7 +34,7 @@ class UserProfile extends StatefulComponent {
 
 The resource **automatically re-runs** when `this.userId` changes, because the fetcher reads a signal.
 
-<StorybookLink story="essentials-async-data--pagination" label="Live demo — pagination + keepPreviousData" />
+<StorybookLink story="essentials-async-data-resource--pagination" label="Live demo — pagination + keepPreviousData" />
 
 ---
 
@@ -60,7 +60,7 @@ The resource **automatically re-runs** when `this.userId` changes, because the f
 users!: ResourceInstance<User[]>
 ```
 
-<StorybookLink story="essentials-async-data--manual-fetch" label="Live demo — immediate: false" />
+<StorybookLink story="essentials-async-data-manual-fetch--manual-fetch" label="Live demo — immediate: false" />
 
 ---
 
