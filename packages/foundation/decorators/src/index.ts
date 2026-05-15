@@ -1,4 +1,4 @@
-export { Component, Lazy, Virtual } from "./component";
+export { Component, Lazy } from "./component";
 export {
   Memo,
   Bind,
@@ -23,6 +23,7 @@ export {
   History,
   type HistoryOf,
   Compose,
+  getter,
   Resource,
   type ResourceInstance,
   type ResourceOptions,

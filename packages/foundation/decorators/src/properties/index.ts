@@ -4,7 +4,7 @@ export { Computed } from "./computed";
 export { Persisted } from "./persisted";
 export { Slot, initSlots } from "./slot";
 export { History, type HistoryOf } from "./history";
-export { Compose } from "./compose";
+export { Compose, getter } from "./compose";
 export { Resource, type ResourceInstance, type ResourceOptions } from "./resource";
 export { Synced } from "./synced";
 export { DeepState } from "./deep-state";
