@@ -1,5 +1,17 @@
 # @praxisjs/router
 
+## 1.0.12
+
+### Patch Changes
+
+- 30848cc: Add `style` prop support to `Link`. Accepts both a CSS string (`style="color:red"`) and an object (`style={{ color: 'red' }}`), matching the standard JSX element behavior.
+- Updated dependencies [954e456]
+- Updated dependencies [a0bf339]
+- Updated dependencies [a0bf339]
+- Updated dependencies [a8df1e1]
+  - @praxisjs/decorators@1.0.0
+  - @praxisjs/jsx@0.4.4
+
 ## 1.0.11
 
 ### Patch Changes
@@ -99,12 +111,10 @@
 - dd38adf: Fix `Lazy()` not rendering when used inline in route definitions, and add `@Route` co-location support in `@RouterConfig`.
 
   **Bug fixes:**
-
   - `Lazy(loader)` used inline as `{ path, component: Lazy(...) }` silently rendered nothing — the returned decorator function had no `__isLazy` marker so the router treated it as a plain component. `Lazy` now returns a dual-purpose function with `__isLazy: true` that works both inline and as a class decorator.
   - `@Route` caused a TypeScript error when applied to components whose constructor accepts typed props.
 
   **New behavior:**
-
   - `@RouterConfig` now accepts classes decorated with `@Route` directly, without wrapping them in a `{ path, component }` object — the path is read from `__routePath` automatically. Both forms can be mixed in the same array:
 
   ```ts
@@ -124,39 +134,31 @@
 - 3372878: Migrate all packages from functional APIs to a decorator-first design.
 
   **`@praxisjs/core`**
-
   - Added `Composable` abstract base class for building class-based composables
   - Removed `resource`, `createResource`, `Resource`, `ResourceStatus`, `ResourceOptions` from public exports — use `@Resource` from `@praxisjs/decorators` instead
 
   **`@praxisjs/motion`**
-
   - Replaced `useMotion`, `tween`, `spring`, `createTransition`, `Animate`, `easings`, `resolveEasing` with `@Tween` and `@Spring` decorators
 
   **`@praxisjs/di`**
-
   - Replaced `useService` and `createScope` with a `@Scope` decorator
   - Renamed exported type `Scope` to `ScopeType` to free the name for the new decorator
 
   **`@praxisjs/fsm`**
-
   - Removed `createMachine` — use the `@StateMachine` and `@Transition` decorators directly
 
   **`@praxisjs/router`**
-
   - Removed `createRouter`, `lazy`, `useRouter`, `useParams`, `useQuery`, `useLocation`
   - Added `@RouterConfig`, `@Lazy`, `@InjectRouter`, `@Params`, `@Query`, `@Location` decorators
 
   **`@praxisjs/store`**
-
   - Removed `createStore` — use the `@Store` and `@UseStore` decorators directly
 
   **`@praxisjs/composables`**
-
   - Replaced all `use*` composable functions with class-based composables extending `Composable`:
     `WindowSize`, `ScrollPosition`, `ElementSize`, `Intersection`, `Focus`, `MediaQuery`, `ColorScheme`, `Mouse`, `KeyCombo`, `Idle`, `Clipboard`, `Geolocation`, `TimeAgo`, `Pagination`
 
   **`@praxisjs/concurrent`**
-
   - Removed `task`, `queue`, `pool` and their instance types — use `@Task`, `@Queue`, `@Pool` decorators instead
 
 ### Patch Changes
@@ -222,7 +224,6 @@
 ### Minor Changes
 
 - bb0d4f8: **Refactor decorator system and component architecture across PraxisJS packages**
-
   - Replaced legacy decorator signatures (`constructor`, `target`, `propertyKey`, method descriptor) with the standard TC39 decorator context API (`ClassDecoratorContext`, `ClassFieldDecoratorContext`, `ClassMethodDecoratorContext`) across `@praxisjs/decorators`, `@praxisjs/store`, `@praxisjs/concurrent`, `@praxisjs/router`, `@praxisjs/motion`, `@praxisjs/di`, and `@praxisjs/fsm`.
   - Introduced `StatefulComponent` and `StatelessComponent` as the new base classes, replacing the deprecated `BaseComponent`/`Function Component` pattern, across `@praxisjs/core`, `@praxisjs/runtime`, `@praxisjs/devtools`, and templates.
   - Implemented core rendering functionality in `@praxisjs/runtime` (`mountChildren`, `mountComponent`, reactive scope management) and removed the deprecated `renderer.ts`.

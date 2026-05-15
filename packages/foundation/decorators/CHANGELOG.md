@@ -1,5 +1,132 @@
 # @praxisjs/decorators
 
+## 1.0.0
+
+### Major Changes
+
+- a8df1e1: **Breaking:** Remove `@Virtual` class decorator.
+
+  `@Virtual` had two fundamental issues that made it unsuitable as a class decorator:
+  1. **Items were read as a snapshot** — the `items` prop was captured at render time and never updated when the source changed (filtering, live data, external state).
+  2. **JSX in `renderItem` broke on scroll** — `renderItem` callbacks that used JSX called `getCurrentScope()` inside a plain `effect()` re-run, outside any render scope, causing silent failures.
+
+  **Migration:** use `VirtualList` from `@praxisjs/composables` instead. It exposes reactive signals (`visibleItems`, `totalHeight`, `offsetTop`, `offsetBottom`) that the component renders with normal JSX — no `renderItem` convention, full reactivity, and full JSX support.
+
+  ```tsx
+  // before
+  @Virtual(48, 5)
+  @Component()
+  class MyList extends StatefulComponent {
+    @Prop() items: Row[] = [];
+    renderItem(row: Row) {
+      return <div style="height:48px">{row.name}</div>;
+    }
+    render() {
+      return <div />;
+    }
+  }
+
+  // after
+  import { VirtualList, type VirtualItem } from "@praxisjs/composables";
+  import { getter } from "@praxisjs/decorators";
+
+  @Component()
+  class MyList extends StatefulComponent {
+    @Prop() items: Row[] = [];
+    containerRef = { current: null as HTMLDivElement | null };
+
+    @Compose(VirtualList, "containerRef", getter("items"), 48, 5)
+    virtual!: VirtualList<Row>;
+
+    render() {
+      return (
+        <div
+          ref={(el) => {
+            this.containerRef.current = el;
+          }}
+          style="height:400px;overflow-y:auto"
+        >
+          <div
+            style={() =>
+              `height:${this.virtual.totalHeight}px;position:relative`
+            }
+          >
+            <div style={() => `height:${this.virtual.offsetTop}px`} />
+            {() =>
+              (this.virtual.visibleItems as VirtualItem<Row>[]).map(
+                ({ item }) => <div style="height:48px">{item.name}</div>,
+              )
+            }
+            <div style={() => `height:${this.virtual.offsetBottom}px`} />
+          </div>
+        </div>
+      );
+    }
+  }
+  ```
+
+### Minor Changes
+
+- a0bf339: **Fix `@Lazy` never rendering the component after intersection.** The `render` enhancement was returning a static `null`, which PraxisJS evaluated once inside `untrack()` — `visible()` never created a reactive subscription, so `visible.set(true)` from the IntersectionObserver had no effect. The enhancement now returns a reactive thunk `() => visible() ? render() : null` so the runtime tracks the signal and re-evaluates when intersection fires.
+
+  `@Lazy` now also accepts an options object in addition to the plain number shorthand, adding `root` and `rootMargin` options for scoping intersection to a specific scroll container.
+
+  ```tsx
+  // before (still works)
+  @Lazy(300)
+  @Component()
+  class HeavyChart extends StatefulComponent { ... }
+
+  // new — scope to a scrollable container
+  const scrollRoot = { current: null as HTMLDivElement | null }
+
+  @Lazy({ placeholder: 300, root: scrollRoot, rootMargin: '0px' })
+  @Component()
+  class HeavyChart extends StatefulComponent { ... }
+
+  // in render:
+  <div ref={(el) => { scrollRoot.current = el }} style="overflow-y:auto;height:400px">
+    <HeavyChart />
+  </div>
+  ```
+
+  `root` accepts `{ current: HTMLElement | null }` (a ref object). When `root.current` is `null` at mount time, falls back to the viewport. `rootMargin` defaults to `"100px"`.
+
+### Patch Changes
+
+- 954e456: `@Compose` now accepts string literals as constructor arguments directly, without requiring an intermediate instance property.
+
+  Previously, every string argument was unconditionally resolved as a property name on the component instance — passing `@Compose(KeyCombo, 'ctrl+s')` would look up `instance['ctrl+s']`, return `undefined`, and crash at runtime.
+
+  Now the resolution falls back to the literal string when no matching property exists on the instance. A new `getter(propName)` helper is also exported for composables that need a live getter instead of a snapshot value:
+
+  ```tsx
+  import { getter } from '@praxisjs/decorators'
+
+  @Compose(TimeAgo, getter('postedAt'))  // passes () => this.postedAt — reactive
+  timeAgo!: TimeAgo
+  ```
+
+  Now the resolution falls back to the literal string when no matching property exists on the instance:
+
+  ```ts
+  // before — required a workaround property
+  readonly saveCombo = "ctrl+s";
+  @Compose(KeyCombo, "saveCombo") save!: KeyCombo;
+
+  // after — works directly
+  @Compose(KeyCombo, "ctrl+s") save!: KeyCombo;
+  @Compose(MediaQuery, "(max-width: 768px)") mobile!: MediaQuery;
+  ```
+
+  Property-name resolution (used for forwarding refs like `@Compose(ElementSize, 'containerRef')`) is unchanged — if the named property exists on the instance, its value is used.
+
+- a0bf339: Fix stacked class decorators (e.g. `@Lazy @Component`) re-entering the outermost enhancement's render recursively.
+
+  When two `createClassDecorator`-based decorators are stacked, the inner one's `originalRender` closure called the outer Enhanced class's `render()`, which checked `this._enh.render` on the instance — always the outermost decorator's enhancement. This caused the outermost render enhancement to be called again instead of the user's actual render, returning a nested thunk that `normalizeToNodes` could not handle (functions are not Nodes → silently dropped).
+
+  The fix tracks instances currently inside an `originalRender` call via a module-level `WeakSet`. When a render is invoked as `originalRender` from within an enhancement, the `this._enh.render` dispatch is skipped and the constructor's render is called directly, breaking the re-entry cycle.
+
 ## 0.8.1
 
 ### Patch Changes
@@ -133,7 +260,6 @@
 - feaa478: Add decorator factory helpers and new built-in decorators.
 
   **Decorator factories** — low-level building blocks for authoring custom decorators:
-
   - `createFieldDecorator` / `FieldBehavior` / `FieldBinding`
   - `createClassDecorator` / `ClassBehavior` / `ClassEnhancement`
   - `createMethodDecorator` / `MethodBehavior`
@@ -142,7 +268,6 @@
   - `createGetterObserverDecorator` / `GetterObserverBehavior`
 
   **New built-in decorators:**
-
   - `@Compose` — mixes a `Composable` class into a component, binding its reactive properties and lifecycle hooks
   - `@Resource` — declares an async resource on a component field, replacing the standalone `resource()` function from `@praxisjs/core`
 
@@ -212,7 +337,6 @@
 ### Minor Changes
 
 - bb0d4f8: **Refactor decorator system and component architecture across PraxisJS packages**
-
   - Replaced legacy decorator signatures (`constructor`, `target`, `propertyKey`, method descriptor) with the standard TC39 decorator context API (`ClassDecoratorContext`, `ClassFieldDecoratorContext`, `ClassMethodDecoratorContext`) across `@praxisjs/decorators`, `@praxisjs/store`, `@praxisjs/concurrent`, `@praxisjs/router`, `@praxisjs/motion`, `@praxisjs/di`, and `@praxisjs/fsm`.
   - Introduced `StatefulComponent` and `StatelessComponent` as the new base classes, replacing the deprecated `BaseComponent`/`Function Component` pattern, across `@praxisjs/core`, `@praxisjs/runtime`, `@praxisjs/devtools`, and templates.
   - Implemented core rendering functionality in `@praxisjs/runtime` (`mountChildren`, `mountComponent`, reactive scope management) and removed the deprecated `renderer.ts`.

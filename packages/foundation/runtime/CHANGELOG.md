@@ -1,5 +1,21 @@
 # @praxisjs/runtime
 
+## 0.2.16
+
+### Patch Changes
+
+- bb4d00a: Fix `mountReactive` silently dropping DOM updates when the reactive node lives inside a component.
+
+  `mountReactive` captured `parent` (the container passed by `mountComponent`, a `DocumentFragment`) by closure. After `mountComponent` returns, the fragment's child nodes are transferred to the actual DOM element — leaving the fragment empty. When a signal change triggered the reactive effect to re-run, `parent.insertBefore(n, end)` failed silently because `end` was no longer a child of the stale `parent` reference.
+
+  The fix uses `end.parentNode ?? parent` as the insertion anchor, which always resolves to the live DOM parent after the fragment has been consumed. This affects any reactive expression (`{() => ...}`) returned from a component's `render()` method, including `@Lazy`, `@StateMachine` state-dependent renders, and the `onError` pattern from the docs.
+
+- Updated dependencies [954e456]
+- Updated dependencies [a0bf339]
+- Updated dependencies [a0bf339]
+- Updated dependencies [a8df1e1]
+  - @praxisjs/decorators@1.0.0
+
 ## 0.2.15
 
 ### Patch Changes
@@ -54,7 +70,6 @@
 - 6c353ba: Add `untrack` utility and isolate component mounting from outer reactive contexts
 
   **`@praxisjs/core`** exports two new functions from the public API:
-
   - `peek(signal)` — reads a signal once without subscribing to it (was already in `/internal`, now public)
   - `untrack(fn)` — runs a function with no active effect, suppressing all signal tracking inside it
 
@@ -71,7 +86,6 @@
   ```
 
   **`@praxisjs/runtime`** — `mountComponent` now runs entirely inside `untrack`. This fixes a bug where components mounted inside a reactive context (e.g. the router) would accidentally subscribe the outer effect to any signal read during construction or render. The symptoms were:
-
   - Eager reads like `description={this.count}` in JSX causing the router to re-mount the component on every state change, resetting state to its initial value
   - `@Debug()` (and any decorator that reads a signal in its `addInitializer`) triggering the same re-mount loop
 
@@ -155,7 +169,6 @@
 ### Minor Changes
 
 - bb0d4f8: **Refactor decorator system and component architecture across PraxisJS packages**
-
   - Replaced legacy decorator signatures (`constructor`, `target`, `propertyKey`, method descriptor) with the standard TC39 decorator context API (`ClassDecoratorContext`, `ClassFieldDecoratorContext`, `ClassMethodDecoratorContext`) across `@praxisjs/decorators`, `@praxisjs/store`, `@praxisjs/concurrent`, `@praxisjs/router`, `@praxisjs/motion`, `@praxisjs/di`, and `@praxisjs/fsm`.
   - Introduced `StatefulComponent` and `StatelessComponent` as the new base classes, replacing the deprecated `BaseComponent`/`Function Component` pattern, across `@praxisjs/core`, `@praxisjs/runtime`, `@praxisjs/devtools`, and templates.
   - Implemented core rendering functionality in `@praxisjs/runtime` (`mountChildren`, `mountComponent`, reactive scope management) and removed the deprecated `renderer.ts`.

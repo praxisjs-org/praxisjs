@@ -1,5 +1,18 @@
 # @praxisjs/devtools
 
+## 0.2.17
+
+### Patch Changes
+
+- Updated dependencies [954e456]
+- Updated dependencies [bb4d00a]
+- Updated dependencies [a0bf339]
+- Updated dependencies [a0bf339]
+- Updated dependencies [a8df1e1]
+  - @praxisjs/decorators@1.0.0
+  - @praxisjs/runtime@0.2.16
+  - @praxisjs/jsx@0.4.4
+
 ## 0.2.16
 
 ### Patch Changes
@@ -191,7 +204,6 @@
 ### Minor Changes
 
 - bb0d4f8: **Refactor decorator system and component architecture across PraxisJS packages**
-
   - Replaced legacy decorator signatures (`constructor`, `target`, `propertyKey`, method descriptor) with the standard TC39 decorator context API (`ClassDecoratorContext`, `ClassFieldDecoratorContext`, `ClassMethodDecoratorContext`) across `@praxisjs/decorators`, `@praxisjs/store`, `@praxisjs/concurrent`, `@praxisjs/router`, `@praxisjs/motion`, `@praxisjs/di`, and `@praxisjs/fsm`.
   - Introduced `StatefulComponent` and `StatelessComponent` as the new base classes, replacing the deprecated `BaseComponent`/`Function Component` pattern, across `@praxisjs/core`, `@praxisjs/runtime`, `@praxisjs/devtools`, and templates.
   - Implemented core rendering functionality in `@praxisjs/runtime` (`mountChildren`, `mountComponent`, reactive scope management) and removed the deprecated `renderer.ts`.
