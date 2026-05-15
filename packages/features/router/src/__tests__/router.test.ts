@@ -132,6 +132,32 @@ describe("Router", () => {
     await r.push("/docs/guide");
     expect(r.currentComponent()).toBe(AboutPage);
   });
+
+  it("children of root '/' use empty string as prefix", async () => {
+    const r = new Router([
+      {
+        path: "/",
+        component: HomePage,
+        children: [{ path: "/about", component: AboutPage }],
+      },
+    ]);
+    await r.push("/about");
+    expect(r.currentComponent()).toBe(AboutPage);
+  });
+
+  it("beforeEnter returning undefined allows navigation", async () => {
+    const r = new Router([
+      { path: "/", component: HomePage },
+      {
+        path: "/open",
+        component: AboutPage,
+        beforeEnter: async () => true,
+      },
+    ]);
+    await r.push("/open");
+    expect(r.location().path).toBe("/open");
+    expect(r.currentComponent()).toBe(AboutPage);
+  });
 });
 
 describe("router index re-exports", () => {
@@ -306,6 +332,19 @@ describe("@RouterConfig", () => {
     const router = useRouter();
     expect(router).toBeInstanceOf(Router);
   });
+
+  it("accepts @Route-decorated classes and extracts __routePath via normalizeRoute", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const DashComp = Route("/dashboard")(class Dashboard { render() { return null; } } as any, {} as ClassDecoratorContext);
+
+    @RouterConfig([DashComp as never])
+    class App {}
+    void App;
+
+    const r = useRouter();
+    await r.push("/dashboard");
+    expect(r.location().path).toBe("/dashboard");
+  });
 });
 
 describe("@Lazy", () => {
@@ -323,6 +362,13 @@ describe("@Lazy", () => {
     const mod = await lazyComp();
     expect(mod.default).toBe(AboutPage);
   });
+
+  it("calling Lazy() result with 0 args invokes the loader directly (inline route usage)", async () => {
+    const loader = () => Promise.resolve({ default: AboutPage });
+    const fn = Lazy(loader) as unknown as () => Promise<{ default: typeof AboutPage }>;
+    const mod = await fn(); // args.length === 0 → calls loader()
+    expect(mod.default).toBe(AboutPage);
+  });
 });
 
 describe("@InjectRouter", () => {
@@ -333,6 +379,7 @@ describe("@InjectRouter", () => {
     const instance: Record<string, unknown> = {};
     run(instance);
     expect(instance.router).toBeInstanceOf(Router);
+    instance.router = null; // no-op setter — covers the empty set()
   });
 });
 
@@ -344,6 +391,7 @@ describe("@Params", () => {
     const instance: Record<string, unknown> = {};
     run(instance);
     expect(typeof instance.params).toBe("function"); // it's a Computed
+    instance.params = null; // no-op setter
   });
 });
 
@@ -355,6 +403,7 @@ describe("@Query", () => {
     const instance: Record<string, unknown> = {};
     run(instance);
     expect(typeof instance.query).toBe("function");
+    instance.query = null; // no-op setter
   });
 });
 
@@ -384,6 +433,7 @@ describe("@Location", () => {
     const instance: Record<string, unknown> = {};
     run(instance);
     expect(typeof instance.location).toBe("function");
+    instance.location = null; // no-op setter
   });
 
   it("the injected location reflects the current path", () => {

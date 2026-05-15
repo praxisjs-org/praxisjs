@@ -9,6 +9,7 @@ interface LinkProps {
   replace?: boolean;
   class?: string;
   activeClass?: string;
+  style?: string | Record<string, string>;
   children?: Children | Children[];
 }
 
@@ -20,6 +21,7 @@ export class Link extends StatelessComponent<LinkProps> {
       replace = false,
       class: cls = "",
       activeClass = "active",
+      style,
       children,
     } = this.props;
 
@@ -41,6 +43,7 @@ export class Link extends StatelessComponent<LinkProps> {
           const isActive = router.location().path === to;
           return [cls, isActive ? activeClass : ""].filter(Boolean).join(" ");
         }}
+        style={style}
         onClick={handleClick}
       >
         {children}
