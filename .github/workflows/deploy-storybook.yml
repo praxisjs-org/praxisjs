@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Build workspace packages
+        run: pnpm -r --filter '!praxisjs-stories' run build
+
       - name: Build Storybook
         run: pnpm --filter praxisjs-stories build
 
