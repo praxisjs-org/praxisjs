@@ -1,0 +1,42 @@
+{
+  "name": "@praxisjs/storybook",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Storybook framework adapter for PraxisJS",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./preset": {
+      "types": "./dist/preset.d.ts",
+      "import": "./dist/preset.js"
+    }
+  },
+  "files": [
+    "dist",
+    "manager.jsx"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@praxisjs/runtime": "workspace:*",
+    "@praxisjs/vite-plugin": "workspace:*"
+  },
+  "peerDependencies": {
+    "@storybook/builder-vite": ">=8.0.0",
+    "@storybook/core": ">=8.0.0",
+    "storybook": ">=8.0.0"
+  },
+  "devDependencies": {
+    "@storybook/builder-vite": "^10.4.0",
+    "@storybook/core": "^8.6.0",
+    "storybook": "^10.4.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.0.0"
+  }
+}
