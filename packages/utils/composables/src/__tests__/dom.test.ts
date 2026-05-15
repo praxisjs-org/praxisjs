@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { signal } from "@praxisjs/core/internal";
-
 import { WindowSize, ScrollPosition, ElementSize, Intersection, Focus } from "../dom";
 
 // ── WindowSize ────────────────────────────────────────────────────────────────
@@ -55,6 +53,7 @@ describe("ScrollPosition", () => {
   it("updates on scroll event for window", () => {
     const sp = new ScrollPosition(window);
     const { x, y } = sp.setup() as { x: () => number; y: () => number };
+    sp.onMount();
 
     Object.defineProperty(window, "scrollX", { value: 100, configurable: true });
     Object.defineProperty(window, "scrollY", { value: 200, configurable: true });
@@ -68,6 +67,7 @@ describe("ScrollPosition", () => {
     const el = document.createElement("div");
     const sp = new ScrollPosition(el);
     const { x, y } = sp.setup() as { x: () => number; y: () => number };
+    sp.onMount();
 
     Object.defineProperty(el, "scrollLeft", { value: 50, configurable: true });
     Object.defineProperty(el, "scrollTop", { value: 75, configurable: true });
@@ -82,6 +82,7 @@ describe("ScrollPosition", () => {
     const remove = vi.spyOn(el, "removeEventListener");
     const sp = new ScrollPosition(el);
     sp.setup();
+    sp.onMount();
     sp.onUnmount();
     expect(remove).toHaveBeenCalledWith("scroll", expect.any(Function));
   });
@@ -137,6 +138,13 @@ describe("ElementSize", () => {
     es.onUnmount();
     expect(disconnect).toHaveBeenCalled();
   });
+
+  it("onMount() with null ref is a no-op", () => {
+    const ref = { current: null };
+    const es = new ElementSize(ref);
+    es.setup();
+    expect(() => es.onMount()).not.toThrow();
+  });
 });
 
 // ── Intersection ──────────────────────────────────────────────────────────────
@@ -187,6 +195,38 @@ describe("Intersection", () => {
     int.onUnmount();
     expect(disconnect).toHaveBeenCalled();
   });
+
+  it("onMount() calls observe() with the element", () => {
+    const observeFn = vi.fn();
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(cb: IntersectionObserverCallback) { observerCallback = cb; }
+      observe = observeFn;
+      disconnect = vi.fn();
+    });
+
+    const el = document.createElement("div");
+    const ref = { current: el };
+    const int = new Intersection(ref);
+    int.setup();
+    int.onMount();
+
+    expect(observeFn).toHaveBeenCalledWith(el);
+  });
+
+  it("onMount() does nothing when ref is null", () => {
+    const observeFn = vi.fn();
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(cb: IntersectionObserverCallback) { observerCallback = cb; }
+      observe = observeFn;
+      disconnect = vi.fn();
+    });
+
+    const ref = { current: null };
+    const int = new Intersection(ref);
+    int.setup();
+    expect(() => int.onMount()).not.toThrow();
+    expect(observeFn).not.toHaveBeenCalled();
+  });
 });
 
 // ── ElementSize (additional) ──────────────────────────────────────────────────
@@ -205,6 +245,7 @@ describe("ElementSize (additional)", () => {
     const ref = { current: el1 as HTMLElement | null };
     const es = new ElementSize(ref);
     es.setup();
+    es.onMount();
 
     // Disconnect old observer and create new one for el2
     es.onUnmount();
@@ -214,6 +255,7 @@ describe("ElementSize (additional)", () => {
     ref.current = el2;
     const es2 = new ElementSize(ref);
     es2.setup();
+    es2.onMount();
     expect(observeFn).toHaveBeenCalledWith(el2);
   });
 });
@@ -251,15 +293,56 @@ describe("Intersection (additional)", () => {
   });
 });
 
+// ── ScrollPosition (ref-based) ────────────────────────────────────────────────
+
+describe("ScrollPosition (ref-based)", () => {
+  it("accepts a ref object and reads scrollLeft/scrollTop from it", () => {
+    const el = document.createElement("div");
+    const ref = { current: el };
+    const sp = new ScrollPosition(ref);
+    const { x, y } = sp.setup() as { x: () => number; y: () => number };
+    sp.onMount();
+
+    Object.defineProperty(el, "scrollLeft", { value: 30, configurable: true });
+    Object.defineProperty(el, "scrollTop", { value: 60, configurable: true });
+    el.dispatchEvent(new Event("scroll"));
+
+    expect(x()).toBe(30);
+    expect(y()).toBe(60);
+  });
+
+  it("uses ref.current at mount time — subsequent current changes do not affect the listener target", () => {
+    const el = document.createElement("div");
+    const ref = { current: el as HTMLElement | null };
+    const sp = new ScrollPosition(ref);
+    sp.setup();
+    sp.onMount();
+
+    const remove = vi.spyOn(el, "removeEventListener");
+    sp.onUnmount();
+    expect(remove).toHaveBeenCalledWith("scroll", expect.any(Function));
+  });
+
+  it("falls back to window when ref.current is null at mount time", () => {
+    const ref = { current: null as HTMLElement | null };
+    const sp = new ScrollPosition(ref);
+    sp.setup();
+    // Should not throw; _target falls back to window
+    expect(() => sp.onMount()).not.toThrow();
+    sp.onUnmount();
+  });
+});
+
 // ── ScrollPosition (additional) ───────────────────────────────────────────────
 
 describe("ScrollPosition (additional)", () => {
-  it("setup() called twice registers only one scroll listener", () => {
+  it("onMount() called twice registers only one scroll listener", () => {
     const el = document.createElement("div");
     const add = vi.spyOn(el, "addEventListener");
     const sp = new ScrollPosition(el);
     sp.setup();
-    sp.setup();
+    sp.onMount();
+    sp.onMount(); // second call must be a no-op
     const scrollCalls = add.mock.calls.filter((c) => c[0] === "scroll").length;
     expect(scrollCalls).toBe(1);
   });
@@ -282,6 +365,7 @@ describe("Focus", () => {
     const ref = { current: el };
     const focus = new Focus(ref);
     const { focused } = focus.setup() as { focused: () => boolean };
+    focus.onMount();
 
     el.dispatchEvent(new Event("focus"));
     expect(focused()).toBe(true);
@@ -295,6 +379,7 @@ describe("Focus", () => {
     const ref = { current: el };
     const focus = new Focus(ref);
     const { focused } = focus.setup() as { focused: () => boolean };
+    focus.onMount();
 
     el.dispatchEvent(new Event("focus"));
     el.dispatchEvent(new Event("blur"));
@@ -309,40 +394,46 @@ describe("Focus", () => {
     expect(() => focus.setup()).not.toThrow();
   });
 
-  it("removes focus/blur listeners when reactive ref changes (effect cleanup)", () => {
-    const el1 = document.createElement("input");
-    document.body.appendChild(el1);
-
-    // Make ref.current reactive so the effect tracks it and re-runs on change
-    const refSignal = signal<HTMLElement | null>(el1);
-    const ref = { get current() { return refSignal(); } };
-
+  it("onMount() with null ref is a no-op", () => {
+    const ref = { current: null };
     const focus = new Focus(ref);
     focus.setup();
-
-    const removeEl1 = vi.spyOn(el1, "removeEventListener");
-
-    // Changing the signal causes the effect to re-run, calling cleanup for el1
-    // This covers the cleanup function at dom.ts:134-135
-    const el2 = document.createElement("input");
-    document.body.appendChild(el2);
-    refSignal.set(el2);
-
-    expect(removeEl1).toHaveBeenCalledWith("focus", expect.any(Function));
-    expect(removeEl1).toHaveBeenCalledWith("blur", expect.any(Function));
-
-    document.body.removeChild(el1);
-    document.body.removeChild(el2);
+    expect(() => focus.onMount()).not.toThrow();
   });
 
-  it("setup() called twice registers only one listener pair", () => {
+  it("onUnmount() with null ref is a no-op", () => {
+    const ref = { current: null };
+    const focus = new Focus(ref);
+    focus.setup();
+    expect(() => focus.onUnmount()).not.toThrow();
+  });
+
+  it("removes focus/blur listeners on unmount", () => {
+    const el = document.createElement("input");
+    document.body.appendChild(el);
+    const ref = { current: el };
+    const focus = new Focus(ref);
+    focus.setup();
+    focus.onMount();
+
+    const remove = vi.spyOn(el, "removeEventListener");
+    focus.onUnmount();
+
+    expect(remove).toHaveBeenCalledWith("focus", expect.any(Function));
+    expect(remove).toHaveBeenCalledWith("blur", expect.any(Function));
+
+    document.body.removeChild(el);
+  });
+
+  it("onMount() called twice registers only one listener pair", () => {
     const el = document.createElement("input");
     document.body.appendChild(el);
     const add = vi.spyOn(el, "addEventListener");
     const ref = { current: el };
     const focus = new Focus(ref);
     focus.setup();
-    focus.setup();
+    focus.onMount();
+    focus.onMount(); // second call must be a no-op
     const focusCalls = add.mock.calls.filter((c) => c[0] === "focus").length;
     expect(focusCalls).toBe(1);
     document.body.removeChild(el);
