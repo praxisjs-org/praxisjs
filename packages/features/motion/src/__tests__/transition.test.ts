@@ -133,12 +133,28 @@ describe("createTransition()", () => {
     await expect(t.enter(el)).rejects.toThrow("enter callback error");
   });
 
+  it("onEnter throwing a non-Error value wraps it in an Error", async () => {
+    const t = createTransition({
+      onEnter: () => { throw "non-error string"; },
+    });
+    const el = makeEl();
+    await expect(t.enter(el)).rejects.toThrow("non-error string");
+  });
+
   it("onLeave callback throws — promise rejects with that error", async () => {
     const t = createTransition({
       onLeave: () => { throw new Error("leave callback error"); },
     });
     const el = makeEl();
     await expect(t.leave(el)).rejects.toThrow("leave callback error");
+  });
+
+  it("onLeave throwing a non-Error value wraps it in an Error", async () => {
+    const t = createTransition({
+      onLeave: () => { throw 42; },
+    });
+    const el = makeEl();
+    await expect(t.leave(el)).rejects.toThrow("42");
   });
 
   it("duration = 0 — resolves immediately without hanging", async () => {

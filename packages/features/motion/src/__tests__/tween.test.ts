@@ -12,18 +12,6 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function flushRaf(frames = 60) {
-  for (let i = 0; i < frames; i++) {
-    vi.runAllTicks();
-    const cbs = (globalThis as unknown as { __rafCallbacks?: Array<(t: number) => void> }).__rafCallbacks;
-    if (cbs?.length) {
-      const batch = [...cbs];
-      cbs.length = 0;
-      batch.forEach((cb) => cb(performance.now()));
-    }
-  }
-}
-
 describe("tween()", () => {
   it("starts at the `from` value", () => {
     const t = tween(0, 100);
@@ -138,6 +126,21 @@ describe("tween()", () => {
     vi.advanceTimersByTime(50); // well within delay
     expect(t.progress()).toBe(0);
     t.stop();
+  });
+
+  it("stop() is a no-op when animation has already completed", () => {
+    const t = tween(0, 100, { duration: 100, easing: "linear" });
+    vi.advanceTimersByTime(500); // fully complete
+    expect(t.playing()).toBe(false);
+    expect(() => t.stop()).not.toThrow(); // raf is undefined — covers false branch
+  });
+
+  it("reset() is a no-op regarding rAF when animation has already completed", () => {
+    const t = tween(0, 100, { duration: 100, easing: "linear" });
+    vi.advanceTimersByTime(500); // fully complete
+    expect(() => t.reset()).not.toThrow(); // raf is undefined — covers false branch
+    expect(t.value()).toBe(0);
+    expect(t.progress()).toBe(0);
   });
 
   it("easing function is called with t in [0,1] range only", () => {

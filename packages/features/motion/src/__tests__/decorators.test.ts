@@ -78,6 +78,9 @@ describe("@Tween", () => {
     run(b);
     a.val = 10;
     b.val = 50;
+    vi.advanceTimersByTime(500); // complete animations (default duration=300ms)
+    expect(a.val).toBe(10);
+    expect(b.val).toBe(50);
     expect(a.val).not.toBe(b.val);
     vi.clearAllTimers();
     vi.useRealTimers();
@@ -145,6 +148,7 @@ describe("@Spring", () => {
     run(b);
     a.val = 10;
     b.val = 50;
+    vi.advanceTimersByTime(2000); // springs settle over ~1-2s depending on stiffness/damping
     expect(a.val).not.toBe(b.val);
     vi.clearAllTimers();
     vi.useRealTimers();
@@ -152,6 +156,62 @@ describe("@Spring", () => {
 });
 
 // ── Edge case tests ───────────────────────────────────────────────────────────
+
+describe("@Tween — initial value", () => {
+  it("uses the field's numeric initial value as tween start", () => {
+    vi.useFakeTimers();
+    const { ctx, run } = makeCtx("opacity");
+    Tween()(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    instance.opacity = 0.5; // pre-set before initializer runs
+    run(instance);
+    // initial is 0.5, so tween starts at 0.5 (not 0)
+    expect(instance.opacity).toBe(0.5);
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
+  it("getter returns 0 when instance is not in the WeakMap", () => {
+    vi.useFakeTimers();
+    const { ctx, run } = makeCtx("opacity");
+    Tween()(undefined, ctx);
+    const a: Record<string, unknown> = {};
+    run(a);
+    // Copy a's descriptor to an object that was never initialized
+    const b: Record<string, unknown> = {};
+    Object.defineProperty(b, "opacity", Object.getOwnPropertyDescriptor(a, "opacity")!);
+    expect(b.opacity).toBe(0); // WeakMap miss → ?? 0 fallback
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+});
+
+describe("@Spring — initial value", () => {
+  it("uses the field's numeric initial value as spring start", () => {
+    vi.useFakeTimers();
+    const { ctx, run } = makeCtx("scale");
+    Spring()(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    instance.scale = 2; // pre-set before initializer runs
+    run(instance);
+    expect(instance.scale).toBe(2);
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
+  it("getter returns 0 when instance is not in the WeakMap", () => {
+    vi.useFakeTimers();
+    const { ctx, run } = makeCtx("scale");
+    Spring()(undefined, ctx);
+    const a: Record<string, unknown> = {};
+    run(a);
+    const b: Record<string, unknown> = {};
+    Object.defineProperty(b, "scale", Object.getOwnPropertyDescriptor(a, "scale")!);
+    expect(b.scale).toBe(0); // WeakMap miss → ?? 0 fallback
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+});
 
 describe("@Tween edge cases", () => {
   it("setting NaN on @Tween field does not crash", () => {
@@ -176,6 +236,9 @@ describe("@Tween edge cases", () => {
     runY(instance);
     instance.x = 10;
     instance.y = 50;
+    vi.advanceTimersByTime(500); // complete animations
+    expect(instance.x).toBe(10);
+    expect(instance.y).toBe(50);
     expect(instance.x).not.toBe(instance.y);
     vi.clearAllTimers();
     vi.useRealTimers();

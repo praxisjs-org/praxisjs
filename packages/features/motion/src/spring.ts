@@ -38,6 +38,7 @@ export function spring(initial: number, options: SpringOptions = {}) {
     } else {
       _value.set(target);
       velocity = 0;
+      raf = undefined;
     }
   }
 

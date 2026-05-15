@@ -9,14 +9,15 @@ export function Tween(options: TweenOptions = {}) {
   const tweens = new WeakMap<object, Tween>();
 
   return createFieldDecorator({
-    bind(_instance, _name, _initialValue): FieldBinding {
+    bind(instance, _name, initialValue): FieldBinding {
+      const initial = typeof initialValue === "number" ? initialValue : 0;
+      tweens.set(instance, tween(initial, initial, options));
       return {
         descriptor: {
           get(this: object): number {
             return tweens.get(this)?.value() ?? 0;
           },
           set(this: object, value: number): void {
-            if (!tweens.has(this)) tweens.set(this, tween(value, value, options));
             tweens.get(this)?.target.set(value);
           },
         },
@@ -30,14 +31,15 @@ export function Spring(options: SpringOptions = {}) {
   const springs = new WeakMap<object, SpringInstance>();
 
   return createFieldDecorator({
-    bind(_instance, _name, _initialValue): FieldBinding {
+    bind(instance, _name, initialValue): FieldBinding {
+      const initial = typeof initialValue === "number" ? initialValue : 0;
+      springs.set(instance, spring(initial, options));
       return {
         descriptor: {
           get(this: object): number {
             return springs.get(this)?.value() ?? 0;
           },
           set(this: object, value: number): void {
-            if (!springs.has(this)) springs.set(this, spring(value, options));
             springs.get(this)?.target.set(value);
           },
         },

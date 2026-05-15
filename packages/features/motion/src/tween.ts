@@ -1,4 +1,4 @@
-import { signal, computed, effect } from "@praxisjs/core/internal";
+import { signal, computed, effect, untrack } from "@praxisjs/core/internal";
 import type { Computed, Signal } from "@praxisjs/shared";
 
 import { resolveEasing, type Easing } from "./easings";
@@ -49,12 +49,13 @@ export function tween(
     } else {
       _value.set(_target());
       _playing.set(false);
+      raf = undefined;
     }
   }
 
   function start() {
     if (raf) cancelAnimationFrame(raf);
-    startValue = _value();
+    startValue = untrack(() => _value());
     startTime = undefined;
     _playing.set(true);
     raf = requestAnimationFrame(animate);

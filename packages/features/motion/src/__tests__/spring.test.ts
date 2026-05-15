@@ -104,6 +104,13 @@ describe("spring()", () => {
     s.stop();
   });
 
+  it("stop() is a no-op regarding rAF when animation has already settled", () => {
+    // spring(50) with target=50 settles in the first tick (force=0, velocity=0)
+    const s = spring(50, { stiffness: 0.5, damping: 0.8, precision: 0.001 });
+    vi.advanceTimersByTime(200); // let it settle; raf becomes undefined
+    expect(() => s.stop()).not.toThrow(); // covers if(raf) false branch
+  });
+
   it("stop() called while animating — value is frozen and does not continue to change", () => {
     const s = spring(0, { stiffness: 0.5, damping: 0.8 });
     s.target.set(100);
