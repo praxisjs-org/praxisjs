@@ -2,13 +2,26 @@ import { type RootComponent, signal } from "@praxisjs/core/internal";
 
 import { ClassBehavior, createClassDecorator, type ClassEnhancement } from "../create-class-decorator";
 
+export interface LazyOptions {
+  /** Placeholder height in pixels while the component is off-screen. */
+  placeholder?: number;
+  /**
+   * Scroll container to observe against. Defaults to the viewport (`null`).
+   * Pass a ref object `{ current: HTMLElement | null }` to scope intersection
+   * to a specific scrollable container.
+   */
+  root?: { current: HTMLElement | null } | null;
+  /** Extra margin around the root before triggering (e.g. `"200px"`). Defaults to `"100px"`. */
+  rootMargin?: string;
+}
+
 class LazyBehavior extends ClassBehavior {
-  constructor(private readonly placeholder: number) {
+  constructor(private readonly options: LazyOptions) {
     super();
   }
 
   create(instance: RootComponent): ClassEnhancement {
-    const placeholder = this.placeholder;
+    const { placeholder = 200, root, rootMargin = "100px" } = this.options;
     const visible = signal(false);
     let observer: IntersectionObserver | undefined;
 
@@ -25,6 +38,9 @@ class LazyBehavior extends ClassBehavior {
 
         if (!visible()) el.style.minHeight = `${String(placeholder)}px`;
 
+        const rootEl =
+          root === undefined || root === null ? null : root.current ?? null;
+
         observer = new IntersectionObserver(
           (entries) => {
             if (entries[0]?.isIntersecting) {
@@ -33,7 +49,7 @@ class LazyBehavior extends ClassBehavior {
               observer?.disconnect();
             }
           },
-          { rootMargin: "100px" },
+          { root: rootEl, rootMargin },
         );
 
         observer.observe(el);
@@ -44,13 +60,19 @@ class LazyBehavior extends ClassBehavior {
       },
 
       render(originalRender) {
-        if (!visible()) return null;
-        return originalRender();
+        return (() => {
+          if (!visible()) return null;
+          return originalRender();
+        }) as unknown as Node;
       },
     };
   }
 }
 
-export function Lazy(placeholder = 200) {
-  return createClassDecorator(new LazyBehavior(placeholder));
+export function Lazy(placeholderOrOptions: number | LazyOptions = 200) {
+  const options: LazyOptions =
+    typeof placeholderOrOptions === "number"
+      ? { placeholder: placeholderOrOptions }
+      : placeholderOrOptions;
+  return createClassDecorator(new LazyBehavior(options));
 }
