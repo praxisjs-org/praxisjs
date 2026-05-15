@@ -35,8 +35,12 @@ export function mountReactive(
     const result = runInScope(childScope, fn);
     const newNodes = normalizeToNodes(result);
 
+    // Use end.parentNode instead of the original `parent` — the parent
+    // reference may be a DocumentFragment that was emptied after its
+    // children were transferred to the real DOM by mountComponent.
+    const anchor = end.parentNode ?? parent;
     for (const n of newNodes) {
-      parent.insertBefore(n, end);
+      anchor.insertBefore(n, end);
     }
     currentNodes = newNodes;
   });
