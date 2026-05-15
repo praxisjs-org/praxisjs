@@ -68,6 +68,8 @@ class App extends StatefulComponent {
 }
 ```
 
+<StorybookLink story="guide-custom-composables--network-status-story" label="Live demo — NetworkStatus" />
+
 ---
 
 ## Constructor arguments
@@ -123,6 +125,44 @@ containerRef = { current: null as HTMLElement | null }
 size!: ElementSize
 ```
 
+### `getter(propName)` — live reactive source
+
+When the composable's constructor expects a **callable source** (`Signal<T>` or `() => T`) rather than a snapshot, a string property name won't work — `@Compose` would pass the current value, not a function.
+
+Use `getter()` to wrap a property name as a live getter:
+
+```tsx
+import { getter } from '@praxisjs/decorators'
+```
+
+```tsx
+@State() postedAt = new Date()
+
+// ✅ passes () => this.postedAt — TimeAgo calls it reactively
+@Compose(TimeAgo, getter('postedAt'))
+timeAgo!: TimeAgo
+
+// ❌ would pass the current Date value — TimeAgo can't call a Date
+@Compose(TimeAgo, 'postedAt')
+```
+
+`getter('propName')` is resolved at bind time: it returns `() => instance[propName]`, which reads the property on every call. If the property is backed by a `@State` signal or a computed getter, reads inside reactive effects will track it correctly.
+
+```tsx
+// works with @State signals:
+@State() filter = ''
+get filteredItems() { return ITEMS.filter(i => i.name.includes(this.filter)) }
+
+@Compose(VirtualList, 'containerRef', getter('filteredItems'), 48)
+virtual!: VirtualList<Item>
+// When filter changes → filteredItems recomputes → VirtualList updates
+```
+
+| Form | What the composable receives | When to use |
+|---|---|---|
+| `'propName'` | Current value of `instance.propName` | Refs, plain objects, config |
+| `getter('propName')` | `() => instance.propName` (callable) | Signals, computed getters, anything that must stay reactive |
+
 ---
 
 ## Derived state with `computed`
@@ -167,6 +207,9 @@ render() {
 }
 ```
 
+<StorybookLink story="guide-custom-composables--counter-story" label="Live demo — CounterComposable" />
+<StorybookLink story="guide-custom-composables--polling-story" label="Live demo — PollingResource" />
+
 <llm-only>
 Composable facts:
 - `declare propName: Type` is a TypeScript-only declaration — no runtime property is created. The actual reactive getter is defined by @Compose at bind time using the signals returned from setup().
@@ -174,7 +217,8 @@ Composable facts:
 - Plain functions returned from setup() are exposed as regular methods on the composable view.
 - onMount() and onUnmount() are called by the component lifecycle automatically — always clean up timers, event listeners, and observers in onUnmount().
 - @Compose(Class, ...args) passes args to the constructor. String args are resolved to instance properties at bind time.
+- getter('propName') from '@praxisjs/decorators' resolves to () => instance[propName] — use when the composable constructor needs a callable source (Signal or () => T), not a plain value snapshot. Plain string 'propName' passes the current value; getter('propName') passes a live function.
 - The composable instance is created once per component instance — two components with @Compose(NetworkStatus) each get their own instance.
-- Import Composable from '@praxisjs/core', signal/computed from '@praxisjs/core/internal', @Compose from '@praxisjs/decorators'
+- Import Composable from '@praxisjs/core', signal/computed from '@praxisjs/core/internal', @Compose and getter from '@praxisjs/decorators'
 Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

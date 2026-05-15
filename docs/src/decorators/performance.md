@@ -1,6 +1,6 @@
 ---
 title: Performance Decorators
-description: Optimize rendering with @Lazy for viewport-deferred components and @Virtual for large list virtualization.
+description: Optimize rendering with @Lazy for viewport-deferred components. For large list virtualization, see VirtualList composable.
 ---
 
 # Performance Decorators
@@ -23,58 +23,45 @@ class HeavyChart extends StatefulComponent {
 
 The argument is the placeholder height in pixels. This prevents layout shift when the component renders.
 
+<StorybookLink story="decorators-performance--lazy-story" label="Live demo — @Lazy" />
+
+To scope intersection to a specific scroll container instead of the viewport, pass an options object:
+
+```tsx
+const listRef = { current: null as HTMLDivElement | null }
+
+@Lazy({ placeholder: 300, root: listRef, rootMargin: '0px' })
+@Component()
+class HeavyChart extends StatefulComponent { ... }
+
+// in render:
+<div ref={(el) => { listRef.current = el }} style="overflow-y:auto;height:400px">
+  <HeavyChart />
+</div>
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `placeholder` | `number` | `200` | Placeholder height in px |
+| `root` | `{ current: HTMLElement \| null }` | `null` (viewport) | Scroll container to observe against |
+| `rootMargin` | `string` | `"100px"` | Extra margin before triggering |
+
 **Use cases:** components below the fold, heavy visualizations, third-party widgets.
 
 ---
 
-## `@Virtual(itemHeight, buffer?)`
+## Large list virtualization
 
-Virtualizes large lists — only items in the visible viewport (plus `buffer` items on each side) are rendered. Dramatically reduces DOM node count for long lists.
+For large list virtualization, use the [`VirtualList` composable](/composables/list) from `@praxisjs/composables`. It exposes reactive signals (`visibleItems`, `totalHeight`, `offsetTop`, `offsetBottom`) that the component renders with normal JSX — no custom `renderItem` convention needed, and items react to external changes automatically.
 
-```tsx
-import { Virtual, Component, Prop } from '@praxisjs/decorators'
-
-interface User {
-  id: number
-  name: string
-  email: string
-}
-
-@Virtual(56, 3)  // 56px per item, 3 items buffer
-@Component()
-class UserList extends StatefulComponent {
-  @Prop() items: User[] = []
-
-  renderItem(item: User, index: number) {
-    return (
-      <div class="user-row" key={item.id}>
-        <strong>{item.name}</strong>
-        <span>{item.email}</span>
-      </div>
-    )
-  }
-
-  render() { return <div /> }
-}
-```
-
-| Argument | Type | Description |
-|---|---|---|
-| `itemHeight` | `number` | Fixed height of each item in pixels |
-| `buffer` | `number` | Extra items to render above/below viewport (default: 5) |
-
-::: warning Requirements
-- `items` prop must be an array
-- `renderItem(item, index)` method must be defined
-- Items must have a fixed, known height
-- `itemHeight` must be a positive number — passing `0` or a negative value throws an error
-:::
+→ See [VirtualList](/composables/list) for full details and examples.
 
 <llm-only>
 @Lazy internals: uses IntersectionObserver to detect when the placeholder enters the viewport, then swaps to the real component.
+The real component is rendered via a reactive thunk returned from the render() enhancement — the runtime tracks the visible signal and patches the DOM when IntersectionObserver fires.
 
-@Virtual internals: calculates visible range based on scrollTop and itemHeight, only renders items in [startIndex - buffer, endIndex + buffer]. The container has a fixed height and uses absolute positioning or padding to simulate the full list height.
+Both @Lazy and @Component() use createClassDecorator. They can be stacked safely — @Lazy must appear ABOVE @Component() in the decorator stack (decorators apply bottom-up).
 
-Both decorators must be applied BEFORE @Component() in the decorator stack (decorators apply bottom-up).
+Large list virtualization: use VirtualList composable from @praxisjs/composables, NOT the old @Virtual decorator (removed). VirtualList exposes visibleItems, totalHeight, offsetTop, offsetBottom as reactive signals; the component renders the slice with normal JSX using @Compose(VirtualList, ref, getter('items'), itemHeight, buffer).
 Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

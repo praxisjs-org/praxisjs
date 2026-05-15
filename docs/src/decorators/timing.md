@@ -42,6 +42,8 @@ class SearchBox extends StatefulComponent {
 
 The `search` method waits 300ms after the last call before executing. Rapid keystrokes result in only one fetch.
 
+<StorybookLink story="decorators-timing--debounce-story" label="Live demo — @Debounce" />
+
 ::: tip Automatic cleanup
 Any pending timer is automatically cancelled when the component unmounts. You do not need to cancel debounced methods manually in `onUnmount`.
 :::
@@ -77,6 +79,8 @@ class ScrollTracker extends StatefulComponent {
   }
 }
 ```
+
+<StorybookLink story="decorators-timing--throttle-story" label="Live demo — @Throttle" />
 
 ---
 

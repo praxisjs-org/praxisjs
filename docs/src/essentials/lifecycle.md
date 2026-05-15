@@ -48,6 +48,8 @@ class MyComponent extends StatefulComponent {
 }
 ```
 
+<StorybookLink story="essentials-lifecycle--lifecycle-order" label="Live demo — lifecycle order" />
+
 ## `onMount()`
 
 Called after the component is inserted into the DOM. Use this to access DOM elements, start timers, or subscribe to external events.
@@ -71,6 +73,8 @@ class Timer extends StatefulComponent {
   }
 }
 ```
+
+<StorybookLink story="essentials-lifecycle--timer" label="Live demo — onMount / onUnmount" />
 
 ## `onUnmount()`
 

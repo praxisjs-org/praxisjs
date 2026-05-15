@@ -48,22 +48,46 @@ class App extends StatefulComponent {
 
 Properties: `width: number`, `height: number`
 
+<StorybookLink story="composables-dom--window-size-story" label="Live demo — WindowSize" />
+
 ---
 
 ## `ScrollPosition`
 
-Tracks scroll position. Pass an element to track its scroll, or omit for the window.
+Tracks scroll position. Omit the argument to track the window, or pass a ref to track a specific scrollable element.
 
 ```tsx
+// Window scroll
 @Compose(ScrollPosition)
 scroll!: ScrollPosition
-
-// Track a specific element:
-@Compose(ScrollPosition, document.getElementById('feed'))
-feedScroll!: ScrollPosition
 ```
 
+```tsx
+// Specific element — pass a ref string (preferred)
+containerRef = { current: null as HTMLDivElement | null }
+
+@Compose(ScrollPosition, 'containerRef')
+scroll!: ScrollPosition
+
+render() {
+  return (
+    <div
+      ref={(el) => { this.containerRef.current = el }}
+      style="height:300px;overflow:auto"
+    >
+      {/* scrollable content */}
+    </div>
+  )
+}
+```
+
+::: tip Ref vs element directly
+Pass the property name as a string (`'containerRef'`) rather than the element itself (`document.getElementById('feed')`). The element doesn't exist at decoration time — a ref object is resolved at mount when the DOM is ready.
+:::
+
 Properties: `x: number`, `y: number`
+
+<StorybookLink story="composables-dom--scroll-position-story" label="Live demo — ScrollPosition" />
 
 ---
 
@@ -89,9 +113,11 @@ class ResizeWatcher extends StatefulComponent {
 }
 ```
 
-String arguments to `@Compose` resolve to instance properties at bind time.
+String arguments to `@Compose` resolve to instance properties at bind time. Use `getter('propName')` from `@praxisjs/decorators` when the composable needs a live callable source instead of a snapshot value — see [Constructor arguments](/guide/custom-composables#constructor-arguments) for details.
 
 Properties: `width: number`, `height: number`
+
+<StorybookLink story="composables-dom--element-size-story" label="Live demo — ElementSize" />
 
 ---
 
@@ -121,6 +147,8 @@ Constructor: `new Intersection(ref, options?)` — `options` matches `Intersecti
 
 Properties: `visible: boolean`
 
+<StorybookLink story="composables-dom--intersection-story" label="Live demo — Intersection" />
+
 ---
 
 ## `Focus`
@@ -148,13 +176,16 @@ class SearchBar extends StatefulComponent {
 
 Properties: `focused: boolean`
 
+<StorybookLink story="composables-dom--focus-story" label="Live demo — Focus" />
+
 <llm-only>
 DOM composable facts:
 - All composables use `declare propName: type` for typed properties — the actual reactive getters are set up at runtime by @Compose
 - Access composable properties directly (e.g. `this.size.width`), not as function calls — they are plain property getters that read the underlying signal
 - Still wrap in arrow functions in JSX to stay reactive: `{() => this.size.width}`
 - String arguments to @Compose (e.g. `@Compose(ElementSize, 'containerRef')`) resolve to instance properties at bind time — useful for passing refs
-- All observers (ResizeObserver, IntersectionObserver) are cleaned up automatically via onUnmount
+- ScrollPosition accepts: no arg (window), string ref name 'propName' → resolves to instance.propName = { current: HTMLElement | null }, or HTMLElement/Window directly. Always prefer string ref to avoid accessing the element at decoration time (DOM not ready yet)
+- All observers (ResizeObserver, IntersectionObserver) and event listeners are set up in onMount (after ref callbacks fire) and cleaned up automatically in onUnmount
 - Import @Compose from '@praxisjs/decorators', composable classes from '@praxisjs/composables'
 Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>

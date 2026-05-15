@@ -24,6 +24,8 @@ render() {
 }
 ```
 
+<StorybookLink story="essentials-jsx--reactive-vs-static" label="Live demo — reactive vs. static" />
+
 ## Conditional rendering
 
 ```tsx
@@ -47,14 +49,18 @@ render() {
   return (
     <ul>
       {() => this.items.map((item) => (
-        <li key={item.id}>{item.name}</li>
+        <li>{item.name}</li>
       ))}
     </ul>
   )
 }
 ```
 
-Always provide a `key` prop when mapping lists. Keys must be stable and unique.
+PraxisJS does **not** do reconciliation. When the arrow function re-runs (because a signal changed), the entire list is rebuilt from scratch — all previous nodes are removed and new ones are inserted. This is intentional: the reactive unit is the arrow function itself, not individual items.
+
+The `key` prop is accepted by the JSX types (for forward compatibility) but has **no runtime effect** — it is not processed by the renderer.
+
+<StorybookLink story="essentials-jsx--lists" label="Live demo — lists (no reconciliation)" />
 
 ## Event handlers
 
@@ -72,6 +78,8 @@ render() {
 ```
 
 Event handlers are plain arrow functions — they don't need to be reactive because they're callbacks, not DOM expressions.
+
+<StorybookLink story="essentials-jsx--event-handlers" label="Live demo — event handlers" />
 
 ## CSS classes
 
@@ -133,7 +141,7 @@ class InputFocus extends StatefulComponent {
 JSX rendering rules:
 - Arrow functions () => expr are wrapped in reactive effects that patch only the DOM node when dependencies change
 - Plain expressions are evaluated once and never re-evaluated
-- key prop is required for list items to enable efficient reconciliation
+- key prop is accepted in JSX types but has NO runtime effect — PraxisJS does not do reconciliation. When a reactive arrow function re-runs, all nodes it produced are removed and new ones are created from scratch. There is no diffing or node reuse.
 - ref prop accepts a callback (el: T) => void — the element is passed in after mount
 - Event handlers: onClick, onInput, onChange, onKeyDown, onKeyUp, onFocus, onBlur, onSubmit, etc.
 - class prop (not className) for CSS classes

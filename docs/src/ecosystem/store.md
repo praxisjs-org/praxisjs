@@ -61,6 +61,8 @@ class CartStore extends ReactiveStore {
 
 The class is instantiated once on first use and the same instance is shared across all consumers.
 
+<StorybookLink story="ecosystem-store--default" label="Live demo — @Store / @UseStore" />
+
 ::: tip Why `extends ReactiveStore`?
 `ReactiveStore` provides the internal `_stateDirty` flag that the `@State` and `@DeepState` decorators require. Extending it is also what makes TypeScript validate that `@State` is only used on classes designed to be reactive — plain classes without this base will produce a type error.
 :::

@@ -43,6 +43,8 @@ render() {
 Constructor: `new MediaQuery(query: string)`
 Properties: `matches: boolean`
 
+<StorybookLink story="composables-browser--media-query-story" label="Live demo — MediaQuery" />
+
 ---
 
 ## `ColorScheme`
@@ -60,6 +62,8 @@ render() {
 
 Properties: `isDark: boolean`, `isLight: boolean`
 
+<StorybookLink story="composables-browser--color-scheme-story" label="Live demo — ColorScheme" />
+
 ---
 
 ## `Mouse`
@@ -76,6 +80,8 @@ render() {
 ```
 
 Properties: `x: number`, `y: number`
+
+<StorybookLink story="composables-browser--mouse-story" label="Live demo — Mouse" />
 
 ---
 
@@ -97,6 +103,8 @@ onMount() {
 Constructor: `new KeyCombo(combo: string)` — accepts `ctrl`, `shift`, `alt`, `meta` modifiers.
 Properties: `pressed: boolean`
 
+<StorybookLink story="composables-browser--key-combo-story" label="Live demo — KeyCombo" />
+
 ---
 
 ## `Idle`
@@ -114,6 +122,8 @@ render() {
 
 Constructor: `new Idle(timeout?: number)` — timeout in ms.
 Properties: `idle: boolean`
+
+<StorybookLink story="composables-browser--idle-story" label="Live demo — Idle (5s)" />
 
 ---
 
@@ -135,6 +145,8 @@ render() {
 ```
 
 Properties: `copied: boolean`, `content: string`, `copy(text): Promise<void>`
+
+<StorybookLink story="composables-browser--clipboard-story" label="Live demo — Clipboard" />
 
 ---
 
@@ -169,9 +181,12 @@ Properties: `lat: number | null`, `lng: number | null`, `error: GeolocationPosit
 Relative time formatting, updated every minute.
 
 ```tsx
+import { getter } from '@praxisjs/decorators'
+
 @State() postedAt = new Date('2026-01-01')
 
-@Compose(TimeAgo, 'postedAt')
+// getter() wraps the property as () => this.postedAt — TimeAgo needs a callable source
+@Compose(TimeAgo, getter('postedAt'))
 timeAgo!: TimeAgo
 
 render() {
@@ -182,6 +197,8 @@ render() {
 
 Constructor: `new TimeAgo(source: Signal<Date> | (() => Date), locale?: string)`
 Properties: `value: string`
+
+<StorybookLink story="composables-browser--time-ago-story" label="Live demo — TimeAgo" />
 
 ---
 
@@ -215,6 +232,8 @@ Constructor: `new Pagination({ total, pageSize, initial? })`
 | `prev()` / `next()` | Navigate pages |
 | `goTo(n)` | Jump to page `n` |
 | `first()` / `last()` | Jump to first/last page |
+
+<StorybookLink story="composables-browser--pagination-story" label="Live demo — Pagination" />
 
 <llm-only>
 Browser composable facts:

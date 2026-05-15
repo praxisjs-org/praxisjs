@@ -78,6 +78,9 @@ class DataFetcher extends StatefulComponent {
 
 The second argument to `@StateMachine` sets the property name (default: `"machine"`). Each instance gets its own isolated machine.
 
+<StorybookLink story="ecosystem-fsm--traffic-light-demo" label="Live demo — traffic light" />
+<StorybookLink story="ecosystem-fsm--fetch-machine" label="Live demo — async fetch states" />
+
 ---
 
 ## `@Transition(property, event)`

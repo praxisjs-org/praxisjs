@@ -134,6 +134,8 @@ class Counter extends StatefulComponent {
 }
 ```
 
+<StorybookLink story="getting-started-counter--default" label="Counter — live demo" />
+
 ::: tip Why `{() => this.count}` and not `{this.count}`?
 `render()` runs **once** on mount. To keep a value reactive in the DOM, wrap it in an arrow function — the renderer tracks it as a live dependency. `{this.count}` captures the value at render time and never updates.
 :::

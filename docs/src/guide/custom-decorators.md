@@ -58,6 +58,8 @@ class SearchPage extends StatefulComponent {
 
 `bind()` receives `(instance, name, initialValue)`. The `FieldBinding` you return can also include `onMount`, `onUnmount`, and `additional` (extra properties to define on the instance).
 
+<StorybookLink story="guide-custom-decorators--field-decorator" label="Live demo — createFieldDecorator (@SessionValue)" />
+
 ---
 
 ## Method decorators
@@ -150,6 +152,8 @@ class Layout extends StatefulComponent {
 
 The method is automatically registered on mount and removed on unmount. No manual `addEventListener`/`removeEventListener` needed.
 
+<StorybookLink story="guide-custom-decorators--lifecycle-decorator" label="Live demo — createLifecycleMethodDecorator (@OnResize)" />
+
 ---
 
 ## Getter decorators
@@ -187,6 +191,11 @@ class Slider extends StatefulComponent {
     return <p>{() => this.value}</p>  // always 0–100
   }
 }
+```
+
+<StorybookLink story="guide-custom-decorators--getter-decorator" label="Live demo — createGetterDecorator (@Clamp)" />
+
+```tsx
 ```
 
 ### `createGetterObserverDecorator`

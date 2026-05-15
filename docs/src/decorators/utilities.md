@@ -27,6 +27,8 @@ class Panel extends StatefulComponent {
 }
 ```
 
+<StorybookLink story="decorators-utilities--bind-story" label="Live demo — @Bind" />
+
 ---
 
 ## `@Log(options?)`
@@ -65,6 +67,8 @@ class AppConfig extends StatefulComponent {
 }
 ```
 
+<StorybookLink story="decorators-utilities--once-story" label="Live demo — @Once" />
+
 ---
 
 ## `@Memo()`
@@ -94,6 +98,8 @@ class PriceList extends StatefulComponent {
 
 When `this.discount` changes, both cached values recompute. Each argument combination has its own cache entry.
 
+<StorybookLink story="decorators-utilities--memo-story" label="Live demo — @Memo" />
+
 ::: tip Argument caching
 Arguments are serialized as a string cache key:
 - Objects/null → `JSON.stringify` (falls back to object identity for non-serializable values such as circular references or class instances)
@@ -108,7 +114,7 @@ Arguments are serialized as a string cache key:
 Automatically retries an async method on failure.
 
 ```tsx
-@Retry(3, { delay: 500, backoff: true })
+@Retry(3, { delay: 500, backoff: 2 })
 async saveData(data: object) {
   const res = await fetch('/api/save', {
     method: 'POST',
@@ -121,8 +127,10 @@ async saveData(data: object) {
 | Option | Type | Description |
 |---|---|---|
 | `delay` | `number` | Wait (ms) before first retry |
-| `backoff` | `boolean` | Double delay on each retry |
-| `onRetry` | `(attempt, error) => void` | Called before each retry |
+| `backoff` | `number` | Multiply delay by this factor on each retry (e.g. `2` doubles it) |
+| `onRetry` | `(error, attempt) => void` | Called before each retry |
+
+<StorybookLink story="decorators-utilities--retry-story" label="Live demo — @Retry" />
 
 <llm-only>
 @Memo() only works on StatefulComponent methods — it needs access to the component's reactive context to create computed() instances.

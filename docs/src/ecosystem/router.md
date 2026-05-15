@@ -68,6 +68,8 @@ class App extends StatefulComponent {
 
 `RouterView` renders the matched route component reactively.
 
+<StorybookLink story="ecosystem-router--default" label="Live demo — Router" />
+
 ---
 
 ## `@Route(path)`

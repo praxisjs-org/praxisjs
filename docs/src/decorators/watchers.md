@@ -61,6 +61,9 @@ this.lastName = 'Smith'
 ```
 :::
 
+<StorybookLink story="decorators-watchers--watch-single-prop" label="Live demo — @Watch single prop" />
+<StorybookLink story="decorators-watchers--watch-multi-prop" label="Live demo — @Watch multi-prop coalescing" />
+
 ---
 
 ## `@When(propName)`
@@ -86,6 +89,8 @@ class DataLoader extends StatefulComponent {
 ```
 
 Use `@When` for one-time initialization that depends on a value arriving (e.g., first API response, user authentication).
+
+<StorybookLink story="decorators-watchers--when-once" label="Live demo — @When" />
 
 ---
 
@@ -115,6 +120,8 @@ class UserProfile extends StatefulComponent {
 The original method body is ignored — the decorator replaces it entirely. If the property is already truthy when the method is called, the promise resolves on the next microtask.
 
 Use `@Until` when downstream code needs to await a reactive value rather than react to it via a side effect.
+
+<StorybookLink story="decorators-watchers--until-story" label="Live demo — @Until" />
 
 <llm-only>
 @Watch details:

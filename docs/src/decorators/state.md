@@ -38,6 +38,8 @@ this.config.theme = 'dark'
 ```
 :::
 
+<StorybookLink story="decorators-state-props--state-basic" label="Live demo — @State" />
+
 ---
 
 ## `@Prop()`
@@ -63,6 +65,8 @@ class Button extends StatefulComponent {
 <Button label="Submit" disabled={false} />
 ```
 
+<StorybookLink story="decorators-state-props--prop-defaults" label="Live demo — @Prop" />
+
 ---
 
 ## `@Computed()`
@@ -84,6 +88,8 @@ class Cart extends StatefulComponent {
   }
 }
 ```
+
+<StorybookLink story="decorators-state-props--computed-cart" label="Live demo — @Computed" />
 
 ---
 
@@ -118,6 +124,8 @@ Setting the value to `null` or `undefined` removes the entry from localStorage.
 | `deserialize` | `(s: string) => T` | `JSON.parse` | Custom deserializer |
 | `syncTabs` | `boolean` | `true` | Sync across browser tabs |
 
+<StorybookLink story="decorators-persistence--persisted-story" label="Live demo — @Persisted" />
+
 ---
 
 ## `@History(fieldName, limit?)`
@@ -151,6 +159,8 @@ class Editor extends StatefulComponent {
   }
 }
 ```
+
+<StorybookLink story="decorators-persistence--history-story" label="Live demo — @History" />
 
 ---
 
@@ -188,6 +198,8 @@ The field exposes `.data()`, `.pending()`, `.error()`, `.status()`, `.refetch()`
 
 → See [Async Data](/essentials/async-data) for full details.
 
+<StorybookLink story="essentials-async-data--pagination" label="Live demo — @Resource" />
+
 ---
 
 ## `@Synced(channelName?)`
@@ -221,6 +233,8 @@ items: Product[] = []
 Serialization uses `JSON.stringify`/`JSON.parse`. Values that are not JSON-serializable (functions, class instances, `undefined`) are not supported.
 :::
 
+<StorybookLink story="decorators-synced--default" label="Live demo — @Synced" />
+
 ---
 
 ## `@DeepState()`
@@ -252,6 +266,8 @@ Any mutation at any depth — including `push`, index assignment, and property d
 
 `@DeepState` is coarse-grained: **any** nested mutation re-runs all effects that read the field, regardless of which property changed.
 :::
+
+<StorybookLink story="decorators-deep-state--default" label="Live demo — @DeepState" />
 
 ::: warning Limitations
 `Map`, `Set`, and class instances are not tracked deeply — only plain objects and arrays. Mutations via their own methods (e.g. `map.set(k, v)`) will not trigger reactivity.

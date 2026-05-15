@@ -45,6 +45,8 @@ class RequestContext { /* ... */ }
 
 Default scope is `'singleton'` — one instance per container.
 
+<StorybookLink story="ecosystem-di--default" label="Live demo — @Injectable / @Inject" />
+
 ---
 
 ## `@Inject(dep)`

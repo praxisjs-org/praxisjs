@@ -35,6 +35,8 @@ class SearchInput extends StatefulComponent {
 <SearchInput onSearch={(q) => console.log('searching:', q)} />
 ```
 
+<StorybookLink story="decorators-events-slots--emit-story" label="Live demo — @Emit" />
+
 ### Exposing the prop type without `@Prop`
 
 If you don't use `@Prop` for the callback, declare the prop type with `declare` so it appears in JSX:
@@ -83,6 +85,8 @@ class Card extends StatefulComponent {
 </Card>
 ```
 
+<StorybookLink story="decorators-events-slots--slot-story" label="Live demo — @Slot" />
+
 ---
 
 ## `@OnCommand(propName)`
@@ -128,6 +132,8 @@ seek.trigger(45.2)  // seek to 45.2 seconds
 // Subscribe manually:
 seek.subscribe((time) => console.log('seek to', time))
 ```
+
+<StorybookLink story="decorators-events-slots--on-command-story" label="Live demo — @OnCommand" />
 
 <llm-only>
 @Emit:
