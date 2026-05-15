@@ -1,0 +1,42 @@
+name: Deploy Storybook to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "storybook/**"
+      - ".github/workflows/deploy-storybook.yml"
+
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-storybook
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Storybook
+        run: pnpm --filter praxisjs-stories build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy storybook/storybook-static --project-name=praxisjs-storybook --branch=main
