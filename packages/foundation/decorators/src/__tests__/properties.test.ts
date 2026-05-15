@@ -967,7 +967,7 @@ describe("@Compose decorator — new cases", () => {
     }).toThrow("setup failed");
   });
 
-  it("string argument resolution where the instance property is undefined", () => {
+  it("string argument that matches no instance property falls back to the literal string", () => {
     class ArgComposable {
       constructor(private val: unknown) {}
       setup() { return { resolved: this.val }; }
@@ -978,11 +978,79 @@ describe("@Compose decorator — new cases", () => {
     Compose(ArgComposable as any, "missingProp")(undefined, ctx);
 
     const instance = new TestComponent();
-    // missingProp is not set on instance — resolves to undefined
+    // missingProp is not set on instance — falls back to the literal "missingProp"
     run(instance);
 
     const view = (instance as unknown as Record<string, unknown>).strArgUndef as Record<string, unknown>;
-    expect(view.resolved).toBeUndefined();
+    expect(view.resolved).toBe("missingProp");
+  });
+
+  it("string argument that matches an instance property resolves to its value", () => {
+    class ArgComposable {
+      constructor(private val: unknown) {}
+      setup() { return { resolved: this.val }; }
+    }
+
+    const { ctx, run } = fieldCtx("strArgFound");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Compose(ArgComposable as any, "myProp")(undefined, ctx);
+
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).myProp = 42;
+    run(instance);
+
+    const view = (instance as unknown as Record<string, unknown>).strArgFound as Record<string, unknown>;
+    expect(view.resolved).toBe(42);
+  });
+});
+
+// ── getter() helper ───────────────────────────────────────────────────────────
+
+import { getter } from "../properties/compose";
+
+describe("getter() factory", () => {
+  it("resolves to a function that reads the named property from the instance", () => {
+    class ArgComposable {
+      constructor(private getVal: () => unknown) {}
+      setup() { return { current: this.getVal() }; }
+    }
+
+    const { ctx, run } = fieldCtx("withGetter");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Compose(ArgComposable as any, getter("dynProp"))(undefined, ctx);
+
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).dynProp = 99;
+    run(instance);
+
+    const view = (instance as unknown as Record<string, unknown>).withGetter as Record<string, unknown>;
+    expect(view.current).toBe(99);
+  });
+
+  it("getter() produces a live reader — reads the property at call time", () => {
+    class ArgComposable {
+      constructor(private getVal: () => unknown) {}
+      setup() { return { read: this.getVal }; }
+    }
+
+    const { ctx, run } = fieldCtx("liveGetter");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Compose(ArgComposable as any, getter("mutableProp"))(undefined, ctx);
+
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).mutableProp = "first";
+    run(instance);
+
+    const view = (instance as unknown as Record<string, unknown>).liveGetter as Record<string, () => unknown>;
+    expect(view.read()).toBe("first");
+
+    (instance as unknown as Record<string, unknown>).mutableProp = "second";
+    expect(view.read()).toBe("second");
+  });
+
+  it("getter() is marked as a ComposeFactory (has __isComposeFactory)", () => {
+    const g = getter("foo");
+    expect((g as unknown as Record<string, unknown>).__isComposeFactory).toBe(true);
   });
 });
 
