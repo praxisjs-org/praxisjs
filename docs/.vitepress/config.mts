@@ -4,6 +4,8 @@ import llmstxt, {
 } from "vitepress-plugin-llms";
 import { v } from "./versions";
 
+const storybookUrl = process.env.VITE_STORYBOOK_URL ?? "https://storybook.praxisjs.org";
+
 export default defineConfig({
   title: "PraxisJS",
   description:
@@ -20,6 +22,7 @@ export default defineConfig({
       { text: "Essentials", link: "/essentials/components" },
       { text: "Ecosystem", link: "/ecosystem/router" },
       { text: "Changelog", link: "/changelog/core" },
+      { text: "Storybook", link: storybookUrl, target: "_blank" },
       {
         text: `v${v("@praxisjs/core")}`,
         items: [
