@@ -1,0 +1,31 @@
+{
+  "name": "praxisjs-stories",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "storybook dev -p 6006",
+    "build": "storybook build",
+    "preview": "serve storybook-static"
+  },
+  "dependencies": {
+    "@praxisjs/composables": "workspace:*",
+    "@praxisjs/concurrent": "workspace:*",
+    "@praxisjs/core": "workspace:*",
+    "@praxisjs/decorators": "workspace:*",
+    "@praxisjs/di": "workspace:*",
+    "@praxisjs/fsm": "workspace:*",
+    "@praxisjs/motion": "workspace:*",
+    "@praxisjs/jsx": "workspace:*",
+    "@praxisjs/router": "workspace:*",
+    "@praxisjs/runtime": "workspace:*",
+    "@praxisjs/store": "workspace:*",
+    "@praxisjs/storybook": "workspace:*",
+    "@praxisjs/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@storybook/builder-vite": "^10.4.0",
+    "storybook": "^10.4.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.0.0"
+  }
+}
