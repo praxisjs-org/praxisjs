@@ -56,6 +56,7 @@ PraxisJS ships a complete first-party ecosystem:
 - **[@praxisjs/fsm](/ecosystem/fsm)** — Finite state machines
 - **[@praxisjs/composables](/composables/dom)** — DOM & browser utilities
 - **[@praxisjs/devtools](/tooling/devtools)** — In-app signal inspector
+- **[@praxisjs/storybook](/tooling/storybook)** — Storybook framework adapter
 
 ## Next steps
 

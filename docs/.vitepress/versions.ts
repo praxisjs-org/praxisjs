@@ -24,6 +24,7 @@ export const VERSIONS = {
   // DX
   '@praxisjs/devtools':      '^0.2.16',
   '@praxisjs/vite-plugin':   '^0.1.1',
+  '@praxisjs/storybook':     '^0.1.0',
 
   // Peer deps
   'vite':                  '^7.3.1',

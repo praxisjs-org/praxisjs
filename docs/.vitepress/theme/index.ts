@@ -2,6 +2,7 @@ import DefaultTheme from "vitepress/theme";
 import type { Theme } from "vitepress";
 import CopyOrDownloadAsMarkdownButtons from "vitepress-plugin-llms/vitepress-components/CopyOrDownloadAsMarkdownButtons.vue";
 import HomeLayout from "./components/HomeLayout.vue";
+import StorybookLink from "./components/StorybookLink.vue";
 import "./custom.css";
 
 export default {
@@ -12,5 +13,6 @@ export default {
       CopyOrDownloadAsMarkdownButtons,
     );
     app.component("HomeLayout", HomeLayout);
+    app.component("StorybookLink", StorybookLink);
   },
 } satisfies Theme;

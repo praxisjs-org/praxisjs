@@ -15,6 +15,7 @@ const packages = [
   { label: "@praxisjs/composables", href: "/composables/dom", status: "stable" },
   { label: "@praxisjs/concurrent", href: "/composables/concurrency", status: "stable" },
   { label: "@praxisjs/devtools", href: "/tooling/devtools", status: "beta" },
+  { label: "@praxisjs/storybook", href: "/tooling/storybook", status: "beta" },
 ] satisfies { label: keyof typeof VERSIONS; href: string; status: string }[];
 </script>
 

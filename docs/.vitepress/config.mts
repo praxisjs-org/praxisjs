@@ -62,6 +62,7 @@ export default defineConfig({
         {
           text: "Tooling",
           items: [
+            { text: "@praxisjs/storybook", link: "/changelog/storybook" },
             { text: "@praxisjs/devtools", link: "/changelog/devtools" },
             { text: "@praxisjs/vite-plugin", link: "/changelog/vite-plugin" },
             { text: "create-praxisjs", link: "/changelog/create-praxisjs" },
@@ -124,12 +125,14 @@ export default defineConfig({
             { text: "DOM Utilities", link: "/composables/dom" },
             { text: "Browser APIs", link: "/composables/browser" },
             { text: "Concurrency", link: "/composables/concurrency" },
+            { text: "List Utilities", link: "/composables/list" },
           ],
         },
         {
           text: "Tooling",
           items: [
             { text: "Vite Plugin", link: "/tooling/vite-plugin" },
+            { text: "Storybook", link: "/tooling/storybook" },
             { text: "DevTools", link: "/tooling/devtools" },
             { text: "DevTools Plugins", link: "/tooling/devtools-plugins" },
           ],
