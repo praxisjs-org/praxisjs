@@ -60,7 +60,7 @@ The resource **automatically re-runs** when `this.userId` changes, because the f
 users!: ResourceInstance<User[]>
 ```
 
-<StorybookLink story="essentials-async-data-manual-fetch--manual-fetch" label="Live demo — immediate: false" />
+<StorybookLink story="essentials-async-data-manualfetch--manual-fetch" label="Live demo — immediate: false" />
 
 ---
 

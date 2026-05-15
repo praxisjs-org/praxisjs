@@ -62,7 +62,7 @@ this.lastName = 'Smith'
 :::
 
 <StorybookLink story="decorators-watchers-watch--watch-single-prop" label="Live demo — @Watch single prop" />
-<StorybookLink story="decorators-watchers-watch-multi--watch-multi-prop" label="Live demo — @Watch multi-prop coalescing" />
+<StorybookLink story="decorators-watchers-watchmulti--watch-multi-prop" label="Live demo — @Watch multi-prop coalescing" />
 
 ---
 

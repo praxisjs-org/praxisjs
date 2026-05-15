@@ -34,7 +34,7 @@ class Greeting extends StatefulComponent {
 
 `render()` is called **once** on mount. Everything inside it is static unless wrapped in an arrow function.
 
-<StorybookLink story="essentials-components-stateful-component--stateful" label="Live demo — StatefulComponent" />
+<StorybookLink story="essentials-components-statefulcomponent--stateful" label="Live demo — StatefulComponent" />
 
 ## StatelessComponent
 
@@ -91,7 +91,7 @@ There is no need to declare `children` in your `T` — it is available automatic
 Use `StatelessComponent` when the component has no `@State`, `@Watch`, or `@Emit` — just renders from props. It's more explicit about the component's intent.
 :::
 
-<StorybookLink story="essentials-components-stateless-component--stateless" label="Live demo — StatelessComponent" />
+<StorybookLink story="essentials-components-statelesscomponent--stateless" label="Live demo — StatelessComponent" />
 
 ## Using components in JSX
 

@@ -267,7 +267,7 @@ Any mutation at any depth — including `push`, index assignment, and property d
 `@DeepState` is coarse-grained: **any** nested mutation re-runs all effects that read the field, regardless of which property changed.
 :::
 
-<StorybookLink story="decorators-deep-state--default" label="Live demo — @DeepState" />
+<StorybookLink story="decorators-deepstate--default" label="Live demo — @DeepState" />
 
 ::: warning Limitations
 `Map`, `Set`, and class instances are not tracked deeply — only plain objects and arrays. Mutations via their own methods (e.g. `map.set(k, v)`) will not trigger reactivity.

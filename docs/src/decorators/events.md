@@ -133,7 +133,7 @@ seek.trigger(45.2)  // seek to 45.2 seconds
 seek.subscribe((time) => console.log('seek to', time))
 ```
 
-<StorybookLink story="decorators-events-on-command--on-command-story" label="Live demo — @OnCommand" />
+<StorybookLink story="decorators-events-oncommand--on-command-story" label="Live demo — @OnCommand" />
 
 <llm-only>
 @Emit:

@@ -43,7 +43,7 @@ render() {
 Constructor: `new MediaQuery(query: string)`
 Properties: `matches: boolean`
 
-<StorybookLink story="composables-browser-media-query--media-query-story" label="Live demo — MediaQuery" />
+<StorybookLink story="composables-browser-mediaquery--media-query-story" label="Live demo — MediaQuery" />
 
 ---
 
@@ -62,7 +62,7 @@ render() {
 
 Properties: `isDark: boolean`, `isLight: boolean`
 
-<StorybookLink story="composables-browser-color-scheme--color-scheme-story" label="Live demo — ColorScheme" />
+<StorybookLink story="composables-browser-colorscheme--color-scheme-story" label="Live demo — ColorScheme" />
 
 ---
 
@@ -103,7 +103,7 @@ onMount() {
 Constructor: `new KeyCombo(combo: string)` — accepts `ctrl`, `shift`, `alt`, `meta` modifiers.
 Properties: `pressed: boolean`
 
-<StorybookLink story="composables-browser-key-combo--key-combo-story" label="Live demo — KeyCombo" />
+<StorybookLink story="composables-browser-keycombo--key-combo-story" label="Live demo — KeyCombo" />
 
 ---
 
@@ -198,7 +198,7 @@ render() {
 Constructor: `new TimeAgo(source: Signal<Date> | (() => Date), locale?: string)`
 Properties: `value: string`
 
-<StorybookLink story="composables-browser-time-ago--time-ago-story" label="Live demo — TimeAgo" />
+<StorybookLink story="composables-browser-timeago--time-ago-story" label="Live demo — TimeAgo" />
 
 ---
 

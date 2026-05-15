@@ -24,7 +24,7 @@ render() {
 }
 ```
 
-<StorybookLink story="essentials-jsx-reactive-vs-static--reactive-vs-static" label="Live demo — reactive vs. static" />
+<StorybookLink story="essentials-jsx-reactivevsstatic--reactive-vs-static" label="Live demo — reactive vs. static" />
 
 ## Conditional rendering
 
@@ -79,7 +79,7 @@ render() {
 
 Event handlers are plain arrow functions — they don't need to be reactive because they're callbacks, not DOM expressions.
 
-<StorybookLink story="essentials-jsx-event-handlers--event-handlers" label="Live demo — event handlers" />
+<StorybookLink story="essentials-jsx-eventhandlers--event-handlers" label="Live demo — event handlers" />
 
 ## CSS classes
 

@@ -48,7 +48,7 @@ class MyComponent extends StatefulComponent {
 }
 ```
 
-<StorybookLink story="essentials-lifecycle-lifecycle-order--lifecycle-order" label="Live demo — lifecycle order" />
+<StorybookLink story="essentials-lifecycle-lifecycleorder--lifecycle-order" label="Live demo — lifecycle order" />
 
 ## `onMount()`
 
