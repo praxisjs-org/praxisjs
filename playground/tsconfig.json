@@ -2,7 +2,6 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "types": ["vite/client"],
-    "baseUrl": ".",
     "paths": {
       "@praxisjs/core": ["../../packages/core/src/index.ts"],
       "@praxisjs/jsx": ["../../packages/jsx/src/index.ts"],

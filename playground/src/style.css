@@ -329,3 +329,332 @@ button.secondary:hover {
   background-color: var(--color-bg-alt);
   box-shadow: none;
 }
+
+/* ============================================================
+ * Demo layouts
+ * ============================================================ */
+
+.demo-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card.wide {
+  max-width: 100%;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.text-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.text-input:focus {
+  border-color: var(--color-brand);
+}
+
+.synced-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-brand);
+  min-height: 1.8rem;
+  word-break: break-all;
+}
+
+.code-preview {
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  font-size: 0.8rem;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color: var(--color-text-2);
+  white-space: pre;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 32px;
+  margin-bottom: 12px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+  border-radius: 99px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.tag-remove {
+  all: unset;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--color-brand-3);
+  padding: 0 2px;
+  box-shadow: none;
+}
+
+.tag-remove:hover {
+  color: var(--color-brand);
+}
+
+.info-box {
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  font-size: 0.875rem;
+  color: var(--color-text-2);
+  line-height: 1.6;
+}
+
+/* ============================================================
+ * Performance page — @Lazy + @Virtual
+ * ============================================================ */
+
+.section-title {
+  margin-bottom: 16px;
+}
+
+.section-title h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+
+.section-desc {
+  font-size: 0.875rem;
+  color: var(--color-text-2);
+}
+
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--color-divider);
+  margin: 40px 0;
+}
+
+/* @Lazy spacer */
+.lazy-spacer {
+  height: 480px;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-bg-alt),
+    var(--color-bg-alt) 12px,
+    var(--color-bg) 12px,
+    var(--color-bg) 24px
+  );
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  color: var(--color-text-3);
+  margin-bottom: 24px;
+}
+
+.lazy-card {
+  position: relative;
+}
+
+.lazy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* Bar chart inside lazy card */
+.bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+
+.bar-name {
+  width: 56px;
+  flex-shrink: 0;
+  color: var(--color-text-2);
+  font-size: 0.75rem;
+}
+
+.bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--color-bg-soft);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-brand), var(--color-brand-3));
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+.bar-val {
+  width: 36px;
+  text-align: right;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-3);
+}
+
+/* @Virtual table */
+.virt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.virt-toolbar .text-input {
+  flex: 1;
+}
+
+.virt-count {
+  font-size: 0.8rem;
+  color: var(--color-text-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.virt-header {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 8px 16px;
+  background: var(--color-bg-alt);
+  border-bottom: 1px solid var(--color-divider);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.virt-container {
+  height: 480px;
+  overflow-y: auto;
+}
+
+.virt-row {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 48px;
+  border-bottom: 1px solid var(--color-divider);
+  font-size: 0.875rem;
+  transition: background 0.1s;
+}
+
+.virt-row:hover {
+  background: var(--color-bg-alt);
+}
+
+.virt-id {
+  width: 60px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-3);
+  font-size: 0.75rem;
+}
+
+.virt-name {
+  width: 160px;
+  flex-shrink: 0;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.virt-email {
+  flex: 1;
+  color: var(--color-text-2);
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.virt-status {
+  width: 80px;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  text-align: center;
+}
+
+.virt-status--active {
+  background: rgba(22, 163, 74, 0.12);
+  color: #16a34a;
+}
+
+.virt-status--inactive {
+  background: rgba(107, 114, 128, 0.12);
+  color: #6b7280;
+}
+
+.virt-status--pending {
+  background: rgba(234, 179, 8, 0.12);
+  color: #ca8a04;
+}
+
+.virt-score {
+  width: 52px;
+  flex-shrink: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-brand);
+  font-weight: 600;
+}

@@ -1,14 +1,32 @@
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, State } from "@praxisjs/decorators";
+import {
+  Component,
+  Computed,
+  State,
+  Watch,
+  WatchVals,
+} from "@praxisjs/decorators";
 import { Route } from "@praxisjs/router";
 
 @Route("/")
 @Component()
 export class Home extends StatefulComponent {
   @State() count = 0;
+  @State() count2 = 10;
 
   increment() {
     this.count++;
+    this.count2 += 2;
+  }
+
+  incrementSingle() {
+    this.count++;
+  }
+
+  @Watch("count", "count2")
+  onCountChange(values: WatchVals<this, "count" | "count2">) {
+    console.log("Count changed:", values.count);
+    console.log("Count2 changed:", values.count2);
   }
 
   render() {
@@ -28,6 +46,13 @@ export class Home extends StatefulComponent {
             }}
           >
             Increment
+          </button>
+          <button
+            onClick={() => {
+              this.incrementSingle();
+            }}
+          >
+            Increment Single
           </button>
         </div>
       </div>
