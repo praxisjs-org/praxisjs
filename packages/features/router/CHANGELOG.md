@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- 30848cc: Add `style` prop support to `Link`. Accepts both a CSS string (`style="color:red"`) and an object (`style={{ color: 'red' }}`), matching the standard JSX element behavior.
+- 30848cc: Add `style` prop support to `Link`. Accepts both a CSS string (`style="color:red"`) and a style object (`style={styleObject}`), matching the standard JSX element behavior.
 - Updated dependencies [954e456]
 - Updated dependencies [a0bf339]
 - Updated dependencies [a0bf339]
