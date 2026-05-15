@@ -1,5 +1,12 @@
 # @praxisjs/jsx
 
+## 0.4.4
+
+### Patch Changes
+
+- Updated dependencies [bb4d00a]
+  - @praxisjs/runtime@0.2.16
+
 ## 0.4.3
 
 ### Patch Changes
@@ -27,7 +34,6 @@
   **Breaking change (type-only):** the `[key: string]: HTMLAttributes` catch-all index signature has been removed from `JSX.IntrinsicElements`. Typos like `<dvi>` are now compile-time errors instead of silently resolving to `HTMLAttributes`.
 
   **What's new:**
-
   - `LiteralUnion<T>` widening applied to all string-literal attribute unions (`ButtonType`, `HTMLInputTypeAttribute`, `FormMethod`, `LinkTarget`, `ReferrerPolicy`, etc.) — a `string`-typed variable is now assignable without a cast, while IDE autocomplete still surfaces the canonical values
   - `CSSProperties` type for object-style `style` props with full camelCase CSS property autocomplete and CSS custom property (`--xxx`) support
   - `AriaAttributes` — complete WAI-ARIA 1.2 attribute set
@@ -109,7 +115,6 @@
   `InstancePropsOf` now uses `_rawProps` to infer props for class components decorated with `@Prop()`, providing accurate JSX prop types without manual interface declarations.
 
   The `@Emit` decorator type signature was relaxed from `unknown` to `any` to allow broader method compatibility. Devtools `Panel` and `DevToolsApp` components were refactored to use `@Prop()` and `@Emit()` decorators instead of manual props casting.
-
   - @praxisjs/runtime@0.2.2
 
 ## 0.3.0
@@ -129,7 +134,6 @@
   This applies to both `StatelessComponent` (via the generic props interface) and `StatefulComponent` (via `@Prop()`, which already unwrapped getters at runtime — now the types reflect this).
 
   **Changes:**
-
   - `PropsOf<T>` now maps each prop key `K` to `Reactive<P[K]>` (`P[K] | (() => P[K])`), so the JSX type checker accepts getters for any component prop without requiring the component author to annotate them manually.
   - `InstancePropsOf<C>` (used for `StatefulComponent` `@Prop()` inference) likewise wraps each inferred prop with `Reactive<>`.
   - `Reactive<T>` is now exported from `@praxisjs/jsx` and `@praxisjs/jsx/jsx-runtime`.
@@ -145,7 +149,6 @@
 ### Minor Changes
 
 - bb0d4f8: **Refactor decorator system and component architecture across PraxisJS packages**
-
   - Replaced legacy decorator signatures (`constructor`, `target`, `propertyKey`, method descriptor) with the standard TC39 decorator context API (`ClassDecoratorContext`, `ClassFieldDecoratorContext`, `ClassMethodDecoratorContext`) across `@praxisjs/decorators`, `@praxisjs/store`, `@praxisjs/concurrent`, `@praxisjs/router`, `@praxisjs/motion`, `@praxisjs/di`, and `@praxisjs/fsm`.
   - Introduced `StatefulComponent` and `StatelessComponent` as the new base classes, replacing the deprecated `BaseComponent`/`Function Component` pattern, across `@praxisjs/core`, `@praxisjs/runtime`, `@praxisjs/devtools`, and templates.
   - Implemented core rendering functionality in `@praxisjs/runtime` (`mountChildren`, `mountComponent`, reactive scope management) and removed the deprecated `renderer.ts`.

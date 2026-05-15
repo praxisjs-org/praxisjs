@@ -5,24 +5,24 @@
 export const VERSIONS = {
   // Foundation
   '@praxisjs/core':          '^1.5.0',
-  '@praxisjs/decorators':    '^0.8.1',
-  '@praxisjs/jsx':           '^0.4.3',
-  '@praxisjs/runtime':       '^0.2.15',
+  '@praxisjs/decorators':    '^1.0.0',
+  '@praxisjs/jsx':           '^0.4.4',
+  '@praxisjs/runtime':       '^0.2.16',
   '@praxisjs/shared':        '^0.2.0',
 
   // Ecosystem
-  '@praxisjs/router':        '^1.0.11',
-  '@praxisjs/store':         '^1.0.10',
-  '@praxisjs/di':            '^1.2.6',
-  '@praxisjs/motion':        '^1.1.9',
-  '@praxisjs/fsm':           '^1.0.10',
+  '@praxisjs/router':        '^1.0.12',
+  '@praxisjs/store':         '^1.0.11',
+  '@praxisjs/di':            '^1.2.7',
+  '@praxisjs/motion':        '^1.1.10',
+  '@praxisjs/fsm':           '^1.0.11',
 
   // Utils
-  '@praxisjs/composables':   '^1.0.6',
-  '@praxisjs/concurrent':    '^1.2.7',
+  '@praxisjs/composables':   '^1.1.0',
+  '@praxisjs/concurrent':    '^1.2.8',
 
   // DX
-  '@praxisjs/devtools':      '^0.2.16',
+  '@praxisjs/devtools':      '^0.2.17',
   '@praxisjs/vite-plugin':   '^0.1.1',
   '@praxisjs/storybook':     '^0.1.0',
 

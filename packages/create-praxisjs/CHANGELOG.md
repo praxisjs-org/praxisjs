@@ -1,5 +1,36 @@
 # create-praxisjs
 
+## 0.3.21
+
+### Patch Changes
+
+- 954e456: `@Compose` now accepts string literals as constructor arguments directly, without requiring an intermediate instance property.
+
+  Previously, every string argument was unconditionally resolved as a property name on the component instance — passing `@Compose(KeyCombo, 'ctrl+s')` would look up `instance['ctrl+s']`, return `undefined`, and crash at runtime.
+
+  Now the resolution falls back to the literal string when no matching property exists on the instance. A new `getter(propName)` helper is also exported for composables that need a live getter instead of a snapshot value:
+
+  ```tsx
+  import { getter } from '@praxisjs/decorators'
+
+  @Compose(TimeAgo, getter('postedAt'))  // passes () => this.postedAt — reactive
+  timeAgo!: TimeAgo
+  ```
+
+  Now the resolution falls back to the literal string when no matching property exists on the instance:
+
+  ```ts
+  // before — required a workaround property
+  readonly saveCombo = "ctrl+s";
+  @Compose(KeyCombo, "saveCombo") save!: KeyCombo;
+
+  // after — works directly
+  @Compose(KeyCombo, "ctrl+s") save!: KeyCombo;
+  @Compose(MediaQuery, "(max-width: 768px)") mobile!: MediaQuery;
+  ```
+
+  Property-name resolution (used for forwarding refs like `@Compose(ElementSize, 'containerRef')`) is unchanged — if the named property exists on the instance, its value is used.
+
 ## 0.3.20
 
 ### Patch Changes
@@ -123,7 +154,6 @@
 - d11a10a: Update template dependency versions to pick up latest bug fixes
 
   Bumps `@praxisjs/decorators`, `@praxisjs/core`, and `@praxisjs/devtools` across the `minimal`, `router`, and `full` templates so that projects scaffolded with `create-praxisjs` start with the latest releases. Notable fixes included:
-
   - `effect()` stop now correctly prevents re-runs (`@praxisjs/core`)
   - `@Watch` no longer leaks reactive effects after unmount — the effect is now stopped in `onUnmount` (`@praxisjs/decorators`)
   - `@Lazy` no longer recurses infinitely when `render()` is called after the component becomes visible (`@praxisjs/decorators`)
@@ -167,7 +197,6 @@
 ### Minor Changes
 
 - bb0d4f8: **Refactor decorator system and component architecture across PraxisJS packages**
-
   - Replaced legacy decorator signatures (`constructor`, `target`, `propertyKey`, method descriptor) with the standard TC39 decorator context API (`ClassDecoratorContext`, `ClassFieldDecoratorContext`, `ClassMethodDecoratorContext`) across `@praxisjs/decorators`, `@praxisjs/store`, `@praxisjs/concurrent`, `@praxisjs/router`, `@praxisjs/motion`, `@praxisjs/di`, and `@praxisjs/fsm`.
   - Introduced `StatefulComponent` and `StatelessComponent` as the new base classes, replacing the deprecated `BaseComponent`/`Function Component` pattern, across `@praxisjs/core`, `@praxisjs/runtime`, `@praxisjs/devtools`, and templates.
   - Implemented core rendering functionality in `@praxisjs/runtime` (`mountChildren`, `mountComponent`, reactive scope management) and removed the deprecated `renderer.ts`.

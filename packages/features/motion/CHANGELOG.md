@@ -1,5 +1,27 @@
 # @praxisjs/motion
 
+## 1.1.10
+
+### Patch Changes
+
+- e5041e0: Fix `@Tween` animation restarting on every frame instead of completing.
+
+  The `start()` helper inside `tween()` read `_value()` while executing inside the reactive `effect()` body. This accidentally subscribed the effect to the value signal, so every frame update (`_value.set(...)`) re-triggered the effect, which called `start()` again — resetting `startTime` and restarting the animation from the current intermediate value indefinitely.
+
+  Fixed by wrapping the `_value()` read with `untrack()` so it does not register as a dependency of the effect.
+
+- e5041e0: Fix `@Tween` and `@Spring` not animating when read in a reactive JSX expression before the first assignment.
+
+  Previously both decorators created the tween/spring lazily on first `set()`. If the field was read inside a `{() => this.value}` expression before any write, the getter returned the fallback `0` without subscribing to the tween's signal — so the DOM effect never re-ran when the animation progressed.
+
+  Both decorators now initialize eagerly in `bind()` using the field's initial value, so any reactive read immediately subscribes to the animated signal and updates correctly from the first frame.
+
+- Updated dependencies [954e456]
+- Updated dependencies [a0bf339]
+- Updated dependencies [a0bf339]
+- Updated dependencies [a8df1e1]
+  - @praxisjs/decorators@1.0.0
+
 ## 1.1.9
 
 ### Patch Changes
@@ -92,39 +114,31 @@
 - 3372878: Migrate all packages from functional APIs to a decorator-first design.
 
   **`@praxisjs/core`**
-
   - Added `Composable` abstract base class for building class-based composables
   - Removed `resource`, `createResource`, `Resource`, `ResourceStatus`, `ResourceOptions` from public exports — use `@Resource` from `@praxisjs/decorators` instead
 
   **`@praxisjs/motion`**
-
   - Replaced `useMotion`, `tween`, `spring`, `createTransition`, `Animate`, `easings`, `resolveEasing` with `@Tween` and `@Spring` decorators
 
   **`@praxisjs/di`**
-
   - Replaced `useService` and `createScope` with a `@Scope` decorator
   - Renamed exported type `Scope` to `ScopeType` to free the name for the new decorator
 
   **`@praxisjs/fsm`**
-
   - Removed `createMachine` — use the `@StateMachine` and `@Transition` decorators directly
 
   **`@praxisjs/router`**
-
   - Removed `createRouter`, `lazy`, `useRouter`, `useParams`, `useQuery`, `useLocation`
   - Added `@RouterConfig`, `@Lazy`, `@InjectRouter`, `@Params`, `@Query`, `@Location` decorators
 
   **`@praxisjs/store`**
-
   - Removed `createStore` — use the `@Store` and `@UseStore` decorators directly
 
   **`@praxisjs/composables`**
-
   - Replaced all `use*` composable functions with class-based composables extending `Composable`:
     `WindowSize`, `ScrollPosition`, `ElementSize`, `Intersection`, `Focus`, `MediaQuery`, `ColorScheme`, `Mouse`, `KeyCombo`, `Idle`, `Clipboard`, `Geolocation`, `TimeAgo`, `Pagination`
 
   **`@praxisjs/concurrent`**
-
   - Removed `task`, `queue`, `pool` and their instance types — use `@Task`, `@Queue`, `@Pool` decorators instead
 
 ### Patch Changes
@@ -160,7 +174,6 @@
 ### Minor Changes
 
 - bb0d4f8: **Refactor decorator system and component architecture across PraxisJS packages**
-
   - Replaced legacy decorator signatures (`constructor`, `target`, `propertyKey`, method descriptor) with the standard TC39 decorator context API (`ClassDecoratorContext`, `ClassFieldDecoratorContext`, `ClassMethodDecoratorContext`) across `@praxisjs/decorators`, `@praxisjs/store`, `@praxisjs/concurrent`, `@praxisjs/router`, `@praxisjs/motion`, `@praxisjs/di`, and `@praxisjs/fsm`.
   - Introduced `StatefulComponent` and `StatelessComponent` as the new base classes, replacing the deprecated `BaseComponent`/`Function Component` pattern, across `@praxisjs/core`, `@praxisjs/runtime`, `@praxisjs/devtools`, and templates.
   - Implemented core rendering functionality in `@praxisjs/runtime` (`mountChildren`, `mountComponent`, reactive scope management) and removed the deprecated `renderer.ts`.
