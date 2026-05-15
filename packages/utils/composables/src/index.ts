@@ -13,3 +13,4 @@ export {
   Pagination,
   type PaginationOptions,
 } from "./utilities";
+export { VirtualList, type VirtualItem } from "./list";
