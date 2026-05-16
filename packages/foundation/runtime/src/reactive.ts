@@ -2,14 +2,21 @@ import { runInScope } from "./context";
 
 import type { Scope } from "./scope";
 
-function normalizeToNodes(value: unknown): Node[] {
-  if (value === null || value === undefined || value === false) return [];
-  if (value instanceof Node) return [value];
-  if (Array.isArray(value)) return value.flatMap(normalizeToNodes);
+function collectNodes(value: unknown, out: Node[]): void {
+  if (value === null || value === undefined || value === false) return;
+  if (value instanceof Node) { out.push(value); return; }
+  if (Array.isArray(value)) { for (const v of value) collectNodes(v, out); return; }
   if (typeof value === "string" || typeof value === "number") {
-    return [document.createTextNode(String(value))];
+    out.push(document.createTextNode(String(value)));
+    return;
   }
-  return [];
+}
+
+function nodesToFragment(nodes: Node[]): Node {
+  if (nodes.length === 1) return nodes[0];
+  const fragment = document.createDocumentFragment();
+  for (const n of nodes) fragment.appendChild(n);
+  return fragment;
 }
 
 export function mountReactive(
@@ -17,7 +24,7 @@ export function mountReactive(
   fn: () => unknown,
   parentScope: Scope,
 ): void {
-  const end = document.createComment("reactive");
+  const end = document.createComment("");
   parent.appendChild(end);
 
   let currentNodes: Node[] = [];
@@ -27,21 +34,27 @@ export function mountReactive(
     childScope.dispose();
     childScope = parentScope.fork();
 
-    for (const n of currentNodes) {
-      n.parentNode?.removeChild(n);
-    }
-    currentNodes = [];
-
     const result = runInScope(childScope, fn);
-    const newNodes = normalizeToNodes(result);
+    const newNodes: Node[] = [];
+    collectNodes(result, newNodes);
 
-    // Use end.parentNode instead of the original `parent` — the parent
-    // reference may be a DocumentFragment that was emptied after its
-    // children were transferred to the real DOM by mountComponent.
     const anchor = end.parentNode ?? parent;
-    for (const n of newNodes) {
-      anchor.insertBefore(n, end);
+
+    if (currentNodes.length > 0) {
+      if (currentNodes.length === 1) {
+        (anchor as Element).removeChild(currentNodes[0]);
+      } else {
+        const range = document.createRange();
+        range.setStartBefore(currentNodes[0]);
+        range.setEndAfter(currentNodes[currentNodes.length - 1]);
+        range.deleteContents();
+      }
     }
+
+    if (newNodes.length > 0) {
+      anchor.insertBefore(nodesToFragment(newNodes), end);
+    }
+
     currentNodes = newNodes;
   });
 

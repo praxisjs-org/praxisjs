@@ -11,9 +11,9 @@ export function mountElement(
 ): HTMLElement | SVGElement {
   const el = createElement(tag);
 
-  for (const [key, val] of Object.entries(props)) {
+  for (const key in props) {
     if (key === "children") continue;
-    applyProp(el, key, val, scope);
+    applyProp(el, key, props[key], scope);
   }
 
   if (props.children !== undefined) {
