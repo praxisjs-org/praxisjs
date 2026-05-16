@@ -1,6 +1,6 @@
 {
   "name": "@praxisjs/storybook",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Storybook framework adapter for PraxisJS",
   "main": "./dist/index.js",
