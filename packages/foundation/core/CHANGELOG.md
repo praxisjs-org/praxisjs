@@ -1,5 +1,21 @@
 # @praxisjs/core
 
+## 1.6.0
+
+### Minor Changes
+
+- 74d414a: Rewrite the reactivity engine for clarity and performance.
+
+  **signal()** — subscribers are now stored in a compact `SubList` representation (`null | Effect | Effect[]`) that avoids `Set` allocation for the common zero- and single-subscriber cases. `set`, `update` and `subscribe` are defined as regular closures, making the signal factory straightforward to read and extend.
+
+  **computed()** — the factory now uses a plain closure instead of the previous property-on-function pattern. Downstream computeds (chain propagation) and leaf effects from `.subscribe()` are tracked in separate holders so dirty notification never needs to inspect subscriber types. The `recompute` callback is created lazily — only when the computed is first read inside a reactive context.
+
+  **effect()** — simplified to a standard closure with named `run` and `stop` functions. The `stopped` and `cleanup` state is held naturally in the closure scope.
+
+  **batch()** — uses a pre-allocated, module-level effects array that is reused across batch calls, eliminating one `Set` allocation per `batch()` invocation.
+
+  No breaking changes to the public API (`signal`, `computed`, `effect`, `batch`, `untrack`, `peek`).
+
 ## 1.5.0
 
 ### Minor Changes
@@ -62,7 +78,6 @@
 - 6c353ba: Add `untrack` utility and isolate component mounting from outer reactive contexts
 
   **`@praxisjs/core`** exports two new functions from the public API:
-
   - `peek(signal)` — reads a signal once without subscribing to it (was already in `/internal`, now public)
   - `untrack(fn)` — runs a function with no active effect, suppressing all signal tracking inside it
 
@@ -79,7 +94,6 @@
   ```
 
   **`@praxisjs/runtime`** — `mountComponent` now runs entirely inside `untrack`. This fixes a bug where components mounted inside a reactive context (e.g. the router) would accidentally subscribe the outer effect to any signal read during construction or render. The symptoms were:
-
   - Eager reads like `description={this.count}` in JSX causing the router to re-mount the component on every state change, resetting state to its initial value
   - `@Debug()` (and any decorator that reads a signal in its `addInitializer`) triggering the same re-mount loop
 
@@ -103,39 +117,31 @@
 - 3372878: Migrate all packages from functional APIs to a decorator-first design.
 
   **`@praxisjs/core`**
-
   - Added `Composable` abstract base class for building class-based composables
   - Removed `resource`, `createResource`, `Resource`, `ResourceStatus`, `ResourceOptions` from public exports — use `@Resource` from `@praxisjs/decorators` instead
 
   **`@praxisjs/motion`**
-
   - Replaced `useMotion`, `tween`, `spring`, `createTransition`, `Animate`, `easings`, `resolveEasing` with `@Tween` and `@Spring` decorators
 
   **`@praxisjs/di`**
-
   - Replaced `useService` and `createScope` with a `@Scope` decorator
   - Renamed exported type `Scope` to `ScopeType` to free the name for the new decorator
 
   **`@praxisjs/fsm`**
-
   - Removed `createMachine` — use the `@StateMachine` and `@Transition` decorators directly
 
   **`@praxisjs/router`**
-
   - Removed `createRouter`, `lazy`, `useRouter`, `useParams`, `useQuery`, `useLocation`
   - Added `@RouterConfig`, `@Lazy`, `@InjectRouter`, `@Params`, `@Query`, `@Location` decorators
 
   **`@praxisjs/store`**
-
   - Removed `createStore` — use the `@Store` and `@UseStore` decorators directly
 
   **`@praxisjs/composables`**
-
   - Replaced all `use*` composable functions with class-based composables extending `Composable`:
     `WindowSize`, `ScrollPosition`, `ElementSize`, `Intersection`, `Focus`, `MediaQuery`, `ColorScheme`, `Mouse`, `KeyCombo`, `Idle`, `Clipboard`, `Geolocation`, `TimeAgo`, `Pagination`
 
   **`@praxisjs/concurrent`**
-
   - Removed `task`, `queue`, `pool` and their instance types — use `@Task`, `@Queue`, `@Pool` decorators instead
 
 ## 0.4.2
@@ -173,7 +179,6 @@
 ### Minor Changes
 
 - bb0d4f8: **Refactor decorator system and component architecture across PraxisJS packages**
-
   - Replaced legacy decorator signatures (`constructor`, `target`, `propertyKey`, method descriptor) with the standard TC39 decorator context API (`ClassDecoratorContext`, `ClassFieldDecoratorContext`, `ClassMethodDecoratorContext`) across `@praxisjs/decorators`, `@praxisjs/store`, `@praxisjs/concurrent`, `@praxisjs/router`, `@praxisjs/motion`, `@praxisjs/di`, and `@praxisjs/fsm`.
   - Introduced `StatefulComponent` and `StatelessComponent` as the new base classes, replacing the deprecated `BaseComponent`/`Function Component` pattern, across `@praxisjs/core`, `@praxisjs/runtime`, `@praxisjs/devtools`, and templates.
   - Implemented core rendering functionality in `@praxisjs/runtime` (`mountChildren`, `mountComponent`, reactive scope management) and removed the deprecated `renderer.ts`.

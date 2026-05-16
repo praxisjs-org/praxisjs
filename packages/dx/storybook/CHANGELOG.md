@@ -1,5 +1,12 @@
 # @praxisjs/storybook
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [9aeec6a]
+  - @praxisjs/runtime@0.2.17
+
 ## 0.1.0
 
 ### Minor Changes

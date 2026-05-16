@@ -1,5 +1,11 @@
 # create-praxisjs
 
+## 0.3.22
+
+### Patch Changes
+
+- 72fb51f: Update dependencies.
+
 ## 0.3.21
 
 ### Patch Changes
