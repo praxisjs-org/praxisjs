@@ -1,69 +1,72 @@
 import type { Computed } from "@praxisjs/shared";
 
 import { activeEffect, runEffect, type Effect } from "./effect";
+import { addSub, removeSub, notifySubs, type SubList } from "./signal";
 
 type ComputedRecompute = Effect & { __isComputedRecompute: true };
 
-export function computed<T>(computeFn: () => T): Computed<T> {
-  let cachedValue: T;
+function isComputedRecompute(eff: Effect): boolean {
+  return (eff as Partial<ComputedRecompute>).__isComputedRecompute === true;
+}
+
+export function computed<T>(getter: () => T): Computed<T> {
+  let cachedValue: T | undefined;
   let dirty = true;
-  const subscribers = new Set<Effect>();
+
+  const computedHolder = { subs: null as SubList };
+  const leafHolder = { subs: null as SubList };
   let scheduled = false;
 
-  const recompute: ComputedRecompute = Object.assign(
-    () => {
+  let recompute: ComputedRecompute | null = null;
+
+  function getRecompute(): ComputedRecompute {
+    if (recompute !== null) return recompute;
+    recompute = function markDirty(): void {
+      if (dirty) return;
       dirty = true;
-      for (const sub of [...subscribers]) {
-        if ((sub as Partial<ComputedRecompute>).__isComputedRecompute) {
-          sub(); // propagate dirty synchronously through computed chain
-        }
-      }
-      if (!scheduled) {
+      if (computedHolder.subs !== null) notifySubs(computedHolder.subs, false);
+      if (leafHolder.subs !== null && !scheduled) {
         scheduled = true;
         queueMicrotask(() => {
           scheduled = false;
-          for (const sub of [...subscribers]) {
-            if (!(sub as Partial<ComputedRecompute>).__isComputedRecompute) {
-              sub(); // notify leaf effects (DOM, @Watch, subscribe)
-            }
-          }
+          if (leafHolder.subs !== null) notifySubs(leafHolder.subs, false);
         });
       }
-    },
-    { __isComputedRecompute: true as const },
-  );
+    } as ComputedRecompute;
+    recompute.__isComputedRecompute = true;
+    return recompute;
+  }
 
-  function read() {
-    if (activeEffect) {
-      subscribers.add(activeEffect);
+  function read(): T {
+    if (activeEffect !== null) {
+      if (isComputedRecompute(activeEffect)) {
+        addSub(computedHolder, activeEffect);
+      } else {
+        addSub(leafHolder, activeEffect);
+      }
     }
-
     if (dirty) {
       const prevEffect = activeEffect;
-      runEffect(recompute);
+      runEffect(getRecompute());
       try {
-        cachedValue = computeFn();
+        cachedValue = getter();
         dirty = false;
       } finally {
         runEffect(prevEffect);
       }
     }
-
-    return cachedValue;
+    return cachedValue as T;
   }
 
-  function subscribe(fn: (value: T) => void) {
-    const wrappedEffect = () => {
-      fn(read());
-    };
-    subscribers.add(wrappedEffect);
-    wrappedEffect();
-    return () => subscribers.delete(wrappedEffect);
-  }
+  const c = read as Computed<T>;
 
-  const computedSignal = read as Computed<T>;
-  computedSignal.subscribe = subscribe;
-  computedSignal.__isComputed = true;
+  c.subscribe = (fn: (value: T) => void) => {
+    const wrapped: Effect = () => { fn(read()); };
+    addSub(leafHolder, wrapped);
+    wrapped();
+    return () => { removeSub(leafHolder, wrapped); };
+  };
 
-  return computedSignal;
+  c.__isComputed = true;
+  return c;
 }

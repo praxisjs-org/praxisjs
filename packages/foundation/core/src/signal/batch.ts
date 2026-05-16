@@ -1,29 +1,25 @@
 import type { Effect } from "./effect";
 
-let batchQueue: Set<Effect> | null = null;
+const batchEffects: Effect[] = [];
+let batchDepth = 0;
 
 export function isBatching(): boolean {
-  return batchQueue !== null;
+  return batchDepth > 0;
 }
 
 export function enqueueEffect(effect: Effect): void {
-  batchQueue?.add(effect);
+  if (!batchEffects.includes(effect)) batchEffects.push(effect);
 }
 
 export function batch(fn: () => void) {
-  const isOuter = batchQueue === null;
-  if (isOuter) {
-    batchQueue = new Set();
-  }
+  batchDepth++;
   try {
     fn();
   } finally {
-    if (isOuter && batchQueue) {
-      const effectsToRun = batchQueue;
-      batchQueue = null;
-      effectsToRun.forEach((eff) => {
-        eff();
-      });
+    if (--batchDepth === 0) {
+      const n = batchEffects.length;
+      for (let i = 0; i < n; i++) batchEffects[i]();
+      batchEffects.length = 0;
     }
   }
 }

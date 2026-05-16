@@ -4,14 +4,13 @@ export let activeEffect: Effect | null = null;
 const effectStack: Effect[] = [];
 
 export function track(effect: Effect) {
-  const subscriber = effect;
-  effectStack.push(subscriber);
-  activeEffect = subscriber;
+  effectStack.push(effect);
+  activeEffect = effect;
   try {
-    subscriber();
+    effect();
   } finally {
     effectStack.pop();
-    activeEffect = effectStack[effectStack.length - 1] || null;
+    activeEffect = effectStack[effectStack.length - 1] ?? null;
   }
 }
 
@@ -36,21 +35,21 @@ export function effect(fn: () => Cleanup) {
   let cleanup: Cleanup;
   let stopped = false;
 
-  const wrappedEffect = () => {
+  function run(): void {
     if (stopped) return;
     cleanup?.();
-    const prevEffect = activeEffect;
-    activeEffect = wrappedEffect;
+    const prev = activeEffect;
+    activeEffect = run;
     try {
       cleanup = fn();
     } finally {
-      activeEffect = prevEffect;
+      activeEffect = prev;
     }
-  };
+  }
 
-  wrappedEffect();
+  run();
 
-  return () => {
+  return function stop(): void {
     stopped = true;
     cleanup?.();
     cleanup = undefined;

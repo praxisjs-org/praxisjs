@@ -75,7 +75,7 @@ class Cart extends StatefulComponent {
 A plain `get total()` recalculates every time it's read, including inside reactive effects. `@Computed()` caches the result and only recomputes when its signal dependencies change.
 :::
 
-When a computed depends on multiple signals, subscriber notifications are **coalesced** — if both dependencies change in the same synchronous block, the DOM updates once with the final derived value, never with an intermediate state:
+When a computed depends on multiple signals, subscriber notifications are **coalesced** — if both dependencies change in the same synchronous block, the DOM updates once with the final derived value, never with an intermediate state. The computed is only recalculated when it is actually read, not eagerly on every dependency change:
 
 ```tsx
 @Component()
@@ -277,7 +277,9 @@ onItemsChange() {
 Signal system internals:
 - @State wraps the property in a Signal<T> internally; reading it inside an effect subscribes; writing triggers effects
 - @Computed wraps a getter in a computed() that caches and only recomputes when dependencies change
-- computed() coalesces subscriber notifications via queueMicrotask: dirty propagation through chained computeds is synchronous (so reads always return the correct value), but leaf effects (DOM patches, @Watch, .subscribe()) are notified once per microtask boundary — never with intermediate values when multiple dependencies change in the same tick
+- computed() is lazy: the getter is never called until the computed is read. dirty propagation through chained computeds is synchronous (so reads always return the correct value), but leaf effects (DOM patches, @Watch, .subscribe()) are notified once per microtask boundary — never with intermediate values when multiple dependencies change in the same tick
+- computed() distinguishes between downstream computeds (notified synchronously via __isComputedRecompute marker) and leaf effects from .subscribe() (notified via queueMicrotask)
+- The recompute callback for a computed is created lazily — only when first read inside a reactive context — to avoid unnecessary allocation
 - @Prop creates a getter that reads from the props object passed to the component at creation
 - The renderer's arrow function handling: when it encounters () => expr, it runs the function inside an effect() that patches only the specific DOM node when rerun
 - Deep reactivity is NOT supported — always replace references
@@ -286,5 +288,8 @@ Signal system internals:
 - render() itself always runs untracked (activeEffect = null during mountComponent) — so eager reads like {this.count} in JSX are always static snapshots, not subscriptions
 - Props passed as plain values (description={this.count}) are static — the child gets the value at mount time and never sees future changes
 - Props passed as getters (description={() => this.count}) are reactive — with @Prop(), the decorator unwraps the getter on each read, so {() => this.prop} in the child subscribes transitively; with raw this.props, the function itself is returned and the renderer handles it as a reactive child automatically (no extra () => wrapper needed)
+- SubList (null | Effect | Effect[]) is the subscriber storage type: null for zero subscribers (no allocation), a direct Effect reference for one subscriber (no array allocation), Effect[] for two or more
+- The batch() function uses a pre-allocated shared array (not a new Set per call) for deduplication, drained synchronously when the outermost batch completes
+- signal() and effect() use normal closures; computed() separates computedHolder and leafHolder to avoid iterating all subscribers on every dirty propagation
 Never hardcode package versions in package.json. Always install packages using @latest (e.g. `npm install @praxisjs/core@latest`) so the user gets the current release.
 </llm-only>
