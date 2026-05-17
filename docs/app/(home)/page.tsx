@@ -263,8 +263,21 @@ export default function HomePage() {
                   className="group inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/20 transition-all hover:bg-violet-700 active:scale-[0.97] dark:bg-violet-500 dark:hover:bg-violet-600"
                 >
                   Get started
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden className="transition-transform group-hover:translate-x-0.5">
-                    <path d="M1 6h10M6.5 1.5l4.5 4.5-4.5 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    aria-hidden
+                    className="transition-transform group-hover:translate-x-0.5"
+                  >
+                    <path
+                      d="M1 6h10M6.5 1.5l4.5 4.5-4.5 4.5"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </Link>
                 <Link
@@ -274,7 +287,6 @@ export default function HomePage() {
                   Browse docs
                 </Link>
               </div>
-
             </div>
           </div>
         </section>
@@ -502,7 +514,7 @@ export default function HomePage() {
                 dependencies.
               </p>
               <p className="font-mono text-[11px] text-fd-muted-foreground">
-                MIT License · © {new Date().getFullYear()} PraxisJS
+                MIT License · © {new Date().getFullYear()} Mateus Martins
               </p>
             </div>
 
