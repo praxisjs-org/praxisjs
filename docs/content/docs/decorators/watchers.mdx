@@ -1,0 +1,135 @@
+---
+title: Watchers
+description: React to state changes with @Watch, @When, and @Until — declarative side-effect handlers and async waiters for reactive properties.
+icon: Eye
+---
+
+# Watchers
+
+Watcher decorators let you react to state changes declaratively, without setting up effects manually in `onMount`.
+
+---
+
+## `@Watch(...propNames)`
+
+Calls the decorated method whenever the watched property changes. The method receives the new value and old value as arguments.
+
+```tsx
+import { Component, State, Watch } from '@praxisjs/decorators'
+import { WatchVal } from '@praxisjs/decorators'
+
+@Component()
+class Search extends StatefulComponent {
+  @State() query = ''
+
+  @Watch('query')
+  onQueryChange(newVal: WatchVal<this, 'query'>, oldVal: WatchVal<this, 'query'>) {
+    console.log(`query: "${oldVal}" → "${newVal}"`)
+    this.fetchResults(newVal)
+  }
+
+  async fetchResults(q: string) { /* ... */ }
+
+  render() {
+    return (
+      <input
+        value={() => this.query}
+        onInput={(e) => { this.query = (e.target as HTMLInputElement).value }}
+      />
+    )
+  }
+}
+```
+
+### Watch multiple properties
+
+When watching multiple props, the method receives an object with all current values:
+
+```tsx
+import { WatchVals } from '@praxisjs/decorators'
+
+@Component()
+class Form extends StatefulComponent {
+  @State() firstName = ''
+  @State() lastName = ''
+
+  @Watch('firstName', 'lastName')
+  onNameChange(vals: WatchVals<this, 'firstName' | 'lastName'>) {
+    console.log(`Name: ${vals.firstName} ${vals.lastName}`)
+  }
+}
+```
+
+<Callout type="info" title="Coalesced updates">
+  When multiple watched props change in the same synchronous block, the callback fires **once** with all final values — not once per changed prop. Changes made to signals inside the callback are also batched automatically.
+
+  ```tsx
+  this.firstName = 'Jane'
+  this.lastName = 'Smith'
+  // → onNameChange fires once with { firstName: 'Jane', lastName: 'Smith' }
+  ```
+</Callout>
+
+<StorybookLink story="decorators-watchers-watch--watch-single-prop" label="Live demo — @Watch single prop" />
+<StorybookLink story="decorators-watchers-watchmulti--watch-multi-prop" label="Live demo — @Watch multi-prop coalescing" />
+
+---
+
+## `@When(propName)`
+
+Calls the decorated method **exactly once**, the first time the named property becomes truthy. Automatically set up on mount and cleaned up on unmount.
+
+```tsx
+@Component()
+class DataLoader extends StatefulComponent {
+  @State() data: string[] | null = null
+
+  @When('data')
+  onFirstLoad() {
+    console.log('Data arrived for the first time:', this.data)
+    // safe to use this.data here — it's truthy
+  }
+
+  render() {
+    return () => this.data
+      ? <ul>{() => this.data!.map(d => <li>{d}</li>)}</ul>
+      : <p>Loading...</p>
+  }
+}
+```
+
+Use `@When` for one-time initialization that depends on a value arriving — like the first API response, or a user becoming authenticated.
+
+<StorybookLink story="decorators-watchers-when--when-once" label="Live demo — @When" />
+
+---
+
+## `@Until(propName)`
+
+Replaces the decorated method with one that returns a `Promise` resolving to the first truthy value of the named property. Each call to the method returns a fresh promise.
+
+```tsx
+import { Component, State, Until } from '@praxisjs/decorators'
+
+@Component()
+class UserProfile extends StatefulComponent {
+  @State() user: User | null = null
+
+  @Until('user')
+  waitForUser(): Promise<User> { return Promise.resolve(null!) }
+  // The method body is replaced entirely — it's just a type hint.
+
+  async loadProfile() {
+    const user = await this.waitForUser()
+    console.log('User is ready:', user.name)
+  }
+
+  render() { /* ... */ }
+}
+```
+
+If the property is already truthy when the method is called, the promise resolves on the next microtask.
+
+Use `@Until` when downstream code needs to **await** a reactive value rather than react to it with a side effect. If you're showing/hiding UI based on the value, use `@When` or `@Watch` instead.
+
+<StorybookLink story="decorators-watchers-until--until-story" label="Live demo — @Until" />

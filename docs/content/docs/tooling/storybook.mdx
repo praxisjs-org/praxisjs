@@ -1,0 +1,123 @@
+---
+title: Storybook
+description: "@praxisjs/storybook — Storybook framework adapter for PraxisJS. Write stories with full reactivity, HMR, and source preview."
+icon: BookMarked
+---
+
+# Storybook
+
+`@praxisjs/storybook` is a Storybook framework adapter that mounts PraxisJS components into the canvas with full reactivity, HMR, and source preview. Requires Storybook ≥ 8 and `@storybook/builder-vite`.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm install -D @praxisjs/storybook
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add -D @praxisjs/storybook
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add -D @praxisjs/storybook
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add -d @praxisjs/storybook
+```
+</Tab>
+</Tabs>
+
+---
+
+## Setup
+
+### `.storybook/main.ts`
+
+```ts
+import type { StorybookConfig } from '@praxisjs/storybook'
+
+const config: StorybookConfig = {
+  stories: ['../src/**/*.stories.tsx'],
+  addons: ['@storybook/addon-essentials'],
+  framework: {
+    name: '@praxisjs/storybook',
+  },
+}
+
+export default config
+```
+
+<Callout type="info">
+  The adapter automatically wires up `@praxisjs/vite-plugin` with HMR enabled. You do **not** need to add the Vite plugin separately in `.storybook/main.ts`.
+</Callout>
+
+### `.storybook/preview.ts`
+
+No extra setup needed — the adapter handles mounting automatically.
+
+---
+
+## Writing stories
+
+Import `Meta` and `StoryObj` from `@praxisjs/storybook` for full type safety:
+
+```tsx
+import { StatefulComponent } from '@praxisjs/core'
+import { Component, State } from '@praxisjs/decorators'
+import type { Meta, StoryObj } from '@praxisjs/storybook'
+
+@Component()
+class Counter extends StatefulComponent {
+  @State() count = 0
+
+  render() {
+    return (
+      <div>
+        <p>{() => this.count}</p>
+        <button onClick={() => { this.count++ }}>+</button>
+      </div>
+    )
+  }
+}
+
+const meta: Meta = {
+  title: 'Components/Counter',
+  tags: ['autodocs'],
+}
+export default meta
+
+type Story = StoryObj
+
+export const Default: Story = {
+  render: () => <Counter />,
+}
+
+export const StartAt10: Story = {
+  render: () => <Counter />,
+  // Pass props via render args:
+  // render: (args) => <Counter initialCount={args.count} />,
+}
+```
+
+---
+
+## Type reference
+
+| Export | Description |
+|---|---|
+| `Meta` | Type for the default story export (`ComponentAnnotations`) |
+| `StoryObj` | Type for named story exports (`StoryAnnotations`) |
+| `StorybookConfig` | Type for `.storybook/main.ts` |
+| `PraxisRenderer` | Low-level renderer type (rarely used directly) |
+
+---
+
+## How it works
+
+- **`renderToCanvas`** — mounts the component via `@praxisjs/runtime`'s `render()` and stores a cleanup function. On `forceRemount`, the previous component is unmounted before the new one mounts.
+- **`viteFinal`** — merges `@praxisjs/vite-plugin` (with HMR) into Vite's config and injects a `storySource` plugin that embeds the raw story file source for the source preview panel.
+- **`managerEntries`** — registers the custom manager panel.

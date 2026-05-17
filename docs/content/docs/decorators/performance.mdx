@@ -1,0 +1,68 @@
+---
+title: Performance Decorators
+description: Optimize rendering with @Lazy for viewport-deferred components and VirtualList for large lists.
+icon: Gauge
+---
+
+# Performance Decorators
+
+---
+
+## `@Lazy(placeholder?)`
+
+Defers rendering until the component scrolls into the viewport. A placeholder element is shown while the component is off-screen — preventing unnecessary work and keeping the initial render fast.
+
+```tsx
+import { Lazy, Component } from '@praxisjs/decorators'
+
+@Lazy(300)  // 300px placeholder height while off-screen
+@Component()
+class HeavyChart extends StatefulComponent {
+  render() {
+    return <canvas id="chart" />
+  }
+}
+```
+
+The argument is the placeholder height in pixels. Using a fixed height prevents layout shift when the component eventually renders.
+
+<Callout type="info" title="Decorator order matters">
+  `@Lazy` must be written **above** `@Component()`. Decorators apply bottom-up, so `@Component()` runs first to create the component, then `@Lazy` wraps it with intersection-based deferred rendering.
+</Callout>
+
+### Scoped to a scroll container
+
+By default, intersection is observed against the viewport. To scope it to a specific scrollable element, pass an options object:
+
+```tsx
+const listRef = { current: null as HTMLDivElement | null }
+
+@Lazy({ placeholder: 300, root: listRef, rootMargin: '100px' })
+@Component()
+class HeavyRow extends StatefulComponent { /* ... */ }
+
+// In the parent render:
+<div ref={(el) => { listRef.current = el }} style="overflow-y:auto;height:400px">
+  <HeavyRow />
+</div>
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `placeholder` | `number` | `200` | Placeholder height in px |
+| `root` | `{ current: HTMLElement \| null }` | `null` (viewport) | Scroll container ref |
+| `rootMargin` | `string` | `"100px"` | Extra margin before the component renders — pre-loads before it's visible |
+
+**Good use cases:** components below the fold, heavy data visualizations, third-party widgets.
+
+<StorybookLink story="decorators-performance-lazy--lazy-story" label="Live demo — @Lazy" />
+
+---
+
+## Large list virtualization
+
+For virtualizing long lists, use the [`VirtualList` composable](/docs/composables/list) from `@praxisjs/composables`. It exposes reactive signals (`visibleItems`, `totalHeight`, `offsetTop`, `offsetBottom`) that you render with normal JSX — no custom `renderItem` callback, no special conventions.
+
+→ See [VirtualList](/docs/composables/list) for the full guide and examples.
+
+<StorybookLink story="decorators-performance-virtuallist--virtual-list-story" label="Live demo — VirtualList" />

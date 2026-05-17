@@ -1,0 +1,13 @@
+{
+  "title": "Decorators",
+  "icon": "Tag",
+  "pages": [
+    "state",
+    "watchers",
+    "events",
+    "timing",
+    "utilities",
+    "performance",
+    "dx"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "title": "PraxisJS",
+  "pages": [
+    "index",
+    "guide",
+    "essentials",
+    "decorators",
+    "composables",
+    "ecosystem",
+    "advanced",
+    "tooling",
+    "packages"
+  ]
+}

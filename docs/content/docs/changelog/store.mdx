@@ -1,0 +1,45 @@
+---
+title: "@praxisjs/store"
+description: Changelog for @praxisjs/store — global state management with @Store and @UseStore.
+icon: Store
+---
+
+# @praxisjs/store
+
+## 1.0.10
+
+**`ReactiveStore` base class introduced.** Store classes must now extend `ReactiveStore` to satisfy the `ReactiveHost` constraint required by `@State` and `@DeepState`. A TypeScript error is produced at the call site if omitted — no more silent runtime failures.
+
+`@Store` simplified to a plain class decorator (no longer uses `createClassDecorator` internally).
+
+## 1.0.0
+
+<Callout type="warn" title="Breaking — createStore() removed">
+`createStore()` is removed. Use `@Store` and `@UseStore`:
+
+```ts
+// before
+const store = createStore({ count: 0 })
+
+// after
+@Store()
+class CounterStore extends ReactiveStore {
+  @State() count = 0
+}
+
+// in a component:
+@UseStore(CounterStore) counter!: CounterStore
+```
+</Callout>
+
+## 0.2.2
+
+**Bug fix:** store `Proxy` `set` trap no longer throws `TypeError` when JavaScript internals write symbol keys (e.g. `Symbol.toPrimitive`).
+
+## 0.2.0
+
+Migrated to TC39 decorator context API.
+
+## 0.1.0
+
+Initial beta release.

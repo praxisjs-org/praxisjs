@@ -1,0 +1,27 @@
+---
+title: "create-praxisjs"
+description: Changelog for create-praxisjs — project scaffolding CLI.
+icon: Rocket
+---
+
+# create-praxisjs
+
+## 0.3.22
+
+Updated package dependencies.
+
+## 0.3.21
+
+**`@Compose` string literal fix** — the CLI template now uses `@Compose(KeyCombo, 'ctrl+s')` directly without an intermediate instance property. Updated scaffold templates to use the new `getter(propName)` helper for reactive composable sources.
+
+## 0.3.20
+
+Store template updated — store classes now extend `ReactiveStore` to satisfy the `ReactiveHost` constraint required by `@State` and `@DeepState`.
+
+## 0.3.0 — Major template overhaul
+
+Templates updated to reflect the decorator-first API (`@RouterConfig`, `@Store`, `@UseStore`, `@Compose`, class-based composables). `experimentalDecorators` removed from generated `tsconfig.json`.
+
+## 0.1.0
+
+Initial release — scaffolds Minimal, With Router, and Full templates with TypeScript, Vite, JSX, and HMR preconfigured.

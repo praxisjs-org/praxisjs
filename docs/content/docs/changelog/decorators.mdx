@@ -1,0 +1,75 @@
+---
+title: "@praxisjs/decorators"
+description: Changelog for @praxisjs/decorators — @State, @Prop, @Computed, @Watch, @Emit, @Compose, and all built-in decorators.
+icon: Tag
+---
+
+# @praxisjs/decorators
+
+## 1.0.0
+
+<Callout type="warn" title="Breaking — @Virtual removed">
+`@Virtual` is removed. It had two fundamental flaws: items were a snapshot at render time and never updated reactively, and JSX in `renderItem` silently failed on scroll.
+
+**Migrate to** the [`VirtualList` composable](/docs/composables/list) — it exposes reactive signals (`visibleItems`, `totalHeight`, `offsetTop`, `offsetBottom`) and renders with normal JSX.
+</Callout>
+
+Other changes in this release:
+
+- **`@Lazy` fixed** — the component now renders after entering the viewport. The previous implementation returned a static `null` from the render enhancement so the IntersectionObserver callback had no effect
+- **`@Lazy` options object** — now accepts `{ placeholder, root, rootMargin }` for scoping intersection to a specific scroll container
+- **`@Compose` string literals** — `@Compose(KeyCombo, 'ctrl+s')` no longer requires an intermediate instance property. New `getter(propName)` helper exported for live reactive sources
+- **Bug fix** — stacked class decorators (e.g. `@Lazy @Component`) no longer cause infinite recursion
+
+## 0.8.1
+
+`@State` and `@DeepState` now produce a TypeScript error when applied to plain classes. Store classes must extend `ReactiveStore` from `@praxisjs/store`.
+
+## 0.8.0
+
+- **New: `@Synced(channelName?)`** — syncs a field across browser tabs via `BroadcastChannel`
+- **New: `@DeepState()`** — deep `Proxy` so nested mutations are reactive without replacing the reference
+
+## 0.7.0
+
+<Callout type="warn" title="Breaking — @History redesigned">
+`@History` now decorates a **separate field** (not the `@State` field itself):
+
+```ts
+// before
+@History(100) @State() text = ''
+
+// after
+@State() text = ''
+@History('text', 100) textHistory!: HistoryOf<MyClass, 'text'>
+```
+</Callout>
+
+## 0.6.0
+
+- **New: `@Until(propName)`** — replaces the method with one that returns a `Promise` resolving to the first truthy value
+- `@Memo` falls back to object identity for non-JSON-serializable arguments
+- `@Debounce` cancels its timer on component unmount
+- `@Throttle` clamps negative `ms` to `0`
+
+## 0.5.0
+
+- **Decorator factory helpers** — `createFieldDecorator`, `createClassDecorator`, `createMethodDecorator`, `createLifecycleMethodDecorator`, `createGetterDecorator`, `createGetterObserverDecorator`. See [Creating Decorators](/docs/advanced/custom-decorators)
+- **New: `@Compose`** — mixes a `Composable` class into a component
+- **New: `@Resource`** — async data field on a component
+
+## 0.4.3
+
+Bug fixes in `@Lazy`, `@Virtual`, and `@Watch`: type constraint incompatibility, infinite recursion on render after becoming visible, reactive effect leak on unmount.
+
+## 0.4.0
+
+Added `@Computed()` for read-only cached reactive getters. `@Debug()` now supports `@Computed` getters.
+
+## 0.3.0
+
+Migrated to TC39 decorator context API. Introduced `StatefulComponent` / `StatelessComponent`.
+
+## 0.1.0
+
+Initial beta release.

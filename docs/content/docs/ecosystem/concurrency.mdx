@@ -1,0 +1,214 @@
+---
+title: Concurrency
+description: "@praxisjs/concurrent — async concurrency control decorators @Task, @Queue, and @Pool with reactive loading, error, and pending state."
+icon: Cpu
+---
+
+# Concurrency
+
+Async concurrency control from `@praxisjs/concurrent`. Decorate an async method, declare a companion field, and get reactive `.loading()`, `.error()`, and `.pending()` state automatically — scoped per component instance.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm install @praxisjs/concurrent
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add @praxisjs/concurrent
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add @praxisjs/concurrent
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add @praxisjs/concurrent
+```
+</Tab>
+</Tabs>
+
+---
+
+## The pattern
+
+Every decorator follows the same structure: the first argument is the async method name, and the decorated field becomes the callable task handle with reactive state attached.
+
+```tsx
+import { Task, TaskOf } from '@praxisjs/concurrent'
+
+@Component()
+class UserProfile extends StatefulComponent {
+  @State() user: User | null = null
+
+  async loadUser(id: number) {
+    this.user = await api.getUser(id)
+  }
+
+  @Task('loadUser')
+  taskLoadUser!: TaskOf<UserProfile, 'loadUser'>
+  // taskLoadUser(1)           → call the method
+  // taskLoadUser.loading()    → reactive boolean
+  // taskLoadUser.error()      → reactive Error | null
+  // taskLoadUser.lastResult() → reactive last return value
+}
+```
+
+---
+
+## `@Task(methodName)` — concurrent execution
+
+Runs calls concurrently. If multiple calls are in-flight, only the last one updates state — earlier results are discarded.
+
+```tsx
+@Component()
+class UserProfile extends StatefulComponent {
+  @State() user: User | null = null
+
+  async loadUser(id: number) {
+    this.user = await api.getUser(id)
+  }
+
+  @Task('loadUser')
+  taskLoadUser!: TaskOf<UserProfile, 'loadUser'>
+
+  render() {
+    return (
+      <div>
+        {() => this.taskLoadUser.loading() && <Spinner />}
+        {() => this.taskLoadUser.error() && (
+          <p>Error: {this.taskLoadUser.error()!.message}</p>
+        )}
+        {() => this.user && <UserCard user={this.user} />}
+        <button onClick={() => this.taskLoadUser(1)}>Load user 1</button>
+      </div>
+    )
+  }
+}
+```
+
+Reactive state: `.loading()`, `.error()`, `.lastResult()`, `.cancelAll()`
+
+<StorybookLink story="composables-concurrency-task--task-story" label="Live demo — @Task" />
+
+---
+
+## `@Queue(methodName)` — serial execution
+
+Calls run one at a time. If a call arrives while one is running, it waits its turn.
+
+```tsx
+import { Queue, QueueOf } from '@praxisjs/concurrent'
+
+@Component()
+class DocumentEditor extends StatefulComponent {
+  async saveDocument(data: DocumentData) {
+    await api.save(data)
+  }
+
+  @Queue('saveDocument')
+  taskSaveDocument!: QueueOf<DocumentEditor, 'saveDocument'>
+
+  render() {
+    return (
+      <div>
+        <button onClick={() => this.taskSaveDocument(data)}>Save</button>
+        {() => this.taskSaveDocument.pending() > 0 && (
+          <p>{() => this.taskSaveDocument.pending()} save(s) queued</p>
+        )}
+      </div>
+    )
+  }
+}
+```
+
+Reactive state: `.loading()`, `.error()`, `.pending()`, `.clear()`
+
+### Clearing the queue
+
+`.clear()` cancels all queued (not-yet-started) calls. Each cancelled call's promise rejects with a `QueueClearedError`:
+
+```tsx
+import { QueueClearedError } from '@praxisjs/concurrent'
+
+onUnmount() {
+  this.taskSaveDocument.clear()
+}
+
+async saveAll() {
+  try {
+    await this.taskSaveDocument(data)
+  } catch (e) {
+    if (e instanceof QueueClearedError) return  // expected — ignore it
+    throw e
+  }
+}
+```
+
+<StorybookLink story="composables-concurrency-queue--queue-story" label="Live demo — @Queue" />
+
+---
+
+## `@Pool(methodName, concurrency?)` — limited parallelism
+
+Limits how many calls run simultaneously. Excess calls are queued automatically and run as slots free up. `concurrency` defaults to `1`.
+
+```tsx
+import { Pool, PoolOf } from '@praxisjs/concurrent'
+
+@Component()
+class FileUploader extends StatefulComponent {
+  async uploadFile(file: File) {
+    await api.upload(file)
+  }
+
+  @Pool('uploadFile', 3)  // max 3 uploads at once
+  taskUploadFile!: PoolOf<FileUploader, 'uploadFile'>
+
+  onMount() {
+    files.forEach(f => this.taskUploadFile(f))
+  }
+
+  render() {
+    return (
+      <p>
+        Uploading: {() => this.taskUploadFile.active()} /
+        Queued: {() => this.taskUploadFile.pending()}
+      </p>
+    )
+  }
+}
+```
+
+Reactive state: `.loading()`, `.error()`, `.active()`, `.pending()`
+
+<StorybookLink story="composables-concurrency-pool--pool-story" label="Live demo — @Pool" />
+
+---
+
+## Reactive state reference
+
+| Property | `@Task` | `@Queue` | `@Pool` | Description |
+|---|:-:|:-:|:-:|---|
+| `.loading()` | ✓ | ✓ | ✓ | True while any call is in-flight |
+| `.error()` | ✓ | ✓ | ✓ | Last error, or `null` |
+| `.lastResult()` | ✓ | | | Return value of last successful call |
+| `.pending()` | | ✓ | ✓ | Calls waiting in the queue |
+| `.active()` | | | ✓ | Calls currently running |
+| `.cancelAll()` | ✓ | | | Discards in-flight results (does not abort the promise) |
+| `.clear()` | | ✓ | | Cancels all queued calls with `QueueClearedError` |
+
+---
+
+## Type helpers
+
+Use these generics to type the companion field with full intellisense:
+
+| Helper | Usage |
+|---|---|
+| `TaskOf<Class, 'method'>` | Type for a `@Task` companion field |
+| `QueueOf<Class, 'method'>` | Type for a `@Queue` companion field |
+| `PoolOf<Class, 'method'>` | Type for a `@Pool` companion field |

@@ -1,0 +1,27 @@
+---
+title: "@praxisjs/di"
+description: Changelog for @praxisjs/di — dependency injection with @Injectable, @Inject, @Scope, and token-based injection.
+icon: Plug
+---
+
+# @praxisjs/di
+
+## 1.0.0 — Breaking
+
+Full decorator-based API. Functional APIs removed:
+
+| Removed         | Replacement                       |
+| --------------- | --------------------------------- |
+| `useService()`  | `@Inject(Service)` on a field     |
+| `createScope()` | `@Scope(configure?)` on the class |
+| Type `Scope`    | Renamed to `ScopeType`            |
+
+The new `@Scope` decorator creates a child container scoped to each class instance, allowing feature modules and dialogs to have isolated dependency graphs.
+
+## 0.2.0
+
+Migrated to TC39 decorator context API.
+
+## 0.1.0
+
+Initial beta release.

@@ -1,0 +1,100 @@
+---
+title: Tooling
+description: Developer tools for PraxisJS — Vite plugin, in-app DevTools overlay, Storybook adapter, and the project scaffolder.
+icon: Hammer
+---
+
+# Tooling
+
+<Cards>
+  <Card
+    title="Vite Plugin"
+    description="One plugin handles everything Vite needs: decorator support, JSX transform to @praxisjs/jsx, and optional component-level HMR. Required for all PraxisJS projects."
+    href="/docs/tooling/vite-plugin"
+  />
+  <Card
+    title="DevTools"
+    description="In-app overlay with three built-in panels: Signals (live value history), Components (render metrics), and Timeline (chronological event log)."
+    href="/docs/tooling/devtools"
+  />
+  <Card
+    title="DevTools Plugins"
+    description="Extend the DevTools panel with custom tabs. Each tab is a plugin — built-in panels are individually importable and replaceable."
+    href="/docs/tooling/devtools-plugins"
+  />
+  <Card
+    title="Storybook"
+    description="Framework adapter for Storybook ≥ 8. Mounts PraxisJS components with full reactivity, HMR, and source preview — no extra config needed."
+    href="/docs/tooling/storybook"
+  />
+</Cards>
+
+---
+
+## Required setup for every project
+
+Every PraxisJS project needs these two files configured correctly:
+
+<Steps>
+  <Step>
+    ### Install and configure the Vite plugin
+
+    ```sh
+    npm install -D @praxisjs/vite-plugin
+    ```
+
+    ```ts
+    // vite.config.ts
+    import { defineConfig } from 'vite'
+    import { praxisjs } from '@praxisjs/vite-plugin'
+
+    export default defineConfig({
+      plugins: [praxisjs({ hmr: true })],
+    })
+    ```
+  </Step>
+  <Step>
+    ### Configure TypeScript
+
+    ```json
+    // tsconfig.json
+    {
+      "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "jsx": "react-jsx",
+        "jsxImportSource": "@praxisjs/jsx",
+        "useDefineForClassFields": false,
+        "strict": true,
+        "noEmit": true
+      }
+    }
+    ```
+
+    <Callout type="warn" title="`useDefineForClassFields: false` is required">
+      With `true`, TypeScript compiles class fields via `Object.defineProperty`, which runs after decorator initializers and overwrites the signal wiring they set up. Set it to `false` so field assignments are treated as constructor assignments and decorators work correctly.
+    </Callout>
+  </Step>
+  <Step>
+    ### Mount your app
+
+    ```ts
+    // src/main.ts
+    import { render } from '@praxisjs/runtime'
+    import { App } from './App'
+
+    render(() => <App />, document.getElementById('app')!)
+    ```
+  </Step>
+</Steps>
+
+## Start from scratch
+
+Skip the manual setup entirely:
+
+```sh
+npm create praxisjs@latest
+```
+
+Choose from Minimal, With Router, or Full templates — all pre-configured with TypeScript, Vite, JSX, and HMR.

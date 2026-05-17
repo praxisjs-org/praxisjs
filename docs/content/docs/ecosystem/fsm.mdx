@@ -1,0 +1,167 @@
+---
+title: State Machines
+description: "@praxisjs/fsm — finite state machines via @StateMachine and @Transition decorators, with typed states/events, reactive state signal, and per-state lifecycle hooks."
+icon: GitBranch
+---
+
+# State Machines
+
+Finite state machines via decorators. `@StateMachine` attaches a reactive machine to a class, and `@Transition` binds methods to valid state transitions — the method body only runs if the transition is allowed in the current state.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm install @praxisjs/fsm
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add @praxisjs/fsm
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add @praxisjs/fsm
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add @praxisjs/fsm
+```
+</Tab>
+</Tabs>
+
+---
+
+## `@StateMachine(definition, property?)`
+
+Attaches a state machine to the class. Creates a `this.machine` property (or a custom name) with the reactive machine instance. Each component instance gets its own isolated machine.
+
+```tsx
+import { StateMachine, Transition } from '@praxisjs/fsm'
+
+type State = 'idle' | 'loading' | 'success' | 'error'
+type Event = 'FETCH' | 'RESOLVE' | 'REJECT' | 'RESET'
+
+@StateMachine<State, Event>({
+  initial: 'idle',
+  states: {
+    idle:    { on: { FETCH: 'loading' } },
+    loading: { on: { RESOLVE: 'success', REJECT: 'error' } },
+    success: { on: { RESET: 'idle' } },
+    error:   { on: { RESET: 'idle', FETCH: 'loading' } },
+  },
+})
+@Component()
+class DataFetcher extends StatefulComponent {
+  @State() data: Result | null = null
+
+  @Transition('machine', 'FETCH')
+  async load() {
+    try {
+      this.data = await api.fetch()
+      this.machine.send('RESOLVE')
+    } catch {
+      this.machine.send('REJECT')
+    }
+  }
+
+  render() {
+    return (
+      <div>
+        {() => this.machine.is('loading') && <Spinner />}
+        {() => this.machine.is('error') && <p>Something went wrong.</p>}
+        {() => this.machine.is('success') && <Results data={this.data} />}
+        <button
+          disabled={() => !this.machine.can('FETCH')}
+          onClick={() => this.load()}
+        >
+          Fetch
+        </button>
+      </div>
+    )
+  }
+}
+```
+
+<StorybookLink story="ecosystem-fsm-trafficlight--traffic-light-demo" label="Live demo — traffic light" />
+<StorybookLink story="ecosystem-fsm-fetchfsm--fetch-machine" label="Live demo — async fetch states" />
+
+---
+
+## `@Transition(property, event)`
+
+Wraps a method so it only executes when the named event causes a valid transition in the machine. If the event is not valid from the current state, the method body is skipped silently.
+
+```tsx
+@Transition('machine', 'OPEN')
+open() {
+  this.animateIn()  // only runs if 'OPEN' is valid from the current state
+}
+
+@Transition('machine', 'CLOSE')
+close() {
+  this.animateOut()
+}
+```
+
+Calling `this.open()` internally sends `machine.send('OPEN')` — if the transition succeeds, the method body runs; otherwise it's a no-op.
+
+---
+
+## Machine API
+
+Access via `this.machine` (or the configured property name).
+
+| Method | Returns | Description |
+|---|---|---|
+| `state()` | `S` | Current state — reactive signal, use in `{() => ...}` in JSX |
+| `history()` | `Array<{from, event, to}>` | Full transition history |
+| `is(state)` | `boolean` | True if the current state matches |
+| `can(event)` | `boolean` | True if the event is valid from the current state |
+| `send(event)` | `boolean` | Trigger a transition — returns `true` if it happened |
+| `reset()` | `void` | Return to the initial state |
+
+---
+
+## Per-state lifecycle hooks
+
+Define `onEnter` and `onExit` callbacks directly in the state definition, and a global `onTransition` for every change:
+
+```tsx
+@StateMachine<State, Event>({
+  initial: 'idle',
+  states: {
+    loading: {
+      on: { RESOLVE: 'success', REJECT: 'error' },
+      onEnter() { console.log('started loading') },
+      onExit()  { console.log('done loading') },
+    },
+    success: { on: { RESET: 'idle' } },
+    error:   { on: { RESET: 'idle' } },
+    idle:    { on: { FETCH: 'loading' } },
+  },
+  onTransition(from, event, to) {
+    analytics.track(`fsm:${from}--${event}->${to}`)
+  },
+})
+```
+
+---
+
+## Multiple machines on one class
+
+Use different property names to attach more than one machine:
+
+```tsx
+@StateMachine({ initial: 'closed', states: { /* ... */ } }, 'drawer')
+@StateMachine({ initial: 'idle',   states: { /* ... */ } }, 'upload')
+@Component()
+class FilePanel extends StatefulComponent {
+  @Transition('drawer', 'OPEN')
+  openDrawer() { /* ... */ }
+
+  @Transition('upload', 'START')
+  startUpload() { /* ... */ }
+}
+```

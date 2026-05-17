@@ -1,0 +1,61 @@
+---
+title: Core Concepts
+description: The five concepts every PraxisJS application is built on — components, reactivity, JSX, lifecycle, and async data.
+icon: BookOpen
+---
+
+# Core Concepts
+
+Five concepts. Together they cover everything you need to build any PraxisJS application. Read them in order the first time — each one builds on the previous.
+
+<Cards>
+  <Card
+    title="Components"
+    description="StatefulComponent for components with internal logic. StatelessComponent for pure presentational ones. Both require @Component() and a render() method."
+    href="/docs/essentials/components"
+  />
+  <Card
+    title="Reactivity & Signals"
+    description="How @State and @Computed work, why arrow functions are the reactive contract, and how to read signals without creating subscriptions."
+    href="/docs/essentials/reactivity"
+  />
+  <Card
+    title="JSX Syntax"
+    description="Reactive vs static expressions, conditionals, lists, event handlers, CSS classes, inline styles, fragments, and ref callbacks."
+    href="/docs/essentials/jsx"
+  />
+  <Card
+    title="Lifecycle Hooks"
+    description="onBeforeMount, onMount, onUnmount, onError — when each runs, what's available at each stage, and how to clean up."
+    href="/docs/essentials/lifecycle"
+  />
+  <Card
+    title="Async Data"
+    description="@Resource binds a fetcher to a component field with reactive refetch on dependency changes, keepPreviousData, cancel, and optimistic updates."
+    href="/docs/essentials/async-data"
+  />
+</Cards>
+
+---
+
+## Recommended reading order
+
+<Steps>
+  <Step>
+    **Components** — understand StatefulComponent vs StatelessComponent and the single-render contract before anything else
+  </Step>
+  <Step>
+    **Reactivity** — learn why `{() => expr}` is needed and how signal propagation works end-to-end
+  </Step>
+  <Step>
+    **JSX** — see every template pattern: lists, conditionals, events, refs, fragments, classes, and styles
+  </Step>
+  <Step>
+    **Lifecycle** — learn when the DOM is available, when to clean up, and how to handle errors
+  </Step>
+  <Step>
+    **Async Data** — add data fetching with `@Resource` and understand how reactive dependencies trigger refetches
+  </Step>
+</Steps>
+
+After these five pages, move to [Decorators](/docs/decorators) for the complete API reference, or jump to [Packages](/docs/ecosystem) if you need routing, stores, or DI.

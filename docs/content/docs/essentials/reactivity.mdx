@@ -1,0 +1,208 @@
+---
+title: Reactivity & Signals
+description: PraxisJS uses signals for fine-grained reactivity — only the specific DOM nodes that depend on a changed signal are updated.
+icon: Activity
+---
+
+# Reactivity & Signals
+
+PraxisJS uses **signals** as the core reactive primitive. A signal holds a value and notifies its subscribers when that value changes.
+
+## The reactive contract
+
+`render()` runs once. Inside JSX, the rule is simple:
+
+> **Arrow functions are reactive. Plain expressions are static.**
+
+```tsx
+render() {
+  return (
+    <div>
+      <p>{() => this.count}</p>       {/* ✅ reactive — updates when count changes */}
+      <p>{this.count}</p>              {/* ❌ static — value captured at render time */}
+      <p>{this.count * 2}</p>          {/* ❌ static */}
+      <p>{() => this.count * 2}</p>   {/* ✅ reactive */}
+    </div>
+  )
+}
+```
+
+Each `{() => expr}` becomes its own reactive effect. When any signal it reads changes, only that specific DOM node updates — nothing else in the component is touched.
+
+<StorybookLink story="essentials-reactivity-reactivevsstatic--reactive-vs-static" label="Live demo — reactive vs. static" />
+
+---
+
+## `@State()` — reactive fields
+
+`@State()` turns a class field into a signal. Reading it inside an arrow function subscribes to it. Writing to it triggers all subscribers.
+
+```tsx
+@Component()
+class Timer extends StatefulComponent {
+  @State() seconds = 0
+
+  onMount() {
+    setInterval(() => this.seconds++, 1000)
+  }
+
+  render() {
+    return <p>Elapsed: {() => this.seconds}s</p>
+  }
+}
+```
+
+`this.seconds++` sets the signal, which notifies the `{() => this.seconds}` effect in the DOM, which updates the text node. That's the entire update cycle.
+
+---
+
+## `@Computed()` — derived state
+
+`@Computed()` creates a cached, derived reactive value. It recomputes only when its signal dependencies change — not on every read.
+
+```tsx
+@Component()
+class Cart extends StatefulComponent {
+  @State() items: { price: number }[] = []
+
+  @Computed()
+  get total() {
+    return this.items.reduce((sum, i) => sum + i.price, 0)
+  }
+
+  render() {
+    return <p>Total: {() => this.total}</p>
+  }
+}
+```
+
+<Callout type="info" title="Plain getter vs @Computed">
+  A plain `get total()` recalculates every time it's read, including inside every reactive effect that reads it. `@Computed()` caches the result and recomputes only when its own signal dependencies change — making it safe and cheap to use in multiple places.
+</Callout>
+
+### Coalesced updates
+
+When multiple signals change in the same synchronous block, computed values update **once** with the final result — never with an intermediate state:
+
+```tsx
+@Computed()
+get fullName() { return `${this.first} ${this.last}` }
+
+// Somewhere:
+this.first = 'Jane'
+this.last = 'Smith'
+// → DOM updates once with "Jane Smith", never shows "Jane Doe"
+```
+
+<StorybookLink story="essentials-reactivity-computed--computed-values" label="Live demo — @Computed" />
+
+---
+
+## Arrays and objects
+
+Signals track reference changes, not deep mutations. Always replace with a new reference:
+
+```tsx
+// ✅ new reference — triggers update
+this.items = [...this.items, newItem]
+this.config = { ...this.config, theme: 'dark' }
+
+// ❌ in-place mutation — does NOT trigger update
+this.items.push(newItem)
+this.config.theme = 'dark'
+```
+
+Need deep mutation tracking? See [`@DeepState`](/docs/decorators/state#deepstate) for a proxy-based alternative.
+
+<StorybookLink story="essentials-reactivity-reactivearrays--reactive-arrays" label="Live demo — reactive arrays" />
+
+---
+
+## Passing reactive props to children
+
+When you pass a value to a child component, the difference between static and reactive applies there too:
+
+```tsx
+// ❌ static — Badge receives the value at render time and never updates
+<Badge value={this.count} />
+
+// ✅ reactive — Badge receives a getter; reads it when the parent's count changes
+<Badge value={() => this.count} />
+```
+
+The child component accesses the live value via `this.props.value` (if using `StatelessComponent`) or `{() => this.value}` (if using `@Prop()`).
+
+<StorybookLink story="essentials-components-reactiveprops--reactive-props" label="Live demo — reactive props" />
+
+<Callout type="info" title="Rule of thumb">
+  Pass `() => this.state` when the child should stay in sync with the parent's changes. Pass `this.state` when you want to capture the value at render time and the child doesn't need to update.
+</Callout>
+
+### Using `@Prop()` in the child
+
+`@Prop()` unwraps the getter automatically — use `{() => this.text}` to create the reactive binding in the template:
+
+```tsx
+@Component()
+class Label extends StatefulComponent {
+  @Prop() text = ''
+
+  render() {
+    return <span>{() => this.text}</span>  // reactive
+  }
+}
+```
+
+### Using raw `this.props` (StatelessComponent)
+
+`this.props.text` returns whatever the parent passed — if the parent passed a getter function, the renderer detects it and makes it reactive automatically:
+
+```tsx
+@Component()
+class Label extends StatelessComponent<{ text: string }> {
+  render() {
+    return <span>{this.props.text}</span>  // works reactively when parent passes () => this.count
+  }
+}
+```
+
+---
+
+## Reading without tracking
+
+Sometimes you need a signal's current value without creating a reactive subscription.
+
+### `peek(signal)` — read once
+
+```tsx
+import { peek } from '@praxisjs/core'
+
+increment() {
+  if (peek(this.count) < peek(this.max)) {
+    this.count++
+  }
+}
+```
+
+### `untrack(fn)` — suppress tracking for a block
+
+```tsx
+import { untrack } from '@praxisjs/core'
+
+@Watch('items')
+onItemsChange() {
+  const snapshot = untrack(() => this.totalCost)
+  console.log('items changed, cost at the time was:', snapshot)
+}
+```
+
+<Callout type="info" title="When to use each">
+  Use `peek(signal)` when you have a direct signal reference and want a clean explicit read. Use `untrack(fn)` when you want to suppress tracking across an entire block of code that may read multiple signals.
+</Callout>
+
+---
+
+## What's next?
+
+- [JSX Syntax](/docs/essentials/jsx) — reactive and static expressions in templates, conditionals, lists, and refs
+- [Decorators: State & Props](/docs/decorators/state) — full reference for `@State`, `@Prop`, `@Computed`, `@Persisted`, `@DeepState`

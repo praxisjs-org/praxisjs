@@ -1,0 +1,19 @@
+---
+title: "@praxisjs/devtools"
+description: Changelog for @praxisjs/devtools — in-app developer tools overlay with @Debug and @Trace.
+icon: ScanEye
+---
+
+# @praxisjs/devtools
+
+## 0.2.1
+
+`@Debug()` now supports `@Computed()` getters. Computed values are tracked and historized in the Signals panel alongside `@State` fields.
+
+## 0.2.0
+
+Migrated to TC39 decorator context API. DevTools internals rewritten with `StatefulComponent`/`StatelessComponent`. Removed `experimentalDecorators` requirement.
+
+## 0.1.0
+
+Initial beta release — in-app overlay with Signals, Components, and Timeline panels. `@Debug` for tracking fields, getters, and methods. `@Trace` for component render and lifecycle instrumentation.

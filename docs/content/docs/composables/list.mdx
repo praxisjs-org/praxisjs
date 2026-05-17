@@ -1,0 +1,155 @@
+---
+title: List Utilities
+description: "@praxisjs/composables list utilities — VirtualList for virtualizing large lists with reactive scroll tracking."
+icon: List
+---
+
+# List Utilities
+
+## `VirtualList`
+
+Virtualizes large lists — only the rows currently visible in the scroll container (plus a configurable `buffer` on each side) exist in the DOM at any time. This keeps DOM node count low regardless of list size.
+
+Unlike a render-prop approach, `VirtualList` exposes reactive signals (`visibleItems`, `totalHeight`, `offsetTop`, `offsetBottom`) that you render with normal JSX. This means:
+- Full JSX scope inside `renderItem` — no callback API to learn
+- Items react to external changes (filtering, sorting, live data) automatically
+- No special component conventions required
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+<Tab value="npm">
+```sh
+npm install @praxisjs/composables
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add @praxisjs/composables
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add @praxisjs/composables
+```
+</Tab>
+</Tabs>
+
+---
+
+## Basic usage
+
+The inner structure uses three stacked elements: a top spacer, the visible items slice, and a bottom spacer. Together they maintain the full scroll height while only a small window is in the DOM.
+
+```tsx
+import { VirtualList, type VirtualItem } from '@praxisjs/composables'
+import { Compose, getter } from '@praxisjs/decorators'
+
+interface User { id: number; name: string; email: string }
+
+@Component()
+class UserTable extends StatefulComponent {
+  @Prop() items: User[] = []
+
+  containerRef = { current: null as HTMLDivElement | null }
+
+  @Compose(VirtualList, 'containerRef', getter('items'), 48, 5)
+  virtual!: VirtualList<User>
+
+  render() {
+    return (
+      <div
+        ref={(el) => { this.containerRef.current = el }}
+        style="height:400px;overflow-y:auto"
+      >
+        {/* Total scroll height maintained by a position:relative wrapper */}
+        <div style={() => `height:${this.virtual.totalHeight}px;position:relative`}>
+          {/* Top spacer — hidden rows above the visible window */}
+          <div style={() => `height:${this.virtual.offsetTop}px`} />
+
+          {/* Only the visible rows */}
+          {() => (this.virtual.visibleItems as VirtualItem<User>[]).map(({ item }) => (
+            <div style="height:48px;display:flex;align-items:center;padding:0 16px">
+              <strong>{item.name}</strong>
+              <span style="margin-left:12px;color:#888">{item.email}</span>
+            </div>
+          ))}
+
+          {/* Bottom spacer — hidden rows below the visible window */}
+          <div style={() => `height:${this.virtual.offsetBottom}px`} />
+        </div>
+      </div>
+    )
+  }
+}
+```
+
+<StorybookLink story="decorators-performance-virtuallist--virtual-list-story" label="Live demo — VirtualList" />
+
+---
+
+## Reactive items source
+
+Pass a reactive source via `getter('propName')` so the visible window updates when items change (filtering, sorting, live data updates):
+
+```tsx
+@State() filter = ''
+
+get filteredUsers(): User[] {
+  return this.filter
+    ? USERS.filter(u => u.name.toLowerCase().includes(this.filter.toLowerCase()))
+    : USERS
+}
+
+@Compose(VirtualList, 'containerRef', getter('filteredUsers'), 48, 5)
+virtual!: VirtualList<User>
+```
+
+When `filter` changes:
+1. `filteredUsers` recomputes
+2. `VirtualList` sees the new items array
+3. `visibleItems`, `totalHeight`, `offsetTop`, `offsetBottom` update reactively
+4. DOM patches only the affected nodes
+
+---
+
+## Constructor arguments
+
+```ts
+new VirtualList(containerRef, getItems, itemHeight, buffer?)
+```
+
+| Argument | Type | Description |
+|---|---|---|
+| `containerRef` | `{ current: HTMLElement \| null }` | Ref to the scrollable container element |
+| `getItems` | `() => T[]` | Reactive items source — pass via `getter('propName')` |
+| `itemHeight` | `number` | Fixed height of each row in pixels |
+| `buffer` | `number` | Extra rows to render above and below the visible area (default: `3`) |
+
+---
+
+## Exposed properties
+
+| Property | Type | Description |
+|---|---|---|
+| `visibleItems` | `VirtualItem<T>[]` | Items currently in the visible window (plus buffer rows) |
+| `totalHeight` | `number` | Total scroll height — `items.length × itemHeight` |
+| `offsetTop` | `number` | Height of the invisible spacer above the visible window |
+| `offsetBottom` | `number` | Height of the invisible spacer below the visible window |
+
+`VirtualItem<T>` is `{ item: T; index: number }`.
+
+All four properties are reactive — reading them inside `{() => ...}` in JSX or a `@Watch` creates subscriptions.
+
+---
+
+## `getter()` vs string argument
+
+String arguments to `@Compose` resolve to instance property values at bind time — a snapshot. Use `getter('propName')` when the composable needs a live getter:
+
+```tsx
+// ✅ reactive — VirtualList receives () => this.items, tracks signal changes
+@Compose(VirtualList, 'containerRef', getter('items'), 48)
+virtual!: VirtualList<Item>
+
+// ❌ snapshot — VirtualList receives the current array value, never updates
+@Compose(VirtualList, 'containerRef', 'items', 48)
+```

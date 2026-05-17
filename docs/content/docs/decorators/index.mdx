@@ -1,0 +1,113 @@
+---
+title: Decorators
+description: Complete reference for all PraxisJS decorators — organized by category with descriptions and links.
+icon: Tag
+---
+
+# Decorators
+
+All decorators are imported from `@praxisjs/decorators` unless noted otherwise.
+
+<Callout type="info">
+  Looking for a specific decorator? Use the table below to find it, then follow the link to the full documentation page.
+</Callout>
+
+---
+
+## State & Props
+
+Reactive state on class fields. [→ Full page](/docs/decorators/state)
+
+| Decorator | What it does |
+|---|---|
+| `@State()` | Field backed by a signal. Reading inside `{() => ...}` subscribes to updates. |
+| `@Prop()` | External prop received from the parent. Initialized value is the default. |
+| `@Computed()` | Read-only derived getter, cached as a `computed()`. Recomputes only when its signal dependencies change. |
+| `@Persisted(key?)` | Like `@State` but persisted to `localStorage` with optional cross-tab sync. |
+| `@History(field, limit?)` | Adds `.undo()`, `.redo()`, `.canUndo()`, `.canRedo()` to a `@State` field. |
+| `@Resource(fetcher)` | Async data field — tracks `.pending()`, `.error()`, `.data()`. Auto-refetches when signals inside the fetcher change. |
+| `@Synced(channel?)` | Like `@State` but synced across all open browser tabs via `BroadcastChannel`. |
+| `@DeepState()` | Like `@State` but nested mutations (push, property assignment) are reactive via a deep `Proxy`. |
+
+---
+
+## Watchers
+
+Side effects that run when reactive state changes. [→ Full page](/docs/decorators/watchers)
+
+| Decorator | What it does |
+|---|---|
+| `@Watch(...props)` | Calls the method when any listed property changes. Multiple changes in one tick are coalesced into one call. |
+| `@When(prop)` | Calls the method exactly once — the first time the property becomes truthy. |
+| `@Until(prop)` | Replaces the method with one that returns a `Promise` resolving to the first truthy value of the property. |
+
+---
+
+## Events & Slots
+
+Communication between components. [→ Full page](/docs/decorators/events)
+
+| Decorator | What it does |
+|---|---|
+| `@Emit(propName)` | Binds `this`, calls the named prop callback with the method's return value when the method runs. |
+| `@Slot(name?)` | Declares a named slot — collects children distributed via `slot="name"` on the parent's JSX. |
+| `@OnCommand(propName)` | Subscribes the method to a `Command` prop bus. Auto-unsubscribes on unmount. |
+
+---
+
+## Timing
+
+Execution rate control for methods. [→ Full page](/docs/decorators/timing)
+
+| Decorator | What it does |
+|---|---|
+| `@Debounce(ms)` | Delays execution — timer resets on every call. Fires after the last call settles. Cleaned up on unmount. |
+| `@Throttle(ms)` | Executes on the leading edge, then ignores calls for `ms` milliseconds. |
+
+---
+
+## Utilities
+
+General-purpose method helpers. [→ Full page](/docs/decorators/utilities)
+
+| Decorator | What it does |
+|---|---|
+| `@Bind()` | Binds the method to the instance — useful when passing methods as callbacks without arrow function wrappers. |
+| `@Log(options?)` | Logs calls with arguments, return value, and execution time. Dev-only by default. |
+| `@Once()` | The method runs at most once per instance; subsequent calls return the cached result. |
+| `@Memo()` | Memoizes per unique argument set using a reactive `computed()` per cache entry. |
+| `@Retry(n, options?)` | Retries an async method on failure with configurable delay and exponential backoff. |
+
+---
+
+## Performance
+
+Rendering optimizations. [→ Full page](/docs/decorators/performance)
+
+| Decorator | What it does |
+|---|---|
+| `@Lazy(placeholder?)` | Defers rendering until the component enters the viewport via `IntersectionObserver`. |
+
+For large list virtualization, see [`VirtualList`](/docs/composables/list) from `@praxisjs/composables`.
+
+---
+
+## DevTools
+
+Instrumentation decorators — imported from `@praxisjs/devtools`. No-ops unless `DevTools.init()` has been called. [→ Full page](/docs/decorators/dx)
+
+| Decorator | What it does |
+|---|---|
+| `@Debug(options?)` | Exposes a `@State` field, getter, or method in the Signals/Timeline panels. |
+| `@Trace()` | Instruments a component class to report render count, duration, and lifecycle events in the Components panel. |
+
+---
+
+## Composables
+
+| Decorator | What it does |
+|---|---|
+| `@Compose(Class, ...args)` | Mixes a `Composable` class into the component. Wires its reactive properties and hooks its lifecycle automatically. |
+
+→ See [Composables](/docs/composables) for the full list of built-in composable classes.
+→ See [Creating Composables](/docs/advanced/custom-composables) to build your own.

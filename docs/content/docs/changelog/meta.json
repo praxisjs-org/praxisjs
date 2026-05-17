@@ -1,0 +1,27 @@
+{
+  "title": "Changelog",
+  "description": "Release history across all PraxisJS packages",
+  "root": true,
+  "icon": "ScrollText",
+  "pages": [
+    "index",
+    "---Foundation---",
+    "core",
+    "decorators",
+    "runtime",
+    "---Packages---",
+    "router",
+    "store",
+    "di",
+    "motion",
+    "fsm",
+    "concurrent",
+    "---Utilities & Tooling---",
+    "composables",
+    "devtools",
+    "storybook",
+    "vite-plugin",
+    "---CLI---",
+    "create-praxisjs"
+  ]
+}

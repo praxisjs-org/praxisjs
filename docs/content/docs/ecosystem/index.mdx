@@ -1,0 +1,70 @@
+---
+title: Packages
+description: PraxisJS first-party packages — Router, Store, DI, Motion, FSM, and async concurrency.
+icon: Package
+---
+
+# Packages
+
+All first-party packages use the same signal system and decorator conventions as core. They're completely independent of each other — install only what your project needs.
+
+<Cards>
+  <Card
+    title="Router"
+    description="Signal-based client-side routing. @RouterConfig sets up routes. @Route co-locates path with the page component. Reactive injectors for params, query, and navigation."
+    href="/docs/ecosystem/router"
+  />
+  <Card
+    title="Store"
+    description="Class-based singleton state management. @Store registers a class globally. @UseStore injects the shared instance into any component."
+    href="/docs/ecosystem/store"
+  />
+  <Card
+    title="Dependency Injection"
+    description="@Injectable, @Inject, @Scope, and token-based injection. Scoped child containers per component instance. Circular dependency detection."
+    href="/docs/ecosystem/di"
+  />
+  <Card
+    title="Motion"
+    description="Animated field decorators. @Tween for duration-based easing. @Spring for physics-based spring animation. Assign a value — the transition plays automatically."
+    href="/docs/ecosystem/motion"
+  />
+  <Card
+    title="State Machines"
+    description="Finite state machines via @StateMachine and @Transition. Typed states and events, reactive state signal, per-state onEnter/onExit hooks."
+    href="/docs/ecosystem/fsm"
+  />
+  <Card
+    title="Concurrency"
+    description="@Task, @Queue, and @Pool for async concurrency control. Reactive .loading(), .error(), and .pending() state directly on each decorated field."
+    href="/docs/ecosystem/concurrency"
+  />
+</Cards>
+
+---
+
+## Installation
+
+Each package is independent. Install only what you need:
+
+| Package | Install |
+|---|---|
+| `@praxisjs/router` | `npm install @praxisjs/router` |
+| `@praxisjs/store` | `npm install @praxisjs/store` |
+| `@praxisjs/di` | `npm install @praxisjs/di` |
+| `@praxisjs/motion` | `npm install @praxisjs/motion` |
+| `@praxisjs/fsm` | `npm install @praxisjs/fsm` |
+| `@praxisjs/concurrent` | `npm install @praxisjs/concurrent` |
+
+---
+
+## Choosing a package
+
+| I need to… | Use |
+|---|---|
+| Navigate between pages | [Router](/docs/ecosystem/router) |
+| Share state across components | [Store](/docs/ecosystem/store) |
+| Inject services into components | [DI](/docs/ecosystem/di) |
+| Animate a value when it changes | [Motion](/docs/ecosystem/motion) |
+| Model complex state transitions | [FSM](/docs/ecosystem/fsm) |
+| Track loading/error state on async methods | [Concurrency](/docs/ecosystem/concurrency) |

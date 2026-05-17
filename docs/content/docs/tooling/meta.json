@@ -1,0 +1,10 @@
+{
+  "title": "Tooling",
+  "icon": "Hammer",
+  "pages": [
+    "vite-plugin",
+    "devtools",
+    "devtools-plugins",
+    "storybook"
+  ]
+}

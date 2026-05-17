@@ -1,0 +1,11 @@
+{
+  "title": "Core Concepts",
+  "icon": "BookOpen",
+  "pages": [
+    "components",
+    "reactivity",
+    "jsx",
+    "lifecycle",
+    "async-data"
+  ]
+}

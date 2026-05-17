@@ -1,0 +1,75 @@
+---
+title: "@praxisjs/core"
+description: Changelog for @praxisjs/core — signals, computed values, effects, peek, untrack, and batch.
+icon: Activity
+---
+
+# @praxisjs/core
+
+## 1.6.0
+
+**Reactivity engine rewrite** — lower allocation and cleaner internals. No API changes.
+
+- `signal()` — subscribers stored as `null | Effect | Effect[]`, avoiding `Set` allocation for zero- and single-subscriber cases
+- `computed()` — plain closure, lazy recompute callback, separate tracking for downstream computeds vs leaf effects
+- `effect()` — simplified to a named closure with `run` and `stop`
+- `batch()` — pre-allocated module-level array instead of a new `Set` per call
+
+## 1.5.0
+
+**New: `syncedSignal(channelName, initialValue)`** — signal that stays in sync across browser tabs via `BroadcastChannel`. Writes in any tab broadcast to all others.
+
+## 1.4.1
+
+- `@Watch` multi-prop coalescing — when multiple props change in the same tick, the callback fires once with the final values
+- Computed notification coalescing — leaf subscribers notified once per microtask boundary when multiple dependencies change simultaneously
+- TypeScript fix — `createLifecycleMethodDecorator` now accepts methods with typed parameters
+
+## 1.4.0
+
+`StatelessComponent` default type parameter changed from `object` to `Record<never, never>`. Components that only receive `children` no longer need a type argument.
+
+## 1.3.0
+
+`StatelessComponent` now exposes an optional typed `children` prop. `this.props.children` works without declaring it in `T`.
+
+## 1.2.0
+
+**New: `peek(signal)` and `untrack(fn)`** — promoted to the public API.
+
+**Bug fix:** `mountComponent` now runs inside `untrack()`. Static reads like `description={this.count}` inside a reactive context (e.g. the router) were accidentally subscribing the outer effect to those signals, causing the component to re-mount on every state change.
+
+## 1.1.0
+
+- `debounced()` returns a `.stop()` method to cancel the pending timer
+- Nested `batch()` calls no longer overwrite the outer queue
+- Subscriber errors are now isolated — all subscribers run even when one throws
+
+## 1.0.0
+
+<Callout type="warn" title="Breaking">
+All functional APIs replaced by decorators across the entire ecosystem.
+
+- Added `Composable` abstract base class for class-based composables
+- Removed `resource`, `createResource`, `Resource`, `ResourceStatus`, `ResourceOptions` — use `@Resource` from `@praxisjs/decorators` instead
+</Callout>
+
+## 0.4.2
+
+**Bug fix:** `effect()` stop function now prevents future re-runs by setting a `stopped` flag. Previously it only ran cleanup but left the effect subscribed.
+
+## 0.4.1
+
+**Bug fix:** `when()` no longer leaks its reactive effect when the source is immediately truthy on the first run.
+
+## 0.4.0
+
+Added `@Computed()` decorator for cached reactive getters.
+
+## 0.3.0
+
+Migrated from legacy decorator signatures to the TC39 decorator context API. Introduced `StatefulComponent` and `StatelessComponent`.
+
+## 0.1.0
+
+Initial beta release.

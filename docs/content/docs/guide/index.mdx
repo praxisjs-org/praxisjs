@@ -1,0 +1,51 @@
+---
+title: Getting Started
+description: Everything you need to go from zero to a working PraxisJS application.
+icon: Rocket
+---
+
+# Getting Started
+
+Three steps to your first working PraxisJS app. After these, move straight into [Core Concepts](/docs/essentials) to understand the reactive model in depth.
+
+<Steps>
+  <Step>
+    ### Understand the model
+
+    Read [Introduction](/docs/guide/introduction) to learn what PraxisJS is and how signals eliminate the need for a virtual DOM. It takes five minutes and answers 90% of future "why does this work this way?" questions.
+  </Step>
+  <Step>
+    ### Create your project
+
+    Run `npm create praxisjs@latest` to scaffold a ready-to-go project, or follow [Quick Start](/docs/guide/getting-started) for manual setup. You'll have a running counter component in under two minutes.
+  </Step>
+  <Step>
+    ### Learn the core
+
+    Work through [Core Concepts](/docs/essentials) — components, reactivity, JSX, lifecycle hooks, and async data. Read them in order the first time; each builds on the previous.
+  </Step>
+</Steps>
+
+---
+
+## The three rules
+
+All of PraxisJS follows from just three rules. Internalize these and everything else clicks into place.
+
+<Cards>
+  <Card
+    title="render() runs once"
+    description="The DOM is built on first mount. After that, only reactive effects update individual nodes — render() is never called again."
+    href="/docs/essentials/components"
+  />
+  <Card
+    title="Arrow functions are reactive"
+    description="{() => this.count} subscribes to count and updates when it changes. {this.count} is a static snapshot read at render time. The difference is always visible in the code."
+    href="/docs/essentials/reactivity"
+  />
+  <Card
+    title="Decorators are explicit"
+    description="@State makes a property reactive. @Watch runs a side effect. @Prop receives a parent value. PraxisJS code says exactly what it does — no hidden conventions."
+    href="/docs/decorators"
+  />
+</Cards>

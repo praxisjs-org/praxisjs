@@ -1,0 +1,44 @@
+---
+title: "@praxisjs/router"
+description: Changelog for @praxisjs/router — client-side routing with @Route, @Lazy, @Params, and @Location.
+icon: Route
+---
+
+# @praxisjs/router
+
+## 1.0.12
+
+`<Link>` now accepts a `style` prop — both a CSS string (`style="color:red"`) and a style object (`style={styleObject}`).
+
+## 1.0.1
+
+- **`@Lazy` inline fix** — `Lazy(() => import('./Page'))` used directly in route definitions now renders correctly. The returned function was missing the `__isLazy` marker so the router treated it as a plain component
+- **`@Route` co-location** — `@RouterConfig` now accepts classes decorated with `@Route` directly. The path is read from `__routePath` automatically — no `{ path, component }` wrapper needed
+- Lazy-loaded pages must use `export default class` — the loader resolves `module.default` at runtime
+
+## 1.0.0
+
+<Callout type="warn" title="Breaking — full decorator-based API">
+All functional routing APIs removed:
+
+| Removed | Replacement |
+|---|---|
+| `createRouter()` | `@RouterConfig` on the root component |
+| `lazy()` | `@Lazy` decorator or `Lazy()` inline |
+| `useRouter()` | `@InjectRouter()` field decorator |
+| `useParams()` | `@Params()` field decorator |
+| `useQuery()` | `@Query()` field decorator |
+| `useLocation()` | `@Location()` field decorator |
+</Callout>
+
+## 0.2.4
+
+**Bug fix:** `beforeEnter` guards that return a redirect string no longer recurse infinitely. Navigation aborts after 10 redirect hops with a console warning.
+
+## 0.2.0
+
+Migrated to TC39 decorator context API. Introduced `StatefulComponent` / `StatelessComponent`.
+
+## 0.1.0
+
+Initial beta release.

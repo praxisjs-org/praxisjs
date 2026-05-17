@@ -1,0 +1,9 @@
+{
+  "title": "Composables",
+  "icon": "Layers",
+  "pages": [
+    "dom",
+    "browser",
+    "list"
+  ]
+}

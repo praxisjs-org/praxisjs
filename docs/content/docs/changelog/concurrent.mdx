@@ -1,0 +1,47 @@
+---
+title: "@praxisjs/concurrent"
+description: Changelog for @praxisjs/concurrent — @Task, @Queue, and @Pool for async concurrency control.
+icon: Cpu
+---
+
+# @praxisjs/concurrent
+
+## 1.2.0
+
+**`@Task`, `@Queue`, `@Pool` redesigned as field decorators.**
+
+Each decorator now goes on a **separate field** next to the async method, not on the method itself. The method name is the first argument. Reactive state is accessed as sub-properties with full TypeScript intellisense via `TaskOf`, `QueueOf`, `PoolOf`:
+
+```ts
+// before
+@Task()
+async loadUser(id: number) { ... }
+// this.loadUser_loading() — no intellisense
+
+// after
+async loadUser(id: number) { ... }
+
+@Task('loadUser')
+taskLoadUser!: TaskOf<MyClass, 'loadUser'>
+// this.taskLoadUser(1)         ✓ — call it
+// this.taskLoadUser.loading()  ✓ — reactive boolean
+// this.taskLoadUser.error()    ✓ — reactive Error | null
+```
+
+<Callout type="warn" title="@Pool argument order changed">
+`@Pool` now takes the method name **first**, concurrency **second**: `@Pool('method', 3)` (was `@Pool(3, 'method')`).
+</Callout>
+
+## 1.0.0
+
+<Callout type="warn" title="Breaking — functional APIs removed">
+| Removed | Replacement |
+|---|---|
+| `task(method)` | `@Task('method')` field decorator |
+| `queue(method)` | `@Queue('method')` field decorator |
+| `pool(n, method)` | `@Pool('method', n)` field decorator |
+</Callout>
+
+## 0.1.0
+
+Initial beta release.

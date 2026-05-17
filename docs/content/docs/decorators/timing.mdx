@@ -1,0 +1,100 @@
+---
+title: Timing Decorators
+description: Control method execution timing with @Debounce and @Throttle.
+icon: Timer
+---
+
+# Timing Decorators
+
+Two decorators for controlling how often a method can fire. Both clean up automatically when the component unmounts.
+
+---
+
+## `@Debounce(ms)`
+
+Delays method execution by `ms` milliseconds after the last call. If the method is called again before the timer expires, the timer resets. Perfect for responding to user input without firing on every keystroke.
+
+```tsx
+import { Component, State, Debounce } from '@praxisjs/decorators'
+
+@Component()
+class SearchBox extends StatefulComponent {
+  @State() query = ''
+  @State() results: string[] = []
+
+  @Debounce(300)
+  async search(q: string) {
+    const data = await fetch(`/api/search?q=${q}`).then(r => r.json())
+    this.results = data
+  }
+
+  render() {
+    return (
+      <div>
+        <input
+          value={() => this.query}
+          onInput={(e) => {
+            this.query = (e.target as HTMLInputElement).value
+            this.search(this.query)
+          }}
+        />
+        <ul>{() => this.results.map(r => <li>{r}</li>)}</ul>
+      </div>
+    )
+  }
+}
+```
+
+Rapid keystrokes reset the timer each time — only one request fires 300ms after the user stops typing.
+
+<Callout type="info" title="Automatic cleanup">
+  Any pending timer is automatically cancelled when the component unmounts. You don't need to cancel debounced methods manually in `onUnmount`.
+</Callout>
+
+<StorybookLink story="decorators-timing-debounce--debounce-story" label="Live demo — @Debounce" />
+
+---
+
+## `@Throttle(ms)`
+
+Limits execution to at most once every `ms` milliseconds (leading-edge). The first call fires immediately; subsequent calls within the window are ignored.
+
+```tsx
+import { Component, State, Throttle } from '@praxisjs/decorators'
+
+@Component()
+class ScrollTracker extends StatefulComponent {
+  @State() scrollY = 0
+
+  @Throttle(100)
+  updateScroll() {
+    this.scrollY = window.scrollY
+  }
+
+  onMount() {
+    window.addEventListener('scroll', () => this.updateScroll())
+  }
+
+  onUnmount() {
+    window.removeEventListener('scroll', () => this.updateScroll())
+  }
+
+  render() {
+    return <p>Scroll position: {() => this.scrollY}px</p>
+  }
+}
+```
+
+<StorybookLink story="decorators-timing-throttle--throttle-story" label="Live demo — @Throttle" />
+
+---
+
+## When to use which
+
+| Use case | Decorator | Why |
+|---|---|---|
+| Search input, form validation | `@Debounce` | Wait for the user to stop typing |
+| API calls triggered by text input | `@Debounce` | Avoid a request per character |
+| Scroll events, window resize | `@Throttle` | Allow updates, just not too often |
+| Mouse move handlers | `@Throttle` | Cap at a reasonable frame rate |
+| Animation frame updates | `@Throttle` | Smooth updates without overload |

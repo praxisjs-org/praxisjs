@@ -1,0 +1,193 @@
+---
+title: DOM Utilities
+description: "@praxisjs/composables DOM composable classes — WindowSize, ScrollPosition, ElementSize, Intersection, and Focus. Used via the @Compose decorator."
+icon: Monitor
+---
+
+# DOM Utilities
+
+DOM composables from `@praxisjs/composables`. Attach them to any component with `@Compose` to bind reactive DOM state directly to component properties.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm install @praxisjs/composables
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add @praxisjs/composables
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add @praxisjs/composables
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add @praxisjs/composables
+```
+</Tab>
+</Tabs>
+
+---
+
+## `WindowSize`
+
+Tracks the browser window's inner dimensions reactively. Updates on every `resize` event.
+
+```tsx
+import { Compose } from '@praxisjs/decorators'
+import { WindowSize } from '@praxisjs/composables'
+
+@Component()
+class App extends StatefulComponent {
+  @Compose(WindowSize)
+  window!: WindowSize
+
+  render() {
+    return (
+      <div>
+        <p>Viewport: {() => this.window.width} × {() => this.window.height}</p>
+        {() => this.window.width < 768 && <MobileMenu />}
+      </div>
+    )
+  }
+}
+```
+
+**Properties:** `width: number`, `height: number`
+
+<StorybookLink story="composables-dom-windowsize--window-size-story" label="Live demo — WindowSize" />
+
+---
+
+## `ScrollPosition`
+
+Tracks scroll position. Omit the argument to track the window scroll; pass a ref string to track a specific scrollable element.
+
+```tsx
+// Track window scroll
+@Compose(ScrollPosition)
+scroll!: ScrollPosition
+
+render() {
+  return <p>Scroll Y: {() => this.scroll.y}px</p>
+}
+```
+
+```tsx
+// Track a specific scrollable element
+containerRef = { current: null as HTMLDivElement | null }
+
+@Compose(ScrollPosition, 'containerRef')
+scroll!: ScrollPosition
+
+render() {
+  return (
+    <div
+      ref={(el) => { this.containerRef.current = el }}
+      style="height:300px;overflow:auto"
+    >
+      <p>Scroll: {() => this.scroll.y}px</p>
+      {/* scrollable content */}
+    </div>
+  )
+}
+```
+
+<Callout type="info" title="Pass the ref string, not the element">
+  Pass the property name as a string (`'containerRef'`) rather than the element directly. The element doesn't exist at decoration time — the string is resolved to the actual ref object at mount when the DOM is ready.
+</Callout>
+
+**Properties:** `x: number`, `y: number`
+
+<StorybookLink story="composables-dom-scrollposition--scroll-position-story" label="Live demo — ScrollPosition" />
+
+---
+
+## `ElementSize`
+
+Tracks an element's dimensions reactively via `ResizeObserver`. Updates whenever the element's size changes.
+
+```tsx
+@Component()
+class ResizeWatcher extends StatefulComponent {
+  containerRef = { current: null as HTMLDivElement | null }
+
+  @Compose(ElementSize, 'containerRef')
+  size!: ElementSize
+
+  render() {
+    return (
+      <div ref={(el) => { this.containerRef.current = el }}>
+        <p>Width: {() => this.size.width}px, Height: {() => this.size.height}px</p>
+      </div>
+    )
+  }
+}
+```
+
+**Properties:** `width: number`, `height: number`
+
+<StorybookLink story="composables-dom-elementsize--element-size-story" label="Live demo — ElementSize" />
+
+---
+
+## `Intersection`
+
+Tracks whether an element is intersecting the viewport (or a scroll container) via `IntersectionObserver`.
+
+```tsx
+@Component()
+class LazySection extends StatefulComponent {
+  sectionRef = { current: null as HTMLElement | null }
+
+  @Compose(Intersection, 'sectionRef', { threshold: 0.5 })
+  visibility!: Intersection
+
+  render() {
+    return (
+      <section ref={(el) => { this.sectionRef.current = el }}>
+        {() => this.visibility.visible ? <HeavyContent /> : <Placeholder />}
+      </section>
+    )
+  }
+}
+```
+
+Constructor: `new Intersection(ref, options?)` — `options` matches `IntersectionObserverInit`.
+
+**Properties:** `visible: boolean`
+
+<StorybookLink story="composables-dom-intersection--intersection-story" label="Live demo — Intersection" />
+
+---
+
+## `Focus`
+
+Tracks whether an element currently has focus.
+
+```tsx
+@Component()
+class SearchBar extends StatefulComponent {
+  inputRef = { current: null as HTMLInputElement | null }
+
+  @Compose(Focus, 'inputRef')
+  focus!: Focus
+
+  render() {
+    return (
+      <div>
+        <input ref={(el) => { this.inputRef.current = el }} placeholder="Search..." />
+        {() => this.focus.focused && <span class="hint">Press Enter to search</span>}
+      </div>
+    )
+  }
+}
+```
+
+**Properties:** `focused: boolean`
+
+<StorybookLink story="composables-dom-focus--focus-story" label="Live demo — Focus" />

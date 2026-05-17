@@ -1,0 +1,81 @@
+---
+title: Packages
+description: All PraxisJS packages, their current versions, and install commands.
+icon: Package
+---
+
+# Packages
+
+All public packages published to npm. Versions follow [semantic versioning](https://semver.org) — breaking changes only happen in major bumps.
+
+## Foundation
+
+Core packages that every PraxisJS project depends on.
+
+| Package | Version | Description |
+| ------- | ------- | ----------- |
+| `@praxisjs/core` | `1.6.0` | Reactivity engine — `signal`, `computed`, `effect`, `batch`, `peek`, `untrack`, `resource` |
+| `@praxisjs/decorators` | `1.0.1` | Class component decorators — `@State`, `@Prop`, `@Watch`, `@Emit`, `@Compose`, `@Resource` |
+| `@praxisjs/runtime` | `0.2.17` | DOM renderer — mounts components, manages scopes, handles reactive children |
+| `@praxisjs/jsx` | `0.4.5` | JSX runtime (`jsx-runtime`, `jsx-dev-runtime`) |
+| `@praxisjs/shared` | `0.2.0` | Shared types and internal utilities (not installed directly) |
+
+```bash
+npm install @praxisjs/core @praxisjs/decorators @praxisjs/runtime @praxisjs/jsx
+```
+
+## Packages
+
+First-party plugins — install only what your project needs.
+
+| Package | Version | Description |
+| ------- | ------- | ----------- |
+| `@praxisjs/router` | `1.0.13` | Client-side router with `@Route` decorator |
+| `@praxisjs/store` | `1.0.12` | Class-based singleton state with `@Store` and `@UseStore` |
+| `@praxisjs/di` | `1.2.8` | Decorator-based dependency injection with scoped containers |
+| `@praxisjs/motion` | `1.1.11` | `@Tween` and `@Spring` animated field decorators |
+| `@praxisjs/fsm` | `1.0.12` | `@StateMachine` and `@Transition` finite state machines |
+| `@praxisjs/concurrent` | `1.2.9` | `@Task`, `@Queue`, `@Pool` async concurrency control |
+
+```bash
+npm install @praxisjs/router
+npm install @praxisjs/store
+npm install @praxisjs/di
+npm install @praxisjs/motion
+npm install @praxisjs/fsm
+npm install @praxisjs/concurrent
+```
+
+## Utilities
+
+| Package | Version | Description |
+| ------- | ------- | ----------- |
+| `@praxisjs/composables` | `1.1.1` | DOM, browser, and list composable classes via `@Compose` |
+
+```bash
+npm install @praxisjs/composables
+```
+
+## Tooling
+
+| Package | Version | Description |
+| ------- | ------- | ----------- |
+| `@praxisjs/vite-plugin` | `0.1.1` | Vite integration — decorators, JSX transform, HMR |
+| `@praxisjs/devtools` | `0.2.18` | In-app signal inspector and component profiler |
+| `@praxisjs/storybook` | `0.1.1` | Storybook framework adapter |
+
+```bash
+npm install -D @praxisjs/vite-plugin
+npm install -D @praxisjs/devtools
+npm install -D @praxisjs/storybook
+```
+
+## CLI
+
+| Package | Version | Description |
+| ------- | ------- | ----------- |
+| `create-praxisjs` | `0.3.22` | Project scaffolding CLI |
+
+```bash
+npm create praxisjs@latest
+```

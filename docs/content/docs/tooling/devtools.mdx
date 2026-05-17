@@ -1,0 +1,141 @@
+---
+title: DevTools
+description: "@praxisjs/devtools — in-app developer tools overlay for inspecting signals, component performance, and timeline events. Extensible via plugins."
+icon: ScanEye
+---
+
+# DevTools
+
+An in-app developer tools panel that appears as an overlay during development. Inspect reactive state, component render metrics, and a chronological event log — without leaving the browser.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm install @praxisjs/devtools
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add @praxisjs/devtools
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add @praxisjs/devtools
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add @praxisjs/devtools
+```
+</Tab>
+</Tabs>
+
+---
+
+## Setup
+
+Use a dynamic import so DevTools is never included in the production bundle:
+
+```ts
+// src/main.ts
+import { render } from '@praxisjs/runtime'
+import { App } from './app'
+
+render(() => <App />, document.getElementById('app')!)
+
+if (import.meta.env.DEV) {
+  const { DevTools } = await import('@praxisjs/devtools')
+  DevTools.init()
+}
+```
+
+A floating button appears in the bottom-right corner of the page. Click it to open the panel.
+
+---
+
+## Built-in panels
+
+### Signals
+
+Shows every field and getter decorated with `@Debug()` and its last 20 values.
+
+```tsx
+import { Component, State } from '@praxisjs/decorators'
+import { Debug } from '@praxisjs/devtools'
+
+@Component()
+class CartStore extends StatefulComponent {
+  @Debug({ label: 'Cart Items' })
+  @State()
+  items: Product[] = []
+
+  @Debug()
+  @State()
+  total = 0
+
+  @Debug({ label: 'Has Discount?' })
+  get hasDiscount() {
+    return this.total > 100
+  }
+}
+```
+
+The `label` option controls the display name — if omitted, the field or getter name is used.
+
+### Components
+
+Shows components instrumented with `@Trace()` and their render metrics:
+
+- Render count and last render duration in ms
+- Mount and unmount timestamps
+- Full lifecycle hook history
+
+```tsx
+import { Trace } from '@praxisjs/devtools'
+
+@Trace()
+@Component()
+class DataGrid extends StatefulComponent {
+  @State() rows: Row[] = []
+
+  render() {
+    return <table>{/* ... */}</table>
+  }
+}
+```
+
+### Timeline
+
+A chronological log of the last 200 events across the entire application:
+
+| Event type | Triggered by |
+|---|---|
+| `signal:change` | `@Debug` field or getter update |
+| `component:render` | `@Trace` component render |
+| `component:mount` | `@Trace` component mount |
+| `component:unmount` | `@Trace` component unmount |
+| `lifecycle` | Intermediate lifecycle hooks via `@Trace` |
+| `method:call` | `@Debug` method invocation |
+
+---
+
+## `@Debug(options?)` reference
+
+Tracks state, computed values, and methods in the Signals panel and Timeline. Imported from `@praxisjs/devtools`.
+
+See [DevTools Decorators](/docs/decorators/dx) for the full reference.
+
+---
+
+## Plugins
+
+DevTools is extensible — each tab is a plugin. You can add new tabs, replace built-in ones, or strip the panel to only what you need.
+
+See [DevTools Plugins](/docs/tooling/devtools-plugins) for the full guide.
+
+---
+
+<Callout type="info" title="Production builds">
+  `@Debug` and `@Trace` check whether `DevTools.init()` has been called before doing anything. If it hasn't (which is true in every production build), they're completely inert — zero runtime cost. Using a dynamic import ensures the DevTools package is never bundled into production.
+</Callout>

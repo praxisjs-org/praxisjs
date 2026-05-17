@@ -1,0 +1,178 @@
+---
+title: JSX Syntax
+description: PraxisJS uses a custom JSX runtime. Learn how to write reactive templates, handle events, use fragments, and map lists.
+icon: Braces
+---
+
+# JSX Syntax
+
+PraxisJS uses a custom JSX runtime (`@praxisjs/jsx`). Files with JSX must use the `.tsx` extension.
+
+## The one rule
+
+**Arrow functions are reactive, plain expressions are static.**
+
+```tsx
+render() {
+  return (
+    <div>
+      {() => this.name}                        {/* ✅ reactive — updates on signal change */}
+      {this.name}                               {/* ❌ static — read once at render time */}
+      {() => this.count * 2}                   {/* ✅ reactive expression */}
+      {() => this.active ? 'on' : 'off'}       {/* ✅ reactive conditional string */}
+    </div>
+  )
+}
+```
+
+<StorybookLink story="essentials-jsx-reactivevsstatic--reactive-vs-static" label="Live demo — reactive vs. static" />
+
+---
+
+## Conditional rendering
+
+Use an arrow function so the condition re-evaluates when the signal changes:
+
+```tsx
+render() {
+  return (
+    <div>
+      {/* Renders or removes <Modal /> when isOpen changes */}
+      {() => this.isOpen && <Modal />}
+
+      {/* Ternary — swaps between two components */}
+      {() => this.loading ? <Spinner /> : <Content />}
+    </div>
+  )
+}
+```
+
+---
+
+## Lists
+
+Render arrays inside an arrow function so the list rebuilds when the signal changes:
+
+```tsx
+render() {
+  return (
+    <ul>
+      {() => this.items.map((item) => (
+        <li key={item.id}>{item.name}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+<Callout type="warn" title="No reconciliation">
+  PraxisJS does not reconcile lists. When the arrow function re-runs, the entire list is replaced — all previous nodes are removed and new ones are inserted. The `key` prop is accepted by the type system for forward compatibility but has no runtime effect. For large lists, use the [`VirtualList` composable](/docs/composables/list) instead of a plain `.map()`.
+</Callout>
+
+<StorybookLink story="essentials-jsx-lists--lists" label="Live demo — lists" />
+
+---
+
+## Event handlers
+
+Event props use camelCase (`onClick`, `onInput`, `onKeyDown`, `onPointermove`, etc.). Event handlers are plain arrow functions — they don't need to be reactive:
+
+```tsx
+render() {
+  return (
+    <div>
+      <button onClick={() => this.count++}>Increment</button>
+      <input
+        onInput={(e) => {
+          this.value = (e.target as HTMLInputElement).value
+        }}
+      />
+    </div>
+  )
+}
+```
+
+<StorybookLink story="essentials-jsx-eventhandlers--event-handlers" label="Live demo — event handlers" />
+
+---
+
+## CSS classes
+
+Static class:
+
+```tsx
+<div class="card elevated">...</div>
+```
+
+Reactive class (rebuilds when the signal changes):
+
+```tsx
+<div class={() => this.active ? 'card active' : 'card'}>...</div>
+```
+
+---
+
+## Inline styles
+
+Static:
+
+```tsx
+<div style={{ color: 'red', fontSize: '16px' }}>...</div>
+```
+
+Reactive:
+
+```tsx
+<div style={() => ({ opacity: this.visible ? 1 : 0, transform: `scale(${this.scale})` })}>
+  ...
+</div>
+```
+
+---
+
+## Fragments
+
+Render multiple elements without a wrapper node:
+
+```tsx
+render() {
+  return (
+    <>
+      <Header />
+      <Main />
+      <Footer />
+    </>
+  )
+}
+```
+
+---
+
+## `ref` — accessing DOM elements
+
+Pass a callback to `ref` to capture a DOM element. The callback fires once the element is mounted:
+
+```tsx
+@Component()
+class InputFocus extends StatefulComponent {
+  private inputEl: HTMLInputElement | null = null
+
+  onMount() {
+    this.inputEl?.focus()
+  }
+
+  render() {
+    return <input ref={(el) => { this.inputEl = el }} />
+  }
+}
+```
+
+The `ref` callback receives the element on mount and `null` on unmount.
+
+---
+
+## What's next?
+
+- [Lifecycle Hooks](/docs/essentials/lifecycle) — when `onMount` fires and how to clean up
+- [Reactivity & Signals](/docs/essentials/reactivity) — the full signal model, computed values, and reading without tracking
+- [Decorators: Events & Slots](/docs/decorators/events) — `@Emit`, `@Slot`, and `@OnCommand`

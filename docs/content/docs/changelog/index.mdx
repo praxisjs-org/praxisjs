@@ -1,0 +1,42 @@
+---
+title: Changelog
+description: Release history across all PraxisJS packages — what changed, what broke, what's new.
+icon: ScrollText
+---
+
+# Changelog
+
+All packages follow [semantic versioning](https://semver.org). Breaking changes only happen in major versions and are listed with a **Breaking** label.
+
+## Foundation
+
+The core packages every PraxisJS project depends on.
+
+<Cards>
+  <Card title="@praxisjs/core" description="Signals, computed, effects, batch, peek, untrack. The reactive engine." href="/docs/changelog/core" />
+  <Card title="@praxisjs/decorators" description="@State, @Prop, @Watch, @Emit, @Compose, @Resource, and all built-in decorators." href="/docs/changelog/decorators" />
+  <Card title="@praxisjs/runtime" description="DOM renderer, component mounting, reactive scopes, and DOM patching." href="/docs/changelog/runtime" />
+</Cards>
+
+## Packages
+
+Install only what your project needs — each is independent.
+
+<Cards>
+  <Card title="@praxisjs/router" description="Signal-based client-side routing with decorator API." href="/docs/changelog/router" />
+  <Card title="@praxisjs/store" description="Class-based singleton state with @Store and @UseStore." href="/docs/changelog/store" />
+  <Card title="@praxisjs/di" description="Decorator-based dependency injection with scoped containers." href="/docs/changelog/di" />
+  <Card title="@praxisjs/motion" description="@Tween and @Spring animated field decorators." href="/docs/changelog/motion" />
+  <Card title="@praxisjs/fsm" description="@StateMachine and @Transition finite state machines." href="/docs/changelog/fsm" />
+  <Card title="@praxisjs/concurrent" description="@Task, @Queue, @Pool async concurrency control." href="/docs/changelog/concurrent" />
+</Cards>
+
+## Utilities & Tooling
+
+<Cards>
+  <Card title="@praxisjs/composables" description="DOM, browser, and list composable classes." href="/docs/changelog/composables" />
+  <Card title="@praxisjs/devtools" description="In-app signal inspector and component profiler." href="/docs/changelog/devtools" />
+  <Card title="@praxisjs/storybook" description="Storybook framework adapter." href="/docs/changelog/storybook" />
+  <Card title="@praxisjs/vite-plugin" description="Vite integration — decorators, JSX transform, HMR." href="/docs/changelog/vite-plugin" />
+  <Card title="create-praxisjs" description="Project scaffolding CLI." href="/docs/changelog/create-praxisjs" />
+</Cards>

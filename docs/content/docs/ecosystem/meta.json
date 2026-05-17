@@ -1,0 +1,12 @@
+{
+  "title": "Packages",
+  "icon": "Package",
+  "pages": [
+    "router",
+    "store",
+    "di",
+    "motion",
+    "fsm",
+    "concurrency"
+  ]
+}

@@ -1,0 +1,167 @@
+---
+title: Quick Start
+description: Create a new PraxisJS project and build your first component in minutes.
+icon: Zap
+---
+
+# Quick Start
+
+## Automatic setup (recommended)
+
+`create-praxisjs` scaffolds a project with TypeScript, Vite, JSX, and HMR already configured. It's the fastest way to get started.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm create praxisjs@latest
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm create praxisjs
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn create praxisjs
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun create praxisjs
+```
+</Tab>
+</Tabs>
+
+The CLI asks for a project name and a template:
+
+| Template | What's included |
+|---|---|
+| **Minimal** | core, decorators, jsx, runtime |
+| **With Router** | Minimal + router |
+| **Full** | Router + store, di, composables, concurrent, devtools |
+
+Start the dev server:
+
+```sh
+cd my-app
+npm install
+npm run dev
+```
+
+---
+
+## Manual setup
+
+Prefer to wire things up yourself? Here's what you need.
+
+### 1. Install packages
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+<Tab value="npm">
+```sh
+npm install @praxisjs/core @praxisjs/jsx @praxisjs/runtime @praxisjs/decorators
+npm install -D @praxisjs/vite-plugin
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add @praxisjs/core @praxisjs/jsx @praxisjs/runtime @praxisjs/decorators
+pnpm add -D @praxisjs/vite-plugin
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add @praxisjs/core @praxisjs/jsx @praxisjs/runtime @praxisjs/decorators
+yarn add -D @praxisjs/vite-plugin
+```
+</Tab>
+</Tabs>
+
+### 2. Configure Vite
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite'
+import { praxisjs } from '@praxisjs/vite-plugin'
+
+export default defineConfig({
+  plugins: [praxisjs({ hmr: true })],
+})
+```
+
+### 3. Configure TypeScript
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@praxisjs/jsx",
+    "useDefineForClassFields": false,
+    "strict": true,
+    "noEmit": true
+  }
+}
+```
+
+<Callout type="warn" title="`useDefineForClassFields: false` is required">
+  This is the most common setup mistake. With `true` (the TypeScript ES2022+ default), class fields compile as `Object.defineProperty`, which runs **after** decorator initializers and overwrites the signal getter/setter they registered. Setting it to `false` compiles fields as constructor assignments (`this.x = value`), keeping decorator wiring intact.
+</Callout>
+
+---
+
+## Your first component
+
+```tsx
+// src/Counter.tsx
+import { StatefulComponent } from '@praxisjs/core'
+import { Component, State, Prop } from '@praxisjs/decorators'
+
+@Component()
+class Counter extends StatefulComponent {
+  @Prop() initialCount = 0
+  @State() count = 0
+
+  onMount() {
+    this.count = this.initialCount
+  }
+
+  render() {
+    return (
+      <div>
+        <p>Count: {() => this.count}</p>
+        <button onClick={() => this.count++}>+</button>
+        <button onClick={() => this.count--}>−</button>
+      </div>
+    )
+  }
+}
+```
+
+<Callout type="info" title="Why {() => this.count} instead of {this.count}?">
+  `render()` runs **once** on mount. Without the arrow function, `this.count` is read once at that moment and never updates. Wrapping it in `{() => this.count}` creates a live subscription: when `count` changes, only that specific `<p>` node updates.
+</Callout>
+
+<StorybookLink story="getting-started-counter--default" label="Counter — live demo" />
+
+### Mount the app
+
+```ts
+// src/main.ts
+import { render } from '@praxisjs/runtime'
+import { Counter } from './Counter'
+
+render(() => <Counter initialCount={5} />, document.getElementById('app')!)
+```
+
+---
+
+## What's next?
+
+- [Components](/docs/essentials/components) — understand StatefulComponent vs StatelessComponent
+- [Reactivity & Signals](/docs/essentials/reactivity) — how signals and arrow functions work under the hood
+- [JSX Syntax](/docs/essentials/jsx) — every JSX pattern: conditionals, lists, events, refs

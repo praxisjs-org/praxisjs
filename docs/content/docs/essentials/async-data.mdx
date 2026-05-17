@@ -1,0 +1,121 @@
+---
+title: Async Data
+description: "@Resource is PraxisJS's decorator for binding async data to a component field — it tracks loading, error, and data state reactively, with automatic refetch, cancel, and mutate."
+icon: Database
+---
+
+# Async Data
+
+`@Resource` binds an async data source directly to a component field. It handles loading state, error handling, and automatic refetching when its reactive dependencies change — without any manual wiring.
+
+## Basic usage
+
+```tsx
+import { Component, State, Resource } from '@praxisjs/decorators'
+import { StatefulComponent } from '@praxisjs/core'
+
+@Component()
+class UserProfile extends StatefulComponent {
+  @State() userId = 1
+
+  @Resource(() => fetch(`/api/users/${this.userId}`).then(r => r.json()))
+  user!: ResourceInstance<User>
+
+  render() {
+    return (
+      <div>
+        {() => this.user.pending() && <p>Loading...</p>}
+        {() => this.user.error() && <p>Error: {this.user.error()?.message}</p>}
+        {() => this.user.data() && <p>Hello, {this.user.data()!.name}</p>}
+      </div>
+    )
+  }
+}
+```
+
+When `this.userId` changes, the resource automatically cancels any pending request and starts a new one. The `userId` signal is read inside the fetcher arrow function, making it a tracked dependency.
+
+<StorybookLink story="essentials-async-data-resource--pagination" label="Live demo — pagination + keepPreviousData" />
+
+---
+
+## Resource state
+
+| Property | Type | Description |
+|---|---|---|
+| `.data()` | `T \| null` | The resolved value, or `null` before the first successful fetch |
+| `.pending()` | `boolean` | `true` while a fetch is in-flight |
+| `.error()` | `Error \| null` | The last error, or `null` if no error |
+| `.status()` | `'idle' \| 'pending' \| 'success' \| 'error'` | Full status string |
+
+All properties are reactive — read them inside `{() => ...}` in JSX to subscribe.
+
+---
+
+## Options
+
+```tsx
+@Resource(() => api.getUsers(), {
+  initialData: [],        // value of .data() before the first fetch completes
+  immediate: false,       // don't fetch automatically on init (default: true)
+  keepPreviousData: true, // keep old data visible while refetching
+})
+users!: ResourceInstance<User[]>
+```
+
+`keepPreviousData` is useful for pagination: the current page stays visible while the next one loads.
+
+<StorybookLink story="essentials-async-data-manualfetch--manual-fetch" label="Live demo — immediate: false" />
+
+---
+
+## Refetch, cancel, and mutate
+
+```tsx
+// Manually trigger a new fetch
+<button onClick={() => this.user.refetch()}>Refresh</button>
+
+// Cancel an in-flight request (the promise is abandoned, not aborted)
+<button onClick={() => this.user.cancel()}>Cancel</button>
+```
+
+### Optimistic updates
+
+`mutate()` lets you update the UI immediately while the server request is in-flight:
+
+```tsx
+async save(newName: string) {
+  // Update the UI now
+  this.user.mutate({ ...this.user.data()!, name: newName })
+
+  // Sync with the server, then confirm with a fresh fetch
+  await api.updateUser({ name: newName })
+  this.user.refetch()
+}
+```
+
+---
+
+## Reactive dependencies
+
+Any signal read inside the fetcher arrow function is a dependency. When it changes, the resource automatically cancels any pending request and starts a new one:
+
+```tsx
+@State() page = 1
+@State() search = ''
+
+@Resource(() =>
+  fetch(`/api/search?q=${this.search}&page=${this.page}`).then(r => r.json())
+)
+results!: ResourceInstance<SearchResult[]>
+```
+
+Changing `this.page` or `this.search` triggers an immediate refetch. Both are reactive dependencies because they're read inside the fetcher.
+
+---
+
+## What's next?
+
+- [Decorators: State & Props](/docs/decorators/state#resource) — full `@Resource` reference with all options
+- [Decorators: Watchers](/docs/decorators/watchers) — `@Watch` for reacting to state changes in methods
+- [Concurrency](/docs/ecosystem/concurrency) — `@Task`, `@Queue`, `@Pool` for complex async flows

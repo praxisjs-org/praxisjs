@@ -1,0 +1,280 @@
+---
+title: Creating Decorators
+description: How to build custom decorators in PraxisJS using createFieldDecorator, createMethodDecorator, createLifecycleMethodDecorator, createGetterDecorator, createGetterObserverDecorator, and createClassDecorator.
+icon: Tag
+---
+
+# Creating Decorators
+
+PraxisJS provides factory functions for creating decorators. Each handles a different use case and manages per-instance state correctly.
+
+---
+
+## Field decorators
+
+Use `createFieldDecorator` to replace a property with custom reactive behavior.
+
+`bind()` is called once per instance when the class initializes. Return a `descriptor` to replace the property with a custom getter/setter.
+
+**Example — `@SessionValue`** stores a value in `sessionStorage` and stays reactive:
+
+```ts
+import { createFieldDecorator } from '@praxisjs/decorators'
+import { signal } from '@praxisjs/core/internal'
+
+export function SessionValue(key: string) {
+  return createFieldDecorator({
+    bind(_instance, name) {
+      const stored = sessionStorage.getItem(key)
+      const _value = signal(stored ?? '')
+
+      return {
+        descriptor: {
+          get() { return _value() },
+          set(v: string) {
+            _value.set(v)
+            sessionStorage.setItem(key, v)
+          },
+        },
+      }
+    },
+  })
+}
+```
+
+```tsx
+@Component()
+class SearchPage extends StatefulComponent {
+  @SessionValue('search:query')
+  query = ''
+
+  render() {
+    return (
+      <input
+        value={() => this.query}
+        onInput={(e) => { this.query = (e.target as HTMLInputElement).value }}
+      />
+    )
+  }
+}
+```
+
+`bind()` receives `(instance, name, initialValue)`. The `FieldBinding` you return can also include `onMount`, `onUnmount`, and `additional` (extra properties to define on the instance).
+
+<StorybookLink story="guide-custom-decorators-fielddecorator--field-decorator" label="Live demo — createFieldDecorator (@SessionValue)" />
+
+---
+
+## Method decorators
+
+Use `createMethodDecorator` to wrap a method with cross-cutting behavior.
+
+`wrap()` receives the original function and returns a replacement. It's called once per instance.
+
+**Example — `@Confirm`** shows a dialog before running:
+
+```ts
+import { createMethodDecorator } from '@praxisjs/decorators'
+
+export function Confirm(message: string) {
+  return createMethodDecorator({
+    wrap(original) {
+      return function (this: object, ...args: unknown[]) {
+        if (window.confirm(message)) {
+          return original.apply(this, args)
+        }
+      }
+    },
+  })
+}
+```
+
+```tsx
+@Confirm('Delete this item permanently?')
+async deleteItem(id: number) {
+  await api.delete(id)
+}
+```
+
+For per-instance state, use a `WeakMap` keyed on the instance:
+
+```ts
+export function CountCalls() {
+  const counts = new WeakMap<object, number>()
+
+  return createMethodDecorator({
+    wrap(original, instance) {
+      counts.set(instance, 0)
+      return function (this: object, ...args: unknown[]) {
+        counts.set(this, (counts.get(this) ?? 0) + 1)
+        return original.apply(this, args)
+      }
+    },
+  })
+}
+```
+
+---
+
+## Lifecycle method decorators
+
+Use `createLifecycleMethodDecorator` to automatically register a method as a listener on mount and clean it up on unmount — without the component knowing about it.
+
+`register(callback, instance)` is called inside `onMount`. If it returns a function, that function is called on `onUnmount` as cleanup.
+
+**Example — `@OnResize`** calls a method whenever the window is resized:
+
+```ts
+import { createLifecycleMethodDecorator } from '@praxisjs/decorators'
+
+export function OnResize() {
+  return createLifecycleMethodDecorator({
+    register(callback) {
+      window.addEventListener('resize', callback)
+      return () => window.removeEventListener('resize', callback)
+    },
+  })
+}
+```
+
+```tsx
+@Component()
+class Layout extends StatefulComponent {
+  @State() cols = 3
+
+  @OnResize()
+  recalculate() {
+    this.cols = window.innerWidth > 1024 ? 4 : window.innerWidth > 640 ? 3 : 1
+  }
+
+  render() {
+    return <Grid cols={() => this.cols} />
+  }
+}
+```
+
+No manual `addEventListener`/`removeEventListener` needed — the decorator handles it.
+
+<StorybookLink story="guide-custom-decorators-lifecycledecorator--lifecycle-decorator" label="Live demo — createLifecycleMethodDecorator (@OnResize)" />
+
+---
+
+## Getter decorators
+
+### `createGetterDecorator` — transform or constrain a getter's value
+
+`wrap(original, instance)` is called on every property access and should return a function that computes the final value.
+
+**Example — `@Clamp(min, max)`** constrains a getter to a numeric range:
+
+```ts
+import { createGetterDecorator } from '@praxisjs/decorators'
+
+export function Clamp(min: number, max: number) {
+  return createGetterDecorator({
+    wrap(original, instance) {
+      return () => {
+        const value = original.call(instance) as number
+        return Math.min(max, Math.max(min, value))
+      }
+    },
+  })
+}
+```
+
+```tsx
+@Component()
+class Slider extends StatefulComponent {
+  @State() raw = 0
+
+  @Clamp(0, 100)
+  get value() { return this.raw }
+
+  render() {
+    return <p>{() => this.value}</p>  // always between 0 and 100
+  }
+}
+```
+
+<StorybookLink story="guide-custom-decorators-getterdecorator--getter-decorator" label="Live demo — createGetterDecorator (@Clamp)" />
+
+### `createGetterObserverDecorator` — observe a getter for side effects
+
+Observes a getter without changing its return value. `observe(getter, instance, name)` is called once per instance at initialization — set up a reactive effect here.
+
+**Example — `@LogChange`** logs whenever a computed getter produces a new value:
+
+```ts
+import { createGetterObserverDecorator } from '@praxisjs/decorators'
+import { effect } from '@praxisjs/core/internal'
+
+export function LogChange() {
+  return createGetterObserverDecorator({
+    observe(getter, instance, name) {
+      effect(() => {
+        console.log(`[${name}]`, getter.call(instance))
+      })
+    },
+  })
+}
+```
+
+```tsx
+@LogChange()
+@Computed()
+get filteredItems() {
+  return this.items.filter(i => i.active)
+}
+```
+
+The observer runs once on setup, then again whenever a signal read inside `getter` changes.
+
+---
+
+## Class decorators
+
+Use `createClassDecorator` to augment the component lifecycle or wrap `render()`.
+
+Extend `ClassBehavior` and implement `create()`, called once per instance. Return a `ClassEnhancement` with `onMount`, `onUnmount`, and/or `render`.
+
+**Example — `@Analytics`** tracks mount/unmount events automatically:
+
+```ts
+import { createClassDecorator, ClassBehavior } from '@praxisjs/decorators'
+
+class AnalyticsBehavior extends ClassBehavior {
+  constructor(private readonly name: string) { super() }
+
+  create() {
+    const name = this.name
+    return {
+      onMount()   { analytics.track('mount',   { component: name }) },
+      onUnmount() { analytics.track('unmount', { component: name }) },
+    }
+  }
+}
+
+export function Analytics(name: string) {
+  return createClassDecorator(new AnalyticsBehavior(name))
+}
+```
+
+```tsx
+@Analytics('UserDashboard')
+@Component()
+class UserDashboard extends StatefulComponent { /* ... */ }
+```
+
+To wrap rendering, return a `render` function that receives `originalRender` and can modify or wrap its output:
+
+```ts
+create(_instance) {
+  return {
+    render(originalRender) {
+      const nodes = originalRender()
+      // wrap with an error boundary, portal, loading gate, etc.
+      return nodes
+    },
+  }
+}
+```

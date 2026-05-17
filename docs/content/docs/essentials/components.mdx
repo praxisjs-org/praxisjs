@@ -1,0 +1,148 @@
+---
+title: Components
+description: PraxisJS has two component types — StatefulComponent for components with internal state, and StatelessComponent for pure presentational components.
+icon: Box
+---
+
+# Components
+
+PraxisJS has two component base classes. Both require the `@Component()` decorator and a `render()` method.
+
+## Choosing the right base class
+
+| | `StatefulComponent` | `StatelessComponent` |
+|---|---|---|
+| Internal `@State` | ✅ | ❌ |
+| `@Watch`, `@Emit`, `@Slot` | ✅ | ❌ |
+| Props via `@Prop()` | ✅ | via generic type |
+| Lifecycle hooks | ✅ | ✅ |
+| Use when | Component has its own reactive state | Component only renders from props |
+
+<Callout type="info" title="When in doubt, use StatelessComponent">
+  If a component has no `@State`, `@Watch`, or `@Emit` — it only renders from props — prefer `StatelessComponent`. It signals intent clearly and prevents accidentally adding reactive state where none is needed.
+</Callout>
+
+---
+
+## StatefulComponent
+
+For components with internal state, watchers, events, and named slots.
+
+```tsx
+import { StatefulComponent } from '@praxisjs/core'
+import { Component, State, Prop } from '@praxisjs/decorators'
+
+@Component()
+class Greeting extends StatefulComponent {
+  @Prop() name = 'World'
+  @State() count = 0
+
+  render() {
+    return (
+      <div>
+        <h1>Hello, {() => this.name}!</h1>
+        <p>Clicked {() => this.count} times</p>
+        <button onClick={() => this.count++}>Click me</button>
+      </div>
+    )
+  }
+}
+```
+
+`render()` is called **once** on mount. Everything inside it is static unless wrapped in an arrow function — `{() => this.count}` creates a live subscription that updates when `count` changes.
+
+<StorybookLink story="essentials-components-statefulcomponent--stateful" label="Live demo — StatefulComponent" />
+
+---
+
+## StatelessComponent
+
+For presentational components with no internal state. Props are declared via a generic type parameter, which gives you type-safe `this.props` access in `render()`.
+
+```tsx
+import { StatelessComponent } from '@praxisjs/core'
+import { Component } from '@praxisjs/decorators'
+
+interface CardProps {
+  title: string
+  description?: string
+}
+
+@Component()
+class Card extends StatelessComponent<CardProps> {
+  render() {
+    return (
+      <div class="card">
+        <h2>{this.props.title}</h2>
+        {this.props.description && <p>{this.props.description}</p>}
+      </div>
+    )
+  }
+}
+```
+
+### Children
+
+Every `StatelessComponent` automatically has a typed `children` prop — no need to declare it manually. Access it via `this.props.children`:
+
+```tsx
+@Component()
+class Card extends StatelessComponent<CardProps> {
+  render() {
+    return (
+      <div class="card">
+        <h2>{this.props.title}</h2>
+        {this.props.children}
+      </div>
+    )
+  }
+}
+
+// Usage:
+<Card title="Features">
+  <p>Everything you need.</p>
+</Card>
+```
+
+<StorybookLink story="essentials-components-statelesscomponent--stateless" label="Live demo — StatelessComponent" />
+
+---
+
+## Using components in JSX
+
+Components are just classes — import and use them directly in another component's `render()`:
+
+```tsx
+render() {
+  return (
+    <div>
+      <Greeting name="PraxisJS" />
+      <Card title="Features" description="Everything you need." />
+    </div>
+  )
+}
+```
+
+No global registration step needed.
+
+---
+
+## Mounting the root component
+
+Use `render()` from `@praxisjs/runtime` to mount your root component into the DOM:
+
+```ts
+import { render } from '@praxisjs/runtime'
+
+render(() => <App />, document.getElementById('app')!)
+```
+
+The arrow function wrapper (`() => <App />`) is required. It creates a reactive scope so the runtime can track what the root renders.
+
+---
+
+## What's next?
+
+- [Reactivity & Signals](/docs/essentials/reactivity) — how `@State` signals work and why arrow functions are needed
+- [Lifecycle Hooks](/docs/essentials/lifecycle) — onMount, onUnmount, and error handling
+- [Decorators: State & Props](/docs/decorators/state) — full reference for `@State`, `@Prop`, `@Computed`, and more

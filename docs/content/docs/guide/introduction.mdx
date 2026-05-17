@@ -1,0 +1,82 @@
+---
+title: Introduction
+description: What PraxisJS is, why it exists, and how it approaches frontend reactivity.
+icon: Info
+---
+
+# Introduction
+
+PraxisJS is a **signal-driven frontend framework** written in TypeScript. It uses class components with decorators and fine-grained signals that update only the exact DOM nodes that changed — no virtual DOM, no component re-renders.
+
+## The core idea
+
+Most frameworks track reactivity implicitly. You write templates or JSX, and the runtime figures out what to re-run. PraxisJS takes the opposite stance: **reactivity is always explicit, always visible in the code**.
+
+```tsx
+@Component()
+class Counter extends StatefulComponent {
+  @State() count = 0
+
+  render() {
+    return (
+      <div>
+        <p>Count: {() => this.count}</p>   {/* reactive — updates when count changes */}
+        <button onClick={() => this.count++}>+</button>
+      </div>
+    )
+  }
+}
+```
+
+The arrow function `{() => this.count}` is the contract: *this value changes, track it*. Without the arrow function, the value is read once at render time and never updates. You can see exactly what is reactive and what is not — directly in the template, without reading any framework documentation to find out.
+
+## How rendering works
+
+`render()` runs **exactly once**, on mount. It builds the initial DOM. After that, the renderer is done — it never runs `render()` again.
+
+Updates happen through reactive effects: each `{() => expr}` arrow function in JSX becomes a live subscription. When any signal it reads changes, only that specific DOM node is updated. The rest of the tree is untouched.
+
+This means:
+- No diffing, no reconciliation
+- No cascading re-renders from parent to child
+- Predictable update granularity — you know exactly what updates and when
+
+## What makes it different
+
+| | PraxisJS |
+|---|---|
+| Reactivity model | Fine-grained signals |
+| Update mechanism | Direct DOM mutations — no virtual DOM |
+| Component style | TypeScript class + decorators |
+| `render()` behavior | Runs **once** on mount |
+| Template reactivity | `{() => this.value}` arrow functions |
+| State declaration | `@State()` on a class field |
+
+## Philosophy
+
+*Praxis* (πρᾶξις, Greek: *action, practice*). Not how things should be — how they are actually done.
+
+`@State` doesn't *suggest* a property is reactive — it **is** reactive, and you can see that in the code. `@Watch` doesn't hint at a side effect — it commits to one. The component doesn't hide what it does: it practices openly.
+
+This has a practical benefit: when something doesn't update the way you expected, the answer is almost always visible right in the template — either the value is wrapped in `{() => ...}` or it isn't.
+
+## The first-party ecosystem
+
+PraxisJS ships a complete set of packages that use the same signal system and decorator conventions as core:
+
+- **[@praxisjs/router](/docs/ecosystem/router)** — Client-side routing with `@RouterConfig`, `@Route`, and reactive injectors
+- **[@praxisjs/store](/docs/ecosystem/store)** — Singleton state stores with `@Store` and `@UseStore`
+- **[@praxisjs/di](/docs/ecosystem/di)** — Dependency injection with `@Injectable`, `@Inject`, and scoped containers
+- **[@praxisjs/motion](/docs/ecosystem/motion)** — Animated field decorators: `@Tween` and `@Spring`
+- **[@praxisjs/fsm](/docs/ecosystem/fsm)** — Finite state machines via `@StateMachine` and `@Transition`
+- **[@praxisjs/composables](/docs/composables)** — DOM and browser utilities via `@Compose`
+- **[@praxisjs/devtools](/docs/tooling/devtools)** — In-app signal inspector and component profiler
+- **[@praxisjs/storybook](/docs/tooling/storybook)** — Storybook framework adapter
+
+All packages are optional and completely independent — install only what your project needs.
+
+## Next steps
+
+- [Quick Start](/docs/guide/getting-started) — scaffold or set up your first project
+- [Components](/docs/essentials/components) — understand the StatefulComponent model
+- [Reactivity & Signals](/docs/essentials/reactivity) — dive deeper into how signals propagate

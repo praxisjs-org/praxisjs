@@ -1,0 +1,191 @@
+---
+title: Dependency Injection
+description: "@praxisjs/di — decorator-based DI with @Injectable, @Inject, @InjectContainer, and @Scope for per-instance scoped containers."
+icon: Plug
+---
+
+# Dependency Injection
+
+Decorator-based DI with singleton/transient scopes, token-based injection, and per-instance scoped containers. Works in any class — not just components.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm install @praxisjs/di
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add @praxisjs/di
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add @praxisjs/di
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add @praxisjs/di
+```
+</Tab>
+</Tabs>
+
+---
+
+## `@Injectable(options?)`
+
+Registers a class in the global container. A class must be decorated with `@Injectable` to be resolvable.
+
+```ts
+import { Injectable } from '@praxisjs/di'
+
+@Injectable()
+class LoggerService {
+  log(msg: string) { console.log('[LOG]', msg) }
+}
+
+@Injectable({ scope: 'transient' })  // new instance on every resolve
+class RequestContext { /* ... */ }
+```
+
+The default scope is `'singleton'` — one shared instance per container.
+
+<StorybookLink story="ecosystem-di--default" label="Live demo — @Injectable / @Inject" />
+
+---
+
+## `@Inject(dep)`
+
+Lazily injects a dependency from the container into a field. Resolved on first access.
+
+```ts
+@Injectable()
+class UserService {
+  @Inject(LoggerService) private logger!: LoggerService
+
+  greet(name: string) {
+    this.logger.log(`Hello, ${name}`)
+  }
+}
+```
+
+Works in any class — services, components, stores, or plain utility classes.
+
+---
+
+## `@InjectContainer()`
+
+Injects the container itself. Inside a `@Scope` class, injects the scoped child container.
+
+```ts
+@Injectable()
+class ServiceLocator {
+  @InjectContainer() private container!: Container
+
+  get<T>(token: Token<T>): T {
+    return this.container.resolve(token)
+  }
+}
+```
+
+---
+
+## Token-based injection
+
+For non-class dependencies like interfaces, configuration objects, or primitive values:
+
+```ts
+import { token, container } from '@praxisjs/di'
+
+const CONFIG_TOKEN = token<AppConfig>('config')
+
+container.registerValue(CONFIG_TOKEN, {
+  apiUrl: 'https://api.example.com',
+  timeout: 5000,
+})
+
+@Injectable()
+class ApiService {
+  @Inject(CONFIG_TOKEN) private config!: AppConfig
+
+  fetch(path: string) {
+    return fetch(`${this.config.apiUrl}${path}`)
+  }
+}
+```
+
+---
+
+## In components
+
+Use `@Inject` directly on component fields — no adapter or bridge needed:
+
+```tsx
+import { Inject } from '@praxisjs/di'
+
+@Component()
+class Dashboard extends StatefulComponent {
+  @Inject(AnalyticsService) private analytics!: AnalyticsService
+
+  onMount() {
+    this.analytics.track('dashboard:view')
+  }
+
+  render() { return <div>Dashboard</div> }
+}
+```
+
+---
+
+## `@Scope(configure?)`
+
+Creates a child container scoped to each instance of the class. `@Inject` and `@InjectContainer` inside the class resolve from this child container automatically — inheriting all global registrations but allowing per-instance overrides.
+
+```tsx
+import { Scope, Inject } from '@praxisjs/di'
+
+@Scope((c) => {
+  c.register(UserRepository)
+  c.registerValue(AUTH_TOKEN, getCurrentToken())
+})
+@Component()
+class UserModule extends StatefulComponent {
+  @Inject(UserRepository) private repo!: UserRepository
+
+  render() { /* ... */ }
+}
+```
+
+Each `UserModule` instance gets its own isolated container. Useful for feature modules, dialogs, or multi-tenant layouts where different instances need different service implementations.
+
+---
+
+## Circular dependency detection
+
+When a circular dependency is detected at resolution time, the container throws a descriptive error:
+
+```
+Circular dependency detected: ServiceA → ServiceB → ServiceA
+```
+
+---
+
+## Container API
+
+For advanced use cases where you need to register or resolve dependencies imperatively:
+
+```ts
+import { container } from '@praxisjs/di'
+
+container.register(MyService)
+container.register(MyService, { scope: 'transient' })
+container.registerValue(TOKEN, value)
+container.registerFactory(TOKEN, (c) => new MyService(c.resolve(Dep)))
+container.resolve(MyService)
+
+// Create a child container — inherits all parent registrations
+const child = container.createChild()
+child.registerValue(REQUEST_TOKEN, currentRequest)
+child.resolve(MyService)  // MyService can inject REQUEST_TOKEN
+```

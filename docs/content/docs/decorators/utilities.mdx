@@ -1,0 +1,154 @@
+---
+title: Utility Decorators
+description: General-purpose method decorators — @Bind, @Log, @Once, @Memo, and @Retry.
+icon: Wrench
+---
+
+# Utility Decorators
+
+General-purpose decorators for cross-cutting concerns: binding, logging, caching, and retry logic.
+
+---
+
+## `@Bind()`
+
+Binds the method to the instance. Useful when you need to pass a method as a callback without wrapping it in an arrow function every time.
+
+```tsx
+@Component()
+class Panel extends StatefulComponent {
+  @State() open = true
+
+  @Bind()
+  handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') this.open = false
+  }
+
+  onMount() {
+    // `this` is correct because of @Bind — no arrow wrapper needed
+    window.addEventListener('keydown', this.handleKeyDown)
+  }
+
+  onUnmount() {
+    window.removeEventListener('keydown', this.handleKeyDown)
+  }
+
+  render() {
+    return () => this.open && <div class="panel">...</div>
+  }
+}
+```
+
+<StorybookLink story="decorators-utilities-bind--bind-story" label="Live demo — @Bind" />
+
+---
+
+## `@Log(options?)`
+
+Logs method calls with arguments, return value, and execution time. Dev-only by default — stripped from production builds when `devOnly: true`.
+
+```tsx
+@Log({ level: 'debug', time: true })
+async fetchUser(id: number) {
+  return fetch(`/api/users/${id}`).then(r => r.json())
+}
+// Logs: fetchUser(42) → { id: 42, name: 'Jane' } [12ms]
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `level` | `'log' \| 'debug' \| 'warn'` | `'log'` | Console method to use |
+| `args` | `boolean` | `true` | Include arguments in the log |
+| `result` | `boolean` | `true` | Include the return value |
+| `time` | `boolean` | `false` | Include execution time in ms |
+| `devOnly` | `boolean` | `true` | Skip in production environments |
+
+---
+
+## `@Once()`
+
+Ensures the method runs at most once per instance. The return value is cached and returned on all subsequent calls — the original function never runs again.
+
+```tsx
+@Component()
+class AppConfig extends StatefulComponent {
+  @Once()
+  async loadConfig() {
+    const res = await fetch('/config.json')
+    return res.json()
+    // Fetched once — every subsequent call returns the cached result
+  }
+
+  onMount() {
+    this.loadConfig().then(config => console.log(config))
+    this.loadConfig().then(config => console.log(config))  // same result, no second request
+  }
+}
+```
+
+<StorybookLink story="decorators-utilities-once--once-story" label="Live demo — @Once" />
+
+---
+
+## `@Memo()`
+
+Memoizes the return value per unique argument combination. Each unique set of arguments gets its own reactive `computed()` — so if the method reads any `@State` or `@Prop`, the cache updates automatically when those signals change.
+
+```tsx
+@Component()
+class PriceList extends StatefulComponent {
+  @State() discount = 0
+
+  @Memo()
+  discountedPrice(price: number) {
+    return price * (1 - this.discount)
+  }
+
+  render() {
+    return (
+      <ul>
+        <li>$100 → {() => this.discountedPrice(100)}</li>
+        <li>$200 → {() => this.discountedPrice(200)}</li>
+        <li>$500 → {() => this.discountedPrice(500)}</li>
+      </ul>
+    )
+  }
+}
+```
+
+When `this.discount` changes, all three cached values recompute. Each argument combination has an independent cache entry.
+
+<Callout type="info" title="How argument caching works">
+  Arguments are serialized as a string key:
+  - Objects/null → `JSON.stringify` (falls back to object identity for non-serializable values)
+  - Symbols → `symbol.toString()`
+  - Everything else → `String(value)`
+</Callout>
+
+<StorybookLink story="decorators-utilities-memo--memo-story" label="Live demo — @Memo" />
+
+---
+
+## `@Retry(maxAttempts, options?)`
+
+Automatically retries an async method on failure. The method is called again after `delay` ms, with the delay multiplied by `backoff` on each subsequent attempt.
+
+```tsx
+@Retry(3, { delay: 500, backoff: 2 })
+async saveData(data: object) {
+  const res = await fetch('/api/save', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`Save failed: ${res.status}`)
+}
+// Attempts at: 0ms, 500ms, 1000ms — then throws if all fail
+```
+
+| Option | Type | Description |
+|---|---|---|
+| `delay` | `number` | Wait (ms) before the first retry |
+| `backoff` | `number` | Multiply delay by this factor on each retry (`2` doubles it) |
+| `onRetry` | `(error, attempt) => void` | Called before each retry attempt |
+
+<StorybookLink story="decorators-utilities-retry--retry-story" label="Live demo — @Retry" />

@@ -1,0 +1,9 @@
+{
+  "title": "Getting Started",
+  "icon": "Rocket",
+  "pages": [
+    "introduction",
+    "getting-started",
+    "project-status"
+  ]
+}

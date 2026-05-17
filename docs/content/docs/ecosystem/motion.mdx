@@ -1,0 +1,131 @@
+---
+title: Motion
+description: "@praxisjs/motion — signal-driven animations via @Tween and @Spring field decorators. Assigning a value triggers a smooth animated transition."
+icon: Play
+---
+
+# Motion
+
+Animated field decorators. Assign a new value and the transition plays automatically — no imperative animation API, no `requestAnimationFrame` loops, no timeline management.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm install @praxisjs/motion
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add @praxisjs/motion
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add @praxisjs/motion
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add @praxisjs/motion
+```
+</Tab>
+</Tabs>
+
+---
+
+## `@Tween(options?)`
+
+Animates a numeric field from its current value to a new one using a duration-based easing curve. Reading the field returns the current interpolated value.
+
+```tsx
+import { Tween } from '@praxisjs/motion'
+
+@Component()
+class ProgressBar extends StatefulComponent {
+  @Tween({ duration: 600, easing: 'easeOut' })
+  progress = 0
+
+  load() {
+    this.progress = 100  // smoothly animates from current value to 100
+  }
+
+  render() {
+    return (
+      <div
+        class="bar"
+        style={() => ({ width: `${this.progress}%` })}
+      />
+    )
+  }
+}
+```
+
+Assigning a new value starts a new animation from wherever the field currently is — even if a previous animation is still in progress.
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `duration` | `number` | `300` | Animation duration in ms |
+| `easing` | `Easing` | `'easeOut'` | Easing function name or custom `(t: number) => number` |
+| `delay` | `number` | `0` | Delay before the animation starts in ms |
+
+### Available easings
+
+```ts
+'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'easeInCubic' | 'bounce' | 'elastic'
+```
+
+Custom easing — any function from `[0, 1]` to `[0, 1]`:
+
+```ts
+@Tween({ easing: (t) => t * t * t, duration: 400 })
+scale = 1
+```
+
+<StorybookLink story="ecosystem-motion-tween--tween-story" label="Live demo — @Tween" />
+
+---
+
+## `@Spring(options?)`
+
+Physics-based spring animation. The field settles toward its target value with natural momentum and configurable bounce. Assign a value and let the physics do the work.
+
+```tsx
+import { Spring } from '@praxisjs/motion'
+
+@Component()
+class DragHandle extends StatefulComponent {
+  @Spring({ stiffness: 0.2, damping: 0.7 })
+  x = 0
+
+  @Spring()
+  y = 0
+
+  onPointerMove(e: PointerEvent) {
+    this.x = e.clientX
+    this.y = e.clientY
+  }
+
+  render() {
+    return (
+      <div
+        class="handle"
+        style={() => ({ transform: `translate(${this.x}px, ${this.y}px)` })}
+        onPointermove={(e) => this.onPointerMove(e)}
+      />
+    )
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `stiffness` | `number` | `0.15` | Spring strength — higher = snappier. Must be `> 0`. |
+| `damping` | `number` | `0.8` | Resistance — lower = more bounce and overshoot |
+| `mass` | `number` | `1` | Object mass — higher = more inertia |
+| `precision` | `number` | `0.001` | Settlement threshold — how close to the target before animation stops |
+
+<Callout type="warn" title="Validation">
+  `stiffness` must be greater than `0`. Passing `0` or a negative value throws immediately.
+</Callout>
+
+<StorybookLink story="ecosystem-motion-spring--spring-story" label="Live demo — @Spring" />

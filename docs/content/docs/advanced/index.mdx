@@ -1,0 +1,50 @@
+---
+title: Extending PraxisJS
+description: Build custom composables and decorators using the same primitives that power all built-in PraxisJS APIs.
+icon: Wrench
+---
+
+# Extending PraxisJS
+
+PraxisJS exposes the same primitives used to build all first-party composables and decorators. When a built-in doesn't cover your use case, you can write your own — with full access to the signal engine and component lifecycle.
+
+<Cards>
+  <Card
+    title="Creating Composables"
+    description="Extend the Composable base class, implement setup() with signals and computeds, and use @Compose to attach it to any component. Covers constructor arguments, the getter() helper, and cleanup via onUnmount()."
+    href="/docs/advanced/custom-composables"
+  />
+  <Card
+    title="Creating Decorators"
+    description="Six factory functions for six decorator types: field, method, lifecycle method, getter, getter-observer, and class. Each handles per-instance state correctly via addInitializer."
+    href="/docs/advanced/custom-decorators"
+  />
+</Cards>
+
+---
+
+## Choosing the right extension point
+
+| You want to… | Use |
+|---|---|
+| Wrap a DOM API, external subscription, or event bus as a reusable reactive class | `Composable` → used via `@Compose` |
+| Replace a class field with a custom reactive getter/setter | `createFieldDecorator` |
+| Wrap a method with cross-cutting logic (logging, auth checks, analytics) | `createMethodDecorator` |
+| Auto-subscribe/unsubscribe a method at mount/unmount | `createLifecycleMethodDecorator` |
+| Transform or constrain a getter's return value | `createGetterDecorator` |
+| Observe a getter for side effects without changing its value | `createGetterObserverDecorator` |
+| Augment the component lifecycle or wrap `render()` | `createClassDecorator` |
+
+<Callout type="info">
+  All factory functions handle per-instance state via `addInitializer` (field, getter) or `WeakMap` (method) — you don't need manual prototype patching or cleanup.
+</Callout>
+
+---
+
+## When to extend vs when to compose
+
+If you find yourself writing the same `onMount`/`onUnmount` pattern across multiple components — subscribing to a DOM event, wrapping a browser API — that's a signal to extract a composable.
+
+If you find yourself wrapping the same method logic (retry on failure, log every call, confirm before proceeding) — that's a signal to extract a method decorator.
+
+See the examples on each page for concrete patterns you can adapt directly.

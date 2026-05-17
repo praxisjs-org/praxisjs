@@ -1,0 +1,44 @@
+---
+title: "@praxisjs/composables"
+description: Changelog for @praxisjs/composables — DOM, browser, and list composable classes.
+icon: Layers
+---
+
+# @praxisjs/composables
+
+## 1.1.0
+
+**New: `VirtualList<T>`** — signal-based virtual scroll composable. Replaces the removed `@Virtual` class decorator.
+
+Unlike `@Virtual`, `VirtualList` exposes reactive signals that the component renders with normal JSX — items react to filtering and live data, and `renderItem` callbacks work correctly. See [VirtualList](/docs/composables/list).
+
+**Bug fix:** `ElementSize`, `Intersection`, and `Focus` were not reacting after mount.
+
+These composables set up their observers inside `setup()` at construction time, when the ref was still `null`. The fix moves observer setup to `onMount()`, which fires after ref callbacks have run and the DOM is available. `ScrollPosition` updated to consistently accept `{ current: HTMLElement | null }` ref objects.
+
+## 1.0.0
+
+<Callout type="warn" title="Breaking — all use* functions removed">
+All `use*` composable functions replaced by class-based composables using `@Compose`:
+
+| Before | After |
+|---|---|
+| `useWindowSize()` | `@Compose(WindowSize)` |
+| `useScrollPosition()` | `@Compose(ScrollPosition, 'refName')` |
+| `useElementSize(ref)` | `@Compose(ElementSize, 'refName')` |
+| `useIntersection(ref)` | `@Compose(Intersection, 'refName')` |
+| `useFocus(ref)` | `@Compose(Focus, 'refName')` |
+| `useMediaQuery(q)` | `@Compose(MediaQuery, q)` |
+| `useColorScheme()` | `@Compose(ColorScheme)` |
+| `useMouse()` | `@Compose(Mouse)` |
+| `useKeyCombo(combo)` | `@Compose(KeyCombo, combo)` |
+| `useIdle(timeout)` | `@Compose(Idle, timeout)` |
+| `useClipboard()` | `@Compose(Clipboard)` |
+| `useGeolocation()` | `@Compose(Geolocation)` |
+| `useTimeAgo(date)` | `@Compose(TimeAgo, getter('dateField'))` |
+| `usePagination(opts)` | `@Compose(Pagination, opts)` |
+</Callout>
+
+## 0.1.0
+
+Initial beta release.

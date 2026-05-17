@@ -1,0 +1,108 @@
+---
+title: Composables
+description: Reactive DOM and browser utilities from @praxisjs/composables — used via the @Compose decorator.
+icon: Layers
+---
+
+# Composables
+
+Composables are class-based reactive utilities. Attach them to any component with `@Compose` — their reactive properties and lifecycle hooks are wired automatically.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm install @praxisjs/composables
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add @praxisjs/composables
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add @praxisjs/composables
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add @praxisjs/composables
+```
+</Tab>
+</Tabs>
+
+## How `@Compose` works
+
+```tsx
+import { Compose } from '@praxisjs/decorators'
+import { WindowSize } from '@praxisjs/composables'
+
+@Component()
+class App extends StatefulComponent {
+  @Compose(WindowSize)
+  window!: WindowSize
+
+  render() {
+    return <p>Viewport: {() => this.window.width} × {() => this.window.height}</p>
+  }
+}
+```
+
+`@Compose` does three things:
+1. Creates an instance of the composable class per component instance
+2. Calls `setup()` and binds reactive properties onto the field (`this.window`)
+3. Hooks the composable's `onMount` and `onUnmount` into the component lifecycle automatically
+
+No manual setup or teardown needed.
+
+---
+
+## Available composables
+
+<Cards>
+  <Card
+    title="DOM Utilities"
+    description="WindowSize, ScrollPosition, ElementSize, Intersection, Focus — reactive DOM state via ResizeObserver, IntersectionObserver, and focus/blur events."
+    href="/docs/composables/dom"
+  />
+  <Card
+    title="Browser APIs"
+    description="MediaQuery, ColorScheme, Mouse, KeyCombo, Idle, Clipboard, Geolocation, TimeAgo, Pagination — browser APIs as reactive class properties."
+    href="/docs/composables/browser"
+  />
+  <Card
+    title="List Utilities"
+    description="VirtualList — renders only the visible window of a large list. Reactive items source, full JSX rendering, configurable buffer rows."
+    href="/docs/composables/list"
+  />
+</Cards>
+
+---
+
+## Quick reference
+
+| Composable | Properties | Package |
+|---|---|---|
+| `WindowSize` | `width`, `height` | `@praxisjs/composables` |
+| `ScrollPosition` | `x`, `y` | `@praxisjs/composables` |
+| `ElementSize` | `width`, `height` | `@praxisjs/composables` |
+| `Intersection` | `visible` | `@praxisjs/composables` |
+| `Focus` | `focused` | `@praxisjs/composables` |
+| `MediaQuery` | `matches` | `@praxisjs/composables` |
+| `ColorScheme` | `isDark`, `isLight` | `@praxisjs/composables` |
+| `Mouse` | `x`, `y` | `@praxisjs/composables` |
+| `KeyCombo` | `pressed` | `@praxisjs/composables` |
+| `Idle` | `idle` | `@praxisjs/composables` |
+| `Clipboard` | `copied`, `content`, `copy()` | `@praxisjs/composables` |
+| `Geolocation` | `lat`, `lng`, `error`, `loading` | `@praxisjs/composables` |
+| `TimeAgo` | `value` | `@praxisjs/composables` |
+| `Pagination` | `page`, `totalPages`, `hasPrev`, `hasNext`, `prev()`, `next()`, `goTo()` | `@praxisjs/composables` |
+| `VirtualList` | `visibleItems`, `totalHeight`, `offsetTop`, `offsetBottom` | `@praxisjs/composables` |
+
+<Callout type="info" title="Async concurrency">
+  `@Task`, `@Queue`, and `@Pool` are **not** composables — they're decorators from `@praxisjs/concurrent`. See [Concurrency](/docs/ecosystem/concurrency).
+</Callout>
+
+<Callout type="info" title="Build your own">
+  The `Composable` base class and `@Compose` decorator are public APIs. See [Creating Composables](/docs/advanced/custom-composables) to build reusable reactive classes with the same ergonomics as the built-ins.
+</Callout>

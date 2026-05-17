@@ -1,0 +1,224 @@
+---
+title: Router
+description: "@praxisjs/router — signal-based client-side router. Configure routes with @RouterConfig, define lazy routes with @Lazy, annotate pages with @Route, and inject reactive router state with @InjectRouter, @Params, @Query, @Location."
+icon: Route
+---
+
+# Router
+
+Signal-based client-side routing. Configure routes on your root component with `@RouterConfig`, annotate page components with `@Route`, and access reactive router state with injection decorators.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm install @praxisjs/router
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add @praxisjs/router
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add @praxisjs/router
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add @praxisjs/router
+```
+</Tab>
+</Tabs>
+
+---
+
+## Setup with `@RouterConfig`
+
+Apply `@RouterConfig` to the root component to configure the router. Pass an array of page classes (decorated with `@Route`) or explicit route definition objects:
+
+```tsx
+import { RouterConfig, Route, Lazy } from '@praxisjs/router'
+import { RouterView } from '@praxisjs/router'
+import { Home } from './pages/Home'   // has @Route('/')
+import { About } from './pages/About' // has @Route('/about')
+
+@RouterConfig([
+  Home,                               // path read from @Route
+  About,                              // path read from @Route
+  { path: '/users/:id',  component: Lazy(() => import('./pages/UserDetail')) },
+  {
+    path: '/admin',
+    component: Lazy(() => import('./pages/AdminLayout')),
+    children: [
+      { path: 'users',    component: Lazy(() => import('./pages/AdminUsers')) },
+      { path: 'settings', component: Lazy(() => import('./pages/AdminSettings')) },
+    ],
+  },
+  { path: '**', component: Lazy(() => import('./pages/NotFound')) },
+])
+@Component()
+class App extends StatefulComponent {
+  render() {
+    return (
+      <div>
+        <NavBar />
+        <RouterView />  {/* renders the matched route component */}
+      </div>
+    )
+  }
+}
+```
+
+<StorybookLink story="ecosystem-router--default" label="Live demo — Router" />
+
+---
+
+## `@Route(path)`
+
+Co-locates the route path with the page component. Pass the decorated class directly to `@RouterConfig` — the path is read automatically.
+
+```tsx
+// pages/About.tsx
+@Route('/about')
+@Component()
+export default class About extends StatefulComponent {
+  render() { return <main>About</main> }
+}
+```
+
+```tsx
+// app.tsx
+@RouterConfig([About])  // path from @Route('/about')
+@Component()
+class App extends StatefulComponent { /* ... */ }
+```
+
+You can still use the object form when you need `children`, `beforeEnter`, or other options:
+
+```tsx
+@RouterConfig([
+  { path: About.__routePath, component: About, beforeEnter: authGuard },
+])
+```
+
+---
+
+## `@Lazy(loader)`
+
+Marks a class as a lazy-loaded route component. The bundle is loaded on first navigation and cached for subsequent visits.
+
+```tsx
+{ path: '/users/:id', component: Lazy(() => import('./pages/UserDetail')) }
+```
+
+<Callout type="warn" title="Default export required">
+  Pages loaded via `Lazy` must use `export default`. The loader resolves `module.default` at runtime.
+</Callout>
+
+---
+
+## Injecting router state
+
+Use these field decorators to access reactive router state from any component.
+
+### `@InjectRouter()` — navigation and loading state
+
+```tsx
+import { InjectRouter } from '@praxisjs/router'
+
+@Component()
+class NavBar extends StatefulComponent {
+  @InjectRouter() router!: Router
+
+  render() {
+    return (
+      <nav>
+        {() => this.router.loading() && <Spinner />}
+        <button onClick={() => this.router.push('/home')}>Home</button>
+        <button onClick={() => this.router.push('/about')}>About</button>
+      </nav>
+    )
+  }
+}
+```
+
+### `@Params()` — route parameters
+
+```tsx
+@Params() params!: Computed<RouteParams>
+
+render() {
+  return <p>User ID: {() => this.params().id}</p>
+}
+```
+
+### `@Query()` — URL query string
+
+```tsx
+@Query() query!: Computed<RouteQuery>
+
+render() {
+  return <p>Page: {() => this.query().page ?? '1'}</p>
+}
+```
+
+### `@Location()` — full route location
+
+```tsx
+@Location() location!: Signal<RouteLocation>
+
+render() {
+  return <p>Path: {() => this.location().path}</p>
+}
+```
+
+`RouteLocation` has `path`, `params`, `query`, and `hash`.
+
+---
+
+## Navigation
+
+```ts
+await this.router.push('/users/42')              // navigate, push to history
+await this.router.push('/search', { q: 'foo' }) // with query params
+await this.router.replace('/login')              // replace current history entry
+this.router.back()
+this.router.forward()
+this.router.go(-2)
+```
+
+---
+
+## `<Link>` component
+
+```tsx
+import { Link } from '@praxisjs/router'
+
+<Link to="/home">Home</Link>
+<Link to="/users" activeClass="nav-active">Users</Link>
+<Link to="/settings" replace>Settings</Link>
+```
+
+| Prop | Type | Description |
+|---|---|---|
+| `to` | `string` | Target path |
+| `replace` | `boolean` | Replace current entry instead of pushing |
+| `activeClass` | `string` | CSS class added when the route is active |
+
+---
+
+## Navigation guards
+
+Add `beforeEnter` to any route definition to run logic before navigation completes. Return `true` to allow, `false` to cancel, or a path string to redirect:
+
+```ts
+{
+  path: '/admin',
+  component: AdminPage,
+  beforeEnter: async (to, from) => {
+    const ok = await auth.checkPermission(to.path)
+    return ok ? true : '/login'
+  },
+}
+```

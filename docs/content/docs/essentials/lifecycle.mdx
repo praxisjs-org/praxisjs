@@ -1,0 +1,178 @@
+---
+title: Lifecycle Hooks
+description: PraxisJS components expose four lifecycle hooks — onBeforeMount, onMount, onUnmount, and onError — available on both StatefulComponent and StatelessComponent.
+icon: RefreshCw
+---
+
+# Lifecycle Hooks
+
+All lifecycle hooks are inherited from the base component class, so they're available on both `StatefulComponent` and `StatelessComponent`. Override any of them to tap into the component's lifecycle.
+
+## Lifecycle diagram
+
+```
+[created] → onBeforeMount() → [DOM rendered] → onMount() → [in use]
+                                                                ↓
+                                                          onUnmount() → [destroyed]
+                                                           ↑ error ↓
+                                                        onError(err)
+```
+
+## `onBeforeMount()`
+
+Called before the component's DOM is created. The DOM is **not yet available** at this point.
+
+Use it to initialize state before the first render — for example, setting a `@State` field from a `@Prop` value:
+
+```tsx
+@Component()
+class Counter extends StatefulComponent {
+  @Prop() initialCount = 0
+  @State() count = 0
+
+  onBeforeMount() {
+    this.count = this.initialCount
+  }
+
+  render() {
+    return <div>{() => this.count}</div>
+  }
+}
+```
+
+<StorybookLink story="essentials-lifecycle-lifecycleorder--lifecycle-order" label="Live demo — lifecycle order" />
+
+---
+
+## `onMount()`
+
+Called after the component is inserted into the DOM. The DOM elements are fully available.
+
+Use it to:
+- Access DOM elements captured via `ref`
+- Start timers or intervals
+- Subscribe to external events
+- Kick off data fetches that require the DOM
+
+```tsx
+@Component()
+class Timer extends StatefulComponent {
+  @State() elapsed = 0
+  private interval?: ReturnType<typeof setInterval>
+
+  onMount() {
+    this.interval = setInterval(() => this.elapsed++, 1000)
+  }
+
+  onUnmount() {
+    clearInterval(this.interval)
+  }
+
+  render() {
+    return <p>{() => this.elapsed}s elapsed</p>
+  }
+}
+```
+
+<StorybookLink story="essentials-lifecycle-timer--timer" label="Live demo — onMount / onUnmount" />
+
+---
+
+## `onUnmount()`
+
+Called when the component is removed from the DOM. Clean up everything you set up in `onMount`:
+
+```tsx
+onMount() {
+  this.interval = setInterval(() => this.tick(), 1000)
+  window.addEventListener('resize', this.onResize)
+  this.observer = new ResizeObserver(this.handleResize)
+  this.observer.observe(this.el)
+}
+
+onUnmount() {
+  clearInterval(this.interval)
+  window.removeEventListener('resize', this.onResize)
+  this.observer.disconnect()
+}
+```
+
+<Callout type="info" title="Composables clean up automatically">
+  If you're using `@Compose` with a composable like `WindowSize` or `ScrollPosition`, you don't need to manually clean up — composables hook into `onMount` and `onUnmount` automatically.
+</Callout>
+
+---
+
+## `onError(error)`
+
+Called when an error is thrown inside the component or its children. Use it to display fallback UI without crashing the whole tree.
+
+```tsx
+@Component()
+class SafeLoader extends StatefulComponent {
+  @State() error: Error | null = null
+
+  onError(err: Error) {
+    this.error = err
+    console.error('Component error:', err)
+  }
+
+  render() {
+    return () => this.error
+      ? <p class="error">Something went wrong: {() => this.error!.message}</p>
+      : <DataView />
+  }
+}
+```
+
+---
+
+## Lifecycle in `StatelessComponent`
+
+Lifecycle hooks work the same way in `StatelessComponent` — no `@State` required:
+
+```tsx
+@Component()
+class Banner extends StatelessComponent<{ text: string }> {
+  onMount() {
+    console.log('Banner mounted with text:', this.props.text)
+  }
+
+  onUnmount() {
+    console.log('Banner removed')
+  }
+
+  render() {
+    return <div class="banner">{this.props.text}</div>
+  }
+}
+```
+
+---
+
+## Combining lifecycle with `@Watch`
+
+`@Watch` runs after mount automatically. Use `onMount` when you need DOM access first:
+
+```tsx
+@Component()
+class AutoFocus extends StatefulComponent {
+  private inputEl: HTMLInputElement | null = null
+
+  onMount() {
+    this.inputEl?.focus()
+  }
+
+  render() {
+    return <input ref={(el) => { this.inputEl = el }} />
+  }
+}
+```
+
+---
+
+## What's next?
+
+- [Async Data](/docs/essentials/async-data) — data fetching with `@Resource` and reactive refetching
+- [Decorators: Watchers](/docs/decorators/watchers) — `@Watch`, `@When`, `@Until` for reactive side effects
+- [Composables: DOM](/docs/composables/dom) — `WindowSize`, `ScrollPosition`, and more — all lifecycle-managed automatically

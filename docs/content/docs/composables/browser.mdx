@@ -1,0 +1,248 @@
+---
+title: Browser APIs
+description: "@praxisjs/composables browser composable classes — MediaQuery, ColorScheme, Mouse, KeyCombo, Idle, Clipboard, Geolocation, TimeAgo, and Pagination."
+icon: Globe
+---
+
+# Browser APIs
+
+Browser API composables from `@praxisjs/composables`. Bind them to any component with `@Compose` to get reactive browser state as class properties.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm install @praxisjs/composables
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add @praxisjs/composables
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add @praxisjs/composables
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add @praxisjs/composables
+```
+</Tab>
+</Tabs>
+
+---
+
+## `MediaQuery`
+
+Reactive CSS media query matching. Updates whenever the query result changes.
+
+```tsx
+@Compose(MediaQuery, '(max-width: 768px)')
+mobile!: MediaQuery
+
+render() {
+  return () => this.mobile.matches ? <MobileView /> : <DesktopView />
+}
+```
+
+Constructor: `new MediaQuery(query: string)`
+Properties: `matches: boolean`
+
+<StorybookLink story="composables-browser-mediaquery--media-query-story" label="Live demo — MediaQuery" />
+
+---
+
+## `ColorScheme`
+
+Detects the user's preferred color scheme via `prefers-color-scheme`. Updates if the user changes their system preference.
+
+```tsx
+@Compose(ColorScheme)
+scheme!: ColorScheme
+
+render() {
+  return <div class={() => this.scheme.isDark ? 'dark' : 'light'}>...</div>
+}
+```
+
+Properties: `isDark: boolean`, `isLight: boolean`
+
+<StorybookLink story="composables-browser-colorscheme--color-scheme-story" label="Live demo — ColorScheme" />
+
+---
+
+## `Mouse`
+
+Tracks the cursor position in the viewport.
+
+```tsx
+@Compose(Mouse)
+mouse!: Mouse
+
+render() {
+  return (
+    <div
+      style={() => ({
+        transform: `translate(${this.mouse.x}px, ${this.mouse.y}px)`
+      })}
+    />
+  )
+}
+```
+
+Properties: `x: number`, `y: number`
+
+<StorybookLink story="composables-browser-mouse--mouse-story" label="Live demo — Mouse" />
+
+---
+
+## `KeyCombo`
+
+Detects keyboard shortcut combinations. The `pressed` signal becomes `true` while the combo is held.
+
+```tsx
+@Compose(KeyCombo, 'ctrl+s')
+saveShortcut!: KeyCombo
+
+onMount() {
+  effect(() => {
+    if (this.saveShortcut.pressed) this.save()
+  })
+}
+```
+
+Constructor: `new KeyCombo(combo: string)` — accepts `ctrl`, `shift`, `alt`, `meta` modifiers with `+` as separator.
+Properties: `pressed: boolean`
+
+<StorybookLink story="composables-browser-keycombo--key-combo-story" label="Live demo — KeyCombo" />
+
+---
+
+## `Idle`
+
+Detects user inactivity by monitoring mouse, keyboard, and touch events. Default timeout is 60 seconds.
+
+```tsx
+@Compose(Idle, 30_000)  // idle after 30s of inactivity
+activity!: Idle
+
+render() {
+  return () => this.activity.idle ? <ScreenSaver /> : <AppContent />
+}
+```
+
+Constructor: `new Idle(timeout?: number)` — timeout in ms.
+Properties: `idle: boolean`
+
+<StorybookLink story="composables-browser-idle--idle-story" label="Live demo — Idle (5s)" />
+
+---
+
+## `Clipboard`
+
+Read/write clipboard access. `copied` resets to `false` after `resetDelay` ms (default: 2000).
+
+```tsx
+@Compose(Clipboard)
+clipboard!: Clipboard
+
+render() {
+  return (
+    <button onClick={() => this.clipboard.copy('Hello!')}>
+      {() => this.clipboard.copied ? '✓ Copied!' : 'Copy'}
+    </button>
+  )
+}
+```
+
+Properties: `copied: boolean`, `content: string`, `copy(text): Promise<void>`
+
+<StorybookLink story="composables-browser-clipboard--clipboard-story" label="Live demo — Clipboard" />
+
+---
+
+## `Geolocation`
+
+One-shot geolocation lookup via the Geolocation API.
+
+```tsx
+@Compose(Geolocation, { enableHighAccuracy: true })
+geo!: Geolocation
+
+render() {
+  return (
+    <div>
+      {() => this.geo.loading && <p>Locating...</p>}
+      {() => this.geo.error && <p>Location access denied.</p>}
+      {() => !this.geo.loading && !this.geo.error && (
+        <p>Lat: {this.geo.lat?.toFixed(4)}, Lon: {this.geo.lng?.toFixed(4)}</p>
+      )}
+    </div>
+  )
+}
+```
+
+Constructor: `new Geolocation(options?: PositionOptions)`
+Properties: `lat: number | null`, `lng: number | null`, `error: GeolocationPositionError | null`, `loading: boolean`
+
+---
+
+## `TimeAgo`
+
+Relative time formatting ("3 minutes ago", "2 days ago"), updated automatically every minute.
+
+```tsx
+import { getter } from '@praxisjs/decorators'
+
+@State() postedAt = new Date('2026-01-01')
+
+// getter() wraps the property as () => this.postedAt — TimeAgo needs a callable source
+@Compose(TimeAgo, getter('postedAt'))
+timeAgo!: TimeAgo
+
+render() {
+  return <p>Posted {() => this.timeAgo.value}</p>
+  // → "4 months ago"
+}
+```
+
+Constructor: `new TimeAgo(source: Signal<Date> | (() => Date), locale?: string)`
+Properties: `value: string`
+
+<StorybookLink story="composables-browser-timeago--time-ago-story" label="Live demo — TimeAgo" />
+
+---
+
+## `Pagination`
+
+Manages pagination state — current page, total pages, and navigation methods.
+
+```tsx
+@Compose(Pagination, { total: 100, pageSize: 10 })
+pages!: Pagination
+
+render() {
+  return (
+    <div>
+      <p>Page {() => this.pages.page} of {() => this.pages.totalPages}</p>
+      <button disabled={() => !this.pages.hasPrev} onClick={() => this.pages.prev()}>← Prev</button>
+      <button disabled={() => !this.pages.hasNext} onClick={() => this.pages.next()}>Next →</button>
+    </div>
+  )
+}
+```
+
+Constructor: `new Pagination({ total, pageSize, initial? })`
+
+| Property/Method | Description |
+|---|---|
+| `page` | Current page (1-based) |
+| `totalPages` | Total number of pages |
+| `offset` | Items to skip (useful for API `offset` or array `slice`) |
+| `hasPrev` / `hasNext` | Navigation availability |
+| `prev()` / `next()` | Navigate one page |
+| `goTo(n)` | Jump to a specific page |
+| `first()` / `last()` | Jump to first or last page |
+
+<StorybookLink story="composables-browser-pagination--pagination-story" label="Live demo — Pagination" />

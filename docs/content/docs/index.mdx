@@ -1,0 +1,56 @@
+---
+title: PraxisJS
+description: Signal-driven frontend framework for TypeScript — fine-grained reactivity, class components, and a complete first-party ecosystem.
+icon: BookOpen
+---
+
+# PraxisJS
+
+PraxisJS is a **signal-driven frontend framework** for TypeScript. Class components with decorators, and fine-grained DOM updates — no virtual DOM, no re-renders.
+
+The entire reactive model follows one rule: `render()` runs once on mount, and arrow functions in JSX create live subscriptions that update only the exact DOM node they're bound to.
+
+```tsx
+@Component()
+class Counter extends StatefulComponent {
+  @State() count = 0
+
+  render() {
+    return (
+      <div>
+        <p>{() => this.count}</p>            {/* reactive — updates when count changes */}
+        <button onClick={() => this.count++}>+</button>
+      </div>
+    )
+  }
+}
+```
+
+**New here?** Read the [Introduction](/docs/guide/introduction) then jump into the [Quick Start](/docs/guide/getting-started) — you'll have a running component in under five minutes.
+
+---
+
+## Learn
+
+<Cards>
+  <Card title="Introduction" description="What PraxisJS is, how signals replace the virtual DOM, and the three rules that explain everything" href="/docs/guide/introduction" />
+  <Card title="Quick Start" description="Scaffold a project with create-praxisjs or set up manually — running in under five minutes" href="/docs/guide/getting-started" />
+  <Card title="Components" description="StatefulComponent for logic-heavy components, StatelessComponent for pure presentational ones" href="/docs/essentials/components" />
+  <Card title="Reactivity & Signals" description="How @State, @Computed, and arrow-function JSX work together — and how to read without subscribing" href="/docs/essentials/reactivity" />
+</Cards>
+
+## Reference
+
+<Cards>
+  <Card title="Decorators" description="@State, @Watch, @Emit, @Debounce, @Lazy, @Resource, and 20+ more — organized by category" href="/docs/decorators" />
+  <Card title="Composables" description="Reactive DOM and browser utilities via @Compose — WindowSize, Mouse, Clipboard, Pagination, VirtualList" href="/docs/composables" />
+  <Card title="Packages" description="Router, Store, DI, Motion animations, FSM, and async concurrency — install only what you need" href="/docs/ecosystem" />
+  <Card title="Tooling" description="Vite plugin, in-app DevTools overlay, and Storybook adapter" href="/docs/tooling" />
+</Cards>
+
+## Extend
+
+<Cards>
+  <Card title="Creating Composables" description="Build reusable reactive classes with the Composable base — the same way the built-ins work" href="/docs/advanced/custom-composables" />
+  <Card title="Creating Decorators" description="Six factory functions for custom decorator types: field, method, lifecycle, getter, observer, and class" href="/docs/advanced/custom-decorators" />
+</Cards>

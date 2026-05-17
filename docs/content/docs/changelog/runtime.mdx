@@ -1,0 +1,39 @@
+---
+title: "@praxisjs/runtime"
+description: Changelog for @praxisjs/runtime — DOM renderer, component mounting, and reactive scopes.
+icon: Boxes
+---
+
+# @praxisjs/runtime
+
+## 0.2.17
+
+**DOM patching optimizations** — lower allocation and fewer reflows:
+
+- Prop iteration uses `for...in` instead of `Object.entries()`, avoiding an intermediate array per element mount.
+- Node insertion batched through `DocumentFragment` — multiple nodes inserted with a single `insertBefore` call.
+- Bulk node removal uses `Range.deleteContents()` instead of individual `removeChild` calls.
+- `normalizeToNodes` replaced by `collectNodes` (accumulates into a caller-supplied array), removing one allocation per reactive update.
+
+## 0.2.16
+
+**Bug fix:** reactive expressions (`{() => ...}`) inside components were silently dropping DOM updates.
+
+`mountReactive` captured the `DocumentFragment` container by closure. After the fragment's nodes are transferred to the real DOM, the fragment is empty — so `insertBefore` on the stale parent reference had no effect. Fixed by always resolving the live DOM parent via `end.parentNode`.
+
+## 0.2.9
+
+**Bug fix:** `mountComponent` now runs inside `untrack()`. Static prop reads like `label={this.count}` inside a reactive context (e.g. the router) were accidentally subscribing the outer effect to those signals, causing the router to re-mount the component on every signal change and reset its state.
+
+## 0.2.6
+
+- CSS custom properties (`--*` keys) are now applied via `setProperty()`.
+- Scope cleanup errors are collected into `AggregateError` — all cleanups run even when one throws.
+
+## 0.2.0
+
+Implemented `mountChildren`, `mountComponent`, and reactive scope management. Introduced `StatefulComponent`/`StatelessComponent`. Migrated to TC39 decorator API.
+
+## 0.1.0
+
+Initial beta release.

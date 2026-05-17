@@ -1,0 +1,86 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/black.css";
+@import "fumadocs-ui/css/preset.css";
+
+html {
+  scrollbar-gutter: stable;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* ── Light theme ─────────────────────────────────────────────────────────── */
+@theme {
+  --color-fd-background: hsl(260, 30%, 99%);
+  --color-fd-foreground: hsl(260, 25%, 9%);
+  --color-fd-muted: hsl(260, 22%, 95%);
+  --color-fd-muted-foreground: hsl(260, 12%, 44%);
+  --color-fd-popover: hsl(0, 0%, 100%);
+  --color-fd-popover-foreground: hsl(260, 25%, 10%);
+  --color-fd-card: hsl(260, 20%, 97%);
+  --color-fd-card-foreground: hsl(260, 25%, 9%);
+  --color-fd-border: hsl(260, 25%, 88%);
+  --color-fd-primary: hsl(261, 68%, 52%);
+  --color-fd-primary-foreground: hsl(0, 0%, 100%);
+  --color-fd-secondary: hsl(260, 22%, 92%);
+  --color-fd-secondary-foreground: hsl(260, 25%, 15%);
+  --color-fd-accent: hsl(260, 25%, 91%);
+  --color-fd-accent-foreground: hsl(260, 25%, 14%);
+  --color-fd-ring: hsl(261, 68%, 52%);
+}
+
+/* ── Dark theme ──────────────────────────────────────────────────────────── */
+.dark {
+  --color-fd-background: hsl(261, 22%, 7%);
+  --color-fd-foreground: hsl(261, 15%, 93%);
+  --color-fd-muted: hsl(261, 18%, 12%);
+  --color-fd-muted-foreground: hsl(261, 10%, 60%);
+  --color-fd-popover: hsl(261, 22%, 9%);
+  --color-fd-popover-foreground: hsl(261, 12%, 90%);
+  --color-fd-card: hsl(261, 20%, 10%);
+  --color-fd-card-foreground: hsl(261, 15%, 93%);
+  --color-fd-border: hsl(261, 20%, 17%);
+  --color-fd-primary: hsl(261, 78%, 72%);
+  --color-fd-primary-foreground: hsl(261, 40%, 8%);
+  --color-fd-secondary: hsl(261, 18%, 15%);
+  --color-fd-secondary-foreground: hsl(261, 12%, 88%);
+  --color-fd-accent: hsl(261, 18%, 16%);
+  --color-fd-accent-foreground: hsl(261, 12%, 88%);
+  --color-fd-ring: hsl(261, 60%, 65%);
+}
+
+/* ── Code syntax tokens (home page) ─────────────────────────────────────── */
+:root {
+  --ct-dec: #7c3aed;
+  --ct-kw: #2563eb;
+  --ct-cls: #0d9488;
+  --ct-str: #15803d;
+  --ct-num: #c2410c;
+  --ct-jsx: #1d4ed8;
+  --ct-txt: #1e1030;
+  --ct-op: #9ca3af;
+  --ct-fn: #be123c;
+  --ct-cmt: #a1a1aa;
+  --ct-bg: #ffffff;
+  --ct-bar: #f5f3ff;
+  --ct-border: rgba(139, 92, 246, 0.2);
+}
+.dark {
+  --ct-dec: #c084fc;
+  --ct-kw: #93c5fd;
+  --ct-cls: #5eead4;
+  --ct-str: #86efac;
+  --ct-num: #fdb974;
+  --ct-jsx: #93c5fd;
+  --ct-txt: #ede8ff;
+  --ct-op: #6b7280;
+  --ct-fn: #fda4af;
+  --ct-cmt: #4d4470;
+  --ct-bg: #09060f;
+  --ct-bar: #0d0a14;
+  --ct-border: rgba(155, 118, 255, 0.2);
+}

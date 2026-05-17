@@ -1,0 +1,147 @@
+---
+title: DevTools Decorators
+description: Developer experience decorators — @Debug to expose signals, computed values, and methods in DevTools, and @Trace to instrument component performance.
+icon: Bug
+---
+
+# DevTools Decorators
+
+Decorators that feed data into the [DevTools](/docs/tooling/devtools) panel. Both are **no-ops** unless `DevTools.init()` has been called — so they're safe to leave in production code with zero runtime cost.
+
+Install:
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm install @praxisjs/devtools
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add @praxisjs/devtools
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add @praxisjs/devtools
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add @praxisjs/devtools
+```
+</Tab>
+</Tabs>
+
+```ts
+import { Debug, Trace } from '@praxisjs/devtools'
+```
+
+---
+
+## `@Debug(options?)`
+
+Exposes a field, getter, or method in the DevTools panel. What it tracks depends on what it decorates:
+
+### On `@State()` fields
+
+Records every value change in the **Signals** panel with a 20-entry history. This is the most common use case.
+
+```tsx
+import { Component, State } from '@praxisjs/decorators'
+import { Debug } from '@praxisjs/devtools'
+import { StatefulComponent } from '@praxisjs/core'
+
+@Component()
+class CartStore extends StatefulComponent {
+  @Debug({ label: 'Cart Items' })
+  @State()
+  items: Product[] = []
+
+  @Debug()
+  @State()
+  total = 0
+}
+```
+
+<Callout type="warn" title="Decorator order">
+  `@Debug` must be written **above** `@State()`. Decorators apply bottom-up, so `@State` runs first to set up the reactive accessor, then `@Debug` wraps it to observe changes.
+</Callout>
+
+### On getters
+
+Tracks a computed value by creating an internal `computed()` that observes the getter. Changes appear in the Signals panel.
+
+```tsx
+@Debug({ label: 'Has Discount?' })
+get hasDiscount() {
+  return this.total > 100
+}
+```
+
+### On methods
+
+Records every method call in the **Timeline** with arguments, return value, and execution duration in milliseconds.
+
+```tsx
+@Debug()
+async fetchProducts() {
+  this.items = await api.getProducts()
+}
+```
+
+**Options:**
+
+| Option | Type | Description |
+|---|---|---|
+| `label` | `string` | Name shown in the panel. Defaults to the field or method name. |
+
+---
+
+## `@Trace()`
+
+Instruments a component class to report lifecycle events and render metrics to the **Components** panel.
+
+```tsx
+@Trace()
+@Component()
+class DataGrid extends StatefulComponent {
+  @State() rows: Row[] = []
+
+  render() {
+    return <table>{/* ... */}</table>
+  }
+}
+```
+
+Automatically tracks: `onBeforeMount`, `onMount`, `onBeforeUpdate`, `onUpdate`, `onAfterUpdate`, `onUnmount`.
+
+The Components panel shows:
+- Render count and last render duration in ms
+- Mount and unmount timestamps
+- Full lifecycle hook history
+
+<Callout type="warn" title="Decorator order">
+  `@Trace()` must be written **above** `@Component()` since decorators apply bottom-up.
+</Callout>
+
+---
+
+## Production safety
+
+`@Debug` and `@Trace` check whether `DevTools.init()` has been called before doing anything. If it hasn't — which is the case in every production build — they're completely inert. Use a dynamic import to ensure the DevTools package is never bundled into production at all:
+
+```ts
+// src/main.ts
+import { render } from '@praxisjs/runtime'
+import { App } from './app'
+
+render(() => <App />, document.getElementById('app')!)
+
+if (import.meta.env.DEV) {
+  const { DevTools } = await import('@praxisjs/devtools')
+  DevTools.init()
+}
+```
+
+→ See [DevTools](/docs/tooling/devtools) for the full setup guide and panel reference.

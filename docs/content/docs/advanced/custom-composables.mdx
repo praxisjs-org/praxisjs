@@ -1,0 +1,201 @@
+---
+title: Creating Composables
+description: How to build custom composable classes in PraxisJS by extending Composable and using them with the @Compose decorator.
+icon: Puzzle
+---
+
+# Creating Composables
+
+A composable encapsulates reactive state and external behavior into a reusable class. Use `@Compose` to attach it to any component — the reactive properties and lifecycle hooks wire up automatically.
+
+---
+
+## Basic structure
+
+Every composable extends `Composable` and implements `setup()`. The `setup()` method creates signals and returns them. Properties declared with `declare` provide TypeScript types — the actual reactive getters are wired up at runtime.
+
+```ts
+import { signal } from '@praxisjs/core/internal'
+import { Composable } from '@praxisjs/core'
+
+export class NetworkStatus extends Composable {
+  declare online: boolean  // typed property — reactive getter wired at runtime
+
+  setup() {
+    const online = signal(navigator.onLine)
+
+    const onOnline  = () => online.set(true)
+    const onOffline = () => online.set(false)
+
+    window.addEventListener('online',  onOnline)
+    window.addEventListener('offline', onOffline)
+
+    this._cleanup = () => {
+      window.removeEventListener('online',  onOnline)
+      window.removeEventListener('offline', onOffline)
+    }
+
+    return { online }  // keys must match the declared properties
+  }
+
+  private _cleanup = () => {}
+
+  onUnmount() {
+    this._cleanup()
+  }
+}
+```
+
+Use it in any component:
+
+```tsx
+import { Compose } from '@praxisjs/decorators'
+import { NetworkStatus } from './composables/network-status'
+
+@Component()
+class App extends StatefulComponent {
+  @Compose(NetworkStatus)
+  network!: NetworkStatus
+
+  render() {
+    return (
+      <div>
+        {() => this.network.online
+          ? <p>Connected</p>
+          : <p>No internet connection</p>
+        }
+      </div>
+    )
+  }
+}
+```
+
+<StorybookLink story="guide-custom-composables-networkstatus--network-status-story" label="Live demo — NetworkStatus" />
+
+---
+
+## Constructor arguments
+
+Add a constructor to accept configuration. Extra arguments to `@Compose` after the class are passed to the constructor:
+
+```ts
+export class PollingResource<T> extends Composable {
+  declare data: T | null
+  declare loading: boolean
+
+  constructor(
+    private readonly url: string,
+    private readonly interval = 5000,
+  ) {
+    super()
+  }
+
+  setup() {
+    const data    = signal<T | null>(null)
+    const loading = signal(true)
+
+    const fetchData = () => {
+      window.fetch(this.url)
+        .then(r => r.json() as T)
+        .then(v => { data.set(v); loading.set(false) })
+    }
+
+    fetchData()
+    const timer = setInterval(fetchData, this.interval)
+    this._stop = () => clearInterval(timer)
+
+    return { data, loading }
+  }
+
+  private _stop = () => {}
+  onUnmount() { this._stop() }
+}
+```
+
+```tsx
+@Compose(PollingResource, '/api/status', 10_000)
+status!: PollingResource<StatusData>
+```
+
+### String arguments — ref resolution
+
+String arguments to `@Compose` resolve to instance property values at bind time. This is useful for passing element refs:
+
+```tsx
+containerRef = { current: null as HTMLElement | null }
+
+@Compose(ElementSize, 'containerRef')
+size!: ElementSize
+// The composable receives this.containerRef — the ref object, not a string
+```
+
+### `getter(propName)` — live reactive source
+
+When the composable needs a **callable source** (a `Signal<T>` or `() => T`) rather than a snapshot, use `getter()` to wrap a property name as a live getter:
+
+```tsx
+import { getter } from '@praxisjs/decorators'
+
+@State() postedAt = new Date()
+
+// ✅ passes () => this.postedAt — TimeAgo calls it reactively
+@Compose(TimeAgo, getter('postedAt'))
+timeAgo!: TimeAgo
+
+// ❌ passes the current Date value — TimeAgo can't call a Date
+@Compose(TimeAgo, 'postedAt')
+```
+
+`getter('propName')` resolves to `() => instance[propName]` at bind time. If the property is a `@State` signal or a computed getter, reads inside reactive effects track it correctly.
+
+| Form | What the composable receives | When to use |
+|---|---|---|
+| `'propName'` | Current value of `instance.propName` | Refs, plain objects, config |
+| `getter('propName')` | `() => instance.propName` (callable) | Signals, computed getters, anything that must stay reactive |
+
+---
+
+## Derived state with `computed`
+
+`setup()` can return signals, computeds, and plain functions — all are exposed as properties:
+
+```ts
+import { signal, computed } from '@praxisjs/core/internal'
+
+export class Counter extends Composable {
+  declare count: number
+  declare doubled: number
+  declare increment: () => void
+  declare reset: () => void
+
+  setup() {
+    const count   = signal(0)
+    const doubled = computed(() => count() * 2)
+
+    return {
+      count,
+      doubled,
+      increment: () => count.update(n => n + 1),
+      reset:     () => count.set(0),
+    }
+  }
+}
+```
+
+```tsx
+@Compose(Counter)
+counter!: Counter
+
+render() {
+  return (
+    <div>
+      <p>{() => this.counter.count} (×2 = {() => this.counter.doubled})</p>
+      <button onClick={() => this.counter.increment()}>+1</button>
+      <button onClick={() => this.counter.reset()}>Reset</button>
+    </div>
+  )
+}
+```
+
+<StorybookLink story="guide-custom-composables-countercomposable--counter-story" label="Live demo — CounterComposable" />
+<StorybookLink story="guide-custom-composables-pollingresource--polling-story" label="Live demo — PollingResource" />

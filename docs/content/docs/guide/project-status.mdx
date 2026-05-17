@@ -1,0 +1,51 @@
+---
+title: Project Status
+description: PraxisJS is stable and production-ready. Understand the package stability matrix and what to expect from the project going forward.
+icon: ShieldCheck
+---
+
+# Project Status
+
+## Current status: Stable
+
+PraxisJS is stable and ready for production use. The API surface is settled — breaking changes only happen in major versions, and they're always announced with deprecation notices and migration guides.
+
+## What "stable" means in practice
+
+- **No surprise API changes.** Breaking changes require a major version bump. Minor and patch releases are backwards-compatible by definition.
+- **Deprecations before removal.** If something needs to change, the old API is deprecated first and removed in the next major version — giving you time to migrate.
+- **Test coverage across all packages.** Every package has integration tests. Regression coverage is taken seriously.
+- **Docs stay in sync.** Documentation is updated alongside releases, not after.
+
+## Package stability
+
+| Package | Status | Notes |
+|---|---|---|
+| `@praxisjs/core` | Stable | Signal engine — rarely changes |
+| `@praxisjs/decorators` | Stable | Main decorator surface |
+| `@praxisjs/jsx` | Stable | JSX runtime |
+| `@praxisjs/runtime` | Stable | DOM renderer |
+| `@praxisjs/router` | Stable | Client-side routing |
+| `@praxisjs/store` | Stable | Singleton state management |
+| `@praxisjs/di` | Stable | Dependency injection |
+| `@praxisjs/fsm` | Stable | State machines |
+| `@praxisjs/motion` | Stable | Animations |
+| `@praxisjs/composables` | Stable | DOM and browser utilities |
+| `@praxisjs/concurrent` | Stable | Async concurrency |
+| `@praxisjs/devtools` | Beta | UI and events may change |
+| `@praxisjs/storybook` | Stable | Storybook framework adapter |
+| `@praxisjs/vite-plugin` | Stable | Build tooling |
+| `create-praxisjs` | Stable | Project scaffolding |
+
+## Why it was built
+
+PraxisJS started as a personal exploration of what a more explicit, traceable frontend architecture could look like — one where reactivity is a first-class, visible contract rather than an implementation detail.
+
+It also became an experiment in AI-assisted development: not to automate thinking, but to pressure-test ideas, surface blind spots, and accelerate iteration on the design.
+
+## Contributing
+
+Found a bug? Have an idea? Contributions are welcome at any level.
+
+- [Open an issue](https://github.com/praxisjs-org/praxisjs/issues) — bug reports, feature requests, or questions
+- [Submit a pull request](https://github.com/praxisjs-org/praxisjs/pulls) — fixes, improvements, new features

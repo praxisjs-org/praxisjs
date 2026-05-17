@@ -1,0 +1,8 @@
+{
+  "title": "Extending PraxisJS",
+  "icon": "Wrench",
+  "pages": [
+    "custom-composables",
+    "custom-decorators"
+  ]
+}

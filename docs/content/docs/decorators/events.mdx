@@ -1,0 +1,154 @@
+---
+title: Events & Slots
+description: Communicate up the component tree with @Emit, receive children with @Slot, and trigger imperative actions with @OnCommand.
+icon: Bell
+---
+
+# Events & Slots
+
+These decorators handle component communication: emitting events to parents, receiving slotted children, and triggering imperative actions via a command bus.
+
+---
+
+## `@Emit(propName)`
+
+Binds a method and calls the named prop callback with its return value when the method runs. Handles `this` binding automatically so you can pass the method directly to JSX.
+
+```tsx
+@Component()
+class SearchInput extends StatefulComponent {
+  @Prop() onSearch?: (query: string) => void
+  @State() value = ''
+
+  @Emit('onSearch')
+  handleSubmit() {
+    return this.value  // passed to onSearch as the argument
+  }
+
+  render() {
+    return (
+      <form onSubmit={this.handleSubmit}>
+        <input
+          value={() => this.value}
+          onInput={(e) => { this.value = (e.target as HTMLInputElement).value }}
+        />
+        <button type="submit">Search</button>
+      </form>
+    )
+  }
+}
+
+// Usage:
+<SearchInput onSearch={(q) => console.log('searching:', q)} />
+```
+
+### Without `@Prop`
+
+If you don't declare the callback with `@Prop`, use `declare` to make the prop appear in JSX types:
+
+```tsx
+@Component()
+class Modal extends StatefulComponent {
+  @Emit('onClose')
+  handleClose() { /* ... */ }
+
+  declare onClose: (() => void) | undefined  // makes onClose visible in <Modal> JSX
+}
+```
+
+<StorybookLink story="decorators-events-emit--emit-story" label="Live demo — @Emit" />
+
+---
+
+## `@Slot(name?)`
+
+Declares a named slot. Collects children distributed into that slot via the `slot=""` attribute. Omit the name for the default slot.
+
+```tsx
+import type { Children } from '@praxisjs/shared'
+
+@Component()
+class Card extends StatefulComponent {
+  @Slot() default!: Children
+  @Slot('header') header?: Children
+  @Slot('footer') footer?: Children
+
+  render() {
+    return (
+      <div class="card">
+        {this.header && <header class="card-header">{this.header}</header>}
+        <main class="card-body">{this.default}</main>
+        {this.footer && <footer class="card-footer">{this.footer}</footer>}
+      </div>
+    )
+  }
+}
+
+// Usage:
+<Card>
+  <span slot="header">My Card Title</span>
+  <p>This goes in the default slot.</p>
+  <span slot="footer">Footer text</span>
+</Card>
+```
+
+<StorybookLink story="decorators-events-slot--slot-story" label="Live demo — @Slot" />
+
+---
+
+## `@OnCommand(propName)`
+
+Subscribes the decorated method to a `Command` prop — an imperative event bus for triggering component actions from outside. Auto-unsubscribes on unmount.
+
+`Command` is useful when you need to call a component method from the outside (e.g., triggering a video player, resetting a form) without going through reactive state.
+
+```tsx
+import { Command, createCommand } from '@praxisjs/decorators'
+
+@Component()
+class VideoPlayer extends StatefulComponent {
+  @Prop() play?: Command
+  @Prop() pause?: Command
+  @State() isPlaying = false
+
+  @OnCommand('play')
+  handlePlay() {
+    this.isPlaying = true
+  }
+
+  @OnCommand('pause')
+  handlePause() {
+    this.isPlaying = false
+  }
+
+  render() {
+    return (
+      <div class="player">
+        {() => this.isPlaying ? '▶ Playing' : '⏸ Paused'}
+      </div>
+    )
+  }
+}
+
+// In the parent:
+const play = createCommand()
+const pause = createCommand()
+
+<VideoPlayer play={play} pause={pause} />
+
+// Trigger imperatively:
+play.trigger()
+pause.trigger()
+```
+
+### `Command<T>` with a payload
+
+```ts
+const seek = createCommand<number>()
+seek.trigger(45.2)  // seek to 45.2 seconds
+
+// Subscribe manually without @OnCommand:
+seek.subscribe((time) => console.log('seek to', time))
+```
+
+<StorybookLink story="decorators-events-oncommand--on-command-story" label="Live demo — @OnCommand" />

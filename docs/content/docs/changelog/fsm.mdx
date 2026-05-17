@@ -1,0 +1,32 @@
+---
+title: "@praxisjs/fsm"
+description: Changelog for @praxisjs/fsm — finite state machines with @StateMachine and @Transition.
+icon: GitBranch
+---
+
+# @praxisjs/fsm
+
+## 1.0.0 — Breaking
+
+`createMachine()` removed. Use `@StateMachine` and `@Transition` decorators directly:
+
+```ts
+// before: const machine = createMachine({ initial, states })
+// after:
+@StateMachine({ initial: 'idle', states: { ... } })
+@Component()
+class MyComponent extends StatefulComponent {
+  @Transition('machine', 'START')
+  start() { ... }
+}
+```
+
+`@StateMachine` creates a per-instance machine on `this.machine` (configurable). `@Transition` wraps a method so it only runs when the named event causes a valid transition.
+
+## 0.2.0
+
+Migrated to TC39 decorator context API.
+
+## 0.1.0
+
+Initial beta release.

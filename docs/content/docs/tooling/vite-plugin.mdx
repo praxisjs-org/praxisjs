@@ -1,0 +1,96 @@
+---
+title: Vite Plugin
+description: "@praxisjs/vite-plugin — configures Vite for PraxisJS with decorator support, JSX transform, TypeScript, and optional HMR."
+icon: Boxes
+---
+
+# Vite Plugin
+
+The Vite plugin handles everything needed to run PraxisJS: decorator support, the JSX transform to `@praxisjs/jsx`, and optional component-level HMR. It's required for all PraxisJS projects.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm install -D @praxisjs/vite-plugin
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add -D @praxisjs/vite-plugin
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add -D @praxisjs/vite-plugin
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add -d @praxisjs/vite-plugin
+```
+</Tab>
+</Tabs>
+
+---
+
+## Setup
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite'
+import { praxisjs } from '@praxisjs/vite-plugin'
+
+export default defineConfig({
+  plugins: [praxisjs()],
+})
+```
+
+---
+
+## Options
+
+```ts
+praxisjs({
+  hmr: true,         // component-level hot reload (default: false)
+  autoImport: true,  // auto-import common decorators (default: false)
+})
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `hmr` | `boolean` | `false` | Enables component-level hot module replacement. The component re-mounts in place without a full page reload when its source file changes. |
+| `autoImport` | `boolean` | `false` | Auto-imports `@Component`, `@State`, `@Prop`, and other commonly used decorators so you don't have to import them in every file. |
+
+---
+
+## What the plugin does
+
+- **Decorator support** — sets esbuild target to `ES2022` to enable native TypeScript decorators without Babel transforms
+- **JSX transform** — configures Vite to use `@praxisjs/jsx` as the JSX import source (equivalent to `jsxImportSource` in tsconfig)
+- **HMR** — when enabled, patches component classes on save so the instance re-mounts with new logic while preserving existing state where possible
+
+---
+
+## TypeScript configuration
+
+The plugin handles the Vite/esbuild side, but TypeScript still needs its own configuration:
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@praxisjs/jsx",
+    "useDefineForClassFields": false,
+    "strict": true,
+    "noEmit": true
+  }
+}
+```
+
+<Callout type="warn" title="`useDefineForClassFields: false` is required">
+  With `true` (the default for ES2022+ targets), TypeScript compiles class fields via `Object.defineProperty`, which runs after decorator initializers and overwrites the signal getter/setter they set up. Setting it to `false` compiles fields as constructor assignments so the decorator wiring stays intact.
+</Callout>

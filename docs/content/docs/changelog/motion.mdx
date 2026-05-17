@@ -1,0 +1,37 @@
+---
+title: "@praxisjs/motion"
+description: Changelog for @praxisjs/motion — animations and transitions with @Tween and @Spring.
+icon: Play
+---
+
+# @praxisjs/motion
+
+## 1.1.10
+
+**Bug fix: `@Tween` was restarting on every frame instead of completing.**
+
+The `start()` helper inside `tween()` read `_value()` while inside a reactive `effect()` body, accidentally subscribing the effect to the value signal. Every frame update (`_value.set(...)`) re-triggered the effect, resetting `startTime` and restarting the animation indefinitely. Fixed by wrapping the read with `untrack()`.
+
+**Bug fix: `@Tween` and `@Spring` not animating on the first reactive read.**
+
+Both decorators previously initialized the tween/spring lazily on the first `set()`. If the field was read inside `{() => this.value}` before any write, the getter returned `0` without subscribing to the tween signal — so the DOM effect never re-ran. Both decorators now initialize eagerly in `bind()` using the field's initial value.
+
+## 1.0.0 — Breaking
+
+All functional animation APIs replaced by decorators:
+
+| Removed                              | Replacement                          |
+| ------------------------------------ | ------------------------------------ |
+| `useMotion()`, `tween()`, `spring()` | `@Tween`, `@Spring` field decorators |
+| `createTransition()`, `Animate`      | `@Tween`, `@Spring`                  |
+| `easings`, `resolveEasing`           | `easing` option on `@Tween`          |
+
+`@Tween` and `@Spring` replace a class field with an animated signal — reading returns the current interpolated value, assigning starts a new animation from the current position.
+
+## 0.2.0
+
+Migrated to TC39 decorator context API.
+
+## 0.1.0
+
+Initial beta release.
