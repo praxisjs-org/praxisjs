@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/src/public/logo.svg" width="64" height="64" alt="PraxisJS logo" />
+<img src="assets/logo.svg" width="64" height="64" alt="PraxisJS logo" />
 
 # PraxisJS
 
