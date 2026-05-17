@@ -231,6 +231,13 @@ class ControlPanel extends StatefulComponent {
 ])
 @Component()
 class GuardApp extends StatefulComponent {
+  @InjectRouter() router!: Router;
+
+  onMount() {
+    // Establish an initial location so subsequent push() calls work correctly
+    void this.router.push("/public");
+  }
+
   render() {
     return (
       <div style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;font-family:sans-serif;min-width:380px">
