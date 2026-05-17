@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "praxisjs": {
+      "command": "npx",
+      "args": ["-y", "@praxisjs/mcp"]
+    }
+  }
+}
