@@ -53,6 +53,74 @@ html > body[data-scroll-locked] {
   --color-fd-ring: hsl(261, 60%, 65%);
 }
 
+/* ── Home page background layers ────────────────────────────────────────── */
+:root {
+  --home-mesh:
+    radial-gradient(
+      ellipse 90% 70% at 10% 20%,
+      hsl(261 40% 55% / 0.06) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 70% 60% at 90% 85%,
+      hsl(280 40% 50% / 0.05) 0%,
+      transparent 55%
+    );
+  --home-dot: radial-gradient(
+    circle,
+    hsl(261 50% 45% / 0.22) 1px,
+    transparent 1px
+  );
+  --home-orb-tl: radial-gradient(
+    circle,
+    hsl(261 80% 55% / 0.05) 0%,
+    transparent 55%
+  );
+  --home-orb-mr: radial-gradient(
+    circle,
+    hsl(280 70% 50% / 0.05) 0%,
+    transparent 55%
+  );
+  --home-orb-bl: radial-gradient(
+    circle,
+    hsl(261 65% 45% / 0.04) 0%,
+    transparent 55%
+  );
+}
+.dark {
+  --home-mesh:
+    radial-gradient(
+      ellipse 90% 70% at 10% 20%,
+      hsl(261 55% 18% / 0.3) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 70% 60% at 90% 85%,
+      hsl(280 55% 14% / 0.22) 0%,
+      transparent 55%
+    );
+  --home-dot: radial-gradient(
+    circle,
+    hsl(261 50% 65% / 0.14) 1px,
+    transparent 1px
+  );
+  --home-orb-tl: radial-gradient(
+    circle,
+    hsl(261 80% 62% / 0.04) 0%,
+    transparent 55%
+  );
+  --home-orb-mr: radial-gradient(
+    circle,
+    hsl(280 70% 55% / 0.12) 0%,
+    transparent 55%
+  );
+  --home-orb-bl: radial-gradient(
+    circle,
+    hsl(261 65% 50% / 0.09) 0%,
+    transparent 55%
+  );
+}
+
 /* ── Code syntax tokens (home page) ─────────────────────────────────────── */
 :root {
   --ct-dec: #7c3aed;

@@ -153,28 +153,67 @@ export default function HomePage() {
   return (
     <>
       <main className="relative overflow-hidden">
-        {/* Background dot grid */}
+        {/* Base mesh */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-0"
+          style={{ background: "var(--home-mesh)" }}
+        />
+
+        {/* Dot grid */}
         <div
           aria-hidden
           className="pointer-events-none fixed inset-0 z-0"
           style={{
-            backgroundImage:
-              "radial-gradient(circle, hsl(261 40% 55% / 0.11) 1px, transparent 1px)",
+            backgroundImage: "var(--home-dot)",
             backgroundSize: "28px 28px",
+          }}
+        />
+
+        {/* Orb — hero area (top-left quadrant) */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed z-0"
+          style={{
+            top: "-10%",
+            left: "-5%",
+            width: "65vw",
+            height: "65vw",
+            borderRadius: "50%",
+            background: "var(--home-orb-tl)",
+          }}
+        />
+
+        {/* Orb — mid right */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed z-0"
+          style={{
+            top: "30%",
+            right: "-20%",
+            width: "50vw",
+            height: "50vw",
+            borderRadius: "50%",
+            background: "var(--home-orb-mr)",
+          }}
+        />
+
+        {/* Orb — bottom left */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed z-0"
+          style={{
+            bottom: "-15%",
+            left: "5%",
+            width: "45vw",
+            height: "45vw",
+            borderRadius: "50%",
+            background: "var(--home-orb-bl)",
           }}
         />
 
         {/* ── Hero ── */}
         <section className="relative z-10 flex min-h-[calc(100vh-4rem)] items-center px-6 py-16">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 h-150 w-150 -translate-x-1/2 -translate-y-1/2 sm:left-1/4"
-            style={{
-              background:
-                "radial-gradient(circle, hsl(261 78% 65% / 0.12) 0%, transparent 65%)",
-            }}
-          />
-
           <div className="relative mx-auto w-full max-w-6xl">
             <div className="flex flex-col justify-center lg:max-w-2xl">
               {/* Logo + name + install */}
