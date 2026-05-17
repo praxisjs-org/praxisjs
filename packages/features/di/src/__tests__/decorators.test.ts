@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 import { Container, container, token } from "../container";
-import { Injectable, Inject, InjectContainer, Scope } from "../decorators";
+import { Injectable, Inject, InjectContainer, Scope, inject } from "../decorators";
 
 function makeFieldCtx(name: string) {
   const initializers: Array<(this: unknown) => void> = [];
@@ -291,5 +291,53 @@ describe("Scope", () => {
     // child has its own scoped container, different from the parent's
     expect(childInstance.c).not.toBe(parentInstance.c);
     expect(childInstance.c).not.toBe(container);
+  });
+});
+
+// ── inject() ──────────────────────────────────────────────────────────────────
+
+describe("inject", () => {
+  it("resolves a registered class from the global container", () => {
+    @Injectable()
+    class GreetService {
+      greet() { return "hi"; }
+    }
+    const svc = inject(GreetService);
+    expect(svc).toBeInstanceOf(GreetService);
+    expect(svc.greet()).toBe("hi");
+  });
+
+  it("returns the same singleton instance on repeated calls", () => {
+    @Injectable()
+    class SingletonSvc {}
+    expect(inject(SingletonSvc)).toBe(inject(SingletonSvc));
+  });
+
+  it("returns a new instance each time for transient scope", () => {
+    @Injectable({ scope: "transient" })
+    class TransientSvc {}
+    expect(inject(TransientSvc)).not.toBe(inject(TransientSvc));
+  });
+
+  it("resolves a registered token value", () => {
+    const API_URL = token<string>("API_URL");
+    container.registerValue(API_URL, "https://api.example.com");
+    expect(inject(API_URL)).toBe("https://api.example.com");
+  });
+
+  it("throws when the class is not registered", () => {
+    class Unregistered {}
+    expect(() => inject(Unregistered)).toThrow("[DI]");
+  });
+
+  it("throws when the token is not registered", () => {
+    const MISSING = token<string>("MISSING_TOKEN");
+    expect(() => inject(MISSING)).toThrow("MISSING_TOKEN");
+  });
+
+  it("result is identical to container.resolve() — same underlying call", () => {
+    @Injectable()
+    class EqService {}
+    expect(inject(EqService)).toBe(container.resolve(EqService));
   });
 });

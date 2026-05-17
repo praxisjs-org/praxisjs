@@ -1,6 +1,6 @@
 ---
 title: Dependency Injection
-description: "@praxisjs/di — decorator-based DI with @Injectable, @Inject, @InjectContainer, and @Scope for per-instance scoped containers."
+description: "@praxisjs/di — decorator-based DI with @Injectable, @Inject, @InjectContainer, and @Scope for per-instance scoped containers. Use inject() for imperative resolution outside components."
 icon: Plug
 ---
 
@@ -88,6 +88,42 @@ class ServiceLocator {
   }
 }
 ```
+
+---
+
+## `inject(dep)`
+
+Resolves a dependency from the global container imperatively — no class instance required. Use this anywhere decorators are unavailable: route guards, plain functions, module initializers.
+
+```ts
+import { inject } from '@praxisjs/di'
+
+const logger = inject(LoggerService)
+logger.log('app started')
+```
+
+With a token:
+
+```ts
+const config = inject(CONFIG_TOKEN)
+```
+
+In a route guard:
+
+```ts
+import { inject } from '@praxisjs/di'
+
+{
+  path: '/dashboard',
+  component: DashboardPage,
+  beforeEnter: async (to) => {
+    const auth = inject(AuthService)
+    return auth.loggedIn ? true : '/login'
+  },
+}
+```
+
+`inject()` always resolves from the global container. If you need scoped resolution, use `container.createChild()` and call `.resolve()` directly.
 
 ---
 

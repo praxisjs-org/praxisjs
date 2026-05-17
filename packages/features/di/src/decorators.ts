@@ -108,6 +108,12 @@ export function Inject<T>(dep: Constructor<T> | Token<T>) {
   }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
 }
 
+// ── inject() ──────────────────────────────────────────────────────────────────
+
+export function inject<T>(dep: Constructor<T> | Token<T>): T {
+  return container.resolve(dep as Constructor<T>);
+}
+
 // ── @InjectContainer ──────────────────────────────────────────────────────────
 
 export function InjectContainer() {
