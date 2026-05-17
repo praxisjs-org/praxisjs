@@ -1,5 +1,0 @@
----
-"@praxisjs/mcp": minor
----
-
-Initial release — MCP server (`praxisjs-mcp`) compatible with any MCP-capable AI assistant (Claude Code, Cursor, VS Code/Copilot, Windsurf). Four tools: `praxisjs_overview` (docs index), `praxisjs_get_page` (page by slug), `praxisjs_full_docs` (full reference), and `praxisjs_get_install_command` (generates correct CLI install commands without version pinning).
