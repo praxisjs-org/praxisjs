@@ -8,6 +8,10 @@ icon: Puzzle
 
 A composable encapsulates reactive state and external behavior into a reusable class. Use `@Compose` to attach it to any component — the reactive properties and lifecycle hooks wire up automatically.
 
+<Callout type="info" title="Internal APIs">
+Composable implementations use `signal`, `computed`, `effect`, and other primitives from `@praxisjs/core/internal`. See the [Internal APIs](/docs/internal/core) reference for the full list including `history`, `debounced`, `resource`, and `persistedSignal`.
+</Callout>
+
 ---
 
 ## Basic structure
@@ -199,3 +203,22 @@ render() {
 
 <StorybookLink story="guide-custom-composables-countercomposable--counter-story" label="Live demo — CounterComposable" />
 <StorybookLink story="guide-custom-composables-pollingresource--polling-story" label="Live demo — PollingResource" />
+
+---
+
+## Internal API reference
+
+Composable implementations commonly use these internal primitives:
+
+| Import | From | Description |
+|---|---|---|
+| `signal` | `@praxisjs/core/internal` | Reactive state returned from `setup()`. |
+| `computed` | `@praxisjs/core/internal` | Derived values exposed as composable properties. |
+| `effect` | `@praxisjs/core/internal` | Side effects that track signal dependencies. |
+| `resource` | `@praxisjs/core/internal` | Reactive async data fetching with status tracking. |
+| `debounced` | `@praxisjs/core/internal` | A signal that delays updates by a given time. |
+| `history` | `@praxisjs/core/internal` | Undo/redo history tracking for a signal. |
+| `persistedSignal` | `@praxisjs/core/internal` | Signal backed by `localStorage`. |
+| `isReactive` | `@praxisjs/shared/internal` | Check if a constructor argument is a signal or computed. |
+
+Full reference → [**@praxisjs/core/internal**](/docs/internal/core) · [**@praxisjs/shared/internal**](/docs/internal/shared)

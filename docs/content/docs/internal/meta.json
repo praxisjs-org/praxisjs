@@ -1,0 +1,13 @@
+{
+  "title": "Internal",
+  "description": "Private APIs for building decorators and composables",
+  "root": true,
+  "icon": "Lock",
+  "pages": [
+    "index",
+    "---Core---",
+    "core",
+    "---Shared---",
+    "shared"
+  ]
+}

@@ -1,0 +1,161 @@
+---
+title: "@praxisjs/shared/internal"
+description: Runtime type guards (isSignal, isComputed, isComponent), flattenChildren, and TypeScript interfaces (BaseReactive, ComponentConstructor, ComponentInstance) shared across packages.
+icon: Puzzle
+---
+
+# @praxisjs/shared/internal
+
+```ts
+import { isSignal, isComponent, flattenChildren } from '@praxisjs/shared/internal'
+import type { ComponentConstructor, BaseReactive } from '@praxisjs/shared/internal'
+```
+
+---
+
+## Type guards
+
+Runtime predicates used by the renderer and decorator implementations to narrow unknown values.
+
+### `isSignal(source)`
+
+Returns `true` if `source` is a signal created by `signal()`.
+
+```ts
+function isSignal(source: unknown): boolean
+```
+
+Checks for the `__isSignal` brand property set internally by `signal()`.
+
+---
+
+### `isComputed(source)`
+
+Returns `true` if `source` is a computed value created by `computed()`.
+
+```ts
+function isComputed(source: unknown): boolean
+```
+
+Checks for the `__isComputed` brand property set internally by `computed()`.
+
+---
+
+### `isReactive(source)`
+
+Returns `true` if `source` is either a signal or a computed value.
+
+```ts
+function isReactive(source: unknown): boolean
+```
+
+Equivalent to `isSignal(source) || isComputed(source)`.
+
+---
+
+### `isComponent(source)`
+
+Returns `true` if `source` is a component constructor decorated with `@Component`.
+
+```ts
+function isComponent(source: unknown): source is ComponentConstructor
+```
+
+Checks for the `__isComponent` brand property set by the `@Component` decorator.
+
+---
+
+## Utilities
+
+### `flattenChildren(children, out?)`
+
+Recursively flattens a nested children structure into a single flat array. Used by the renderer to normalize JSX children before mounting.
+
+```ts
+function flattenChildren(children: unknown, out?: unknown[]): unknown[]
+```
+
+```ts
+flattenChildren([['a', 'b'], ['c']])
+// → ['a', 'b', 'c']
+```
+
+---
+
+## Types
+
+### `BaseReactive<T>`
+
+Base interface shared by `Signal<T>` and `Computed<T>`. Use this when you need to accept either.
+
+```ts
+interface BaseReactive<T> {
+  (): T
+  subscribe(effect: (value: T) => void): () => void
+}
+```
+
+| Member | Description |
+|---|---|
+| `()` | Call the reactive to read its current value. |
+| `subscribe(fn)` | Subscribe to changes. Returns an unsubscribe function. |
+
+---
+
+### `ComponentConstructor<P>`
+
+Interface that every component class satisfies after being decorated with `@Component`. Used by the router, DI container, and renderer to accept component types.
+
+```ts
+interface ComponentConstructor<P = Record<string, unknown>> {
+  new(props: P): ComponentInstance
+  __isComponent: true
+  __isStateless: boolean
+  name: string
+}
+```
+
+---
+
+### `ComponentInstance`
+
+Interface for the instance side of a component. Implemented by `RootComponent` from `@praxisjs/core/internal`.
+
+```ts
+interface ComponentInstance {
+  _mounted: boolean
+  _anchor?: Comment
+  _stateDirty?: boolean
+  _setProps(p: Record<string, unknown>): void
+  render(): Node | Node[] | null
+  onBeforeMount?(): void
+  onMount?(): void
+  onUnmount?(): void
+  onError?(e: Error): void
+}
+```
+
+---
+
+### `ReactiveChildren`
+
+Type for arrow-function children in JSX — the mechanism that creates fine-grained DOM subscriptions.
+
+```ts
+type ReactiveChildren = () =>
+  | RenderedValue
+  | RenderedValue[]
+  | ReactiveChildren[]
+```
+
+When the renderer encounters a `ReactiveChildren` value, it wraps the call in an `effect` that updates only that specific DOM node when the result changes.
+
+---
+
+### `Cleanup`
+
+Alias for a no-argument cleanup function returned by subscriptions and effects.
+
+```ts
+type Cleanup = () => void
+```

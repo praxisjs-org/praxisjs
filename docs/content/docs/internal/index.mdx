@@ -1,0 +1,60 @@
+---
+title: Internal APIs
+description: Low-level primitives exposed for building decorators and composables — signals, effects, resource, type guards, and RootComponent.
+icon: Lock
+---
+
+# Internal APIs
+
+Two sub-paths expose the framework's low-level primitives for use inside decorator and composable implementations:
+
+```ts
+import { signal, effect, history, RootComponent } from '@praxisjs/core/internal'
+import { isSignal, isComponent, flattenChildren } from '@praxisjs/shared/internal'
+import type { ComponentConstructor, BaseReactive } from '@praxisjs/shared/internal'
+```
+
+<Callout type="warn" title="Not for application code">
+These paths are not part of the public API. Use them only inside `packages/foundation/**` or `packages/features/**` when implementing framework primitives. In application code, import from `@praxisjs/core` and `@praxisjs/decorators`.
+</Callout>
+
+---
+
+## What's in each path
+
+### `@praxisjs/core/internal`
+
+The reactive engine — every primitive the framework is built on:
+
+- **`signal`, `computed`, `effect`, `batch`, `peek`, `untrack`** — the core reactive graph
+- **`persistedSignal`, `syncedSignal`** — signals with localStorage and BroadcastChannel persistence
+- **`when`, `until`, `debounced`, `history`** — higher-level reactive utilities
+- **`resource`, `createResource`** — reactive async data fetching
+- **`RootComponent`** — the abstract base class all components extend
+
+### `@praxisjs/shared/internal`
+
+Runtime introspection and framework-level types:
+
+- **`isSignal`, `isComputed`, `isReactive`, `isComponent`** — brand-checked type guards
+- **`flattenChildren`** — recursive child-array flattening used by the renderer
+- **`BaseReactive`, `ComponentConstructor`, `ComponentInstance`, `ReactiveChildren`, `Cleanup`** — TypeScript interfaces shared across packages
+
+---
+
+## When to use internal paths
+
+| You need | Import from |
+|---|---|
+| Create a signal inside a decorator | `@praxisjs/core/internal` |
+| Run an effect tied to a component's lifecycle | `@praxisjs/core/internal` |
+| Fetch reactive async data inside a composable | `@praxisjs/core/internal` |
+| Access `RootComponent` to type a base class | `@praxisjs/core/internal` |
+| Check if a value is a signal at runtime | `@praxisjs/shared/internal` |
+| Accept a component constructor as a parameter | `@praxisjs/shared/internal` |
+| Flatten JSX children before mounting | `@praxisjs/shared/internal` |
+
+<Cards>
+  <Card title="@praxisjs/core/internal" description="Signal primitives, reactive utilities, resource, and RootComponent." href="/docs/internal/core" />
+  <Card title="@praxisjs/shared/internal" description="Type guards, flattenChildren, and framework-level TypeScript interfaces." href="/docs/internal/shared" />
+</Cards>

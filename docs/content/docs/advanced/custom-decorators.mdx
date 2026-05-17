@@ -8,6 +8,10 @@ icon: Tag
 
 PraxisJS provides factory functions for creating decorators. Each handles a different use case and manages per-instance state correctly.
 
+<Callout type="info" title="Internal APIs">
+Decorator implementations have access to the reactive engine through `@praxisjs/core/internal` — `signal`, `computed`, `effect`, `batch`, `peek`, and more. See the [Internal APIs](/docs/internal/core) reference for the full list.
+</Callout>
+
 ---
 
 ## Field decorators
@@ -278,3 +282,22 @@ create(_instance) {
   }
 }
 ```
+
+---
+
+## Internal API reference
+
+Decorator implementations commonly use these internal primitives:
+
+| Import | From | Description |
+|---|---|---|
+| `signal` | `@praxisjs/core/internal` | Create reactive state inside a decorator binding. |
+| `computed` | `@praxisjs/core/internal` | Derive a memoized value from signals. |
+| `effect` | `@praxisjs/core/internal` | Run side effects that re-run when signals change. |
+| `batch` | `@praxisjs/core/internal` | Group multiple signal writes into a single notification. |
+| `peek` | `@praxisjs/core/internal` | Read a signal without subscribing. |
+| `RootComponent` | `@praxisjs/core/internal` | Type the `instance` parameter in class decorators. |
+| `isSignal` | `@praxisjs/shared/internal` | Check if a value is a signal at runtime. |
+| `ComponentConstructor` | `@praxisjs/shared/internal` | Type a component class accepted as a parameter. |
+
+Full reference → [**@praxisjs/core/internal**](/docs/internal/core) · [**@praxisjs/shared/internal**](/docs/internal/shared)

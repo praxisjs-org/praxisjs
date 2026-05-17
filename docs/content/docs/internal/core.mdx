@@ -1,0 +1,381 @@
+---
+title: "@praxisjs/core/internal"
+description: Signal primitives (signal, computed, effect, batch, peek), persistence, reactive utilities (when, until, debounced, history), resource, and RootComponent.
+icon: Activity
+---
+
+# @praxisjs/core/internal
+
+```ts
+import { signal, effect, history, RootComponent } from '@praxisjs/core/internal'
+```
+
+All signal primitives, reactive utilities, resource, and the component base class live here. This is the building block path — use it inside decorator and composable implementations that need direct access to the reactive engine.
+
+---
+
+## Signals
+
+### `signal<T>(initialValue)`
+
+Creates a reactive signal — a callable that returns its current value and notifies subscribers when it changes.
+
+```ts
+function signal<T>(initialValue: T): Signal<T>
+```
+
+```ts
+const count = signal(0)
+
+count()          // 0 — read
+count.set(1)     // write
+count.update(n => n + 1)  // update from previous
+```
+
+Subscribers registered via `effect` or `subscribe` are notified synchronously on every `.set()` call unless inside a `batch`. Uses identity comparison (`Object.is`) — setting the same value is a no-op.
+
+**`Signal<T>` interface**
+
+| Member | Description |
+|---|---|
+| `()` | Read the current value. Registers the active effect as a subscriber. |
+| `.set(value)` | Write a new value and notify subscribers. |
+| `.update(fn)` | Write `fn(currentValue)`. |
+| `.subscribe(fn)` | Subscribe to changes. Calls `fn` immediately with the current value. Returns an unsubscribe function. |
+
+---
+
+### `computed<T>(getter)`
+
+Creates a lazy derived value that recomputes only when its signal dependencies change.
+
+```ts
+function computed<T>(getter: () => T): Computed<T>
+```
+
+```ts
+const doubled = computed(() => count() * 2)
+doubled()  // reads and caches; re-runs only if count changed
+```
+
+Uses a two-level subscriber graph internally: downstream computeds are tracked separately from leaf effects, enabling coalesced notifications and preventing redundant recomputes when multiple dependencies change in the same tick.
+
+**`Computed<T>` interface**
+
+| Member | Description |
+|---|---|
+| `()` | Read the cached value. Recomputes if dirty. |
+| `.subscribe(fn)` | Subscribe to changes. Returns an unsubscribe function. |
+
+---
+
+### `effect(fn)`
+
+Runs `fn` immediately and re-runs it whenever any signal read inside `fn` changes.
+
+```ts
+function effect(fn: () => (() => void) | void): () => void
+```
+
+```ts
+const stop = effect(() => {
+  console.log(count())
+  return () => { /* cleanup on each re-run */ }
+})
+
+stop()  // stop tracking and run final cleanup
+```
+
+The returned function stops the effect and runs cleanup. A `stopped` flag prevents re-runs after `stop()` is called — subscribing to a signal after stopping is safe.
+
+---
+
+### `untrack<T>(fn)`
+
+Runs `fn` without registering any signal subscriptions.
+
+```ts
+function untrack<T>(fn: () => T): T
+```
+
+```ts
+effect(() => {
+  const a = a$()          // subscribed
+  const b = untrack(() => b$())  // not subscribed
+  return a + b
+})
+```
+
+Used internally to wrap `mountComponent` so that static reads inside `render()` never create accidental subscriptions.
+
+---
+
+### `batch(fn)`
+
+Defers all subscriber notifications until `fn` completes, then flushes them once.
+
+```ts
+function batch(fn: () => void): void
+```
+
+```ts
+batch(() => {
+  x.set(1)
+  y.set(2)
+  // subscribers notified once here, not twice
+})
+```
+
+Supports nesting — the flush happens only when the outermost `batch` exits. Each effect runs at most once per batch regardless of how many of its dependencies changed.
+
+---
+
+### `peek<T>(source)`
+
+Reads a signal or computed without subscribing the active effect to it.
+
+```ts
+function peek<T>(source: Signal<T> | Computed<T>): T
+```
+
+```ts
+effect(() => {
+  if (flag()) {
+    const val = peek(expensive)  // read without subscribing
+  }
+})
+```
+
+---
+
+### `persistedSignal<T>(key, initialValue, options?)`
+
+A signal backed by `localStorage`. Reads the stored value on creation, writes back on every `.set()`.
+
+```ts
+function persistedSignal<T>(
+  key: string,
+  initialValue: T,
+  options?: PersistedSignalOptions<T>
+): Signal<T>
+```
+
+```ts
+const theme = persistedSignal('theme', 'light', { syncTabs: true })
+```
+
+With `syncTabs: true` (default), a `storage` event listener keeps the signal in sync across browser tabs.
+
+**`PersistedSignalOptions<T>`**
+
+| Option | Default | Description |
+|---|---|---|
+| `serialize` | `JSON.stringify` | Converts the value to a string for storage. |
+| `deserialize` | `JSON.parse` | Parses the stored string back to `T`. |
+| `syncTabs` | `true` | Syncs changes across tabs via the `storage` event. |
+
+---
+
+### `syncedSignal<T>(channelName, initialValue)`
+
+A signal that stays in sync across browser tabs via `BroadcastChannel`. Writing in any tab broadcasts to all others.
+
+```ts
+function syncedSignal<T>(channelName: string, initialValue: T): SyncedSignal<T>
+```
+
+```ts
+const cursor = syncedSignal('cursor-pos', { x: 0, y: 0 })
+cursor.set({ x: 10, y: 20 })  // broadcast to other tabs
+cursor.close()                  // close the BroadcastChannel
+```
+
+**`SyncedSignal<T>`** extends `Signal<T>` with a `.close()` method that shuts down the underlying `BroadcastChannel`.
+
+---
+
+## Reactive utilities
+
+### `when(source, fn)`
+
+Runs `fn` once the next time `source()` is truthy. Cleans up the internal effect immediately after firing.
+
+```ts
+function when<T>(
+  source: Signal<T> | Computed<T>,
+  fn: (value: NonNullable<T>) => void
+): () => void
+```
+
+```ts
+const stop = when(isReady, () => console.log('mounted'))
+stop()  // cancel before it fires
+```
+
+Returns a cancel function. If the source is already truthy on the first run, `fn` fires synchronously and the effect is stopped.
+
+---
+
+### `until(source)`
+
+Returns a `Promise` that resolves with the signal's value the next time it becomes truthy.
+
+```ts
+function until<T>(source: Signal<T> | Computed<T>): Promise<NonNullable<T>>
+```
+
+```ts
+const data = await until(resource.data)
+```
+
+Built on top of `when`. The promise never rejects.
+
+---
+
+### `debounced(source, ms)`
+
+Returns a new signal whose value updates only after `ms` milliseconds of silence from `source`.
+
+```ts
+function debounced<T>(
+  source: Signal<T> | Computed<T>,
+  ms: number
+): Signal<T> & { stop(): void }
+```
+
+```ts
+const lazyQuery = debounced(searchInput, 300)
+effect(() => fetchResults(lazyQuery()))
+```
+
+The returned signal has a `.stop()` method that cancels the internal effect and any pending timer.
+
+---
+
+### `history(source, limit?)`
+
+Tracks the value history of a signal with undo/redo support.
+
+```ts
+function history<T>(
+  source: Signal<T> | Computed<T>,
+  limit?: number  // default: 50
+): HistoryElement<T>
+```
+
+```ts
+const h = history(count)
+
+h.current()   // Computed<T> — current value
+h.values()    // Computed<T[]> — past + current
+h.canUndo()   // Computed<boolean>
+h.canRedo()   // Computed<boolean>
+
+h.undo()      // step back
+h.redo()      // step forward
+h.clear()     // wipe past and future
+```
+
+When `source` is a `Signal` (not just `Computed`), `undo()` and `redo()` also write back to the source signal.
+
+**`HistoryElement<T>`**
+
+| Member | Type | Description |
+|---|---|---|
+| `values` | `Computed<T[]>` | All past values plus the current one. |
+| `current` | `Computed<T>` | The current value. |
+| `canUndo` | `Computed<boolean>` | Whether there are past entries to step back to. |
+| `canRedo` | `Computed<boolean>` | Whether there are future entries to step forward to. |
+| `undo()` | `void` | Move one step back in history. |
+| `redo()` | `void` | Move one step forward in history. |
+| `clear()` | `void` | Clear past and future, keeping the current value. |
+
+---
+
+## Resource
+
+### `resource(fetcher, options?)`
+
+Creates a reactive async resource. Re-runs `fetcher` whenever any signal read inside it changes.
+
+```ts
+function resource<T>(
+  fetcher: () => Promise<T>,
+  options?: ResourceOptions<T>
+): Resource<T>
+```
+
+```ts
+const posts = resource(() => fetch(`/api/posts?page=${page()}`).then(r => r.json()))
+
+posts.data()     // Computed<T | null>
+posts.pending()  // Computed<boolean>
+posts.error()    // Computed<unknown>
+posts.status()   // Computed<ResourceStatus>
+
+posts.refetch()  // re-run manually
+posts.cancel()   // abort the in-flight fetch (idempotent)
+posts.mutate(v)  // set data optimistically
+```
+
+**`ResourceOptions<T>`**
+
+| Option | Default | Description |
+|---|---|---|
+| `initialData` | `null` | Value of `data` before the first successful fetch. |
+| `immediate` | `true` | Run the fetcher immediately on creation. |
+| `keepPreviousData` | `false` | Keep the last successful data while re-fetching instead of resetting to `null`. |
+
+**`ResourceStatus`** — `"idle" | "pending" | "success" | "error"`
+
+---
+
+### `createResource(param, fetcher, options?)`
+
+Like `resource`, but re-runs `fetcher` whenever the reactive `param` signal changes, passing the current param value as the argument.
+
+```ts
+function createResource<P, T>(
+  param: Signal<P> | Computed<P>,
+  fetcher: (param: P) => Promise<T>,
+  options?: ResourceOptions<T>
+): Resource<T>
+```
+
+```ts
+const post = createResource(postId, (id) => fetchPost(id))
+```
+
+Used internally by `@Resource` when a reactive source is provided.
+
+---
+
+## Component
+
+### `RootComponent`
+
+Abstract base class that every PraxisJS component ultimately extends. The renderer instantiates components via `new Ctor(props)` and expects this shape.
+
+```ts
+abstract class RootComponent<T extends object = Record<string, never>> {
+  readonly _rawProps: T
+  _mounted: boolean
+  _anchor?: Comment
+
+  get props(): T
+
+  onBeforeMount?(): void
+  onMount?(): void
+  onUnmount?(): void
+  onError?(error: Error): void
+
+  abstract render(): Node | Node[] | null
+}
+```
+
+| Member | Description |
+|---|---|
+| `_rawProps` | Props filled by the renderer at mount time. Read through `this.props` in user code. |
+| `_mounted` | Set to `true` after `onMount` fires. Used by lifecycle decorators to guard callbacks. |
+| `_anchor` | Comment node inserted by the renderer. Decorators use it to locate the parent DOM element. |
+| `render()` | Must be implemented. Called exactly once on mount — never on updates. |
