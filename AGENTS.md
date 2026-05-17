@@ -253,6 +253,19 @@ Bump types:
 
 `create-praxisjs` always gets a **patch** bump when its template dependencies change — this is handled by `scripts/sync-template-versions.mjs` and does not require a manual changeset.
 
+### Docs review before creating a changeset
+
+Before opening a changeset for any package, review the relevant docs pages and update them as part of the same PR:
+
+- **New API / export** — add it to the appropriate docs page (description, usage example, options table). Also add an entry to the package's changelog page under `docs/content/docs/changelog/`.
+- **Changed API** — update every docs page that references the old behavior. Mark removed options or signatures clearly.
+- **Removed API** — delete or strike through the docs section; note the removal in the changelog page.
+- **Bug fix** — add a changelog entry; update any docs that described the broken behavior as intentional.
+
+Do not consider a changeset complete until the docs reflect the current state of the package. If no docs page exists yet for an affected area, create one following the structure in the [Documentation](#documentation) section.
+
+Always update the version number for the affected package(s) in `docs/content/docs/packages.mdx` to match the new version from `package.json`.
+
 ---
 
 ## Testing
@@ -293,7 +306,7 @@ Linting runs on staged `packages/**/*.{ts,tsx}` files via Husky pre-commit hook.
 
 ## Documentation
 
-Docs source: `docs/src/`. Structure:
+Docs source: `docs/content/docs/`. Built with [Fumadocs](https://fumadocs.vercel.app) + Next.js (`output: export`). Structure:
 
 ```
 guide/          introduction  getting-started  project-status
@@ -302,6 +315,7 @@ decorators/     state  watchers  events  performance  timing  utilities  dx
 ecosystem/      router  store  di  motion  fsm
 composables/    dom  browser  concurrency
 tooling/        vite-plugin  devtools
+changelog/      core  decorators  runtime  router  store  …
 ```
 
-Every page needs `description:` frontmatter and `<llm-only>` tags for implementation notes. Run `pnpm docs:dev` to preview.
+Every page needs `description:` frontmatter. Pages use standard MDX with Fumadocs components (`<Callout>`, `<Cards>`, `<Card>`, etc.). Run `pnpm docs:dev` to preview. Static output goes to `docs/out/`.
