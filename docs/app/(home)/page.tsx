@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  openGraph: {
+    images: "/og/home/image.png",
+  },
+};
 
 const PRINCIPLES = [
   {
