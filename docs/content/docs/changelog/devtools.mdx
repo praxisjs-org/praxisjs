@@ -6,6 +6,74 @@ icon: ScanEye
 
 # @praxisjs/devtools
 
+## 0.2.18
+
+Updated dependencies — `@praxisjs/core@1.6.0`, `@praxisjs/runtime@0.2.17`, `@praxisjs/decorators@1.0.1`, `@praxisjs/jsx@0.4.5`.
+
+## 0.2.17
+
+Updated dependencies — `@praxisjs/decorators@1.0.0`, `@praxisjs/runtime@0.2.16`.
+
+## 0.2.16
+
+Updated dependencies — `@praxisjs/decorators@0.8.1`, `@praxisjs/runtime@0.2.15`, `@praxisjs/jsx@0.4.3`.
+
+## 0.2.15
+
+Updated dependencies — `@praxisjs/core@1.5.0`, `@praxisjs/decorators@0.8.0`, `@praxisjs/runtime@0.2.14`, `@praxisjs/jsx@0.4.2`.
+
+## 0.2.14
+
+Updated dependencies — `@praxisjs/core@1.4.1`, `@praxisjs/decorators@0.7.5`, `@praxisjs/runtime@0.2.13`, `@praxisjs/jsx@0.4.1`.
+
+## 0.2.13
+
+Updated `Panel` and `DevToolsApp` components to use the `StatelessComponent` default type parameter and `@Prop()` / `@Emit()` decorators for automatic JSX prop inference. Updated dependencies — `@praxisjs/core@1.4.0`, `@praxisjs/jsx@0.4.0`.
+
+## 0.2.12
+
+Updated dependencies — `@praxisjs/core@1.3.0`, `@praxisjs/decorators@0.7.3`, `@praxisjs/runtime@0.2.11`, `@praxisjs/jsx@0.3.10`.
+
+## 0.2.11
+
+Refreshed workspace dependencies for stability and security (`@types/node`, `eslint`, `unocss`). Updated dependencies — `@praxisjs/decorators@0.7.2`, `@praxisjs/runtime@0.2.10`.
+
+## 0.2.10
+
+Updated dependencies — `@praxisjs/core@1.2.0`, `@praxisjs/runtime@0.2.9`, `@praxisjs/decorators@0.7.1`, `@praxisjs/jsx@0.3.8`.
+
+## 0.2.9
+
+Updated dependencies — `@praxisjs/decorators@0.7.0`, `@praxisjs/runtime@0.2.8`, `@praxisjs/jsx@0.3.7`.
+
+## 0.2.8
+
+Updated dependencies — `@praxisjs/decorators@0.6.1`, `@praxisjs/runtime@0.2.7`, `@praxisjs/jsx@0.3.6`.
+
+## 0.2.7
+
+**Event bus error isolation.** Handlers registered via `@Debug` no longer short-circuit on the first error — all handlers run and errors are collected into an `AggregateError`. Updated dependencies — `@praxisjs/di@1.1.0`, `@praxisjs/concurrent@1.1.0`.
+
+## 0.2.6
+
+Refactored `@Debug` and `@Trace` internals to use the new decorator factory helpers (`createFieldDecorator`, `createMethodDecorator`, `createGetterObserverDecorator`, `createClassDecorator`). No changes to public API or behavior. Updated dependencies — `@praxisjs/core@1.0.0`, `@praxisjs/decorators@0.5.0`, `@praxisjs/runtime@0.2.5`.
+
+## 0.2.5
+
+Regenerated UnoCSS bundle. Updated dependencies — `@praxisjs/decorators@0.4.3`, `@praxisjs/core@0.4.2`.
+
+## 0.2.4
+
+**Bug fix:** guarded against undefined `entry` in `TimelineRow` — previously caused a silent crash when the devtools panel was opened before the first component mounted.
+
+## 0.2.3
+
+Fixed JSX prop typing for `StatelessComponent` — `LibraryManagedAttributes` now uses `InstancePropsOf` directly, preventing the erroneous `T | (T & (() => T))` type expansion. `@Emit` type signature relaxed from `unknown` to `any` for broader method compatibility.
+
+## 0.2.2
+
+Updated dependencies — `@praxisjs/jsx@0.3.0`.
+
 ## 0.2.1
 
 `@Debug()` now supports `@Computed()` getters. Computed values are tracked and historized in the Signals panel alongside `@State` fields.

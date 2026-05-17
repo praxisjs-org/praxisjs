@@ -6,6 +6,62 @@ icon: Plug
 
 # @praxisjs/di
 
+## 1.2.8
+
+Updated dependencies — `@praxisjs/core@1.6.0`, `@praxisjs/decorators@1.0.1`.
+
+## 1.2.7
+
+Updated dependencies — `@praxisjs/decorators@1.0.0`.
+
+## 1.2.6
+
+Updated dependencies — `@praxisjs/decorators@0.8.1`.
+
+## 1.2.5
+
+Updated dependencies — `@praxisjs/core@1.5.0`, `@praxisjs/decorators@0.8.0`.
+
+## 1.2.4
+
+Updated dependencies — `@praxisjs/core@1.4.1`, `@praxisjs/decorators@0.7.5`.
+
+## 1.2.3
+
+Updated dependencies — `@praxisjs/core@1.4.0`, `@praxisjs/decorators@0.7.4`.
+
+## 1.2.2
+
+Updated dependencies — `@praxisjs/core@1.3.0`, `@praxisjs/decorators@0.7.3`.
+
+## 1.2.1
+
+Refactored `@Injectable` and `@Scope` to use `ClassBehavior` / `createClassDecorator` from `@praxisjs/decorators`. Simplified `Container.instantiate` to plain `new target()`, removing internal TC39 metadata maps (`constructorDepsMap`, `propDepsMap`) and the associated `setConstructorDeps` / `setPropDep` helpers. No API changes.
+
+## 1.2.0
+
+**Removed `reflect-metadata` dependency.** Dependency metadata is now stored in `WeakMap`s instead of the reflect-metadata polyfill. Reduces external dependencies with no API changes. `setConstructorDeps` and `setPropDep` helpers exported for advanced manual metadata management.
+
+## 1.1.4
+
+Refreshed workspace dependencies for stability and security (`@types/node`, `eslint`, `unocss`). Updated dependencies — `@praxisjs/decorators@0.7.2`.
+
+## 1.1.3
+
+Updated dependencies — `@praxisjs/core@1.2.0`, `@praxisjs/decorators@0.7.1`.
+
+## 1.1.2
+
+Updated dependencies — `@praxisjs/decorators@0.7.0`.
+
+## 1.1.1
+
+Updated dependencies — `@praxisjs/decorators@0.6.1`.
+
+## 1.1.0
+
+**Circular dependency detection.** The container now detects circular dependencies during resolution and throws a descriptive error showing the full chain — e.g. `ServiceA → ServiceB → ServiceA`.
+
 ## 1.0.0 — Breaking
 
 Full decorator-based API. Functional APIs removed:
