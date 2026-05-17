@@ -188,6 +188,16 @@ dev: false
 
 ---
 
-## Pairing with the Claude Code skill
+## Pairing with an AI skill
 
-The MCP server handles documentation lookup. For AI-assisted development that also enforces `CLAUDE.md` management, project config, and PraxisJS conventions, pair it with [`@praxisjs/claude-skill`](/docs/tooling/claude-skill).
+The MCP server handles documentation lookup. For AI-assisted development that also enforces project memory (`CLAUDE.md` / `AGENTS.md`), one-time project config, and PraxisJS conventions, add a skill to your project:
+
+```sh
+# New project — select the integration during scaffolding
+pnpm create praxisjs@latest
+
+# Existing project
+npx create-praxisjs add
+```
+
+See the [AI skills guide](/docs/guide/ai-skills) for what each skill does and how to use it.

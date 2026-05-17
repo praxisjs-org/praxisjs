@@ -1,0 +1,249 @@
+---
+title: AI Skills
+description: How to use PraxisJS AI skills — docs-first development, project memory, and one-time project config for Claude Code and Codex.
+icon: Sparkles
+---
+
+# AI Skills
+
+PraxisJS ships AI skills that give Claude Code and Codex a structured way to work on your project — always consulting live documentation, keeping project context persistent, and following framework conventions without guessing.
+
+---
+
+## Installing a skill
+
+### New project
+
+Select an integration during scaffolding:
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm create praxisjs@latest
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm create praxisjs
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn create praxisjs
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun create praxisjs
+```
+</Tab>
+</Tabs>
+
+At the "Add an AI integration?" step, choose **Claude Code** or **Codex**.
+
+### Existing project
+
+Run the `add` command at the project root:
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npx create-praxisjs add
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm dlx create-praxisjs add
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn dlx create-praxisjs add
+```
+</Tab>
+<Tab value="bun">
+```sh
+bunx create-praxisjs add
+```
+</Tab>
+</Tabs>
+
+---
+
+## What gets installed
+
+| Integration | Skill location | Project memory | MCP config |
+|---|---|---|---|
+| **Claude Code** | `.claude/skills/praxisjs/` | `CLAUDE.md` | `.claude/settings.json` (auto) |
+| **Codex** | `.agents/skills/praxisjs/` | `AGENTS.md` | `~/.codex/config.toml` (manual) |
+
+The MCP server (`@praxisjs/mcp`) is configured automatically for Claude Code. For Codex, see the [MCP Server](/docs/tooling/mcp) page for the `~/.codex/config.toml` snippet.
+
+---
+
+## The three rules
+
+Both skills enforce the same three rules on every task:
+
+1. **Docs first** — the skill calls `praxisjs_overview` then `praxisjs_get_page` for the relevant topic before writing any code. APIs evolve; the skill never guesses.
+2. **Project memory always** — reads `CLAUDE.md` or `AGENTS.md` at session start; updates it whenever an architectural decision is made.
+3. **No workarounds** — if the idiomatic path isn't clear from the docs, the skill fetches the page rather than improvising.
+
+---
+
+## Project config (`.praxisjs-ai.json`)
+
+On first use the skill asks five questions in a single message and writes `.praxisjs-ai.json` at the project root. Every subsequent session reads this file silently — the AI never asks the same questions again.
+
+```jsonc
+{
+  "version": 1,
+  "tests": true,          // generate test files for every new component
+  "codeLocale": "en",     // language for identifiers, comments, variable names
+  "uiLocale": "pt-BR",    // language for user-facing strings in templates
+  "i18n": false,          // set up internationalization support
+  "css": "tailwind"       // plain | modules | tailwind | unocss | none
+}
+```
+
+To update a preference after init, edit `.praxisjs-ai.json` directly or ask the AI to update it.
+
+---
+
+## Project memory
+
+`CLAUDE.md` (Claude Code) and `AGENTS.md` (Codex) serve the same purpose: they give every new session instant context about the project so you don't have to re-explain it.
+
+The skill creates the file when missing and updates it whenever an architectural decision is made — a new package added, a store pattern established, a routing convention decided.
+
+Minimal structure (Claude Code example):
+
+```markdown
+# My App
+
+## Stack
+- PraxisJS 1.x + @praxisjs/core, @praxisjs/decorators, @praxisjs/runtime, @praxisjs/jsx
+- Build: Vite 7 + @praxisjs/vite-plugin
+- Routing: @praxisjs/router
+- State: @praxisjs/store
+
+## Architecture
+SPA. Entry: src/main.ts. Pages in src/pages/, components in src/components/.
+
+## Conventions
+Stores are singletons injected via @UseStore. All forms extend FormBase.
+
+## Known constraints
+JWT stored in memory only. Targets Chrome 100+.
+```
+
+<Callout type="info">
+  The skill will not proceed with any task until the project memory file exists. If it is missing at session start, the skill creates it before writing any code.
+</Callout>
+
+---
+
+## How it uses the MCP server
+
+The skill calls three tools from `@praxisjs/mcp` during a session:
+
+| Tool | When |
+|---|---|
+| `praxisjs_overview` | First call in every session — fast index of all docs pages |
+| `praxisjs_get_page` | Before implementing anything — fetches the relevant page by slug |
+| `praxisjs_full_docs` | When cross-topic context is needed |
+
+The fourth tool, `praxisjs_get_install_command`, is called whenever a package needs to be installed — it generates the correct CLI command without version pinning.
+
+Register the MCP server for your AI client: [MCP Server](/docs/tooling/mcp).
+
+---
+
+## Example prompts
+
+These are realistic prompts you can use directly. The skill ensures docs are fetched and conventions are followed before any code is written.
+
+### Starting a new project
+
+```
+I just scaffolded a PraxisJS project with the router template. Create CLAUDE.md
+with the current stack and architecture, then show me the entry point setup.
+```
+
+```
+Set up a PraxisJS todo app from scratch — stateful component, add/complete/delete
+tasks, filter by status. Create CLAUDE.md first, then fetch the relevant docs
+before writing any components.
+```
+
+### Creating components
+
+```
+Create a UserCard component that receives a user object as a prop and displays
+name, avatar, and role. It's stateless — no internal state needed.
+```
+
+```
+I need a SearchInput component with debounced input (300ms) that emits a search
+event to the parent. Check the decorators/timing docs before implementing.
+```
+
+### Async data
+
+```
+Add a UserProfile component that fetches /api/users/:id on mount, shows a
+skeleton while loading, the profile on success, and a retry button on error.
+The userId comes in as a prop.
+```
+
+```
+Our ProductList currently fetches on mount. Refetch automatically whenever the
+categoryId signal changes. Check the async-data docs first.
+```
+
+### State management
+
+```
+Add a CartStore to manage items, quantities, and total. Inject it into the
+Header and ProductCard components. Update CLAUDE.md with the store pattern.
+```
+
+```
+We need authentication state shared across the app — logged-in user, JWT token,
+and a hasRole() helper. What's the right approach with PraxisJS store and DI?
+```
+
+### Routing
+
+```
+Set up client-side routing with three pages: Home, Dashboard (requires auth),
+and Profile. Redirect unauthenticated users to /login using a beforeEnter guard.
+```
+
+```
+Add a /products/:id route that lazy-loads the ProductDetail component and
+reads the id from route params. Fetch the router docs before implementing.
+```
+
+### Refactoring and debugging
+
+```
+This computed value is updating too often — it re-derives even when unrelated
+signals change. Read the reactivity docs and explain why, then fix it.
+```
+
+```
+Extract the authentication logic from UserPage into a reusable composable.
+Check the custom-composables docs for the right pattern.
+```
+
+### Adding packages
+
+```
+Add @praxisjs/motion to the project and animate the sidebar width when it
+toggles open and closed. Install the package first, then fetch the motion docs.
+```
+
+<Callout type="info">
+  The skill always fetches live docs before implementing — you don't need to include docs URLs or decorator option details in your prompt. Describe the intent; the skill handles the lookup.
+</Callout>
