@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { Store, UseStore, ReactiveStore } from "../decorators";
+import { Store, UseStore, useStore, ReactiveStore } from "../decorators";
 
 describe("Store decorator", () => {
   it("registers the class without throwing", () => {
@@ -121,5 +121,72 @@ describe("UseStore decorator", () => {
     run(obj2);
 
     expect(obj1.counter).toBe(obj2.counter);
+  });
+});
+
+// ── useStore() ────────────────────────────────────────────────────────────────
+
+describe("useStore", () => {
+  it("returns a store instance without requiring a class field", () => {
+    class ProfileStore extends ReactiveStore {
+      name = "alice";
+    }
+    Store()(ProfileStore, {} as ClassDecoratorContext);
+
+    const store = useStore(ProfileStore);
+    expect(store).toBeInstanceOf(ProfileStore);
+    expect(store.name).toBe("alice");
+  });
+
+  it("returns the same singleton instance on repeated calls", () => {
+    class TimerStore extends ReactiveStore {
+      ticks = 0;
+    }
+    Store()(TimerStore, {} as ClassDecoratorContext);
+
+    expect(useStore(TimerStore)).toBe(useStore(TimerStore));
+  });
+
+  it("shares the same instance as @UseStore (same registry)", () => {
+    class FlagsStore extends ReactiveStore {
+      enabled = true;
+    }
+    Store()(FlagsStore, {} as ClassDecoratorContext);
+
+    const { ctx, run } = makeFieldCtx("flags");
+    UseStore(FlagsStore)(undefined, ctx);
+    const obj: Record<string, unknown> = {};
+    run(obj);
+
+    expect(obj.flags).toBe(useStore(FlagsStore));
+  });
+
+  it("lazily creates the instance on first call", () => {
+    class LazyStore extends ReactiveStore {
+      ready = false;
+    }
+    Store()(LazyStore, {} as ClassDecoratorContext);
+
+    const instance = useStore(LazyStore);
+    expect(instance).toBeInstanceOf(LazyStore);
+  });
+
+  it("works without @Store decorator — creates a plain instance", () => {
+    class BareStore extends ReactiveStore {
+      value = 7;
+    }
+    const instance = useStore(BareStore);
+    expect(instance).toBeInstanceOf(BareStore);
+    expect(instance.value).toBe(7);
+  });
+
+  it("mutations on the returned instance are reflected on subsequent calls", () => {
+    class ThemeStore extends ReactiveStore {
+      dark = false;
+    }
+    Store()(ThemeStore, {} as ClassDecoratorContext);
+
+    useStore(ThemeStore).dark = true;
+    expect(useStore(ThemeStore).dark).toBe(true);
   });
 });

@@ -6,6 +6,16 @@ icon: Store
 
 # @praxisjs/store
 
+## 1.1.0
+
+Add `useStore()` — functional alternative to `@UseStore` for use outside component context (route guards, plain functions). Resolves from the same global registry as `@UseStore` and always returns the same singleton instance.
+
+```ts
+import { useStore } from '@praxisjs/store'
+
+const cart = useStore(CartStore)
+```
+
 ## 1.0.12
 
 Updated dependencies — `@praxisjs/core@1.6.0`, `@praxisjs/decorators@1.0.1`.

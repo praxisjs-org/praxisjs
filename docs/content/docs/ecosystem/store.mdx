@@ -1,6 +1,6 @@
 ---
 title: Store
-description: "@praxisjs/store — class-based singleton stores with @Store and @UseStore. Define reactive state with @State, inject anywhere with @UseStore."
+description: "@praxisjs/store — class-based singleton stores with @Store and @UseStore. Define reactive state with @State, inject anywhere with @UseStore or useStore()."
 icon: Store
 ---
 
@@ -95,6 +95,36 @@ class CartButton extends StatefulComponent {
 ```
 
 Any component that reads a reactive property from the store updates automatically when that property changes — no subscriptions, no context providers.
+
+---
+
+## `useStore(StoreClass)`
+
+Resolves the singleton store instance imperatively — no class field or decorator required. Use this anywhere `@UseStore` is unavailable: route guards, plain functions, or services.
+
+```ts
+import { useStore } from '@praxisjs/store'
+
+const cart = useStore(CartStore)
+cart.addItem(product)
+```
+
+In a route guard:
+
+```ts
+import { useStore } from '@praxisjs/store'
+
+{
+  path: '/checkout',
+  component: CheckoutPage,
+  beforeEnter: async () => {
+    const cart = useStore(CartStore)
+    return cart.items.length > 0 ? true : '/'
+  },
+}
+```
+
+`useStore()` and `@UseStore` share the same registry — they always return the same instance.
 
 ---
 

@@ -20,6 +20,13 @@ export function Store() {
   };
 }
 
+export function useStore<T extends ReactiveStore>(StoreClass: new () => T): T {
+  if (!storeRegistry.has(StoreClass) || storeRegistry.get(StoreClass) === null) {
+    storeRegistry.set(StoreClass, new StoreClass());
+  }
+  return storeRegistry.get(StoreClass) as T;
+}
+
 export function UseStore(StoreConstructor: new () => unknown) {
   const cache = new WeakMap<object, unknown>();
 
