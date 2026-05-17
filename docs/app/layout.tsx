@@ -4,6 +4,7 @@ import { Provider } from '@/components/provider';
 import './global.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://praxisjs.org'),
   title: {
     default: 'PraxisJS',
     template: '%s — PraxisJS',
