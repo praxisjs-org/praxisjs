@@ -32,7 +32,7 @@ jobs:
         run: pnpm install
 
       - name: Build workspace packages
-        run: pnpm -r --filter '!praxisjs-stories' run build
+        run: pnpm -r --filter '!praxisjs-stories' --filter '!@praxisjs/docs' run build
 
       - name: Build Storybook
         run: pnpm --filter praxisjs-stories build
