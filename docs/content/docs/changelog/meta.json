@@ -21,6 +21,7 @@
     "devtools",
     "storybook",
     "vite-plugin",
+    "mcp",
     "---CLI---",
     "create-praxisjs"
   ]

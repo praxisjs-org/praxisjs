@@ -1,0 +1,193 @@
+---
+title: MCP Server
+description: "@praxisjs/mcp — Model Context Protocol server for PraxisJS. Gives any MCP-compatible AI assistant live access to documentation and install commands."
+icon: Bot
+---
+
+# MCP Server
+
+`@praxisjs/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server for PraxisJS. It works with any MCP-compatible AI assistant — Claude Code, Cursor, VS Code/Copilot, Windsurf, and others — giving it live access to praxisjs.org documentation and install command generation.
+
+No install required. Run directly:
+
+<Tabs items={['npx', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npx">
+```sh
+npx -y @praxisjs/mcp
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm dlx @praxisjs/mcp
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn dlx @praxisjs/mcp
+```
+</Tab>
+<Tab value="bun">
+```sh
+bunx @praxisjs/mcp
+```
+</Tab>
+</Tabs>
+
+---
+
+## Setup
+
+Pick your AI client and add the server to its MCP config file.
+
+<Tabs items={['Claude Code', 'Cursor', 'VS Code / Copilot', 'Windsurf', 'Codex']}>
+<Tab value="Claude Code">
+Add to `.claude/settings.json` (project) or `~/.claude/settings.json` (global):
+
+```json
+{
+  "mcpServers": {
+    "praxisjs": {
+      "command": "npx",
+      "args": ["-y", "@praxisjs/mcp"]
+    }
+  }
+}
+```
+</Tab>
+<Tab value="Cursor">
+Add to `.cursor/mcp.json` at the project root (or `~/.cursor/mcp.json` for global):
+
+```json
+{
+  "mcpServers": {
+    "praxisjs": {
+      "command": "npx",
+      "args": ["-y", "@praxisjs/mcp"]
+    }
+  }
+}
+```
+
+Then enable it in **Cursor Settings → MCP**.
+</Tab>
+<Tab value="VS Code / Copilot">
+Add to `.vscode/mcp.json` at the project root:
+
+```json
+{
+  "servers": {
+    "praxisjs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@praxisjs/mcp"]
+    }
+  }
+}
+```
+
+Click **Start** in the config file editor, or use the MCP panel in the GitHub Copilot Chat sidebar.
+</Tab>
+<Tab value="Windsurf">
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "praxisjs": {
+      "command": "npx",
+      "args": ["-y", "@praxisjs/mcp"]
+    }
+  }
+}
+```
+</Tab>
+<Tab value="Codex">
+Add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.praxisjs]
+command = "npx"
+args = ["-y", "@praxisjs/mcp"]
+```
+</Tab>
+</Tabs>
+
+<Callout type="info">
+  If you prefer a local install over `npx`, run `npm install -D @praxisjs/mcp` and replace `"command": "npx", "args": ["-y", "@praxisjs/mcp"]` with `"command": "./node_modules/.bin/praxisjs-mcp"`.
+</Callout>
+
+---
+
+## Tools
+
+The server exposes four tools.
+
+### `praxisjs_overview`
+
+Returns the documentation index (`llms.txt`) — a concise list of all available pages with one-line descriptions. Use this first to orient before fetching a specific page.
+
+### `praxisjs_get_page`
+
+Returns a specific documentation page as Markdown. Pass a slug from the table below.
+
+| Topic | Slug |
+|---|---|
+| Components | `essentials/components` |
+| Reactivity & signals | `essentials/reactivity` |
+| JSX | `essentials/jsx` |
+| Lifecycle hooks | `essentials/lifecycle` |
+| Async data | `essentials/async-data` |
+| State & Props | `decorators/state` |
+| Watchers | `decorators/watchers` |
+| Events & Slots | `decorators/events` |
+| Performance | `decorators/performance` |
+| Timing decorators | `decorators/timing` |
+| Utility decorators | `decorators/utilities` |
+| Router | `ecosystem/router` |
+| Store | `ecosystem/store` |
+| Dependency injection | `ecosystem/di` |
+| Motion | `ecosystem/motion` |
+| State machines | `ecosystem/fsm` |
+| Concurrency | `ecosystem/concurrency` |
+| DOM composables | `composables/dom` |
+| Browser composables | `composables/browser` |
+| Custom decorators | `advanced/custom-decorators` |
+| Custom composables | `advanced/custom-composables` |
+| Vite plugin | `tooling/vite-plugin` |
+
+### `praxisjs_full_docs`
+
+Returns all documentation pages concatenated (`llms-full.txt`). Use when cross-topic context is needed or the relevant page slug is unknown.
+
+### `praxisjs_get_install_command`
+
+Generates the correct CLI command to install `@praxisjs/*` packages without pinning version numbers. Use this whenever a PraxisJS package needs to be installed — never write version constraints directly into `package.json`.
+
+**Input:**
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `packages` | `string[]` | — | One or more `@praxisjs/*` package names |
+| `manager` | `"npm" \| "pnpm" \| "yarn" \| "bun"` | `"npm"` | Package manager to use |
+| `dev` | `boolean` | `true` | Install as devDependency |
+
+**Examples:**
+
+```
+packages: ["@praxisjs/router", "@praxisjs/store"]
+manager: "pnpm"
+→  pnpm add -D @praxisjs/router @praxisjs/store
+```
+
+```
+packages: ["@praxisjs/core", "@praxisjs/runtime"]
+manager: "npm"
+dev: false
+→  npm install @praxisjs/core @praxisjs/runtime
+```
+
+---
+
+## Pairing with the Claude Code skill
+
+The MCP server handles documentation lookup. For AI-assisted development that also enforces `CLAUDE.md` management, project config, and PraxisJS conventions, pair it with [`@praxisjs/claude-skill`](/docs/tooling/claude-skill).

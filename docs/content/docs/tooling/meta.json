@@ -5,6 +5,7 @@
     "vite-plugin",
     "devtools",
     "devtools-plugins",
-    "storybook"
+    "storybook",
+    "mcp"
   ]
 }
