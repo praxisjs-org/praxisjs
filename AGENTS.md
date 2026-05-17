@@ -266,7 +266,7 @@ Before opening a changeset for any package, review the relevant docs pages and u
 
 Do not consider a changeset complete until the docs reflect the current state of the package. If no docs page exists yet for an affected area, create one following the structure in the [Documentation](#documentation) section.
 
-Always update the version number for the affected package(s) in `docs/content/docs/packages.mdx` to match the new version from `package.json`.
+**Always update `docs/content/docs/packages.mdx`** with the new version for every package that receives a changeset. Derive the next version from the current `package.json` version and the bump type (patch/minor/major). This is required — a changeset is not complete without it.
 
 ---
 
