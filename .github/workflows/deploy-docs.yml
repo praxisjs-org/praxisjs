@@ -19,8 +19,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
 
@@ -35,12 +33,10 @@ jobs:
 
       - name: Build docs
         run: pnpm docs:build
-        env:
-          VITE_STORYBOOK_URL: https://storybook.praxisjs.org
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy docs/.vitepress/dist --project-name=praxisjs-docs --branch=main
+          command: pages deploy docs/out --project-name=praxisjs-docs --branch=main
