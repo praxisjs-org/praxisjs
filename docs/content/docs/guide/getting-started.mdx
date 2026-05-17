@@ -160,6 +160,62 @@ render(() => <Counter initialCount={5} />, document.getElementById('app')!)
 
 ---
 
+---
+
+## AI & MCP
+
+[`@praxisjs/mcp`](/docs/tooling/mcp) gives any MCP-compatible AI assistant live access to praxisjs.org documentation. Two AI integrations are available:
+
+| Integration | AI assistant | Project memory | Skill location |
+|---|---|---|---|
+| **Claude Code** | Claude Code, Cursor, VS Code/Copilot, Windsurf | `CLAUDE.md` | `.claude/skills/praxisjs/` |
+| **Codex** | OpenAI Codex | `AGENTS.md` | `.agents/skills/praxisjs/` |
+
+### New project
+
+When scaffolding with `create-praxisjs`, the "Add an AI integration?" step lets you pick the integration — skill files and project memory file are configured automatically.
+
+### Existing project
+
+Run the `add` command in the project root:
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npx create-praxisjs add
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm dlx create-praxisjs add
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn dlx create-praxisjs add
+```
+</Tab>
+<Tab value="bun">
+```sh
+bunx create-praxisjs add
+```
+</Tab>
+</Tabs>
+
+Select the integration. For **Claude Code**, skill files are added to `.claude/skills/praxisjs/` with the MCP server pre-configured in `.claude/settings.json`. For **Codex**, skill files go to `.agents/skills/praxisjs/` and `AGENTS.md` is created at the project root (MCP is configured separately in `~/.codex/config.toml` — see the [MCP docs](/docs/tooling/mcp)).
+
+### MCP server only
+
+To add only the MCP server (without the Claude Code skill):
+
+```sh
+npm install -D @praxisjs/mcp
+```
+
+See the [MCP Server](/docs/tooling/mcp) page for client-specific setup (Cursor, VS Code/Copilot, Windsurf, Codex).
+
+---
+
 ## What's next?
 
 - [Components](/docs/essentials/components) — understand StatefulComponent vs StatelessComponent

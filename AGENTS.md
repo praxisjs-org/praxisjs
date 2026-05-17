@@ -253,6 +253,8 @@ Bump types:
 
 `create-praxisjs` always gets a **patch** bump when its template dependencies change — this is handled by `scripts/sync-template-versions.mjs` and does not require a manual changeset.
 
+**Never edit `CHANGELOG.md` files inside packages.** These files (`packages/**/CHANGELOG.md`) are generated automatically by `changeset version` when the release workflow runs in GitHub Actions. Editing them manually will cause conflicts and be overwritten on the next release. The only changelog files you should ever write are the docs changelog pages under `docs/content/docs/changelog/`.
+
 ### Docs review before creating a changeset
 
 Before opening a changeset for any package, review the relevant docs pages and update them as part of the same PR:
@@ -279,15 +281,36 @@ The default environment is `node`. Tests that need DOM APIs (localStorage, `docu
 import { describe, it, expect } from 'vitest'
 ```
 
-**Tests are required for every implementation.** This includes:
+**Tests are required for every package you create or edit.** This applies to all packages without exception:
 
+- **New package** — create `src/__tests__/` and write tests for every exported function and behavior before the package is considered done.
+- **Edited package** — validate existing tests still pass and add new tests for any changed or added behavior.
 - New signals, utilities, or primitives in `@praxisjs/core`
 - New decorators or changes to existing ones in `@praxisjs/decorators`
 - New runtime behavior (mounting, reactivity, scopes) in `@praxisjs/runtime`
 - Bug fixes — the test must reproduce the bug before the fix and pass after
 - New composables or concurrency utilities
+- New DX packages (`packages/dx/**`) — mock external dependencies (MCP SDK, Vite, Storybook, etc.) with `vi.mock` / `vi.stubGlobal` and test the exported logic directly
 
 Do not open a changeset or consider a task done without corresponding tests. If a package has no `__tests__` directory yet, create it.
+
+---
+
+## Change checklist
+
+Every code change — whether creating, updating, or removing something — is only complete when **all** of the following are done. Work through this list in order before considering a task finished:
+
+- [ ] **Implementation** — source files in `packages/**/src/` reflect the intended behavior
+- [ ] **Tests** — `packages/**/src/__tests__/` has add/updated/removed cases covering the change; `pnpm test` passes
+- [ ] **Docs page** — the relevant `docs/content/docs/**/*.mdx` page is updated:
+  - New export → description + usage example added
+  - Changed behavior → existing section updated
+  - Removed API → section deleted or struck through
+- [ ] **Changelog page** — `docs/content/docs/changelog/<package>.mdx` has a new entry at the top with the next version number and a plain-English summary of what changed
+- [ ] **Story** — `storybook/stories/` has an added/updated story if the change is user-facing (new component, new decorator option, new API surface)
+- [ ] **Changeset** — `.changeset/<slug>.md` created with the correct bump type (`patch` / `minor` / `major`) and a concise summary
+
+No exceptions for "small" changes, refactors, or bug fixes — every item above applies unless the change is purely internal (e.g. a test-only fix or a comment).
 
 ---
 

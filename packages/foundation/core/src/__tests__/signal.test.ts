@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 
+import { batch } from "../signal/batch";
 import { signal } from "../signal/signal";
 
 describe("signal", () => {
@@ -123,6 +124,47 @@ describe("signal", () => {
       unsub?.();
     });
     expect(() => s.set(1)).not.toThrow();
+  });
+
+  it("unsubscribing one of multiple subscribers removes only that subscriber", () => {
+    const s = signal(0);
+    const a: number[] = [];
+    const b: number[] = [];
+    const unsubA = s.subscribe((v) => a.push(v));
+    s.subscribe((v) => b.push(v));
+    // subs is now an array — hits removeSub else branch
+    unsubA();
+    s.set(1);
+    expect(a).toEqual([0]); // A stopped after initial fire
+    expect(b).toEqual([0, 1]); // B still receives
+  });
+
+  it("unsubscribing a non-existent subscriber from array subs is a no-op", () => {
+    const s = signal(0);
+    const a: number[] = [];
+    const b: number[] = [];
+    s.subscribe((v) => a.push(v));
+    const unsubB = s.subscribe((v) => b.push(v));
+    unsubB(); // remove B, subs becomes array without B
+    unsubB(); // call again — idx will be -1, splice not called
+    expect(() => s.set(1)).not.toThrow();
+    expect(a).toContain(1);
+  });
+
+  it("batch defers notifications for multiple array subscribers", () => {
+    const s = signal(0);
+    const a: number[] = [];
+    const b: number[] = [];
+    s.subscribe((v) => a.push(v));
+    s.subscribe((v) => b.push(v));
+    // subs is an array; inside batch, notifySubs hits the batching=true array path
+    batch(() => {
+      s.set(1);
+      expect(a).toEqual([0]); // not yet fired
+      expect(b).toEqual([0]);
+    });
+    expect(a).toContain(1);
+    expect(b).toContain(1);
   });
 
   it("set() with mutated object reference (same ref) does NOT notify — Object.is semantics", () => {

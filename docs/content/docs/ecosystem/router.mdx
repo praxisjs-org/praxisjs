@@ -222,3 +222,37 @@ Add `beforeEnter` to any route definition to run logic before navigation complet
   },
 }
 ```
+
+| Return value | Effect |
+|---|---|
+| `true` | Allow navigation |
+| `false` | Cancel navigation (stay on current route) |
+| `string` | Redirect to that path |
+
+### Using `inject()` and `useStore()` in guards
+
+Guards run outside component context, so decorators like `@Inject` and `@UseStore` are unavailable. Use the functional equivalents instead — they resolve from the same global singletons:
+
+```ts
+import { inject } from '@praxisjs/di'
+import { useStore } from '@praxisjs/store'
+
+{
+  path: '/dashboard',
+  component: DashboardPage,
+  beforeEnter: async (to) => {
+    const auth = inject(AuthService)          // resolves from global DI container
+    return auth.loggedIn ? true : '/login'
+  },
+},
+{
+  path: '/admin',
+  component: AdminPage,
+  beforeEnter: async (to) => {
+    const session = useStore(SessionStore)    // resolves from global store registry
+    return session.role === 'admin' ? true : '/login'
+  },
+},
+```
+
+<StorybookLink story="ecosystem-navigation-guard--default" label="Live demo — Navigation Guard" />
