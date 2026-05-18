@@ -8,12 +8,13 @@ icon: Route
 
 ## 1.0.14
 
-<Callout type="warn" title="Breaking — @RouterConfig renamed to @Router, Router class renamed to RouterInstance">
+<Callout type="warn" title="Breaking — API renames">
 
 | Changed | Before | After |
 |---|---|---|
 | Root app decorator | `@RouterConfig([...])` | `@Router([...])` |
-| Router class (type annotation) | `router!: Router` | `router!: RouterInstance` |
+| Router field decorator | `@InjectRouter() router!: Router` | `@Router() router!: RouterInstance` |
+| Router class (type annotation) | `Router` | `RouterInstance` |
 | Class export | `export { Router }` | `export { RouterInstance }` |
 
 </Callout>

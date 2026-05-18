@@ -2,7 +2,7 @@
 "@praxisjs/router": minor
 ---
 
-**Breaking:** `@RouterConfig` renamed to `@Router`; `Router` class renamed to `RouterInstance`.
+**Breaking:** `@RouterConfig` → `@Router`; `@InjectRouter()` merged into `@Router()` (dual-purpose field/class decorator); `Router` class → `RouterInstance`.
 
 Add layout system: `layout?` on `RouteDefinition`, automatic layout inheritance via `children`, `<RouterOutlet>` component, `@InjectLayout()` field decorator, and `RouterInstance.currentLayout` signal.
 
