@@ -1,14 +1,14 @@
 import { describe, it, expect } from "vitest";
 
-import { Store, UseStore, useStore, ReactiveStore } from "../decorators";
+import { Storable, Store, store, ReactiveStore } from "../decorators";
 
-describe("Store decorator", () => {
+describe("@Storable decorator", () => {
   it("registers the class without throwing", () => {
     class CounterStore extends ReactiveStore {
       value = 0;
     }
     expect(() =>
-      { Store()(CounterStore, {} as ClassDecoratorContext); },
+      { Storable()(CounterStore, {} as ClassDecoratorContext); },
     ).not.toThrow();
   });
 
@@ -17,7 +17,7 @@ describe("Store decorator", () => {
       value = 42;
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = Store()(MyStore as any, {} as ClassDecoratorContext);
+    const result = Storable()(MyStore as any, {} as ClassDecoratorContext);
     expect(result).toBeUndefined();
     expect(() => new MyStore()).not.toThrow();
     expect(new MyStore().value).toBe(42);
@@ -36,15 +36,15 @@ function makeFieldCtx(name: string) {
   };
 }
 
-describe("UseStore decorator", () => {
+describe("@Store field decorator", () => {
   it("injects a singleton store instance via getter", () => {
     class AppStore extends ReactiveStore {
       name = "app";
     }
-    Store()(AppStore, {} as ClassDecoratorContext);
+    Storable()(AppStore, {} as ClassDecoratorContext);
 
     const { ctx, run } = makeFieldCtx("store");
-    UseStore(AppStore)(undefined, ctx);
+    Store(AppStore)(undefined, ctx);
 
     const instance: Record<string, unknown> = {};
     run(instance);
@@ -55,10 +55,10 @@ describe("UseStore decorator", () => {
 
   it("returns the same instance on repeated access (singleton)", () => {
     class SharedStore extends ReactiveStore {}
-    Store()(SharedStore, {} as ClassDecoratorContext);
+    Storable()(SharedStore, {} as ClassDecoratorContext);
 
     const { ctx, run } = makeFieldCtx("sharedStore");
-    UseStore(SharedStore)(undefined, ctx);
+    Store(SharedStore)(undefined, ctx);
 
     const a: Record<string, unknown> = {};
     const b: Record<string, unknown> = {};
@@ -68,33 +68,31 @@ describe("UseStore decorator", () => {
     expect(a.sharedStore).toBe(b.sharedStore);
   });
 
-  it("@UseStore(ClassWithoutStoreDecorator) — creates a new instance (no crash, no pre-registration needed)", () => {
+  it("@Store(ClassWithoutStorable) — creates a new instance (no crash, no pre-registration needed)", () => {
     class NotRegistered {
       value = 99;
     }
-    // UseStore lazily creates an instance even without @Store, but should not throw
     const { ctx, run } = makeFieldCtx("svc");
-    UseStore(NotRegistered)(undefined, ctx);
+    Store(NotRegistered)(undefined, ctx);
     const instance: Record<string, unknown> = {};
     run(instance);
-    // The implementation instantiates it on first access regardless
     expect(instance.svc).toBeInstanceOf(NotRegistered);
   });
 
-  it("@UseStore on two fields of same class — each field gets the correct store type independently", () => {
+  it("two @Store fields on the same class each get the correct store type", () => {
     class StoreAlpha extends ReactiveStore {
       kind = "alpha";
     }
     class StoreBeta extends ReactiveStore {
       kind = "beta";
     }
-    Store()(StoreAlpha, {} as ClassDecoratorContext);
-    Store()(StoreBeta, {} as ClassDecoratorContext);
+    Storable()(StoreAlpha, {} as ClassDecoratorContext);
+    Storable()(StoreBeta, {} as ClassDecoratorContext);
 
     const { ctx: ctxA, run: runA } = makeFieldCtx("alpha");
     const { ctx: ctxB, run: runB } = makeFieldCtx("beta");
-    UseStore(StoreAlpha)(undefined, ctxA);
-    UseStore(StoreBeta)(undefined, ctxB);
+    Store(StoreAlpha)(undefined, ctxA);
+    Store(StoreBeta)(undefined, ctxB);
 
     const instance: Record<string, unknown> = {};
     runA(instance);
@@ -106,14 +104,14 @@ describe("UseStore decorator", () => {
     expect((instance.beta as StoreBeta).kind).toBe("beta");
   });
 
-  it("store singleton is shared across multiple class instances", () => {
+  it("singleton is shared across multiple component instances", () => {
     class CounterStore extends ReactiveStore {
       count = 0;
     }
-    Store()(CounterStore, {} as ClassDecoratorContext);
+    Storable()(CounterStore, {} as ClassDecoratorContext);
 
     const { ctx, run } = makeFieldCtx("counter");
-    UseStore(CounterStore)(undefined, ctx);
+    Store(CounterStore)(undefined, ctx);
 
     const obj1: Record<string, unknown> = {};
     const obj2: Record<string, unknown> = {};
@@ -122,60 +120,60 @@ describe("UseStore decorator", () => {
 
     expect(obj1.counter).toBe(obj2.counter);
   });
+
+  it("shares the same instance as store() (same registry)", () => {
+    class FlagsStore extends ReactiveStore {
+      enabled = true;
+    }
+    Storable()(FlagsStore, {} as ClassDecoratorContext);
+
+    const { ctx, run } = makeFieldCtx("flags");
+    Store(FlagsStore)(undefined, ctx);
+    const obj: Record<string, unknown> = {};
+    run(obj);
+
+    expect(obj.flags).toBe(store(FlagsStore));
+  });
 });
 
-// ── useStore() ────────────────────────────────────────────────────────────────
+// ── store() ────────────────────────────────────────────────────────────────
 
-describe("useStore", () => {
+describe("store()", () => {
   it("returns a store instance without requiring a class field", () => {
     class ProfileStore extends ReactiveStore {
       name = "alice";
     }
-    Store()(ProfileStore, {} as ClassDecoratorContext);
+    Storable()(ProfileStore, {} as ClassDecoratorContext);
 
-    const store = useStore(ProfileStore);
-    expect(store).toBeInstanceOf(ProfileStore);
-    expect(store.name).toBe("alice");
+    const instance = store(ProfileStore);
+    expect(instance).toBeInstanceOf(ProfileStore);
+    expect(instance.name).toBe("alice");
   });
 
   it("returns the same singleton instance on repeated calls", () => {
     class TimerStore extends ReactiveStore {
       ticks = 0;
     }
-    Store()(TimerStore, {} as ClassDecoratorContext);
+    Storable()(TimerStore, {} as ClassDecoratorContext);
 
-    expect(useStore(TimerStore)).toBe(useStore(TimerStore));
-  });
-
-  it("shares the same instance as @UseStore (same registry)", () => {
-    class FlagsStore extends ReactiveStore {
-      enabled = true;
-    }
-    Store()(FlagsStore, {} as ClassDecoratorContext);
-
-    const { ctx, run } = makeFieldCtx("flags");
-    UseStore(FlagsStore)(undefined, ctx);
-    const obj: Record<string, unknown> = {};
-    run(obj);
-
-    expect(obj.flags).toBe(useStore(FlagsStore));
+    expect(store(TimerStore)).toBe(store(TimerStore));
   });
 
   it("lazily creates the instance on first call", () => {
     class LazyStore extends ReactiveStore {
       ready = false;
     }
-    Store()(LazyStore, {} as ClassDecoratorContext);
+    Storable()(LazyStore, {} as ClassDecoratorContext);
 
-    const instance = useStore(LazyStore);
+    const instance = store(LazyStore);
     expect(instance).toBeInstanceOf(LazyStore);
   });
 
-  it("works without @Store decorator — creates a plain instance", () => {
+  it("works without @Storable — creates a plain instance", () => {
     class BareStore extends ReactiveStore {
       value = 7;
     }
-    const instance = useStore(BareStore);
+    const instance = store(BareStore);
     expect(instance).toBeInstanceOf(BareStore);
     expect(instance.value).toBe(7);
   });
@@ -184,9 +182,9 @@ describe("useStore", () => {
     class ThemeStore extends ReactiveStore {
       dark = false;
     }
-    Store()(ThemeStore, {} as ClassDecoratorContext);
+    Storable()(ThemeStore, {} as ClassDecoratorContext);
 
-    useStore(ThemeStore).dark = true;
-    expect(useStore(ThemeStore).dark).toBe(true);
+    store(ThemeStore).dark = true;
+    expect(store(ThemeStore).dark).toBe(true);
   });
 });

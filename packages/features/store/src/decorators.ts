@@ -11,7 +11,7 @@ export class ReactiveStore implements ReactiveHost {
   _stateDirty = false;
 }
 
-export function Store() {
+export function Storable() {
   return function (
     constructor: new (...args: unknown[]) => ReactiveStore,
     _context: ClassDecoratorContext,
@@ -20,31 +20,20 @@ export function Store() {
   };
 }
 
-export function useStore<T extends ReactiveStore>(StoreClass: new () => T): T {
+export function store<T extends ReactiveStore>(StoreClass: new () => T): T {
   if (!storeRegistry.has(StoreClass) || storeRegistry.get(StoreClass) === null) {
     storeRegistry.set(StoreClass, new StoreClass());
   }
   return storeRegistry.get(StoreClass) as T;
 }
 
-export function UseStore(StoreConstructor: new () => unknown) {
-  const cache = new WeakMap<object, unknown>();
-
+export function Store(StoreConstructor: new () => unknown) {
   return createFieldDecorator({
     bind(_instance, _name, _initialValue): FieldBinding {
       return {
         descriptor: {
           get(this: object): unknown {
-            if (!cache.has(this)) {
-              if (
-                !storeRegistry.has(StoreConstructor) ||
-                storeRegistry.get(StoreConstructor) === null
-              ) {
-                storeRegistry.set(StoreConstructor, new StoreConstructor());
-              }
-              cache.set(this, storeRegistry.get(StoreConstructor));
-            }
-            return cache.get(this);
+            return store(StoreConstructor as new () => ReactiveStore);
           },
         },
       };
