@@ -4,7 +4,7 @@ import { StatefulComponent } from "@praxisjs/core";
 import { Component, Compose } from "@praxisjs/decorators";
 import { Inject } from "@praxisjs/di";
 import { Route } from "@praxisjs/router";
-import { UseStore } from "@praxisjs/store";
+import { Store } from "@praxisjs/store";
 import { Trace } from "@praxisjs/devtools";
 
 import { ApiService } from "../services/api";
@@ -14,7 +14,7 @@ import { CounterStore } from "../store";
 @Route("/")
 @Component()
 export class Home extends StatefulComponent {
-  @UseStore(CounterStore) private store!: CounterStore;
+  @Store(CounterStore) private store!: CounterStore;
 
   @Inject(ApiService) private api!: ApiService;
 
