@@ -1,20 +1,37 @@
 ---
 title: "@praxisjs/store"
-description: Changelog for @praxisjs/store — global state management with @Store and @UseStore.
+description: Changelog for @praxisjs/store — global state management with @Storable and @Store.
 icon: Store
 ---
 
 # @praxisjs/store
 
-## 1.1.0
+## 1.1.1
 
-Add `useStore()` — functional alternative to `@UseStore` for use outside component context (route guards, plain functions). Resolves from the same global registry as `@UseStore` and always returns the same singleton instance.
+**API rename** — `@Store()` (class decorator) → `@Storable()`, `@UseStore(Class)` (field decorator) → `@Store(Class)`, `useStore()` → `store()`.
+
+| Before | After |
+|---|---|
+| `@Store()` on a class | `@Storable()` |
+| `@UseStore(CartStore)` on a field | `@Store(CartStore)` |
+| `useStore(CartStore)` imperatively | `store(CartStore)` |
 
 ```ts
-import { useStore } from '@praxisjs/store'
+import { Storable, Store, store, ReactiveStore } from '@praxisjs/store'
 
-const cart = useStore(CartStore)
+@Storable()
+class CartStore extends ReactiveStore { /* ... */ }
+
+// in a component:
+@Store(CartStore) cart!: CartStore
+
+// imperatively:
+const cart = store(CartStore)
 ```
+
+## 1.1.0
+
+Add `store()` — functional alternative to `@Store` for use outside component context (route guards, plain functions). Resolves from the same global registry as `@Store` and always returns the same singleton instance.
 
 ## 1.0.12
 
@@ -28,25 +45,23 @@ Updated dependencies — `@praxisjs/decorators@1.0.0`.
 
 **`ReactiveStore` base class introduced.** Store classes must now extend `ReactiveStore` to satisfy the `ReactiveHost` constraint required by `@State` and `@DeepState`. A TypeScript error is produced at the call site if omitted — no more silent runtime failures.
 
-`@Store` simplified to a plain class decorator (no longer uses `createClassDecorator` internally).
-
 ## 1.0.0
 
 <Callout type="warn" title="Breaking — createStore() removed">
-`createStore()` is removed. Use `@Store` and `@UseStore`:
+`createStore()` is removed. Use `@Storable` and `@Store`:
 
 ```ts
 // before
 const store = createStore({ count: 0 })
 
 // after
-@Store()
+@Storable()
 class CounterStore extends ReactiveStore {
   @State() count = 0
 }
 
 // in a component:
-@UseStore(CounterStore) counter!: CounterStore
+@Store(CounterStore) counter!: CounterStore
 ```
 </Callout>
 

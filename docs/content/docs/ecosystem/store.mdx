@@ -1,12 +1,12 @@
 ---
 title: Store
-description: "@praxisjs/store — class-based singleton stores with @Store and @UseStore. Define reactive state with @State, inject anywhere with @UseStore or useStore()."
+description: "@praxisjs/store — class-based singleton stores with @Storable and @Store. Define reactive state with @State, inject anywhere with @Store or store()."
 icon: Store
 ---
 
 # Store
 
-Class-based singleton state management. Define a store once with `@Store`, inject it into any component with `@UseStore`. All components reading the same store stay in sync automatically.
+Class-based singleton state management. Mark a store class with `@Storable`, inject it into any component with `@Store`. All components reading the same store stay in sync automatically.
 
 <Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
 <Tab value="npm">
@@ -33,15 +33,15 @@ bun add @praxisjs/store
 
 ---
 
-## Defining a store with `@Store()`
+## Defining a store with `@Storable()`
 
 Extends `ReactiveStore` to use `@State`, `@Computed`, and `@DeepState` on store fields. The class is instantiated once on first use and the same instance is shared everywhere.
 
 ```ts
-import { Store, ReactiveStore } from '@praxisjs/store'
+import { Storable, ReactiveStore } from '@praxisjs/store'
 import { State, Computed } from '@praxisjs/decorators'
 
-@Store()
+@Storable()
 class CartStore extends ReactiveStore {
   @State() items: Product[] = []
   @State() discount = 0
@@ -69,20 +69,20 @@ class CartStore extends ReactiveStore {
   `ReactiveStore` provides the internal state tracking that `@State` and `@DeepState` require on non-component classes. It also lets TypeScript validate that reactive decorators are used only on classes designed to hold reactive state.
 </Callout>
 
-<StorybookLink story="ecosystem-store--default" label="Live demo — @Store / @UseStore" />
+<StorybookLink story="ecosystem-store--default" label="Live demo — @Storable / @Store" />
 
 ---
 
-## Injecting a store with `@UseStore(StoreClass)`
+## Injecting a store with `@Store(StoreClass)`
 
 Injects the singleton store instance into a component field. The store is created on first access — subsequent injections return the same instance.
 
 ```tsx
-import { UseStore } from '@praxisjs/store'
+import { Store } from '@praxisjs/store'
 
 @Component()
 class CartButton extends StatefulComponent {
-  @UseStore(CartStore) cart!: CartStore
+  @Store(CartStore) cart!: CartStore
 
   render() {
     return (
@@ -98,33 +98,33 @@ Any component that reads a reactive property from the store updates automaticall
 
 ---
 
-## `useStore(StoreClass)`
+## `store(StoreClass)`
 
-Resolves the singleton store instance imperatively — no class field or decorator required. Use this anywhere `@UseStore` is unavailable: route guards, plain functions, or services.
+Resolves the singleton store instance imperatively — no class field or decorator required. Use this anywhere `@Store` is unavailable: route guards, plain functions, or services.
 
 ```ts
-import { useStore } from '@praxisjs/store'
+import { store } from '@praxisjs/store'
 
-const cart = useStore(CartStore)
+const cart = store(CartStore)
 cart.addItem(product)
 ```
 
 In a route guard:
 
 ```ts
-import { useStore } from '@praxisjs/store'
+import { store } from '@praxisjs/store'
 
 {
   path: '/checkout',
   component: CheckoutPage,
   beforeEnter: async () => {
-    const cart = useStore(CartStore)
+    const cart = store(CartStore)
     return cart.items.length > 0 ? true : '/'
   },
 }
 ```
 
-`useStore()` and `@UseStore` share the same registry — they always return the same instance.
+`store()` and `@Store` share the same registry — they always return the same instance.
 
 ---
 
@@ -135,7 +135,7 @@ Multiple components can inject the same store. They all share the same instance 
 ```tsx
 @Component()
 class CartSummary extends StatefulComponent {
-  @UseStore(CartStore) cart!: CartStore
+  @Store(CartStore) cart!: CartStore
 
   render() {
     return (
@@ -149,7 +149,7 @@ class CartSummary extends StatefulComponent {
 
 @Component()
 class CheckoutPage extends StatefulComponent {
-  @UseStore(CartStore) cart!: CartStore
+  @Store(CartStore) cart!: CartStore
 
   render() {
     return (
@@ -171,7 +171,7 @@ When any component calls `cart.addItem()`, both `CartSummary` and `CheckoutPage`
 A common pattern — a store that holds authentication state and exposes derived values:
 
 ```ts
-@Store()
+@Storable()
 class AuthStore extends ReactiveStore {
   @State() user: User | null = null
 
@@ -183,7 +183,7 @@ class AuthStore extends ReactiveStore {
 }
 
 // In any component:
-@UseStore(AuthStore) auth!: AuthStore
+@Store(AuthStore) auth!: AuthStore
 
 render() {
   return () => this.auth.isLoggedIn

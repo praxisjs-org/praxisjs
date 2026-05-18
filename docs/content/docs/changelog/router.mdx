@@ -1,10 +1,35 @@
 ---
 title: "@praxisjs/router"
-description: Changelog for @praxisjs/router — client-side routing with @Route, @Lazy, @Params, and @Location.
+description: Changelog for @praxisjs/router — client-side routing with @Router, @Route, @Lazy, @Params, and @Location.
 icon: Route
 ---
 
 # @praxisjs/router
+
+## 1.0.14
+
+<Callout type="warn" title="Breaking — @RouterConfig renamed to @Router, Router class renamed to RouterInstance">
+
+| Changed | Before | After |
+|---|---|---|
+| Root app decorator | `@RouterConfig([...])` | `@Router([...])` |
+| Router class (type annotation) | `router!: Router` | `router!: RouterInstance` |
+| Class export | `export { Router }` | `export { RouterInstance }` |
+
+</Callout>
+
+**Layout system** — routes can now declare a persistent shell component that wraps the matched page without re-mounting on navigation.
+
+- `layout?` property on `RouteDefinition` — attach a layout to any route directly; `RouterView` renders `<Layout>` around the matched page
+- Layout inheritance via `children` — when a route has child routes, its `component` automatically becomes the layout for all of them
+- `<RouterOutlet>` — new component for use inside layouts (`StatelessComponent`); reactively renders the current page without needing the `children` prop
+- `@InjectLayout()` — field decorator injecting `RouterInstance.currentLayout` as a reactive signal, following the same pattern as `@Router()`, `@Params()`, etc.
+- `RouterInstance.currentLayout` — reactive signal exposing the currently active layout component
+- Lazy layouts — `layout: Lazy(() => import('./MyLayout'))` works identically to lazy page components
+
+**`@Router` decorator** (renamed from `@RouterConfig`) — now implemented with `createClassDecorator` and `ClassBehavior`, consistent with the rest of the decorator API. `RouterBehavior.create()` re-activates the correct router on each component instantiation, resolving singleton conflicts when multiple `@Router`-decorated classes share the same module scope (e.g. Storybook stories loaded together).
+
+**Navigation sequence** — concurrent `push()` calls no longer race. A monotonic `_navSeq` counter ensures only the most recent navigation commits its result; stale in-flight resolutions are silently discarded.
 
 ## 1.0.13
 
@@ -29,7 +54,7 @@ All functional routing APIs removed:
 |---|---|
 | `createRouter()` | `@RouterConfig` on the root component |
 | `lazy()` | `@Lazy` decorator or `Lazy()` inline |
-| `useRouter()` | `@InjectRouter()` field decorator |
+| `useRouter()` | `@Router()` field decorator |
 | `useParams()` | `@Params()` field decorator |
 | `useQuery()` | `@Query()` field decorator |
 | `useLocation()` | `@Location()` field decorator |

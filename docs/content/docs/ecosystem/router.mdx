@@ -1,12 +1,12 @@
 ---
 title: Router
-description: "@praxisjs/router — signal-based client-side router. Configure routes with @RouterConfig, define lazy routes with @Lazy, annotate pages with @Route, and inject reactive router state with @InjectRouter, @Params, @Query, @Location."
+description: "@praxisjs/router — signal-based client-side router. Configure routes with @Router, define lazy routes with @Lazy, annotate pages with @Route, and inject reactive router state with @Router(), @Params, @Query, @Location."
 icon: Route
 ---
 
 # Router
 
-Signal-based client-side routing. Configure routes on your root component with `@RouterConfig`, annotate page components with `@Route`, and access reactive router state with injection decorators.
+Signal-based client-side routing. Configure routes on your root component with `@Router`, annotate page components with `@Route`, and access reactive router state with injection decorators.
 
 <Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
 <Tab value="npm">
@@ -33,17 +33,17 @@ bun add @praxisjs/router
 
 ---
 
-## Setup with `@RouterConfig`
+## Setup with `@Router`
 
-Apply `@RouterConfig` to the root component to configure the router. Pass an array of page classes (decorated with `@Route`) or explicit route definition objects:
+Apply `@Router` to the root component to configure the router. Pass an array of page classes (decorated with `@Route`) or explicit route definition objects:
 
 ```tsx
-import { RouterConfig, Route, Lazy } from '@praxisjs/router'
+import { Router, RouterInstance, Route, Lazy } from '@praxisjs/router'
 import { RouterView } from '@praxisjs/router'
 import { Home } from './pages/Home'   // has @Route('/')
 import { About } from './pages/About' // has @Route('/about')
 
-@RouterConfig([
+@Router([
   Home,                               // path read from @Route
   About,                              // path read from @Route
   { path: '/users/:id',  component: Lazy(() => import('./pages/UserDetail')) },
@@ -70,13 +70,13 @@ class App extends StatefulComponent {
 }
 ```
 
-<StorybookLink story="ecosystem-router--default" label="Live demo — Router" />
+<StorybookLink story="ecosystem-router-navigation--default" label="Live demo — Router" />
 
 ---
 
 ## `@Route(path)`
 
-Co-locates the route path with the page component. Pass the decorated class directly to `@RouterConfig` — the path is read automatically.
+Co-locates the route path with the page component. Pass the decorated class directly to `@Router` — the path is read automatically.
 
 ```tsx
 // pages/About.tsx
@@ -89,7 +89,7 @@ export default class About extends StatefulComponent {
 
 ```tsx
 // app.tsx
-@RouterConfig([About])  // path from @Route('/about')
+@Router([About])  // path from @Route('/about')
 @Component()
 class App extends StatefulComponent { /* ... */ }
 ```
@@ -97,7 +97,7 @@ class App extends StatefulComponent { /* ... */ }
 You can still use the object form when you need `children`, `beforeEnter`, or other options:
 
 ```tsx
-@RouterConfig([
+@Router([
   { path: About.__routePath, component: About, beforeEnter: authGuard },
 ])
 ```
@@ -122,14 +122,16 @@ Marks a class as a lazy-loaded route component. The bundle is loaded on first na
 
 Use these field decorators to access reactive router state from any component.
 
-### `@InjectRouter()` — navigation and loading state
+### `@Router()` — full `RouterInstance`
+
+Injects the `RouterInstance` singleton — gives access to all signals, computed values, and navigation methods documented above.
 
 ```tsx
-import { InjectRouter } from '@praxisjs/router'
+import { Router, RouterInstance } from '@praxisjs/router'
 
 @Component()
 class NavBar extends StatefulComponent {
-  @InjectRouter() router!: Router
+  @Router() router!: RouterInstance
 
   render() {
     return (
@@ -177,16 +179,57 @@ render() {
 
 ---
 
-## Navigation
+## `RouterInstance`
+
+The runtime object that manages navigation state. Obtain it with `@Router()` on a field or imperatively with `useRouter()`.
+
+```tsx
+import { Router, RouterInstance } from '@praxisjs/router'
+
+@Component()
+class NavBar extends StatefulComponent {
+  @Router() router!: RouterInstance
+}
+```
+
+### Reactive signals
+
+| Field | Type | Description |
+|---|---|---|
+| `location` | `Signal<RouteLocation>` | Current route — `path`, `params`, `query`, `hash` |
+| `currentComponent` | `Signal<RouteComponent \| null>` | Matched page component, or `null` when no route matches |
+| `currentLayout` | `Signal<RouteComponent \| null>` | Active layout component, or `null` |
+| `loading` | `Signal<boolean>` | `true` while a lazy component or layout is being resolved |
+| `params` | `Computed<RouteParams>` | Shorthand for `location().params` |
+| `query` | `Computed<RouteQuery>` | Shorthand for `location().query` |
+
+Read them inside `{() => ...}` to create reactive bindings:
+
+```tsx
+{() => this.router.loading() && <Spinner />}
+{() => this.router.params().id}
+{() => this.router.location().path}
+```
+
+### Navigation methods
 
 ```ts
-await this.router.push('/users/42')              // navigate, push to history
-await this.router.push('/search', { q: 'foo' }) // with query params
-await this.router.replace('/login')              // replace current history entry
+// Push a new entry onto the history stack
+await this.router.push('/users/42')
+await this.router.push('/search', { q: 'foo' })        // with query
+await this.router.push('/docs', undefined, 'intro')    // with hash
+
+// Replace the current history entry (no back-button entry added)
+await this.router.replace('/login')
+await this.router.replace('/search', { q: 'foo' })
+
+// History traversal
 this.router.back()
 this.router.forward()
-this.router.go(-2)
+this.router.go(-2)   // arbitrary delta
 ```
+
+`push` and `replace` return a `Promise<void>` that resolves once the navigation (including any `beforeEnter` guards and lazy-load resolution) is complete.
 
 ---
 
@@ -205,6 +248,135 @@ import { Link } from '@praxisjs/router'
 | `to` | `string` | Target path |
 | `replace` | `boolean` | Replace current entry instead of pushing |
 | `activeClass` | `string` | CSS class added when the route is active |
+
+---
+
+## Layouts
+
+Layouts wrap one or more routes in a persistent shell (header, sidebar, nav) without re-mounting on every navigation.
+
+### Declaring a layout
+
+Add a `layout` property to any route definition. `RouterView` will render `<Layout>` around the matched page component:
+
+```tsx
+import { DashboardLayout } from './layouts/DashboardLayout'
+import { DashboardHome } from './pages/DashboardHome'
+
+@Router([
+  { path: '/', component: HomePage },
+  { path: '/dashboard/home', component: DashboardHome, layout: DashboardLayout },
+])
+```
+
+### Layout inheritance via `children`
+
+When a route has `children`, its `component` becomes the layout for all child routes automatically:
+
+```tsx
+@Router([
+  {
+    path: '/dashboard',
+    component: DashboardLayout,   // acts as layout for all children
+    children: [
+      { path: '/home',     component: DashboardHome },
+      { path: '/settings', component: DashboardSettings },
+    ],
+  },
+])
+```
+
+Both `/dashboard/home` and `/dashboard/settings` will be wrapped in `DashboardLayout`.
+
+An explicit `layout` on a child route overrides the inherited one:
+
+```tsx
+{ path: '/settings', component: DashboardSettings, layout: FullScreenLayout }
+```
+
+### Writing a layout component
+
+Layouts are regular PraxisJS class components. There are two ways to render the matched page inside them.
+
+Layout components must extend **`StatelessComponent`** — the router passes the current page as reactive `children` and `StatelessComponent` re-renders automatically when children change.
+
+**Pattern A — `children` prop** — `RouterView` passes the matched page as a reactive child. Extend `StatelessComponent` with a typed props interface and render `{this.props.children}`:
+
+```tsx
+// layouts/DashboardLayout.tsx
+import { StatelessComponent } from '@praxisjs/core'
+import type { Children } from '@praxisjs/shared'
+
+interface DashboardLayoutProps {
+  children?: Children
+}
+
+@Component()
+class DashboardLayout extends StatelessComponent<DashboardLayoutProps> {
+  render() {
+    return (
+      <div class="dashboard">
+        <Sidebar />
+        <main>{this.props.children}</main>
+      </div>
+    )
+  }
+}
+```
+
+**Pattern B — `<RouterOutlet>`** — place `<RouterOutlet>` anywhere in the layout; it reactively renders the current page component. Use plain `StatelessComponent` with no props:
+
+```tsx
+// layouts/DashboardLayout.tsx
+import { StatelessComponent } from '@praxisjs/core'
+import { RouterOutlet } from '@praxisjs/router'
+
+@Component()
+class DashboardLayout extends StatelessComponent {
+  render() {
+    return (
+      <div class="dashboard">
+        <Sidebar />
+        <main>
+          <RouterOutlet />
+        </main>
+      </div>
+    )
+  }
+}
+```
+
+Both patterns update automatically when the route changes.
+
+### Lazy layouts
+
+Layouts support the same `Lazy()` loader as page components:
+
+```tsx
+{ path: '/dashboard/home', component: DashboardHome, layout: Lazy(() => import('./DashboardLayout')) }
+```
+
+<StorybookLink story="ecosystem-router-layout--default" label="Live demo — Layout (children prop)" />
+<StorybookLink story="ecosystem-router-outlet--default" label="Live demo — RouterOutlet (sidebar)" />
+
+### `@InjectLayout()` — reading the current layout
+
+Injects `Router.currentLayout` as a reactive signal into any component field:
+
+```tsx
+import { InjectLayout } from '@praxisjs/router'
+import type { Signal } from '@praxisjs/shared'
+import type { RouteComponent } from '@praxisjs/router'
+
+@Component()
+class DebugBar extends StatefulComponent {
+  @InjectLayout() layout!: Signal<RouteComponent | null>
+
+  render() {
+    return <p>Active layout: {() => this.layout()?.name ?? 'none'}</p>
+  }
+}
+```
 
 ---
 
@@ -229,19 +401,19 @@ Add `beforeEnter` to any route definition to run logic before navigation complet
 | `false` | Cancel navigation (stay on current route) |
 | `string` | Redirect to that path |
 
-### Using `inject()` and `useStore()` in guards
+### Using `inject()` and `store()` in guards
 
-Guards run outside component context, so decorators like `@Inject` and `@UseStore` are unavailable. Use the functional equivalents instead — they resolve from the same global singletons:
+Guards run outside component context, so decorators like `@Inject` and `@Store` are unavailable. Use the functional equivalents instead — they resolve from the same global singletons:
 
 ```ts
 import { inject } from '@praxisjs/di'
-import { useStore } from '@praxisjs/store'
+import { store } from '@praxisjs/store'
 
 {
   path: '/dashboard',
   component: DashboardPage,
   beforeEnter: async (to) => {
-    const auth = inject(AuthService)          // resolves from global DI container
+    const auth = inject(AuthService)      // resolves from global DI container
     return auth.loggedIn ? true : '/login'
   },
 },
@@ -249,10 +421,10 @@ import { useStore } from '@praxisjs/store'
   path: '/admin',
   component: AdminPage,
   beforeEnter: async (to) => {
-    const session = useStore(SessionStore)    // resolves from global store registry
+    const session = store(SessionStore)   // resolves from global store registry
     return session.role === 'admin' ? true : '/login'
   },
 },
 ```
 
-<StorybookLink story="ecosystem-navigation-guard--default" label="Live demo — Navigation Guard" />
+<StorybookLink story="ecosystem-router-navigation-guard--default" label="Live demo — Navigation Guard" />
