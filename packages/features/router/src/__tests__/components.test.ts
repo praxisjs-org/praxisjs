@@ -5,6 +5,7 @@ import { render, Scope, mountComponent, runInScope } from "@praxisjs/runtime";
 
 import { createRouter } from "../router";
 import { RouterView } from "../components/router-view";
+import { RouterOutlet } from "../components/router-outlet";
 import { Link } from "../components/link";
 
 class HomePage {
@@ -80,6 +81,38 @@ describe("RouterView", () => {
     await router.push("/does-not-exist");
     await vi.waitFor(() => !container.textContent?.includes("Home"));
     expect(container.querySelector("[data-router-view]")?.textContent?.trim()).toBe("");
+  });
+});
+
+// ── RouterOutlet ──────────────────────────────────────────────────────────────
+
+describe("RouterOutlet", () => {
+  it("renders the current route component", async () => {
+    setup("/");
+    const { container } = mountInContainer(RouterOutlet as never);
+    await vi.waitFor(() => container.textContent?.includes("Home"));
+    expect(container.textContent).toContain("Home");
+    document.body.removeChild(container);
+  });
+
+  it("updates when the route changes", async () => {
+    const router = setup("/");
+    const { container } = mountInContainer(RouterOutlet as never);
+    await vi.waitFor(() => container.textContent?.includes("Home"));
+
+    await router.push("/about");
+    await vi.waitFor(() => container.textContent?.includes("About"));
+    expect(container.textContent).toContain("About");
+  });
+
+  it("renders nothing for an unmatched route", async () => {
+    const router = setup("/");
+    const { container } = mountInContainer(RouterOutlet as never);
+    await vi.waitFor(() => container.textContent?.includes("Home"));
+
+    await router.push("/does-not-exist");
+    await vi.waitFor(() => !container.textContent?.includes("Home"));
+    expect(container.querySelector("[data-router-outlet]")?.textContent?.trim()).toBe("");
   });
 });
 

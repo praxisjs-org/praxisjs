@@ -1,4 +1,4 @@
-export { Router } from "./router";
+export { RouterInstance } from "./router";
 export type {
   RouteDefinition,
   RouteLocation,
@@ -8,5 +8,5 @@ export type {
   LazyRouteComponent,
 } from "./types/route";
 
-export { RouterView, Link } from "./components";
-export { Route, RouterConfig, Lazy, InjectRouter, Params, Query, Location } from "./decorators";
+export { RouterView, RouterOutlet, Link } from "./components";
+export { Route, Router, Lazy, Params, Query, Location, InjectLayout } from "./decorators";

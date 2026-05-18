@@ -4,20 +4,15 @@ import { Component } from "@praxisjs/decorators";
 import { useRouter } from "../router";
 
 @Component()
-export class RouterView extends StatelessComponent {
+export class RouterOutlet extends StatelessComponent {
   render() {
     const router = useRouter();
 
     return (
-      <div data-router-view="true">
+      <div data-router-outlet="true">
         {() => {
-          const Layout = router.currentLayout();
           const RouteComponent = router.currentComponent();
-          if (!RouteComponent) return null;
-          if (Layout) {
-            return <Layout>{() => <RouteComponent />}</Layout>;
-          }
-          return <RouteComponent />;
+          return RouteComponent ? <RouteComponent /> : null;
         }}
       </div>
     );

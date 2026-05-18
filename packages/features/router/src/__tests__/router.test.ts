@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { Router, createRouter, useRouter, useParams, useQuery, useLocation, lazy } from "../router";
-import { RouterConfig, Lazy, InjectRouter, Params, Query, Location, Route } from "../decorators";
-import { Router as RouterFromIndex } from "../index";
+import { RouterInstance, createRouter, useRouter, useParams, useQuery, useLocation, lazy } from "../router";
+import { Router, Lazy, Params, Query, Location, Route, InjectLayout } from "../decorators";
+import { RouterInstance as RouterInstanceFromIndex } from "../index";
+import { Router as RouterDecoratorFromIndex } from "../index";
 
 class HomePage { render() { return null; } }
 class AboutPage { render() { return null; } }
@@ -11,7 +12,7 @@ class UserPage { render() { return null; } }
 
 function makeRouter() {
   // Reset module-level singleton between tests
-  return new Router([
+  return new RouterInstance([
     { path: "/", component: HomePage },
     { path: "/about", component: AboutPage },
     { path: "/users/:id", component: UserPage },
@@ -74,7 +75,7 @@ describe("Router", () => {
   });
 
   it("beforeEnter returning false blocks navigation", async () => {
-    const r = new Router([
+    const r = new RouterInstance([
       { path: "/", component: HomePage },
       {
         path: "/protected",
@@ -87,7 +88,7 @@ describe("Router", () => {
   });
 
   it("beforeEnter returning a string redirects", async () => {
-    const r = new Router([
+    const r = new RouterInstance([
       { path: "/", component: HomePage },
       { path: "/about", component: AboutPage },
       {
@@ -102,7 +103,7 @@ describe("Router", () => {
 
   it("beforeEnter redirect chain stops at max depth and warns", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const r = new Router([
+    const r = new RouterInstance([
       { path: "/", component: HomePage },
       { path: "/a", component: AboutPage, beforeEnter: async () => "/b" },
       { path: "/b", component: AboutPage, beforeEnter: async () => "/a" },
@@ -122,7 +123,7 @@ describe("Router", () => {
   });
 
   it("nested children routes are compiled", async () => {
-    const r = new Router([
+    const r = new RouterInstance([
       {
         path: "/docs",
         component: HomePage,
@@ -134,7 +135,7 @@ describe("Router", () => {
   });
 
   it("children of root '/' use empty string as prefix", async () => {
-    const r = new Router([
+    const r = new RouterInstance([
       {
         path: "/",
         component: HomePage,
@@ -146,7 +147,7 @@ describe("Router", () => {
   });
 
   it("beforeEnter returning undefined allows navigation", async () => {
-    const r = new Router([
+    const r = new RouterInstance([
       { path: "/", component: HomePage },
       {
         path: "/open",
@@ -161,8 +162,12 @@ describe("Router", () => {
 });
 
 describe("router index re-exports", () => {
-  it("Router exported from index is the same class", () => {
-    expect(RouterFromIndex).toBe(Router);
+  it("RouterInstance exported from index is the same class", () => {
+    expect(RouterInstanceFromIndex).toBe(RouterInstance);
+  });
+
+  it("@Router decorator exported from index is the same function", () => {
+    expect(RouterDecoratorFromIndex).toBe(Router);
   });
 });
 
@@ -241,7 +246,7 @@ describe("Router lazy component", () => {
   it("resolves a lazy component and caches it", async () => {
     const loaderFn = vi.fn().mockResolvedValue({ default: AboutPage });
     const lazyComp = lazy(loaderFn);
-    const r = new Router([
+    const r = new RouterInstance([
       { path: "/lazy", component: lazyComp },
     ]);
     await r.push("/lazy");
@@ -259,7 +264,7 @@ describe("Router lazy component", () => {
       () => new Promise<{ default: typeof AboutPage }>((resolve) => { resolveLoader = resolve; }),
     );
     const lazyComp = lazy(loaderFn);
-    const r = new Router([{ path: "/lazy2", component: lazyComp }]);
+    const r = new RouterInstance([{ path: "/lazy2", component: lazyComp }]);
 
     const pushPromise = r.push("/lazy2");
     // loading should be true while we wait
@@ -278,7 +283,7 @@ describe("Router lazy component", () => {
   it("lazy loader that rejects leaves component null", async () => {
     const loaderFn = vi.fn().mockRejectedValue(new Error("load failed"));
     const lazyComp = lazy(loaderFn);
-    const r = new Router([{ path: "/bad-lazy", component: lazyComp }]);
+    const r = new RouterInstance([{ path: "/bad-lazy", component: lazyComp }]);
 
     // push() propagates the rejection
     await expect(r.push("/bad-lazy")).rejects.toThrow("load failed");
@@ -288,7 +293,7 @@ describe("Router lazy component", () => {
   });
 
   it("beforeEnter that throws blocks navigation and re-throws", async () => {
-    const r = new Router([
+    const r = new RouterInstance([
       { path: "/", component: HomePage },
       {
         path: "/boom",
@@ -300,6 +305,179 @@ describe("Router lazy component", () => {
     await expect(r.push("/boom")).rejects.toThrow("guard boom");
     // Location stays at "/"
     expect(r.location().path).toBe("/");
+  });
+});
+
+// ── Layout tests ─────────────────────────────────────────────────────────────
+
+describe("Router layout", () => {
+  class AppLayout { render() { return null; } }
+  class DashLayout { render() { return null; } }
+  class DashHome { render() { return null; } }
+  class DashSettings { render() { return null; } }
+
+  it("sets currentLayout when route has an explicit layout", async () => {
+    const r = new RouterInstance([
+      { path: "/", component: HomePage },
+      { path: "/page", component: AboutPage, layout: AppLayout },
+    ]);
+    await r.push("/page");
+    expect(r.currentLayout()).toBe(AppLayout);
+  });
+
+  it("clears currentLayout when navigating to a route without layout", async () => {
+    const r = new RouterInstance([
+      { path: "/", component: HomePage },
+      { path: "/page", component: AboutPage, layout: AppLayout },
+    ]);
+    await r.push("/page");
+    await r.push("/");
+    expect(r.currentLayout()).toBeNull();
+  });
+
+  it("inherits parent component as layout for children routes", async () => {
+    const r = new RouterInstance([
+      {
+        path: "/dash",
+        component: DashLayout,
+        children: [{ path: "/home", component: DashHome }],
+      },
+    ]);
+    await r.push("/dash/home");
+    expect(r.currentComponent()).toBe(DashHome);
+    expect(r.currentLayout()).toBe(DashLayout);
+  });
+
+  it("applies layout to all children of a parent route", async () => {
+    const r = new RouterInstance([
+      {
+        path: "/dash",
+        component: DashLayout,
+        children: [
+          { path: "/home", component: DashHome },
+          { path: "/settings", component: DashSettings },
+        ],
+      },
+    ]);
+    await r.push("/dash/home");
+    expect(r.currentLayout()).toBe(DashLayout);
+    await r.push("/dash/settings");
+    expect(r.currentLayout()).toBe(DashLayout);
+    expect(r.currentComponent()).toBe(DashSettings);
+  });
+
+  it("child explicit layout overrides inherited parent layout", async () => {
+    const r = new RouterInstance([
+      {
+        path: "/dash",
+        component: DashLayout,
+        children: [
+          { path: "/home", component: DashHome, layout: AppLayout },
+        ],
+      },
+    ]);
+    await r.push("/dash/home");
+    expect(r.currentLayout()).toBe(AppLayout);
+  });
+
+  it("resolves a lazy layout and caches it", async () => {
+    const loaderFn = vi.fn().mockResolvedValue({ default: AppLayout });
+    const lazyLayout = lazy(loaderFn);
+    const r = new RouterInstance([
+      { path: "/page", component: AboutPage, layout: lazyLayout },
+    ]);
+    await r.push("/page");
+    expect(r.currentLayout()).toBe(AppLayout);
+    await r.push("/page");
+    expect(loaderFn).toHaveBeenCalledOnce();
+  });
+
+  it("currentLayout signal is accessible from the router instance", async () => {
+    const r = new RouterInstance([{ path: "/page", component: AboutPage, layout: AppLayout }]);
+    await r.push("/page");
+    expect(typeof r.currentLayout).toBe("function");
+    expect(r.currentLayout()).toBe(AppLayout);
+  });
+});
+
+// ── Navigation sequence (concurrent push cancellation) ───────────────────────
+
+describe("Router navigation sequence", () => {
+  it("concurrent pushes: last push wins, stale result is discarded", async () => {
+    let resolveSlowLoader!: (val: { default: typeof AboutPage }) => void;
+    const slowLoader = vi.fn(
+      () => new Promise<{ default: typeof AboutPage }>((resolve) => { resolveSlowLoader = resolve; }),
+    );
+    const slowComp = lazy(slowLoader);
+
+    const r = new RouterInstance([
+      { path: "/slow", component: slowComp },
+      { path: "/fast", component: HomePage },
+    ]);
+
+    // Start a slow navigation to /slow (lazy, not yet resolved)
+    const slowPush = r.push("/slow");
+
+    // Immediately push to /fast (eager, resolves first)
+    await r.push("/fast");
+
+    // /fast has resolved — component should be HomePage
+    expect(r.currentComponent()).toBe(HomePage);
+
+    // Now resolve the slow loader — its result should be discarded
+    resolveSlowLoader({ default: AboutPage });
+    await slowPush;
+
+    // Component must remain HomePage, not be overwritten by the stale slow result
+    expect(r.currentComponent()).toBe(HomePage);
+  });
+
+  it("concurrent pushes: stale layout from slow navigation does not overwrite newer result", async () => {
+    class LayoutA { render() { return null; } }
+    class LayoutB { render() { return null; } }
+
+    let resolveSlowComp!: (val: { default: typeof AboutPage }) => void;
+    const slowCompLoader = vi.fn(
+      () => new Promise<{ default: typeof AboutPage }>((resolve) => { resolveSlowComp = resolve; }),
+    );
+    const slowComp = lazy(slowCompLoader);
+
+    const r = new RouterInstance([
+      { path: "/a", component: slowComp, layout: LayoutA },
+      { path: "/b", component: HomePage,  layout: LayoutB },
+    ]);
+
+    // Start slow push to /a — blocks on component resolution, never reaches layout
+    const slowPush = r.push("/a");
+
+    // Push /b immediately — resolves fast and sets LayoutB
+    await r.push("/b");
+
+    expect(r.currentLayout()).toBe(LayoutB);
+    expect(r.currentComponent()).toBe(HomePage);
+
+    // Resolving the slow component now — seq check must discard the stale result
+    resolveSlowComp({ default: AboutPage });
+    await slowPush;
+
+    expect(r.currentLayout()).toBe(LayoutB);
+    expect(r.currentComponent()).toBe(HomePage);
+  });
+
+  it("rapid sequential pushes: only the final destination is shown", async () => {
+    const r = new RouterInstance([
+      { path: "/", component: HomePage },
+      { path: "/about", component: AboutPage },
+      { path: "/users/:id", component: class UserPage { render() { return null; } } },
+    ]);
+
+    // Fire three pushes without awaiting
+    void r.push("/");
+    void r.push("/about");
+    await r.push("/users/1");
+
+    expect(r.currentComponent()).not.toBeNull();
+    expect(r.location().path).toBe("/users/1");
   });
 });
 
@@ -317,33 +495,66 @@ function makeFieldCtx(name: string) {
   };
 }
 
-describe("@RouterConfig", () => {
+describe("@Router", () => {
   it("creates the router singleton when the decorator is applied", () => {
-    @RouterConfig([{ path: "/", component: HomePage }])
+    @Router([{ path: "/", component: HomePage }])
     class App {}
     void App;
     expect(() => useRouter()).not.toThrow();
   });
 
   it("the created router is accessible via useRouter()", () => {
-    @RouterConfig([{ path: "/about", component: AboutPage }])
+    @Router([{ path: "/about", component: AboutPage }])
     class App {}
     void App;
     const router = useRouter();
-    expect(router).toBeInstanceOf(Router);
+    expect(router).toBeInstanceOf(RouterInstance);
   });
 
   it("accepts @Route-decorated classes and extracts __routePath via normalizeRoute", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const DashComp = Route("/dashboard")(class Dashboard { render() { return null; } } as any, {} as ClassDecoratorContext);
 
-    @RouterConfig([DashComp as never])
+    @Router([DashComp as never])
     class App {}
     void App;
 
     const r = useRouter();
     await r.push("/dashboard");
     expect(r.location().path).toBe("/dashboard");
+  });
+
+  it("instantiating the class re-activates its router (Wrapped constructor)", () => {
+    @Router([{ path: "/a", component: HomePage }])
+    class AppA {}
+
+    @Router([{ path: "/b", component: AboutPage }])
+    class AppB {}
+
+    // After both decorations, _router belongs to AppB
+    expect(useRouter()).toBeInstanceOf(RouterInstance);
+
+    // Instantiating AppA's Wrapped subclass must re-activate AppA's router
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    new (AppA as any)();
+    const routerA = useRouter();
+    expect(routerA).toBeInstanceOf(RouterInstance);
+
+    // AppA's router has /a but not /b
+    expect(routerA.params).toBeDefined();
+
+    // Instantiating AppB re-activates AppB's router
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    new (AppB as any)();
+    const routerB = useRouter();
+    expect(routerB).toBeInstanceOf(RouterInstance);
+    expect(routerB).not.toBe(routerA);
+  });
+
+  it("preserves the class name on the Wrapped subclass", () => {
+    @Router([{ path: "/", component: HomePage }])
+    class MyNamedApp {}
+    expect(MyNamedApp.name).toBe("MyNamedApp");
   });
 });
 
@@ -371,14 +582,14 @@ describe("@Lazy", () => {
   });
 });
 
-describe("@InjectRouter", () => {
+describe("@Router (field)", () => {
   it("injects the current router singleton", () => {
     createRouter([{ path: "/", component: HomePage }]);
     const { ctx, run } = makeFieldCtx("router");
-    InjectRouter()(undefined, ctx);
+    Router()(undefined, ctx);
     const instance: Record<string, unknown> = {};
     run(instance);
-    expect(instance.router).toBeInstanceOf(Router);
+    expect(instance.router).toBeInstanceOf(RouterInstance);
     instance.router = null; // no-op setter — covers the empty set()
   });
 });
@@ -422,6 +633,34 @@ describe("@Route", () => {
     // Creating an instance invokes RouteBehavior.create() internally
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(() => new (Enhanced as any)()).not.toThrow();
+  });
+});
+
+describe("@InjectLayout", () => {
+  it("injects the currentLayout signal from the router", async () => {
+    class AppLayout { render() { return null; } }
+    createRouter([{ path: "/page", component: AboutPage, layout: AppLayout }]);
+    const { ctx, run } = makeFieldCtx("layout");
+    InjectLayout()(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    expect(typeof instance.layout).toBe("function");
+    instance.layout = null; // no-op setter
+  });
+
+  it("the injected signal reflects the active layout", async () => {
+    class AppLayout { render() { return null; } }
+    const r = createRouter([
+      { path: "/", component: HomePage },
+      { path: "/page", component: AboutPage, layout: AppLayout },
+    ]);
+    const { ctx, run } = makeFieldCtx("layout");
+    InjectLayout()(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    await r.push("/page");
+    const layout = (instance.layout as () => unknown)();
+    expect(layout).toBe(AppLayout);
   });
 });
 

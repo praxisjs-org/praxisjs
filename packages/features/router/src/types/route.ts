@@ -8,11 +8,8 @@ export interface RouteLocation {
   hash: string;
 }
 
-export type RouteComponent =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  | (new (...args: any[]) => any) // class component
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  | ((...args: any[]) => any); // function component
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RouteComponent = new (...args: any[]) => any;
 
 export interface LazyRouteComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,6 +20,7 @@ export interface LazyRouteComponent {
 export interface RouteDefinition {
   path: string;
   component: RouteComponent | LazyRouteComponent;
+  layout?: RouteComponent | LazyRouteComponent;
   children?: RouteDefinition[];
   beforeEnter?: (
     to: RouteLocation,
@@ -34,4 +32,5 @@ export interface CompiledRoute {
   definition: RouteDefinition;
   regex: RegExp;
   paramNames: string[];
+  layout?: RouteComponent | LazyRouteComponent;
 }

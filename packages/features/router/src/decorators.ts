@@ -7,7 +7,7 @@ import {
   type FieldBinding,
 } from "@praxisjs/decorators";
 
-import { type Router, createRouter, useRouter, lazy } from "./router";
+import { createRouter, useRouter, lazy } from "./router";
 
 import type { RouteDefinition, RouteLocation, RouteParams, RouteQuery } from "./types/route";
 
@@ -38,7 +38,7 @@ export function Route(path: string) {
   return decorator as unknown as (value: new (...args: any[]) => any, context: ClassDecoratorContext) => void;
 }
 
-// ── @RouterConfig ─────────────────────────────────────────────────────────────
+// ── @Router ───────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeRoute(entry: RouteDefinition | (new (...args: any[]) => any)): RouteDefinition {
@@ -48,35 +48,35 @@ function normalizeRoute(entry: RouteDefinition | (new (...args: any[]) => any)):
   return entry as RouteDefinition;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function RouterConfig(routes: Array<RouteDefinition | (new (...args: any[]) => any)>): (cls: new (...args: any[]) => any, ctx: ClassDecoratorContext) => void {
+class RouterBehavior extends ClassBehavior {
+  constructor(private readonly routes: RouteDefinition[]) {
+    super();
+  }
+
+  create(_instance: RootComponent): ClassEnhancement {
+    createRouter(this.routes);
+    return {};
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function(cls: new (...args: any[]) => any, _ctx: ClassDecoratorContext) {
-    createRouter(routes.map(normalizeRoute));
-    return cls;
-  };
+  initialize(_Enhanced: new (...args: any[]) => unknown, _original: new (...args: any[]) => unknown): void {
+    createRouter(this.routes);
+  }
 }
 
-// ── @Lazy ─────────────────────────────────────────────────────────────────────
-
+// Dual-purpose: @Router([routes]) as class decorator, @Router() as field decorator.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function Lazy(loader: () => Promise<{ default: new (...args: any[]) => any }>): any {
-  const lazyComp = lazy(loader);
-  // Dual-purpose: works inline in route definitions (0 args) and as a class decorator (2 args).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return Object.assign((...args: any[]) => args.length > 0 ? lazyComp : loader(), {
-    __isLazy: true as const,
-  });
-}
-
-// ── Field decorators ──────────────────────────────────────────────────────────
-
-export function InjectRouter() {
+export function Router(routes?: Array<RouteDefinition | (new (...args: any[]) => any)>): any {
+  if (Array.isArray(routes)) {
+    const normalizedRoutes = routes.map(normalizeRoute);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return createClassDecorator(new RouterBehavior(normalizedRoutes)) as unknown as (cls: new (...args: any[]) => any, ctx: ClassDecoratorContext) => void;
+  }
   return createFieldDecorator({
     bind(_instance, _name, _initialValue): FieldBinding {
       return {
         descriptor: {
-          get(): Router { return useRouter(); },
+          get() { return useRouter(); },
           // eslint-disable-next-line @typescript-eslint/no-empty-function
           set(): void {},
         },
@@ -85,6 +85,19 @@ export function InjectRouter() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
 }
+
+// ── @Lazy ─────────────────────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function Lazy(loader: () => Promise<{ default: new (...args: any[]) => any }>): any {
+  const lazyComp = lazy(loader);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return Object.assign((...args: any[]) => args.length > 0 ? lazyComp : loader(), {
+    __isLazy: true as const,
+  });
+}
+
+// ── Field decorators ──────────────────────────────────────────────────────────
 
 export function Params() {
   return createFieldDecorator({
@@ -122,6 +135,21 @@ export function Location() {
       return {
         descriptor: {
           get() { return useRouter().location; },
+          // eslint-disable-next-line @typescript-eslint/no-empty-function
+          set(): void {},
+        },
+      };
+    },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
+}
+
+export function InjectLayout() {
+  return createFieldDecorator({
+    bind(_instance, _name, _initialValue): FieldBinding {
+      return {
+        descriptor: {
+          get() { return useRouter().currentLayout; },
           // eslint-disable-next-line @typescript-eslint/no-empty-function
           set(): void {},
         },

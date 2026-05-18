@@ -13,19 +13,26 @@ import type {
   RouteQuery,
 } from "./types/route";
 
-export class Router {
+export class RouterInstance {
   private readonly compiled: CompiledRoute[] = [];
   private readonly _location: Signal<RouteLocation>;
   private _prevLocation: RouteLocation | null = null;
   private readonly _component: Signal<RouteComponent | null>;
+  private readonly _layout: Signal<RouteComponent | null>;
   private readonly _loading: Signal<boolean>;
+  private _navSeq = 0;
   private readonly _resolvedComponents = new Map<
+    LazyRouteComponent,
+    RouteComponent
+  >();
+  private readonly _resolvedLayouts = new Map<
     LazyRouteComponent,
     RouteComponent
   >();
 
   readonly location: Signal<RouteLocation>;
   readonly currentComponent: Signal<RouteComponent | null>;
+  readonly currentLayout: Signal<RouteComponent | null>;
   readonly loading: Signal<boolean>;
   readonly params: Computed<RouteParams>;
   readonly query: Computed<RouteQuery>;
@@ -43,9 +50,11 @@ export class Router {
     this._location = signal(initial);
     this._loading = signal(false);
     this._component = signal<RouteComponent | null>(null);
+    this._layout = signal<RouteComponent | null>(null);
 
     this.location = this._location;
     this.currentComponent = this._component;
+    this.currentLayout = this._layout;
     this.loading = this._loading;
 
     this.params = computed(() => this._location().params);
@@ -58,14 +67,19 @@ export class Router {
     });
   }
 
-  private addRoute(route: RouteDefinition, prefix = ""): void {
+  private addRoute(
+    route: RouteDefinition,
+    prefix = "",
+    inheritedLayout?: RouteComponent | LazyRouteComponent,
+  ): void {
     const fullPath = prefix + route.path;
     const { regex, paramNames } = compilePath(fullPath);
-    this.compiled.push({ definition: route, regex, paramNames });
+    const effectiveLayout = route.layout ?? inheritedLayout;
+    this.compiled.push({ definition: route, regex, paramNames, layout: effectiveLayout });
 
     if (route.children) {
       for (const child of route.children) {
-        this.addRoute(child, fullPath === "/" ? "" : fullPath);
+        this.addRoute(child, fullPath === "/" ? "" : fullPath, route.component);
       }
     }
   }
@@ -124,9 +138,34 @@ export class Router {
     return null;
   }
 
+  private async resolveLayout(
+    layout: RouteComponent | LazyRouteComponent,
+  ): Promise<RouteComponent> {
+    if (!this.isLazy(layout)) return layout;
+    const cached = this._resolvedLayouts.get(layout);
+    if (cached) return cached;
+    const mod = await layout();
+    this._resolvedLayouts.set(layout, mod.default);
+    return mod.default;
+  }
+
+  private async resolveLayoutForPath(path: string): Promise<RouteComponent | null> {
+    for (const route of this.compiled) {
+      if (!route.regex.test(path)) continue;
+      if (!route.layout) return null;
+      return this.resolveLayout(route.layout);
+    }
+    return null;
+  }
+
   private async resolveAndSetComponent(path: string): Promise<void> {
+    const seq = ++this._navSeq;
     const component = await this.resolveComponent(path);
+    if (seq !== this._navSeq) return;
     this._component.set(component);
+    const layout = await this.resolveLayoutForPath(path);
+    if (seq !== this._navSeq) return;
+    this._layout.set(layout);
   }
 
   private async syncFromBrowser(): Promise<void> {
@@ -191,7 +230,7 @@ export class Router {
   }
 }
 
-let _router: Router | null = null;
+let _router: RouterInstance | null = null;
 
 export function lazy(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -200,12 +239,12 @@ export function lazy(
   return Object.assign(() => loader(), { __isLazy: true as const });
 }
 
-export function createRouter(routes: RouteDefinition[]): Router {
-  _router = new Router(routes);
+export function createRouter(routes: RouteDefinition[]): RouterInstance {
+  _router = new RouterInstance(routes);
   return _router;
 }
 
-export function useRouter(): Router {
+export function useRouter(): RouterInstance {
   if (!_router) throw new Error("[Router] createRouter() was not called.");
   return _router;
 }
