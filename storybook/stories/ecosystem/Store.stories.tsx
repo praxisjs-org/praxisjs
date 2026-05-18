@@ -1,6 +1,6 @@
 import { StatefulComponent } from "@praxisjs/core";
 import { Component, State, Computed } from "@praxisjs/decorators";
-import { Store, UseStore, ReactiveStore } from "@praxisjs/store";
+import { Storable, Store, ReactiveStore } from "@praxisjs/store";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
 // ─── Shared store ─────────────────────────────────────────────────────────────
@@ -8,7 +8,7 @@ import type { Meta, StoryObj } from "@praxisjs/storybook";
 interface Product { id: number; name: string; price: number }
 interface CartItem extends Product { qty: number }
 
-@Store()
+@Storable()
 class CartStore extends ReactiveStore {
   @State() items: CartItem[] = [];
   @State() discount = 0;
@@ -55,7 +55,7 @@ const PRODUCTS: Product[] = [
 
 @Component()
 class ProductList extends StatefulComponent {
-  @UseStore(CartStore) cart!: CartStore;
+  @Store(CartStore) cart!: CartStore;
 
   render() {
     return (
@@ -83,7 +83,7 @@ class ProductList extends StatefulComponent {
 
 @Component()
 class CartSummary extends StatefulComponent {
-  @UseStore(CartStore) cart!: CartStore;
+  @Store(CartStore) cart!: CartStore;
 
   render() {
     return (
@@ -142,7 +142,7 @@ class StoreDemo extends StatefulComponent {
   render() {
     return (
       <div style="display:flex;flex-direction:column;gap:16px;font-family:sans-serif;min-width:360px">
-        <h3 style="margin:0;font-size:1rem">@Store / @UseStore — shared global state</h3>
+        <h3 style="margin:0;font-size:1rem">@Storable / @Store — shared global state</h3>
         <p style="margin:0;font-size:.82rem;color:#6b7280">
           <code>ProductList</code> and <code>CartSummary</code> share the same <code>CartStore</code> singleton.
           Changes in one update the other instantly.

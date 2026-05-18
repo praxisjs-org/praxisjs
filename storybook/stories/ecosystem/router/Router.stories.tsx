@@ -1,14 +1,12 @@
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, State, Prop } from "@praxisjs/decorators";
+import { Component } from "@praxisjs/decorators";
 import {
-  RouterConfig,
+  Router,
   RouterView,
-  Route,
   Link,
-  InjectRouter,
   Params,
   Query,
-  Router,
+  type RouterInstance,
 } from "@praxisjs/router";
 import type { Computed } from "@praxisjs/shared";
 import type { RouteParams, RouteQuery } from "@praxisjs/router";
@@ -16,7 +14,6 @@ import type { Meta, StoryObj } from "@praxisjs/storybook";
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
 
-@Route("/")
 @Component()
 class HomePage extends StatefulComponent {
   render() {
@@ -31,7 +28,6 @@ class HomePage extends StatefulComponent {
   }
 }
 
-@Route("/about")
 @Component()
 class AboutPage extends StatefulComponent {
   render() {
@@ -46,7 +42,6 @@ class AboutPage extends StatefulComponent {
   }
 }
 
-@Route("/users/:id")
 @Component()
 class UserPage extends StatefulComponent {
   @Params() params!: Computed<RouteParams>;
@@ -74,7 +69,6 @@ class UserPage extends StatefulComponent {
   }
 }
 
-@Route("/404")
 @Component()
 class NotFoundPage extends StatefulComponent {
   render() {
@@ -91,7 +85,7 @@ class NotFoundPage extends StatefulComponent {
 
 @Component()
 class NavBar extends StatefulComponent {
-  @InjectRouter() router!: Router;
+  @Router() router!: RouterInstance;
 
   render() {
     return (
@@ -128,10 +122,10 @@ class NavBar extends StatefulComponent {
 
 // ─── Root app with router ─────────────────────────────────────────────────────
 
-@RouterConfig([
-  HomePage,
-  AboutPage,
-  UserPage,
+@Router([
+  { path: "/", component: HomePage },
+  { path: "/about", component: AboutPage },
+  { path: "/users/:id", component: UserPage },
   { path: "**", component: NotFoundPage },
 ])
 @Component()
@@ -149,7 +143,7 @@ class RouterApp extends StatefulComponent {
 }
 
 const meta: Meta = {
-  title: "Ecosystem/Router",
+  title: "Ecosystem/Router/Navigation",
   tags: ["autodocs"],
 };
 export default meta;
