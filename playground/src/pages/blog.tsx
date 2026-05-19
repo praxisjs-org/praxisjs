@@ -1,5 +1,6 @@
 import { StatefulComponent } from "@praxisjs/core";
 import { Component } from "@praxisjs/decorators";
+import { Head } from "@praxisjs/head";
 import { Route } from "@praxisjs/router";
 import { Link } from "@praxisjs/router";
 import { Collection } from "@praxisjs/content";
@@ -7,6 +8,7 @@ import type { Entry, Resource } from "@praxisjs/content";
 
 import { BlogPost } from "../content/blog";
 
+@Head({ title: "Blog — PraxisJS", description: "Guides and references built with @praxisjs/content." })
 @Route("/blog")
 @Component()
 export default class BlogPage extends StatefulComponent {

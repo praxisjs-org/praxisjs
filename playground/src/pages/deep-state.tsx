@@ -1,5 +1,6 @@
 import { StatefulComponent } from "@praxisjs/core";
 import { Component, DeepState } from "@praxisjs/decorators";
+import { Head } from "@praxisjs/head";
 import { Route } from "@praxisjs/router";
 
 interface Config {
@@ -8,6 +9,7 @@ interface Config {
   notifications: boolean;
 }
 
+@Head({ title: "@DeepState — PraxisJS", description: "Deep reactive object state with @DeepState." })
 @Route("/deep-state")
 @Component()
 export default class DeepStatePage extends StatefulComponent {

@@ -1,7 +1,9 @@
 import { StatefulComponent } from "@praxisjs/core";
 import { Component } from "@praxisjs/decorators";
+import { Head } from "@praxisjs/head";
 import { Route } from "@praxisjs/router";
 
+@Head({ title: "About — PraxisJS", description: "Built with PraxisJS — a signal-driven frontend framework for TypeScript." })
 @Route("/about")
 @Component()
 export default class About extends StatefulComponent {

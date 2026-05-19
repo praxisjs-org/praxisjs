@@ -1,7 +1,9 @@
 import { StatefulComponent } from "@praxisjs/core";
 import { Component, Synced } from "@praxisjs/decorators";
+import { Head } from "@praxisjs/head";
 import { Route } from "@praxisjs/router";
 
+@Head({ title: "@Synced — PraxisJS", description: "Cross-tab signal sync via BroadcastChannel." })
 @Route("/synced")
 @Component()
 export default class SyncedPage extends StatefulComponent {

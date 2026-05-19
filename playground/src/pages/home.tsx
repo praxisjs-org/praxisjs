@@ -6,8 +6,10 @@ import {
   Watch,
   WatchVals,
 } from "@praxisjs/decorators";
+import { Head } from "@praxisjs/head";
 import { Route } from "@praxisjs/router";
 
+@Head({ title: "Home — PraxisJS", description: "A signal-driven frontend framework built with TypeScript." })
 @Route("/")
 @Component()
 export class Home extends StatefulComponent {

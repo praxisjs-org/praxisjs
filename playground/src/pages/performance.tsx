@@ -1,5 +1,6 @@
 import { StatefulComponent } from "@praxisjs/core";
 import { Component, Compose, Lazy, State, getter } from "@praxisjs/decorators";
+import { Head } from "@praxisjs/head";
 import { VirtualList, type VirtualItem } from "@praxisjs/composables";
 import { Route } from "@praxisjs/router";
 
@@ -70,6 +71,7 @@ const ROWS: Row[] = Array.from({ length: 50_000 }, (_, i) => ({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+@Head({ title: "Performance — PraxisJS", description: "@Lazy, VirtualList, and performance patterns." })
 @Route("/performance")
 @Component()
 export default class PerformancePage extends StatefulComponent {

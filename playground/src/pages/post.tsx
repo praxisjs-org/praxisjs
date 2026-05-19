@@ -1,5 +1,6 @@
 import { StatefulComponent } from "@praxisjs/core";
 import { Component } from "@praxisjs/decorators";
+import { Head } from "@praxisjs/head";
 import { Route, Params } from "@praxisjs/router";
 import { Link } from "@praxisjs/router";
 import { Collection } from "@praxisjs/content";
@@ -9,6 +10,14 @@ import type { RouteParams } from "@praxisjs/router";
 
 import { BlogPost } from "../content/blog";
 
+@Head((self: PostPage) => ({
+  title: self.post ? `${self.post.data.title} — PraxisJS Blog` : "Blog — PraxisJS",
+  description: self.post?.data.description ?? "",
+  og: {
+    title: self.post?.data.title,
+    description: self.post?.data.description,
+  },
+}))
 @Route("/blog/:slug")
 @Component()
 export default class PostPage extends StatefulComponent {
