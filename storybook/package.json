@@ -21,7 +21,8 @@
     "@praxisjs/store": "workspace:*",
     "@praxisjs/storybook": "workspace:*",
     "@praxisjs/shared": "workspace:*",
-    "@praxisjs/content": "workspace:*"
+    "@praxisjs/content": "workspace:*",
+    "@praxisjs/head": "workspace:*"
   },
   "devDependencies": {
     "@storybook/builder-vite": "^10.4.0",

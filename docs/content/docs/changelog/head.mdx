@@ -1,0 +1,17 @@
+---
+title: "@praxisjs/head"
+description: Changelog for @praxisjs/head — reactive document title, meta, og:*, and twitter:* management via the @Head decorator.
+icon: Globe
+---
+
+# @praxisjs/head
+
+## 0.1.0
+
+Initial release.
+
+`@Head` — class decorator that reactively manages the document `<head>` for a component. Accepts a static `HeadConfig` object or a reactive getter `(self) => HeadConfig`. Any signal read inside the getter triggers an automatic update.
+
+Supported fields: `title`, `description`, `canonical`, `meta[]`, `og.*`, `twitter.*`.
+
+Stack-based: each component instance owns one entry. The last mounted entry wins; removing an entry restores the previous one. All managed tags are cleaned up automatically on unmount.

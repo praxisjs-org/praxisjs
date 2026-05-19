@@ -308,6 +308,22 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/features/head:
+    dependencies:
+      '@praxisjs/core':
+        specifier: workspace:*
+        version: link:../../foundation/core
+      '@praxisjs/decorators':
+        specifier: workspace:*
+        version: link:../../foundation/decorators
+      '@praxisjs/shared':
+        specifier: workspace:*
+        version: link:../../foundation/shared
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/features/motion:
     dependencies:
       '@praxisjs/core':
@@ -469,6 +485,9 @@ importers:
       '@praxisjs/di':
         specifier: workspace:*
         version: link:../packages/features/di
+      '@praxisjs/head':
+        specifier: workspace:*
+        version: link:../packages/features/head
       '@praxisjs/jsx':
         specifier: workspace:*
         version: link:../packages/foundation/jsx
@@ -527,6 +546,9 @@ importers:
       '@praxisjs/fsm':
         specifier: workspace:*
         version: link:../packages/features/fsm
+      '@praxisjs/head':
+        specifier: workspace:*
+        version: link:../packages/features/head
       '@praxisjs/jsx':
         specifier: workspace:*
         version: link:../packages/foundation/jsx

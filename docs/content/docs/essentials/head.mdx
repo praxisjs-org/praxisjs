@@ -1,0 +1,163 @@
+---
+title: Document Head
+description: "@Head manages document title, meta tags, og:*, and twitter:* reactively per component — the active route's component always wins, and everything is cleaned up on unmount."
+icon: Globe
+---
+
+# Document Head
+
+`@Head` binds a component to the document `<head>`. When the component mounts, it sets the title and meta tags. When it unmounts (or the route changes), everything is cleaned up and the previous entry is restored.
+
+```bash
+npm install @praxisjs/head
+```
+
+---
+
+## Basic usage
+
+```tsx
+import { Head } from '@praxisjs/head'
+import { Component } from '@praxisjs/decorators'
+import { StatefulComponent } from '@praxisjs/core'
+
+@Head({ title: 'Home — My Site', description: 'Welcome to my site' })
+@Component()
+class HomePage extends StatefulComponent {
+  render() {
+    return <main>…</main>
+  }
+}
+```
+
+---
+
+## Reactive config
+
+Pass a getter function to read signals. Any signal read inside re-runs the update automatically:
+
+```tsx
+@Head((self: PostPage) => ({
+  title: `${self.post.data()?.title ?? 'Loading…'} — My Blog`,
+  description: self.post.data()?.summary ?? '',
+  canonical: `https://myblog.com/posts/${self.slug}`,
+  og: {
+    title: self.post.data()?.title,
+    description: self.post.data()?.summary,
+    image: self.post.data()?.coverImage,
+    url: `https://myblog.com/posts/${self.slug}`,
+    type: 'article',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: self.post.data()?.title,
+    image: self.post.data()?.coverImage,
+  },
+}))
+@Component()
+class PostPage extends StatefulComponent {
+  @State() slug = ''
+
+  @Resource((self: PostPage) => api.getPost(self.slug))
+  post!: ResourceInstance<Post>
+
+  render() { … }
+}
+```
+
+The getter receives the component instance as `self` — identical to the pattern used by `@Resource`. When `self.post.data()` resolves, the title and og tags update in the same tick.
+
+---
+
+## Observing head changes
+
+`headVersion` is a signal that increments every time the document head is updated. Read it inside a reactive expression to subscribe to head changes — useful for inspectors, devtools, or any component that needs to re-render when the head changes:
+
+```tsx
+import { headVersion } from '@praxisjs/head'
+
+@Component()
+class HeadDisplay extends StatefulComponent {
+  render() {
+    return (
+      <p>
+        {() => {
+          void headVersion()          // subscribe — re-runs when head updates
+          return `Title: ${document.title}`
+        }}
+      </p>
+    )
+  }
+}
+```
+
+---
+
+## HeadConfig reference
+
+```ts
+import type { HeadConfig, MetaTag } from '@praxisjs/head'
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `title` | `string` | Sets `document.title` |
+| `description` | `string` | `<meta name="description">` |
+| `canonical` | `string` | `<link rel="canonical" href="...">` |
+| `meta` | `MetaTag[]` | Arbitrary `<meta>` tags by `name` or `property` |
+| `og.title` | `string` | `<meta property="og:title">` |
+| `og.description` | `string` | `<meta property="og:description">` |
+| `og.image` | `string` | `<meta property="og:image">` |
+| `og.url` | `string` | `<meta property="og:url">` |
+| `og.type` | `string` | `<meta property="og:type">` |
+| `og.siteName` | `string` | `<meta property="og:site_name">` |
+| `twitter.card` | `string` | `<meta name="twitter:card">` |
+| `twitter.title` | `string` | `<meta name="twitter:title">` |
+| `twitter.description` | `string` | `<meta name="twitter:description">` |
+| `twitter.image` | `string` | `<meta name="twitter:image">` |
+
+**`MetaTag`**
+
+```ts
+{ name?: string; property?: string; content: string }
+```
+
+---
+
+## Router integration
+
+When used with `@praxisjs/router`, each route component declares its own `@Head`. As the user navigates, the outgoing route unmounts (removing its head entry) and the incoming route mounts (applying its own). The last mounted entry always wins:
+
+```tsx
+@Head({ title: 'Home', description: 'Landing page' })
+@Route('/')
+@Component()
+class Home extends StatefulComponent { … }
+
+@Head((self: About) => ({ title: `About — ${self.siteName}` }))
+@Route('/about')
+@Component()
+class About extends StatefulComponent {
+  siteName = 'My Site'
+  render() { … }
+}
+```
+
+---
+
+## Stack behaviour
+
+`@Head` uses a stack internally. Each component instance owns one entry identified by a unique symbol. The topmost entry (last mounted) is applied to the DOM. Removing an entry re-applies the one below it, so nested layouts work correctly:
+
+```
+[Layout @Head: site name]
+  [PostPage @Head: post title]   ← active — wins
+```
+
+When `PostPage` unmounts, `Layout`'s entry takes over automatically.
+
+<Callout type="info">
+`@Head` only manages tags it creates (marked with `data-praxis-head`). Pre-existing tags in the HTML template are not modified or removed. For a fully JS-managed head (SPA), omit default meta tags from the HTML and let `@Head` manage them entirely.
+</Callout>
+
+<StorybookLink story="essentials-head--head" label="Live demo — reactive title, og, twitter" />
