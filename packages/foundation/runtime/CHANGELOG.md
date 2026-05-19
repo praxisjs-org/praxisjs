@@ -1,5 +1,31 @@
 # @praxisjs/runtime
 
+## 0.3.0
+
+### Minor Changes
+
+- 41eb531: Add `ref` prop support for component JSX tags.
+
+  `ref` receives the component instance after `onMount` fires, and `null` after `onUnmount`. It is not forwarded to the component's own props.
+
+  ```tsx
+  @Component()
+  class Modal extends StatefulComponent { … }
+
+  // ref is typed as (instance: Modal | null) => void
+  <Modal ref={(inst) => { this.modal = inst }} />
+  ```
+
+### Patch Changes
+
+- 1a0631b: New: `Portal` — renders a JSX subtree into a target DOM node outside the component's natural parent. Exports `Portal` class and `PortalProps` interface from `@praxisjs/runtime`. Integrates with the scope system for automatic cleanup on unmount.
+
+  Internal: `resolvePortalTarget` is now an exported named function (previously file-private). The function is not re-exported from the package index and remains an implementation detail.
+
+- Updated dependencies [378cc54]
+  - @praxisjs/core@1.7.0
+  - @praxisjs/decorators@1.1.0
+
 ## 0.2.18
 
 ### Patch Changes

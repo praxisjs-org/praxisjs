@@ -1,5 +1,27 @@
 # @praxisjs/jsx
 
+## 0.5.0
+
+### Minor Changes
+
+- 41eb531: Add `ref` prop support for component JSX tags.
+
+  `ref` receives the component instance after `onMount` fires, and `null` after `onUnmount`. It is not forwarded to the component's own props.
+
+  ```tsx
+  @Component()
+  class Modal extends StatefulComponent { … }
+
+  // ref is typed as (instance: Modal | null) => void
+  <Modal ref={(inst) => { this.modal = inst }} />
+  ```
+
+### Patch Changes
+
+- Updated dependencies [41eb531]
+- Updated dependencies [1a0631b]
+  - @praxisjs/runtime@0.3.0
+
 ## 0.4.6
 
 ### Patch Changes
