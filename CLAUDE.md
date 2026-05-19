@@ -268,6 +268,8 @@ Do not consider a changeset complete until the docs reflect the current state of
 
 **Always update `docs/content/docs/packages.mdx`** with the new version for every package that receives a changeset. Derive the next version from the current `package.json` version and the bump type (patch/minor/major). This is required — a changeset is not complete without it.
 
+**Never edit `version` in `package.json` files.** Package versions are managed exclusively by `pnpm changeset version`. Manual edits will be overwritten by the release workflow and break the automated process.
+
 ---
 
 ## Testing
@@ -308,7 +310,7 @@ Every code change — whether creating, updating, or removing something — is o
   - Removed API → section deleted or struck through
   - Internal-only changes (e.g. refactor with no observable difference) → no docs update needed
 - [ ] **Changelog page** — `docs/content/docs/changelog/<package>.mdx` has a new entry at the top with the next version number and a plain-English summary of what changed
-- [ ] **Story** — if the change is user-facing (new component, new decorator option, new API surface), add or update a story in `storybook/stories/`. Example: a new `@Throttle()` decorator warrants a story showing throttled vs. unthrottled behavior; an internal scheduler fix does not. **One story (`StoryObj`) per file** — create a new `.stories.tsx` file for each distinct story rather than adding multiple named exports to an existing one.
+- [ ] **Story** — if the change is user-facing (new component, new decorator option, new API surface), add or update a story in `storybook/stories/`. Example: a new `@Throttle()` decorator warrants a story showing throttled vs. unthrottled behavior; an internal scheduler fix does not. **One story (`StoryObj`) per file** — create a new `.stories.tsx` file for each distinct story rather than adding multiple named exports to an existing one. **Group by subject in a folder** — when a package or feature has more than one story file, place all of them inside a dedicated subfolder (e.g. `storybook/stories/ecosystem/content/`, `storybook/stories/ecosystem/router/`). A lone story for a package may live directly in the parent folder; move it into a subfolder as soon as a second story is added.
 - [ ] **Changeset** — `.changeset/<slug>.md` created with the correct bump type (`patch` / `minor` / `major`) and a concise summary
 
 The docs and story items are required when the change is user-facing. For purely internal changes (refactors, test fixes, type-only adjustments with no API impact) they may be skipped — but when in doubt, update them.
