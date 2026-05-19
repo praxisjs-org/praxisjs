@@ -613,6 +613,49 @@ describe("Debounce", () => {
     vi.useRealTimers();
   });
 
+  it("onUnmount with no pending timer is a no-op (if timer !== undefined false branch)", () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const ctx = mockMethodContext("noTimerOp");
+    Debounce(50)(fn, ctx as unknown as ClassMethodDecoratorContext);
+
+    class BareComp extends StatefulComponent {
+      render() { return null; }
+    }
+    const instance = new BareComp();
+    ctx.runInitializers(instance);
+
+    // Never call the decorated method, so timer is undefined
+    // onUnmount with timer === undefined → false branch of if (timer !== undefined)
+    expect(() => instance.onUnmount?.()).not.toThrow();
+    vi.useRealTimers();
+  });
+
+  it("calls the pre-existing onUnmount when the component already had one", () => {
+    vi.useFakeTimers();
+    const existingUnmount = vi.fn();
+    const fn = vi.fn();
+    const ctx = mockMethodContext("debouncedWithPrior");
+
+    class CompWithUnmount extends StatefulComponent {
+      onUnmount() { existingUnmount(); }
+      render() { return null; }
+    }
+    Debounce(100)(fn, ctx as unknown as ClassMethodDecoratorContext);
+
+    const instance = new CompWithUnmount();
+    ctx.runInitializers(instance);
+    const method = (instance as unknown as Record<string, (...a: unknown[]) => void>).debouncedWithPrior;
+
+    method("x");
+    instance.onUnmount?.();
+
+    expect(existingUnmount).toHaveBeenCalledOnce();
+    vi.advanceTimersByTime(200);
+    expect(fn).not.toHaveBeenCalled(); // timer was cancelled
+    vi.useRealTimers();
+  });
+
   it("original method is NOT called after unmount if timer was pending", () => {
     vi.useFakeTimers();
     const fn = vi.fn();

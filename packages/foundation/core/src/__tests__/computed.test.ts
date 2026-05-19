@@ -186,6 +186,35 @@ describe("computed", () => {
     expect(bVal).toBeGreaterThanOrEqual(1);
   });
 
+  it("microtask guard: skips notifySubs when leaf subscriber unsubscribes before microtask fires", async () => {
+    const s = signal(0);
+    const c = computed(() => s() * 2);
+    const results: number[] = [];
+    const unsub = c.subscribe((v) => results.push(v));
+    // results = [0]
+
+    s.set(1); // markDirty: queues microtask (scheduled = true)
+    unsub();  // removes leaf subscriber BEFORE microtask fires → leafHolder.subs = null
+
+    await Promise.resolve(); // microtask: if (leafHolder.subs !== null) → FALSE → no notify
+    expect(results).toEqual([0]); // no update received after unsubscribe
+  });
+
+  it("skips re-scheduling leaf notification when already scheduled (!scheduled false branch)", async () => {
+    const s = signal(0);
+    const c = computed(() => s() * 2);
+    const results: number[] = [];
+    c.subscribe((v) => results.push(v));
+    // results = [0] after initial subscribe
+
+    s.set(1); // markDirty: scheduled = true, microtask queued
+    c();      // re-computes: dirty = false (scheduled still true)
+    s.set(2); // markDirty: dirty=false → proceeds, but !scheduled is false → no second microtask
+
+    await Promise.resolve(); // microtask runs, subscriber notified with current value
+    expect(results).toContain(4); // 2 * 2
+  });
+
   it("double unsubscribe on computed does not crash", () => {
     const s = signal(1);
     const c = computed(() => s() + 1);

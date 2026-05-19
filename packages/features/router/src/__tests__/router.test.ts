@@ -216,6 +216,27 @@ describe("lazy", () => {
   });
 });
 
+describe("Router optional params (:param?)", () => {
+  class PostPage { render() { return null; } }
+
+  it("navigates to an optional-param route with the param present", async () => {
+    const r = new RouterInstance([
+      { path: "/posts/:slug?", component: PostPage },
+    ]);
+    await r.push("/posts/hello");
+    expect(r.params()).toEqual({ slug: "hello" });
+  });
+
+  it("navigates to an optional-param route with the param absent — falls back to empty string", async () => {
+    const r = new RouterInstance([
+      { path: "/posts/:slug?", component: PostPage },
+    ]);
+    await r.push("/posts/");
+    // match[1] is undefined for the absent optional group → ?? "" gives ""
+    expect(r.params()).toEqual({ slug: "" });
+  });
+});
+
 describe("Router back / forward / go", () => {
   it("back() calls window.history.back", () => {
     const spy = vi.spyOn(window.history, "back").mockImplementation(() => {});

@@ -37,7 +37,9 @@ export class ScrollPosition extends Composable {
   private _y!: ReturnType<typeof signal<number>>;
   private _mounted = false;
 
-  constructor(target: HTMLElement | Window | { current: HTMLElement | null } = window) {
+  constructor(
+    target: HTMLElement | Window | { current: HTMLElement | null } = window,
+  ) {
     super();
     if (typeof target === "object" && "current" in target) {
       this._ref = target as { current: HTMLElement | null };
@@ -46,8 +48,21 @@ export class ScrollPosition extends Composable {
     }
   }
 
-  private get _target(): HTMLElement | Window {
-    return this._ref ? (this._ref.current ?? window) : (this._staticTarget ?? window);
+  private _resolveTarget(): HTMLElement | Window {
+    if (this._ref) {
+      if (this._ref.current !== null) {
+        return this._ref.current;
+      }
+
+      return window;
+    }
+
+    if (this._staticTarget !== undefined) {
+      return this._staticTarget;
+    }
+
+    const fallback: HTMLElement | Window = window;
+    return fallback;
   }
 
   setup() {
@@ -59,9 +74,11 @@ export class ScrollPosition extends Composable {
   onMount() {
     if (this._mounted) return;
     this._mounted = true;
-    const t = this._target;
+    const t = this._resolveTarget();
     this._handler = () => {
-      this._x.set(t === window ? window.scrollX : (t as HTMLElement).scrollLeft);
+      this._x.set(
+        t === window ? window.scrollX : (t as HTMLElement).scrollLeft,
+      );
       this._y.set(t === window ? window.scrollY : (t as HTMLElement).scrollTop);
     };
     t.addEventListener("scroll", this._handler);
@@ -72,7 +89,7 @@ export class ScrollPosition extends Composable {
 
   onUnmount() {
     this._mounted = false;
-    this._target.removeEventListener("scroll", this._handler);
+    this._resolveTarget().removeEventListener("scroll", this._handler);
   }
 }
 
@@ -152,8 +169,12 @@ export class Focus extends Composable {
   declare focused: boolean;
 
   private _focused!: ReturnType<typeof signal<boolean>>;
-  private readonly _onFocus = () => { this._focused.set(true); };
-  private readonly _onBlur = () => { this._focused.set(false); };
+  private readonly _onFocus = () => {
+    this._focused.set(true);
+  };
+  private readonly _onBlur = () => {
+    this._focused.set(false);
+  };
   private _mounted = false;
 
   constructor(private readonly ref: { current: HTMLElement | null }) {

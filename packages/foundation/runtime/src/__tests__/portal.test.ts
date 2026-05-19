@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { signal } from "@praxisjs/core/internal";
 
 import { mountComponent } from "../component";
-import { Portal } from "../portal";
+import { Portal, resolvePortalTarget } from "../portal";
 import { Scope } from "../scope";
 
 function mount(props: Record<string, unknown> = {}): { nodes: Node[]; scope: Scope } {
@@ -107,5 +107,40 @@ describe("Portal", () => {
     const { scope } = mount({ to: "#nonexistent", children: document.createTextNode("x") });
     expect(document.body.innerHTML).toBe(bodyBefore);
     scope.dispose();
+  });
+});
+
+// ── resolvePortalTarget (unit) ────────────────────────────────────────────────
+
+describe("resolvePortalTarget", () => {
+  it("returns document.body when to is null (browser environment)", () => {
+    expect(resolvePortalTarget(null)).toBe(document.body);
+  });
+
+  it("returns document.body when to is undefined (browser environment)", () => {
+    expect(resolvePortalTarget(undefined)).toBe(document.body);
+  });
+
+  it("returns null when to is null and document is not defined (SSR)", () => {
+    vi.stubGlobal("document", undefined);
+    try {
+      const result = resolvePortalTarget(null);
+      expect(result).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("resolves an Element directly", () => {
+    const el = document.createElement("div");
+    expect(resolvePortalTarget(el)).toBe(el);
+  });
+
+  it("resolves a CSS selector", () => {
+    const el = document.createElement("div");
+    el.id = "resolve-test";
+    document.body.appendChild(el);
+    expect(resolvePortalTarget("#resolve-test")).toBe(el);
+    document.body.removeChild(el);
   });
 });

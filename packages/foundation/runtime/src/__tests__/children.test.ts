@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 import { signal } from "@praxisjs/core/internal";
 
 import { mountChildren } from "../children";
+import { mountReactive } from "../reactive";
 import { Scope } from "../scope";
 
 function container() {
@@ -164,5 +165,34 @@ describe("mountChildren", () => {
     s.set(null);
     expect(el.textContent).toBe("");
     scope.dispose();
+  });
+});
+
+// ── mountReactive (direct) ────────────────────────────────────────────────────
+
+describe("mountReactive", () => {
+  it("falls back to parent as anchor when the end comment is detached (parentNode ?? parent branch)", () => {
+    const parent = document.createElement("div");
+    document.body.appendChild(parent);
+    const scope = new Scope();
+    const s = signal(0);
+
+    // fn reads s (subscribes) but always returns null → never creates DOM nodes
+    mountReactive(parent, () => { s(); return null; }, scope);
+
+    // Remove the end-anchor comment so end.parentNode becomes null
+    const endComment = Array.from(parent.childNodes).find(
+      (n): n is Comment => n.nodeType === Node.COMMENT_NODE,
+    );
+    expect(endComment).toBeDefined();
+    parent.removeChild(endComment!);
+
+    // Trigger re-run: s was 0, now 1 → Object.is differs → effect fires
+    // end.parentNode === null  →  anchor = null ?? parent = parent (the ?? branch)
+    // currentNodes = [], newNodes = [] → no remove/insert, no crash
+    expect(() => s.set(1)).not.toThrow();
+
+    scope.dispose();
+    document.body.removeChild(parent);
   });
 });

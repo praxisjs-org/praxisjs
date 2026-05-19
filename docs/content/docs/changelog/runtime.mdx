@@ -26,6 +26,8 @@ import { Portal } from '@praxisjs/runtime'
 
 Portal integrates with PraxisJS's scope system — content is removed from the target automatically when the surrounding component or reactive condition unmounts. Reactive children update normally via fine-grained reactivity.
 
+Internal: `resolvePortalTarget` exported as a named function (not re-exported from the package index) to allow direct unit testing of the SSR guard branch.
+
 ## 0.2.18
 
 `innerHTML` prop support — `<div innerHTML={html} />` now correctly sets `element.innerHTML` (DOM property assignment) instead of calling `setAttribute`. Supports reactive values: `innerHTML={() => this.html}`.

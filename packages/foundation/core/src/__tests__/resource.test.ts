@@ -245,6 +245,24 @@ describe("resource — deduplication", () => {
   });
 });
 
+describe("resource — key + non-Error sync throw in effect", () => {
+  beforeEach(() => { _clearCache(); });
+
+  it("key: wraps non-Error sync throw from fetcher inside effect in Error", async () => {
+    const r = resource(
+      () => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw "raw string error in keyed effect";
+      },
+      { key: "non-error-keyed" },
+    );
+    await vi.waitFor(() => r.status() === "error");
+    expect(r.error()).toBeInstanceOf(Error);
+    expect((r.error() as Error).message).toBe("raw string error in keyed effect");
+    r.destroy();
+  });
+});
+
 describe("resource — key + rejection / sync-throw", () => {
   beforeEach(() => { _clearCache(); });
 

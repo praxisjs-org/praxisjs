@@ -34,8 +34,11 @@ export class Portal extends StatelessComponent<PortalProps> {
   }
 }
 
-function resolvePortalTarget(to?: Element | string | null): Element | null {
-  if (to == null) return typeof document !== "undefined" ? document.body : null;
+export function resolvePortalTarget(to?: Element | string | null): Element | null {
+  if (to == null) {
+    if (typeof document === "undefined") return null;
+    return document.body;
+  }
   if (typeof to === "string") return document.querySelector(to);
   return to;
 }

@@ -157,6 +157,27 @@ describe("@Synced decorator", () => {
     expect(MockBroadcastChannel.instances.every((ch) => ch.closed)).toBe(true);
   });
 
+  it("reuses the existing signal when the same channel key is registered again on the same instance", () => {
+    // Two fields using an identical explicit channel name bind to the same SyncedSignal.
+    const { ctx: ctx1, run: run1 } = fieldCtx("alpha");
+    const { ctx: ctx2, run: run2 } = fieldCtx("beta");
+    Synced("shared-chan")(undefined, ctx1);
+    Synced("shared-chan")(undefined, ctx2);
+
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).alpha = "initial";
+    (instance as unknown as Record<string, unknown>).beta = "initial";
+    run1(instance);
+    // second bind for "shared-chan" on the same instance hits the map.has(key) === true branch
+    run2(instance);
+
+    const inst = instance as unknown as { alpha: string; beta: string };
+    inst.alpha = "changed";
+    // both fields share the same underlying signal
+    expect(inst.beta).toBe("changed");
+    instance.onUnmount?.();
+  });
+
   it("onUnmount closes the BroadcastChannel", () => {
     const { ctx, run } = fieldCtx("data");
     Synced()(undefined, ctx);

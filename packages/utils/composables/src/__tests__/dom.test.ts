@@ -494,3 +494,22 @@ describe("Intersection (cache)", () => {
     document.body.removeChild(el);
   });
 });
+
+// ── ScrollPosition (_staticTarget ?? window fallback) ─────────────────────────
+
+describe("ScrollPosition (_staticTarget fallback)", () => {
+  it("falls back to window when _staticTarget is undefined", () => {
+    // Default constructor sets _staticTarget = window. After construction we
+    // forcibly clear it to undefined (bypassing TypeScript's `private readonly`)
+    // so _resolveTarget() exercises the final `return window` branch.
+    const sp = new ScrollPosition();
+    (sp as unknown as Record<string, unknown>)._staticTarget = undefined;
+    sp.setup();
+    const addSpy = vi.spyOn(window, "addEventListener");
+    sp.onMount();
+    const scrollCall = addSpy.mock.calls.find((c) => c[0] === "scroll");
+    expect(scrollCall).toBeDefined(); // proves _resolveTarget() hit the window fallback
+    addSpy.mockRestore();
+    sp.onUnmount();
+  });
+});

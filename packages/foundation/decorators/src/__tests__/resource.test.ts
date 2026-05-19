@@ -155,6 +155,16 @@ describe("@Resource", () => {
     expect(fetcher).toHaveBeenCalledWith(inst);
   });
 
+  it("setter is a no-op — assigning to the decorated field has no effect", () => {
+    const { ctx, run } = makeFieldCtx("r");
+    Resource(() => Promise.resolve(42), { immediate: false })(undefined, ctx);
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    const original = instance.r;
+    instance.r = "overwrite-attempt"; // triggers set(): void {} (no-op)
+    expect(instance.r).toBe(original);
+  });
+
   it("onUnmount calls destroy() on the resource", async () => {
     const { ctx, run } = makeFieldCtx("r");
     Resource(() => Promise.resolve(1))(undefined, ctx);

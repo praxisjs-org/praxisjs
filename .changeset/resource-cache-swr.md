@@ -15,3 +15,7 @@
 
 **New export:**
 - `invalidateResource(key)` from `@praxisjs/decorators` — clears the named cache entry and triggers an immediate refetch on every active resource under that key
+
+**Internal:**
+- `debounced()` — removed a redundant `clearTimeout` call; the effect cleanup already handles it on every re-run
+- `@Memo` `serializeArgs` — removed an unreachable `null` check in the `catch` block (`JSON.stringify(null)` never throws)

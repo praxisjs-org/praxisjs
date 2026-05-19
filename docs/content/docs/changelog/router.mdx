@@ -6,6 +6,17 @@ icon: Route
 
 # @praxisjs/router
 
+## 1.2.0
+
+**Optional route segments** — append `?` to any named segment to make it optional.
+
+```ts
+{ path: '/posts/:slug?', component: PostPage }
+```
+
+- `/posts/hello-world` → `params().slug === 'hello-world'`
+- `/posts/` → `params().slug === ''` (absent segment defaults to empty string)
+
 ## 1.1.0
 
 <Callout type="warn" title="Breaking — API renames">

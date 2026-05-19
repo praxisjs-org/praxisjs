@@ -6,13 +6,14 @@ export function compilePath(path: string): {
 } {
   const paramNames: string[] = [];
 
-  // /users/:id/posts/:postId → /users/([^/]+)/posts/([^/]+)
-  // /docs/**                 → /docs/(.*)
+  // /users/:id/posts/:postId  → /users/([^/]+)/posts/([^/]+)
+  // /users/:id?               → /users/([^/]+)?  (optional segment)
+  // /docs/**                  → /docs/(.*)
   const regexStr = path
     .replace(/\*\*/g, "(.*)")
-    .replace(/:([^/]+)/g, (_: string, name: string) => {
+    .replace(/:([^/?]+)(\?)?/g, (_: string, name: string, optional: string | undefined) => {
       paramNames.push(name);
-      return "([^/]+)";
+      return optional ? "([^/]+)?" : "([^/]+)";
     });
 
   return {

@@ -24,6 +24,8 @@ New export:
 
 - **`invalidateResource(key)`** — re-exported from `@praxisjs/decorators` for convenience. Clears the named cache entry and triggers all active resources under that key to refetch.
 
+Internal: `serializeArgs` in `@Memo` — removed an unreachable `null` branch from the `catch` block (`JSON.stringify(null)` never throws).
+
 ```tsx
 import { invalidateResource } from '@praxisjs/decorators'
 

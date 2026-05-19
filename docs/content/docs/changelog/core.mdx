@@ -25,6 +25,8 @@ New export from `@praxisjs/core/internal`:
 - **`invalidateResource(key)`** — clears the cache entry for `key` and triggers an immediate refetch on every registered resource under that key.
 - **`_clearCache()`** — resets all cache state (tests only).
 
+Internal: removed a redundant `clearTimeout` call from `debounced()` — the effect cleanup already handles it on every re-run.
+
 ## 1.6.0
 
 **Reactivity engine rewrite** — lower allocation and cleaner internals. No API changes.

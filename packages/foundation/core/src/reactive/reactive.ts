@@ -45,7 +45,6 @@ export function debounced<T>(source: Signal<T> | Computed<T>, ms: number) {
 
   const stop = effect(() => {
     const value = source();
-    if (timeout) clearTimeout(timeout);
     timeout = setTimeout(() => {
       current.set(value);
       timeout = undefined;

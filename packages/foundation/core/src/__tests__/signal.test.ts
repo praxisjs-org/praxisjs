@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 
 import { batch } from "../signal/batch";
-import { signal } from "../signal/signal";
+import { signal, addSub, removeSub, type SubList } from "../signal/signal";
+import type { Effect } from "../signal/effect";
 
 describe("signal", () => {
   it("returns initial value", () => {
@@ -165,6 +166,17 @@ describe("signal", () => {
     });
     expect(a).toContain(1);
     expect(b).toContain(1);
+  });
+
+  it("removeSub with non-matching single-function subscriber is a no-op", () => {
+    // When subs is a single function and we try to remove a different function,
+    // the holder must remain unchanged (subs !== eff → false branch).
+    const holder: { subs: SubList } = { subs: null };
+    const fn1: Effect = () => {};
+    const fn2: Effect = () => {};
+    addSub(holder, fn1); // subs = fn1 (single function)
+    removeSub(holder, fn2); // fn2 !== fn1 → no-op
+    expect(holder.subs).toBe(fn1);
   });
 
   it("set() with mutated object reference (same ref) does NOT notify — Object.is semantics", () => {

@@ -21,7 +21,7 @@ function serializeArgs(args: unknown[]) {
         try {
           return JSON.stringify(a);
         } catch {
-          return a === null ? "null" : objectIdentityKey(a);
+          return objectIdentityKey(a as object);
         }
       }
       if (typeof a === "symbol") return a.toString();

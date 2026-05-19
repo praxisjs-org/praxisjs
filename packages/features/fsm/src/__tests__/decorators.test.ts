@@ -84,6 +84,17 @@ describe("StateMachine decorator", () => {
     run(instance);
     expect(instance.machine).toBe(instance.machine);
   });
+
+  it("setter is a no-op — assigning to the field does not replace the machine", () => {
+    const { ctx, run } = fieldCtx("machine");
+    StateMachine(TOGGLE_DEF)(undefined, ctx as ClassFieldDecoratorContext<object, Machine<"off"|"on","toggle">>);
+
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    const original = instance.machine;
+    instance.machine = "overwrite-attempt"; // triggers set(): void {} (no-op)
+    expect(instance.machine).toBe(original);
+  });
 });
 
 // ── Transition ────────────────────────────────────────────────────────────────

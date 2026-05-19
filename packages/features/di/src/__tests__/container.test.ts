@@ -213,6 +213,16 @@ describe("Container", () => {
     expect(() => c.resolve(MY_TOKEN, stack)).toThrow("Token(MyToken)");
   });
 
+  it("circular dependency chain with a Constructor shows the class name (k.name branch)", () => {
+    class ServiceA {}
+    const c = new Container();
+    c.register(ServiceA);
+
+    // Pre-populate the stack as if ServiceA is already being resolved
+    const stack = new Set<Constructor | Token<unknown>>([ServiceA]);
+    expect(() => c.resolve(ServiceA as never, stack)).toThrow("ServiceA");
+  });
+
   it("instantiate rethrows DI errors thrown inside a constructor without wrapping", () => {
     const c = new Container();
     class Unregistered {}

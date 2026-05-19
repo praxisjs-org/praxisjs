@@ -42,6 +42,28 @@ describe("compilePath", () => {
     expect(regex.test("/")).toBe(true);
     expect(regex.test("/home")).toBe(false);
   });
+
+  it("compiles an optional param (:id?)", () => {
+    const { regex, paramNames } = compilePath("/posts/:slug?");
+    expect(paramNames).toEqual(["slug"]);
+    // with value present
+    const mWith = regex.exec("/posts/hello-world");
+    expect(mWith).not.toBeNull();
+    expect(mWith![1]).toBe("hello-world");
+    // with value absent (the optional group does not participate → match[1] is undefined)
+    const mWithout = regex.exec("/posts/");
+    expect(mWithout).not.toBeNull();
+    expect(mWithout![1]).toBeUndefined();
+  });
+
+  it("mixes required and optional params", () => {
+    const { regex, paramNames } = compilePath("/blog/:year/:slug?");
+    expect(paramNames).toEqual(["year", "slug"]);
+    const m = regex.exec("/blog/2024/");
+    expect(m).not.toBeNull();
+    expect(m![1]).toBe("2024");
+    expect(m![2]).toBeUndefined(); // optional param absent
+  });
 });
 
 describe("parseQuery", () => {

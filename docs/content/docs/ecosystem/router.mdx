@@ -380,6 +380,41 @@ class DebugBar extends StatefulComponent {
 
 ---
 
+## Route path syntax
+
+### Named parameters
+
+Use `:param` to define a dynamic segment. The captured value is available via `params().param`.
+
+```ts
+{ path: '/users/:id',       component: UserPage }     // /users/42 → params().id === '42'
+{ path: '/blog/:year/:slug', component: PostPage }     // /blog/2024/hello
+```
+
+### Optional parameters
+
+Append `?` to make a segment optional. The router matches the path with and without the segment. When absent, the param value is `""`.
+
+```ts
+{ path: '/posts/:slug?', component: PostPage }
+```
+
+| Path | `params().slug` |
+|---|---|
+| `/posts/hello-world` | `'hello-world'` |
+| `/posts/` | `''` |
+
+### Wildcards
+
+Use `**` to match any tail (including slashes). Typically placed last as a catch-all.
+
+```ts
+{ path: '/docs/**',  component: DocsPage }  // /docs/guide/intro → full tail captured
+{ path: '**',        component: NotFound }  // catch-all fallback
+```
+
+---
+
 ## Navigation guards
 
 Add `beforeEnter` to any route definition to run logic before navigation completes. Return `true` to allow, `false` to cancel, or a path string to redirect:
