@@ -2,14 +2,30 @@ import { describe, it, expect, vi } from "vitest";
 
 import { Transition, StateMachine } from "../decorators";
 import { createMachine } from "../machine";
+import type { Machine } from "../machine";
 
 const TOGGLE_DEF = {
   initial: "off" as const,
   states: {
     off: { on: { toggle: "on" as const } },
-    on: { on: { toggle: "off" as const } },
+    on:  { on: { toggle: "off" as const } },
   },
 } as const;
+
+// Helper to simulate TC39 field decorator context
+function fieldCtx(name: string) {
+  const initializers: Array<(this: object) => void> = [];
+  return {
+    ctx: {
+      name,
+      kind: "field" as const,
+      addInitializer(fn: (this: object) => void) { initializers.push(fn); },
+    } as ClassFieldDecoratorContext,
+    run(instance: object) {
+      initializers.forEach((fn) => { fn.call(instance); });
+    },
+  };
+}
 
 // Helper to simulate TC39 method decorator context
 function mockMethodContext(name: string) {
@@ -17,9 +33,7 @@ function mockMethodContext(name: string) {
   return {
     name,
     kind: "method" as const,
-    addInitializer(fn: (this: object) => void) {
-      initializers.push(fn);
-    },
+    addInitializer(fn: (this: object) => void) { initializers.push(fn); },
     runInitializers(instance: object) {
       initializers.forEach((fn) => { fn.call(instance); });
     },
@@ -29,35 +43,45 @@ function mockMethodContext(name: string) {
 // ── StateMachine ──────────────────────────────────────────────────────────────
 
 describe("StateMachine decorator", () => {
-  it("adds a machine property via prototype", () => {
-    class Light {}
-    const Wrapped = StateMachine(TOGGLE_DEF)(Light, {} as ClassDecoratorContext) as unknown as typeof Light;
-    const instance = new Wrapped() as Record<string, unknown>;
+  it("injects a machine via field decorator", () => {
+    const { ctx, run } = fieldCtx("machine");
+    StateMachine(TOGGLE_DEF)(undefined, ctx as ClassFieldDecoratorContext<object, Machine<"off"|"on","toggle">>);
+
+    const instance: Record<string, unknown> = {};
+    run(instance);
     expect(instance.machine).toBeDefined();
-    expect((instance.machine as ReturnType<typeof createMachine>).state()).toBe("off");
+    expect((instance.machine as Machine<string, string>).state()).toBe("off");
   });
 
   it("returns a separate machine per instance", () => {
-    class Bulb {}
-    const Wrapped = StateMachine(TOGGLE_DEF)(Bulb, {} as ClassDecoratorContext) as unknown as typeof Bulb;
-    const a = new Wrapped() as Record<string, unknown>;
-    const b = new Wrapped() as Record<string, unknown>;
-    (a.machine as ReturnType<typeof createMachine>).send("toggle");
-    expect((a.machine as ReturnType<typeof createMachine>).state()).toBe("on");
-    expect((b.machine as ReturnType<typeof createMachine>).state()).toBe("off");
+    const { ctx, run } = fieldCtx("machine");
+    StateMachine(TOGGLE_DEF)(undefined, ctx as ClassFieldDecoratorContext<object, Machine<"off"|"on","toggle">>);
+
+    const a: Record<string, unknown> = {};
+    const b: Record<string, unknown> = {};
+    run(a);
+    run(b);
+    (a.machine as Machine<string, string>).send("toggle");
+    expect((a.machine as Machine<string, string>).state()).toBe("on");
+    expect((b.machine as Machine<string, string>).state()).toBe("off");
   });
 
-  it("uses a custom property key", () => {
-    class Widget {}
-    const Wrapped = StateMachine(TOGGLE_DEF, "fsm")(Widget, {} as ClassDecoratorContext) as unknown as typeof Widget;
-    const instance = new Wrapped() as Record<string, unknown>;
+  it("supports a custom field name", () => {
+    const { ctx, run } = fieldCtx("fsm");
+    StateMachine(TOGGLE_DEF)(undefined, ctx as ClassFieldDecoratorContext<object, Machine<"off"|"on","toggle">>);
+
+    const instance: Record<string, unknown> = {};
+    run(instance);
     expect(instance.fsm).toBeDefined();
+    expect((instance.fsm as Machine<string, string>).state()).toBe("off");
   });
 
-  it("returns the same instance on repeated access", () => {
-    class Btn {}
-    const Wrapped = StateMachine(TOGGLE_DEF)(Btn, {} as ClassDecoratorContext) as unknown as typeof Btn;
-    const instance = new Wrapped() as Record<string, unknown>;
+  it("returns the same machine instance on repeated access", () => {
+    const { ctx, run } = fieldCtx("machine");
+    StateMachine(TOGGLE_DEF)(undefined, ctx as ClassFieldDecoratorContext<object, Machine<"off"|"on","toggle">>);
+
+    const instance: Record<string, unknown> = {};
+    run(instance);
     expect(instance.machine).toBe(instance.machine);
   });
 });
@@ -105,7 +129,6 @@ describe("Transition decorator", () => {
     ctx.runInitializers(instance);
     const method = (instance as Record<string, () => unknown>).doTransition;
 
-    // "toggle" is not a valid event from "on" state
     method();
     expect(original).not.toHaveBeenCalled();
   });
@@ -123,13 +146,12 @@ describe("Transition decorator", () => {
     expect(original).toHaveBeenCalledWith(42);
   });
 
-  it("@Transition on method in class without @StateMachine — warns and returns undefined", () => {
+  it("@Transition on method without @StateMachine — warns and returns undefined", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const original = vi.fn(() => "ran");
     const ctx = mockMethodContext("doTransition");
     Transition("machine", "toggle")(original, ctx as unknown as ClassMethodDecoratorContext);
 
-    // Instance has no "machine" property at all
     const instance = {} as Record<string, unknown>;
     ctx.runInitializers(instance);
     const method = (instance as Record<string, () => unknown>).doTransition;
@@ -139,29 +161,5 @@ describe("Transition decorator", () => {
     expect(original).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("[Transition]"));
     warn.mockRestore();
-  });
-});
-
-// ── StateMachine on subclass ───────────────────────────────────────────────────
-
-describe("StateMachine decorator on subclass", () => {
-  it("machine is accessible on subclass instance", () => {
-    class Base {}
-    class Child extends Base {}
-    const Wrapped = StateMachine(TOGGLE_DEF)(Child, {} as ClassDecoratorContext) as unknown as typeof Child;
-    const instance = new Wrapped() as Record<string, unknown>;
-    expect(instance.machine).toBeDefined();
-    expect((instance.machine as ReturnType<typeof createMachine>).state()).toBe("off");
-  });
-
-  it("instances of the decorated subclass are isolated", () => {
-    class Base {}
-    class Child extends Base {}
-    const Wrapped = StateMachine(TOGGLE_DEF)(Child, {} as ClassDecoratorContext) as unknown as typeof Child;
-    const a = new Wrapped() as Record<string, unknown>;
-    const b = new Wrapped() as Record<string, unknown>;
-    (a.machine as ReturnType<typeof createMachine>).send("toggle");
-    expect((a.machine as ReturnType<typeof createMachine>).state()).toBe("on");
-    expect((b.machine as ReturnType<typeof createMachine>).state()).toBe("off");
   });
 });

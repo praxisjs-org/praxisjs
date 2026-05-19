@@ -1,22 +1,25 @@
 import { StatefulComponent } from "@praxisjs/core";
 import { Component, State } from "@praxisjs/decorators";
 import { StateMachine, Transition } from "@praxisjs/fsm";
+import type { Machine } from "@praxisjs/fsm";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
 type FetchState = "idle" | "loading" | "success" | "error";
 type FetchEvent = "FETCH" | "RESOLVE" | "REJECT" | "RESET";
 
-@StateMachine<FetchState, FetchEvent>({
-  initial: "idle",
-  states: {
-    idle:    { on: { FETCH: "loading" } },
-    loading: { on: { RESOLVE: "success", REJECT: "error" } },
-    success: { on: { RESET: "idle", FETCH: "loading" } },
-    error:   { on: { RESET: "idle", FETCH: "loading" } },
-  },
-})
 @Component()
 class FetchFSM extends StatefulComponent {
+  @StateMachine<FetchState, FetchEvent>({
+    initial: "idle",
+    states: {
+      idle:    { on: { FETCH: "loading" } },
+      loading: { on: { RESOLVE: "success", REJECT: "error" } },
+      success: { on: { RESET: "idle", FETCH: "loading" } },
+      error:   { on: { RESET: "idle", FETCH: "loading" } },
+    },
+  })
+  machine!: Machine<FetchState, FetchEvent>;
+
   @State() data: string | null = null;
   @State() history: string[] = [];
 

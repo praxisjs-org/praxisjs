@@ -1,12 +1,8 @@
-import type { RootComponent } from "@praxisjs/core/internal";
 import {
   createMethodDecorator,
-  createClassDecorator,
-  ClassBehavior,
-  type ClassEnhancement,
 } from "@praxisjs/decorators";
 
-import { createMachine, type Machine, type MachineDefinition } from "./machine";
+import { createMachine, type Machine, type MachineDefinition  } from "./machine";
 
 export function Transition(machineProp: string, event: string) {
   const decorator = createMethodDecorator({
@@ -32,52 +28,28 @@ export function Transition(machineProp: string, event: string) {
   ) => void;
 }
 
-class StateMachineBehavior<
-  S extends string,
-  E extends string,
-> extends ClassBehavior {
-  constructor(
-    private readonly definition: MachineDefinition<S, E>,
-    private readonly propertyKey: string,
-  ) {
-    super();
-  }
-
-  create(_instance: RootComponent): ClassEnhancement {
-    return {};
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialize(Enhanced: new (...args: any[]) => unknown): void {
-    const machines = new WeakMap<object, Machine<S, E>>();
-    const { definition, propertyKey } = this;
-    Object.defineProperty(
-      (Enhanced as { prototype: object }).prototype,
-      propertyKey,
-      {
-        get(this: object): Machine<S, E> {
-          if (!machines.has(this))
-            machines.set(this, createMachine(definition));
-          return machines.get(this) as Machine<S, E>;
-        },
-        enumerable: true,
-        configurable: true,
-      },
-    );
-  }
-}
-
 export function StateMachine<S extends string, E extends string>(
   definition: MachineDefinition<S, E>,
-  propertyKey = "machine",
 ) {
-  const decorator = createClassDecorator(
-    new StateMachineBehavior(definition, propertyKey),
-  );
-  // FSM decorators work on any class, not just RootComponent
+  const machines = new WeakMap<object, Machine<S, E>>();
 
-  return decorator as unknown as (
-    value: abstract new (...args: unknown[]) => unknown,
-    context: ClassDecoratorContext,
-  ) => abstract new (...args: unknown[]) => unknown;
+  return function <T extends object>(
+    _value: undefined,
+    context: ClassFieldDecoratorContext<T, Machine<S, E>>,
+  ): void {
+    context.addInitializer(function (this: object) {
+      const name = context.name;
+      Object.defineProperty(this, name, {
+        get(): Machine<S, E> {
+          const self = this as object;
+          if (!machines.has(self)) machines.set(self, createMachine(definition));
+          return machines.get(self) as Machine<S, E>;
+        },
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        set(): void {},
+        enumerable: true,
+        configurable: true,
+      });
+    });
+  };
 }

@@ -1,21 +1,24 @@
 import { StatefulComponent } from "@praxisjs/core";
 import { Component } from "@praxisjs/decorators";
 import { StateMachine, Transition } from "@praxisjs/fsm";
+import type { Machine } from "@praxisjs/fsm";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
 type LightState = "red" | "yellow" | "green";
 type LightEvent = "NEXT";
 
-@StateMachine<LightState, LightEvent>({
-  initial: "red",
-  states: {
-    red:    { on: { NEXT: "green" } },
-    green:  { on: { NEXT: "yellow" } },
-    yellow: { on: { NEXT: "red" } },
-  },
-})
 @Component()
 class TrafficLight extends StatefulComponent {
+  @StateMachine<LightState, LightEvent>({
+    initial: "red",
+    states: {
+      red:    { on: { NEXT: "green" } },
+      green:  { on: { NEXT: "yellow" } },
+      yellow: { on: { NEXT: "red" } },
+    },
+  })
+  machine!: Machine<LightState, LightEvent>;
+
   @Transition("machine", "NEXT")
   advance() {}
 

@@ -33,27 +33,30 @@ bun add @praxisjs/fsm
 
 ---
 
-## `@StateMachine(definition, property?)`
+## `@StateMachine(definition)`
 
-Attaches a state machine to the class. Creates a `this.machine` property (or a custom name) with the reactive machine instance. Each component instance gets its own isolated machine.
+**Field decorator.** Attaches a reactive machine to the decorated field. Each component instance gets its own isolated machine. The field declaration also provides the TypeScript type — no extra `declare` needed.
 
 ```tsx
 import { StateMachine, Transition } from '@praxisjs/fsm'
+import type { Machine } from '@praxisjs/fsm'
 
 type State = 'idle' | 'loading' | 'success' | 'error'
 type Event = 'FETCH' | 'RESOLVE' | 'REJECT' | 'RESET'
 
-@StateMachine<State, Event>({
-  initial: 'idle',
-  states: {
-    idle:    { on: { FETCH: 'loading' } },
-    loading: { on: { RESOLVE: 'success', REJECT: 'error' } },
-    success: { on: { RESET: 'idle' } },
-    error:   { on: { RESET: 'idle', FETCH: 'loading' } },
-  },
-})
 @Component()
 class DataFetcher extends StatefulComponent {
+  @StateMachine<State, Event>({
+    initial: 'idle',
+    states: {
+      idle:    { on: { FETCH: 'loading' } },
+      loading: { on: { RESOLVE: 'success', REJECT: 'error' } },
+      success: { on: { RESET: 'idle' } },
+      error:   { on: { RESET: 'idle', FETCH: 'loading' } },
+    },
+  })
+  machine!: Machine<State, Event>
+
   @State() data: Result | null = null
 
   @Transition('machine', 'FETCH')
@@ -145,19 +148,24 @@ Define `onEnter` and `onExit` callbacks directly in the state definition, and a 
     analytics.track(`fsm:${from}--${event}->${to}`)
   },
 })
+machine!: Machine<State, Event>
 ```
 
 ---
 
 ## Multiple machines on one class
 
-Use different property names to attach more than one machine:
+Decorate multiple fields — each field name becomes the machine reference used in `@Transition`:
 
 ```tsx
-@StateMachine({ initial: 'closed', states: { /* ... */ } }, 'drawer')
-@StateMachine({ initial: 'idle',   states: { /* ... */ } }, 'upload')
 @Component()
 class FilePanel extends StatefulComponent {
+  @StateMachine({ initial: 'closed', states: { /* ... */ } })
+  drawer!: Machine<'closed' | 'open', 'OPEN' | 'CLOSE'>
+
+  @StateMachine({ initial: 'idle', states: { /* ... */ } })
+  upload!: Machine<'idle' | 'uploading' | 'done', 'START' | 'FINISH'>
+
   @Transition('drawer', 'OPEN')
   openDrawer() { /* ... */ }
 
