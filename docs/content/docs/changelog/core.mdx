@@ -6,6 +6,25 @@ icon: Activity
 
 # @praxisjs/core
 
+## 1.7.0
+
+**`resource()` — cache, deduplication, stale-while-revalidate, refetch on focus.**
+
+New options on `ResourceOptions`:
+
+- **`key?: string`** — enables a global shared cache for this resource. All instances sharing the same key reuse in-flight requests (deduplication) and read from the same cache entry.
+- **`staleTime?: number`** — how long (ms) a cached entry is considered fresh. While fresh, the initial fetch is skipped. Default `0` means always stale: cached data is shown immediately while a background fetch runs (stale-while-revalidate).
+- **`refetchOnFocus?: boolean`** — when `true`, refetches whenever `document.visibilityState` becomes `"visible"`. No-op in non-browser environments.
+
+New `Resource<T>` method:
+
+- **`destroy()`** — stops reactive effects, removes the focus listener, and unregisters from the cache registry. Called automatically by the `@Resource` decorator on component unmount.
+
+New export from `@praxisjs/core/internal`:
+
+- **`invalidateResource(key)`** — clears the cache entry for `key` and triggers an immediate refetch on every registered resource under that key.
+- **`_clearCache()`** — resets all cache state (tests only).
+
 ## 1.6.0
 
 **Reactivity engine rewrite** — lower allocation and cleaner internals. No API changes.

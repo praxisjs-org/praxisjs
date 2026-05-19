@@ -1,6 +1,6 @@
 ---
 title: "@praxisjs/core/internal"
-description: Signal primitives (signal, computed, effect, batch, peek), persistence, reactive utilities (when, until, debounced, history), resource, and RootComponent.
+description: Signal primitives (signal, computed, effect, batch, peek), persistence, reactive utilities (when, until, debounced, history), resource (cache, SWR, dedup, invalidation), and RootComponent.
 icon: Activity
 ---
 
@@ -316,6 +316,7 @@ posts.status()   // Computed<ResourceStatus>
 posts.refetch()  // re-run manually
 posts.cancel()   // abort the in-flight fetch (idempotent)
 posts.mutate(v)  // set data optimistically
+posts.destroy()  // stop effects, remove focus listener, unregister from cache
 ```
 
 **`ResourceOptions<T>`**
@@ -325,6 +326,22 @@ posts.mutate(v)  // set data optimistically
 | `initialData` | `null` | Value of `data` before the first successful fetch. |
 | `immediate` | `true` | Run the fetcher immediately on creation. |
 | `keepPreviousData` | `false` | Keep the last successful data while re-fetching instead of resetting to `null`. |
+| `key` | — | Cache/deduplication key. All resources sharing the same key reuse in-flight requests and read from a single cache entry. Designed for non-reactive fetchers; include reactive params in the key string when needed. |
+| `staleTime` | `0` | How long (ms) a cached entry is considered fresh. While fresh, the initial fetch is skipped entirely. `0` = always stale (SWR: shows cached data, fetches in background). `Infinity` = never refetch from cache. |
+| `refetchOnFocus` | `false` | Refetches when `document.visibilityState` becomes `"visible"`. No-op in non-browser environments. |
+
+**`Resource<T>` interface**
+
+| Member | Description |
+|---|---|
+| `data` | `Computed<T \| null>` — resolved value or `null`. |
+| `pending` | `Computed<boolean>` — `true` while in-flight. |
+| `error` | `Computed<Error \| null>` — last error or `null`. |
+| `status` | `Computed<ResourceStatus>` — `"idle" \| "pending" \| "success" \| "error"`. |
+| `refetch()` | Re-runs the fetcher. Uses deduplication when `key` is set. |
+| `cancel()` | Abandons the in-flight request; resets status to `"idle"`. |
+| `mutate(v)` | Sets data directly (optimistic update) without fetching. |
+| `destroy()` | Stops the reactive effect, removes the `visibilitychange` listener, and unregisters from the cache registry. Called automatically by `@Resource` on component unmount. |
 
 **`ResourceStatus`** — `"idle" | "pending" | "success" | "error"`
 
@@ -347,6 +364,41 @@ const post = createResource(postId, (id) => fetchPost(id))
 ```
 
 Used internally by `@Resource` when a reactive source is provided.
+
+---
+
+### `invalidateResource(key)`
+
+Clears the cache entry for `key`, cancels any stored in-flight request, and triggers an immediate refetch on every active resource registered under that key.
+
+```ts
+function invalidateResource(key: string): void
+```
+
+```ts
+import { invalidateResource } from '@praxisjs/core/internal'
+
+invalidateResource('current-user')
+// → cache cleared; all resource() instances with key: 'current-user' refetch
+```
+
+No-op when `key` has no registered resources or no cache entry.
+
+---
+
+### `_clearCache()`
+
+Resets all cache state (cache entries, in-flight map, and resource registry). Intended for use in tests only — call it in `beforeEach` to prevent state leaking between test cases.
+
+```ts
+function _clearCache(): void
+```
+
+```ts
+import { _clearCache } from '@praxisjs/core/internal'
+
+beforeEach(() => { _clearCache() })
+```
 
 ---
 

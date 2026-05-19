@@ -6,6 +6,33 @@ icon: Tag
 
 # @praxisjs/decorators
 
+## 1.1.0
+
+**`@Resource` — cache, SWR, deduplication, invalidation, refetch on focus.**
+
+New options forwarded to the core `resource()` primitive:
+
+- **`key`** — shared cache key. Resources with the same key share a cache entry and a single in-flight request.
+- **`staleTime`** — ms before cached data is stale. At `0` (default) the cached value is shown immediately while fresh data loads in the background (SWR). Set to `Infinity` for a fully static cache.
+- **`refetchOnFocus`** — automatically refetches when the tab regains visibility.
+
+New lifecycle behaviour:
+
+- The decorator now calls `r.destroy()` in `onUnmount`, ensuring focus listeners and cache registrations are cleaned up when the component is unmounted.
+
+New export:
+
+- **`invalidateResource(key)`** — re-exported from `@praxisjs/decorators` for convenience. Clears the named cache entry and triggers all active resources under that key to refetch.
+
+```tsx
+import { invalidateResource } from '@praxisjs/decorators'
+
+async function saveProfile(data: ProfileData) {
+  await api.save(data)
+  invalidateResource('current-user') // refetches every component subscribed to this key
+}
+```
+
 ## 1.0.2
 
 `@Resource` now accepts a **self-receiving fetcher** — pass the component instance as the first argument to access reactive fields safely:

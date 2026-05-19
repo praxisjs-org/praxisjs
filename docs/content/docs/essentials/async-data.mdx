@@ -1,6 +1,6 @@
 ---
 title: Async Data
-description: "@Resource is PraxisJS's decorator for binding async data to a component field — it tracks loading, error, and data state reactively, with automatic refetch, cancel, and mutate."
+description: "@Resource is PraxisJS's decorator for binding async data to a component field — it tracks loading, error, and data state reactively, with automatic refetch, cancel, mutate, shared cache, and stale-while-revalidate."
 icon: Database
 ---
 
@@ -69,6 +69,9 @@ All properties are reactive — read them inside `{() => ...}` in JSX to subscri
   initialData: [],        // value of .data() before the first fetch completes
   immediate: false,       // don't fetch automatically on init (default: true)
   keepPreviousData: true, // keep old data visible while refetching
+  key: 'users',           // cache key — enables SWR, deduplication, and invalidation
+  staleTime: 5000,        // ms before cached data is considered stale (default: 0)
+  refetchOnFocus: true,   // refetch when the tab/window regains focus
 })
 users!: ResourceInstance<User[]>
 ```
@@ -103,6 +106,111 @@ async save(newName: string) {
   this.user.refetch()
 }
 ```
+
+---
+
+## Shared cache and stale-while-revalidate
+
+Setting a `key` enables three behaviors at once: a **shared cache**, **deduplication**, and **stale-while-revalidate (SWR)**.
+
+### Stale-while-revalidate
+
+When a resource with a `key` mounts and the cache already has data, it renders the cached (stale) value immediately and fetches fresh data in the background. The UI is never blank:
+
+```tsx
+// First component to mount fetches and fills the cache
+@Resource(() => api.getConfig(), { key: 'app-config' })
+config!: ResourceInstance<AppConfig>
+
+// Second component with the same key shows cached data instantly,
+// then silently updates when the background fetch completes
+@Resource(() => api.getConfig(), { key: 'app-config' })
+config!: ResourceInstance<AppConfig>
+```
+
+### staleTime
+
+`staleTime` (in milliseconds) controls how long cached data is considered fresh. While fresh, the initial fetch is skipped entirely:
+
+```tsx
+@Resource(() => api.getConfig(), {
+  key: 'app-config',
+  staleTime: 60_000, // fresh for 60 s — no fetch if cache is younger
+})
+config!: ResourceInstance<AppConfig>
+```
+
+| `staleTime` | Behaviour |
+|---|---|
+| `0` (default) | Always stale — shows cached value, fetches in background (SWR) |
+| `5000` | Fresh for 5 s — no fetch if the cache is newer than 5 s |
+| `Infinity` | Never refetch from cache — static until explicitly invalidated |
+
+### Deduplication
+
+When multiple component instances share the same `key` and all try to fetch at the same time, only **one** network request is made. All instances attach to the same in-flight promise:
+
+```tsx
+// Three instances on the same page — one fetch, shared result
+@Resource(() => api.getCurrentUser(), { key: 'current-user' })
+user!: ResourceInstance<User>
+```
+
+<Callout type="info">
+`key` is designed for fetchers with **no reactive dependencies** (e.g. global config, current user). If your fetcher reads `self.someSignal`, include the reactive parameter in the key string (`key: \`users-${this.userId}\`` — but note this would need to be static at decoration time). For reactive per-instance fetches, rely on PraxisJS's automatic dep tracking instead.
+</Callout>
+
+<StorybookLink story="essentials-async-data-stalewhilerevalidate--stale-while-revalidate" label="Live demo — stale-while-revalidate" />
+
+<StorybookLink story="essentials-async-data-deduplication--deduplication" label="Live demo — deduplication" />
+
+---
+
+## Invalidating by key
+
+`invalidateResource(key)` clears the cache entry and triggers an immediate refetch on every active resource registered under that key — from anywhere in the app:
+
+```tsx
+import { invalidateResource } from '@praxisjs/decorators'
+
+// After a mutation, refresh all components showing the current user
+async function updateProfile(data: ProfileUpdate) {
+  await api.updateProfile(data)
+  invalidateResource('current-user')
+}
+```
+
+```tsx
+@Component()
+class ProfileCard extends StatefulComponent {
+  @Resource(() => api.getCurrentUser(), { key: 'current-user' })
+  user!: ResourceInstance<User>
+
+  // Automatically refetches when invalidateResource('current-user') is called
+}
+```
+
+<StorybookLink story="essentials-async-data-invalidation--invalidation" label="Live demo — invalidateResource()" />
+
+---
+
+## Refetch on focus
+
+When `refetchOnFocus: true`, the resource automatically refetches whenever the browser tab or window becomes visible again. This keeps data fresh after the user switches tabs:
+
+```tsx
+@Resource(() => api.getNotifications(), {
+  key: 'notifications',
+  refetchOnFocus: true,
+})
+notifications!: ResourceInstance<Notification[]>
+```
+
+<Callout type="info">
+`refetchOnFocus` uses `document.visibilitychange` and has no effect in non-browser environments (SSR, Node.js tests).
+</Callout>
+
+<StorybookLink story="essentials-async-data-refetchonfocus--refetch-on-focus" label="Live demo — refetchOnFocus" />
 
 ---
 
