@@ -4,7 +4,7 @@ import { signal } from "@praxisjs/core/internal";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
 function SessionValue(key: string) {
-  return createFieldDecorator<string>({
+  return createFieldDecorator({
     bind(_instance, _name, initialValue) {
       const stored = sessionStorage.getItem(key);
       const _value = signal(stored ?? (initialValue as string) ?? "");
