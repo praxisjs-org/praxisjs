@@ -1,6 +1,6 @@
 import { StatefulComponent } from "@praxisjs/core";
 import { Component } from "@praxisjs/decorators";
-import { RouterConfig, RouterView, Link, Lazy } from "@praxisjs/router";
+import { Router, RouterView, Link, Lazy } from "@praxisjs/router";
 
 import { Home } from "./pages/home";
 import About from "./pages/about";
@@ -8,7 +8,15 @@ import SyncedPage from "./pages/synced";
 import DeepStatePage from "./pages/deep-state";
 import PerformancePage from "./pages/performance";
 
-@RouterConfig([Home, About, SyncedPage, DeepStatePage, PerformancePage])
+@Router([
+  Home,
+  About,
+  SyncedPage,
+  DeepStatePage,
+  PerformancePage,
+  { path: "/blog",       component: Lazy(() => import("./pages/blog")) },
+  { path: "/blog/:slug", component: Lazy(() => import("./pages/post")) },
+])
 @Component()
 export class App extends StatefulComponent {
   render() {
@@ -25,6 +33,7 @@ export class App extends StatefulComponent {
             <Link to="/synced">@Synced</Link>
             <Link to="/deep-state">@DeepState</Link>
             <Link to="/performance">Performance</Link>
+            <Link to="/blog">Blog</Link>
           </div>
         </nav>
         <main class="main">

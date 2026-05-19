@@ -20,7 +20,8 @@
     "@praxisjs/router": "workspace:*",
     "@praxisjs/runtime": "workspace:*",
     "@praxisjs/shared": "workspace:*",
-    "@praxisjs/store": "workspace:*"
+    "@praxisjs/store": "workspace:*",
+    "@praxisjs/content": "workspace:*"
   },
   "devDependencies": {
     "@praxisjs/devtools": "workspace:*",
