@@ -1,5 +1,13 @@
 # @praxisjs/composables
 
+## 1.1.2
+
+### Patch Changes
+
+- 618152a: Internal: `ScrollPosition._target` getter converted to a private `_resolveTarget()` method. The resolution logic was restructured from a single ternary line to explicit conditional branches for clarity. No behaviour change — `onMount`, `onUnmount`, and the scroll event handler are unaffected.
+- Updated dependencies [378cc54]
+  - @praxisjs/core@1.7.0
+
 ## 1.1.1
 
 ### Patch Changes

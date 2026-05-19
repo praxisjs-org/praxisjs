@@ -1,5 +1,11 @@
 # create-praxisjs
 
+## 0.4.2
+
+### Patch Changes
+
+- 618152a: Template dependencies updated to latest package versions.
+
 ## 0.4.1
 
 ### Patch Changes
