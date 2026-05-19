@@ -6,6 +6,10 @@ icon: Boxes
 
 # @praxisjs/runtime
 
+## 0.2.18
+
+`innerHTML` prop support — `<div innerHTML={html} />` now correctly sets `element.innerHTML` (DOM property assignment) instead of calling `setAttribute`. Supports reactive values: `innerHTML={() => this.html}`.
+
 ## 0.2.17
 
 **DOM patching optimizations** — lower allocation and fewer reflows:

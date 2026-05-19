@@ -60,4 +60,4 @@ export const EVENT_MAP: Record<string, string> = {
   onTransitionEnd: "transitionend",
 };
 
-export const VALUE_PROPS = new Set(["checked", "value", "disabled", "selected"]);
+export const VALUE_PROPS = new Set(["checked", "value", "disabled", "selected", "innerHTML"]);

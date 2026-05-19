@@ -374,6 +374,8 @@ export interface HTMLAttributes<T extends Element = HTMLElement>
   enterKeyHint?: Reactive<EnterKeyHint>;
   autoCapitalize?: Reactive<AutoCapitalize>;
   autoCorrect?: Reactive<string>;
+  // Raw HTML injection
+  innerHTML?: Reactive<string>;
   // Micro-data
   itemID?: string;
   itemProp?: string;
