@@ -1,12 +1,12 @@
 ---
 title: Core Concepts
-description: The five concepts every PraxisJS application is built on — components, reactivity, JSX, lifecycle, and async data.
+description: The core concepts every PraxisJS application is built on — components, reactivity, JSX, lifecycle, async data, portals, and document head management.
 icon: BookOpen
 ---
 
 # Core Concepts
 
-Five concepts. Together they cover everything you need to build any PraxisJS application. Read them in order the first time — each one builds on the previous.
+The building blocks every PraxisJS application is built on. Read the first five in order — each one builds on the previous. Portal and Head can be read on demand when you need them.
 
 <Cards>
   <Card
@@ -31,8 +31,18 @@ Five concepts. Together they cover everything you need to build any PraxisJS app
   />
   <Card
     title="Async Data"
-    description="@Resource binds a fetcher to a component field with reactive refetch on dependency changes, keepPreviousData, cancel, and optimistic updates."
+    description="@Resource binds a fetcher to a component field with reactive refetch, keepPreviousData, shared cache, stale-while-revalidate, and key-based invalidation."
     href="/docs/essentials/async-data"
+  />
+  <Card
+    title="Portal"
+    description="Render children into a different DOM node — escaping overflow and stacking context constraints. The standard pattern for modals, tooltips, toasts, and drawers."
+    href="/docs/essentials/portal"
+  />
+  <Card
+    title="Document Head"
+    description="@Head manages document title, meta tags, og:*, and twitter:* reactively per component. Stack-based — last mounted wins, unmounting restores the previous entry."
+    href="/docs/essentials/head"
   />
 </Cards>
 
@@ -58,4 +68,6 @@ Five concepts. Together they cover everything you need to build any PraxisJS app
   </Step>
 </Steps>
 
-After these five pages, move to [Decorators](/docs/decorators) for the complete API reference, or jump to [Packages](/docs/ecosystem) if you need routing, stores, or DI.
+Read **Portal** when you need to render modals or toasts outside a parent's overflow. Read **Document Head** when you need per-route title and meta tag management.
+
+After these pages, move to [Decorators](/docs/decorators) for the complete API reference, or jump to [Packages](/docs/ecosystem) if you need routing, stores, or DI.

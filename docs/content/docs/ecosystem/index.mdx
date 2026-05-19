@@ -1,6 +1,6 @@
 ---
 title: Packages
-description: PraxisJS first-party packages — Content, Router, Store, DI, Motion, FSM, and async concurrency.
+description: PraxisJS first-party packages — Head, Content, Router, Store, DI, Motion, FSM, and async concurrency.
 icon: Package
 ---
 
@@ -9,6 +9,11 @@ icon: Package
 All first-party packages use the same signal system and decorator conventions as core. They're completely independent of each other — install only what your project needs.
 
 <Cards>
+  <Card
+    title="Document Head"
+    description="@Head reactively manages document title, meta tags, og:*, and twitter:* per component. Stack-based with automatic cleanup on unmount."
+    href="/docs/essentials/head"
+  />
   <Card
     title="Content"
     description="Markdown content collections. @Collection registers a schema and its glob path. @PagedCollection wires pagination to any composable. Build-time loading via the bundled Vite plugin."
@@ -54,6 +59,7 @@ Each package is independent. Install only what you need:
 
 | Package | Install |
 |---|---|
+| `@praxisjs/head` | `npm install @praxisjs/head` |
 | `@praxisjs/content` | `npm install @praxisjs/content` |
 | `@praxisjs/router` | `npm install @praxisjs/router` |
 | `@praxisjs/store` | `npm install @praxisjs/store` |
@@ -68,6 +74,7 @@ Each package is independent. Install only what you need:
 
 | I need to… | Use |
 |---|---|
+| Set page title and meta tags per route | [Head](/docs/essentials/head) |
 | Load and render markdown files | [Content](/docs/ecosystem/content) |
 | Navigate between pages | [Router](/docs/ecosystem/router) |
 | Share state across components | [Store](/docs/ecosystem/store) |
