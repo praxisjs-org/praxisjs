@@ -1,6 +1,6 @@
 ---
 title: Packages
-description: PraxisJS first-party packages — Router, Store, DI, Motion, FSM, and async concurrency.
+description: PraxisJS first-party packages — Content, Router, Store, DI, Motion, FSM, and async concurrency.
 icon: Package
 ---
 
@@ -10,8 +10,13 @@ All first-party packages use the same signal system and decorator conventions as
 
 <Cards>
   <Card
+    title="Content"
+    description="Markdown content collections. @Collection registers a schema and its glob path. @PagedCollection wires pagination to any composable. Build-time loading via the bundled Vite plugin."
+    href="/docs/ecosystem/content"
+  />
+  <Card
     title="Router"
-    description="Signal-based client-side routing. @Router sets up routes. @Route co-locates path with the page component. Reactive injectors for params, query, and navigation."
+    description="Signal-based client-side routing. @Router sets up routes and layouts. @Route co-locates path with the page component. Reactive injectors for params, query, and navigation."
     href="/docs/ecosystem/router"
   />
   <Card
@@ -31,7 +36,7 @@ All first-party packages use the same signal system and decorator conventions as
   />
   <Card
     title="State Machines"
-    description="Finite state machines via @StateMachine and @Transition. Typed states and events, reactive state signal, per-state onEnter/onExit hooks."
+    description="Finite state machines via @StateMachine and @Transition. @StateMachine is a field decorator — declare the machine as a typed field and @Transition binds methods to valid transitions."
     href="/docs/ecosystem/fsm"
   />
   <Card
@@ -49,6 +54,7 @@ Each package is independent. Install only what you need:
 
 | Package | Install |
 |---|---|
+| `@praxisjs/content` | `npm install @praxisjs/content` |
 | `@praxisjs/router` | `npm install @praxisjs/router` |
 | `@praxisjs/store` | `npm install @praxisjs/store` |
 | `@praxisjs/di` | `npm install @praxisjs/di` |
@@ -62,6 +68,7 @@ Each package is independent. Install only what you need:
 
 | I need to… | Use |
 |---|---|
+| Load and render markdown files | [Content](/docs/ecosystem/content) |
 | Navigate between pages | [Router](/docs/ecosystem/router) |
 | Share state across components | [Store](/docs/ecosystem/store) |
 | Inject services into components | [DI](/docs/ecosystem/di) |
