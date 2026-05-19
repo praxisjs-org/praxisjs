@@ -1,0 +1,54 @@
+---
+title: "@praxisjs/jsx"
+description: Changelog for @praxisjs/jsx — JSX runtime and HTML/SVG attribute types.
+icon: Braces
+---
+
+# @praxisjs/jsx
+
+## 0.4.7
+
+`children` prop now accepted on all component JSX usages. `LibraryManagedAttributes` includes `children?: Children` so components using `@Slot` or receiving any JSX children no longer produce a TypeScript error at the call site.
+
+## 0.4.6
+
+`innerHTML` added to `HTMLAttributes` — `<div innerHTML={html} />` now type-checks correctly.
+
+## 0.4.0
+
+Major HTML/SVG type system overhaul — all attribute interfaces rewritten in a React-style layered architecture.
+
+- `LiteralUnion<T>` applied to string-literal unions (`ButtonType`, `HTMLInputTypeAttribute`, `FormMethod`, etc.) — string variables are assignable without a cast while IDE autocomplete still suggests canonical values
+- `CSSProperties` for object-style `style` props with camelCase CSS property autocomplete and `--custom-property` support
+- `AriaAttributes` — full WAI-ARIA 1.2 attribute set
+- `DOMAttributes<T>` — all event handlers with `currentTarget` narrowed to the host element type
+- `HTMLAttributes<T>` — generic base with element-specific `ref: (el: T) => void`
+- 40+ per-element attribute interfaces (`ButtonHTMLAttributes`, `InputHTMLAttributes`, `AnchorHTMLAttributes`, `VideoHTMLAttributes`, `DialogHTMLAttributes`, …)
+- `SVGAttributes<T>` for all SVG elements
+- ~120 intrinsic element entries covering metadata, sectioning, grouping, text-level, embedded, form, interactive, tabular, and scripting categories
+- Removed the `[key: string]: HTMLAttributes` catch-all index signature — typos like `<dvi>` are now compile-time errors
+
+`InstancePropsOf` now strips all framework internals via the `_${string}` template-literal pattern and lifecycle method names, inferring only `@Prop()` and `@State()` fields as JSX props without any explicit declaration.
+
+## 0.3.1
+
+Fix JSX prop typing for `StatelessComponent`. `LibraryManagedAttributes` now uses `InstancePropsOf` directly instead of intersecting with raw constructor props, preventing the erroneous `T | (T & (() => T))` type expansion. `InstancePropsOf` uses `_rawProps` to infer props from `@Prop()` fields accurately.
+
+## 0.3.0
+
+Component props now accept reactive getters in JSX. Any prop can be passed as a plain value (static) or as an arrow function (reactive):
+
+```tsx
+<Counter value={this.count} />        // static — read once
+<Counter value={() => this.count} />  // reactive — updates on change
+```
+
+`PropsOf<T>` and `InstancePropsOf<C>` now map each key to `Reactive<P[K]>` (`P[K] | (() => P[K])`). `Reactive<T>` is exported from `@praxisjs/jsx`.
+
+## 0.2.0
+
+Refactored to delegate rendering to `@praxisjs/runtime`. Migrated to the TC39 decorator context API. Introduced `StatefulComponent` and `StatelessComponent` as base classes, replacing the deprecated `BaseComponent` pattern.
+
+## 0.1.0
+
+Initial beta release.

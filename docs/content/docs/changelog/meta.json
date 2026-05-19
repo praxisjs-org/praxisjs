@@ -9,6 +9,7 @@
     "core",
     "decorators",
     "runtime",
+    "jsx",
     "---Packages---",
     "content",
     "router",

@@ -3,6 +3,7 @@ import {
   mountComponent,
   getCurrentScope,
 } from "@praxisjs/runtime";
+import type { Children } from "@praxisjs/shared";
 import {
   isComponent,
   type ComponentConstructor,
@@ -137,15 +138,15 @@ export namespace JSX {
         : never
     : never;
 
+  interface ComponentExtras { key?: string | number | symbol; children?: Children }
+
   export type LibraryManagedAttributes<C, P> = C extends string
     ? P & { key?: string | number | symbol }
     : [InstancePropsOf<C>] extends [never]
       ? C extends new (props: infer CtorProps) => unknown
-        ? {
-            [K in keyof CtorProps]?: Reactive<CtorProps[K]>;
-          } & { key?: string | number | symbol }
-        : Record<string, unknown> & { key?: string | number | symbol }
-      : InstancePropsOf<C> & { key?: string | number | symbol };
+        ? { [K in keyof CtorProps]?: Reactive<CtorProps[K]> } & ComponentExtras
+        : Record<string, unknown> & ComponentExtras
+      : InstancePropsOf<C> & ComponentExtras;
 
   export interface IntrinsicElements {
     // --- Metadata ---
