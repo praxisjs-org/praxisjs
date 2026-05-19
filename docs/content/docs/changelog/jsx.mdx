@@ -6,13 +6,10 @@ icon: Braces
 
 # @praxisjs/jsx
 
-## 0.4.7
-
-`children` prop now accepted on all component JSX usages. `LibraryManagedAttributes` includes `children?: Children` so components using `@Slot` or receiving any JSX children no longer produce a TypeScript error at the call site.
-
 ## 0.4.6
 
-`innerHTML` added to `HTMLAttributes` — `<div innerHTML={html} />` now type-checks correctly.
+- `children` prop now accepted on all component JSX usages — `LibraryManagedAttributes` includes `children?: Children` so components using `@Slot` or receiving any JSX children no longer produce a TypeScript error at the call site.
+- `innerHTML` added to `HTMLAttributes` — `<div innerHTML={html} />` now type-checks correctly.
 
 ## 0.4.0
 
