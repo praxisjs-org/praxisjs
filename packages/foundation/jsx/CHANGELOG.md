@@ -1,5 +1,16 @@
 # @praxisjs/jsx
 
+## 0.4.6
+
+### Patch Changes
+
+- b9411cb: `innerHTML` prop support and JSX type fixes.
+  - `@praxisjs/runtime` — `innerHTML` now correctly assigns `element.innerHTML` (DOM property) instead of calling `setAttribute`. Supports reactive values: `innerHTML={() => this.html}`.
+  - `@praxisjs/jsx` — `innerHTML?: Reactive<string>` added to `HTMLAttributes`. `LibraryManagedAttributes` now includes `children?: Children` for all component types, so components using `@Slot` or receiving JSX children no longer produce a TypeScript error at the call site.
+
+- Updated dependencies [b9411cb]
+  - @praxisjs/runtime@0.2.18
+
 ## 0.4.5
 
 ### Patch Changes
