@@ -157,7 +157,7 @@ user!: ResourceInstance<User>
 ```
 
 <Callout type="info">
-`key` is designed for fetchers with **no reactive dependencies** (e.g. global config, current user). If your fetcher reads `self.someSignal`, include the reactive parameter in the key string (`key: \`users-${this.userId}\`` — but note this would need to be static at decoration time). For reactive per-instance fetches, rely on PraxisJS's automatic dep tracking instead.
+`key` is designed for fetchers with **no reactive dependencies** (e.g. global config, current user). For reactive per-instance fetches where the fetcher reads `self.someSignal`, rely on PraxisJS's automatic dep tracking instead — `key` does not support dynamic values computed at runtime.
 </Callout>
 
 <StorybookLink story="essentials-async-data-stalewhilerevalidate--stale-while-revalidate" label="Live demo — stale-while-revalidate" />
