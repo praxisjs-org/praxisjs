@@ -140,13 +140,18 @@ export namespace JSX {
 
   interface ComponentExtras { key?: string | number | symbol; children?: Children }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type ComponentRef<C> = C extends abstract new (...args: any[]) => infer I
+    ? (instance: I | null) => void
+    : (instance: object | null) => void;
+
   export type LibraryManagedAttributes<C, P> = C extends string
     ? P & { key?: string | number | symbol }
     : [InstancePropsOf<C>] extends [never]
       ? C extends new (props: infer CtorProps) => unknown
-        ? { [K in keyof CtorProps]?: Reactive<CtorProps[K]> } & ComponentExtras
-        : Record<string, unknown> & ComponentExtras
-      : InstancePropsOf<C> & ComponentExtras;
+        ? { [K in keyof CtorProps]?: Reactive<CtorProps[K]> } & ComponentExtras & { ref?: ComponentRef<C> }
+        : Record<string, unknown> & ComponentExtras & { ref?: ComponentRef<C> }
+      : InstancePropsOf<C> & ComponentExtras & { ref?: ComponentRef<C> };
 
   export interface IntrinsicElements {
     // --- Metadata ---

@@ -199,6 +199,44 @@ describe("mountComponent", () => {
     onMount.mockRestore();
   });
 
+  it("ref callback receives the instance after onMount", async () => {
+    const scope = new Scope();
+    const refs: Array<object | null> = [];
+    const nodes = mountComponent(LifecycleComp, { ref: (inst: object | null) => { refs.push(inst); } }, scope);
+    expect(refs).toHaveLength(0); // not called synchronously
+    await Promise.resolve();
+    expect(refs).toHaveLength(1);
+    expect(refs[0]).toBeInstanceOf(LifecycleComp);
+    nodes.length; // suppress unused warning
+    scope.dispose();
+  });
+
+  it("ref callback is called with null on unmount", async () => {
+    const scope = new Scope();
+    const refs: Array<object | null> = [];
+    mountComponent(LifecycleComp, { ref: (inst: object | null) => { refs.push(inst); } }, scope);
+    await Promise.resolve();
+    scope.dispose();
+    expect(refs).toEqual([expect.any(LifecycleComp), null]);
+  });
+
+  it("ref is not forwarded to component props", () => {
+    let seenRef: unknown = "not-checked";
+    class RefCheckComp extends StatefulComponent {
+      static __isComponent = true as const;
+      static __isStateless = false;
+      render() {
+        seenRef = (this.props as Record<string, unknown>).ref;
+        return null;
+      }
+    }
+    const scope = new Scope();
+    const refFn = () => {};
+    mountComponent(RefCheckComp, { ref: refFn }, scope);
+    expect(seenRef).toBeUndefined();
+    scope.dispose();
+  });
+
   it("component with no render() method — error reaches onError handler", () => {
     let caughtError: Error | undefined;
     class NoRenderComp extends StatefulComponent {

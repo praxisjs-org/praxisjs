@@ -15,9 +15,15 @@ export function mountComponent(
   return untrack(() => {
     const scope = parentScope.fork();
 
-    const instance = new ctor({ ...props });
+    // Strip ref — managed by the runtime, not forwarded to the component.
+    const { ref: refFn, ...instanceProps } = props;
+    const ref = typeof refFn === "function"
+      ? refFn as (instance: object | null) => void
+      : undefined;
 
-    const rawChildren = props.children;
+    const instance = new ctor({ ...instanceProps });
+
+    const rawChildren = instanceProps.children;
     if (rawChildren != null) {
       initSlots(instance, rawChildren);
     }
@@ -48,11 +54,13 @@ export function mountComponent(
     queueMicrotask(() => {
       instance._mounted = true;
       instance.onMount?.();
+      ref?.(instance);
     });
 
     scope.add(() => {
       instance.onUnmount?.();
       instance._mounted = false;
+      ref?.(null);
     });
 
     // Return the nodes from the fragment as an array so the caller can append them
