@@ -12,13 +12,16 @@ icon: Database
 
 ```tsx
 import { Component, State, Resource } from '@praxisjs/decorators'
+import type { ResourceInstance } from '@praxisjs/decorators'
 import { StatefulComponent } from '@praxisjs/core'
 
 @Component()
 class UserProfile extends StatefulComponent {
   @State() userId = 1
 
-  @Resource(() => fetch(`/api/users/${this.userId}`).then(r => r.json()))
+  @Resource((self: UserProfile) =>
+    fetch(`/api/users/${self.userId}`).then(r => r.json() as Promise<User>)
+  )
   user!: ResourceInstance<User>
 
   render() {
@@ -33,7 +36,14 @@ class UserProfile extends StatefulComponent {
 }
 ```
 
-When `this.userId` changes, the resource automatically cancels any pending request and starts a new one. The `userId` signal is read inside the fetcher arrow function, making it a tracked dependency.
+When `self.userId` changes, the resource automatically cancels any pending request and starts a new one. The `userId` signal is read inside the fetcher, making it a tracked reactive dependency.
+
+For fetchers with **no component dependency**, the short arrow form works without `self`:
+
+```tsx
+@Resource(() => fetch('/api/config').then(r => r.json() as Promise<Config>))
+config!: ResourceInstance<Config>
+```
 
 <StorybookLink story="essentials-async-data-resource--pagination" label="Live demo — pagination + keepPreviousData" />
 
@@ -98,19 +108,19 @@ async save(newName: string) {
 
 ## Reactive dependencies
 
-Any signal read inside the fetcher arrow function is a dependency. When it changes, the resource automatically cancels any pending request and starts a new one:
+Any signal read inside the fetcher is a tracked dependency. When it changes, the resource automatically cancels any pending request and starts a new one:
 
 ```tsx
 @State() page = 1
 @State() search = ''
 
-@Resource(() =>
-  fetch(`/api/search?q=${this.search}&page=${this.page}`).then(r => r.json())
+@Resource((self: SearchPage) =>
+  fetch(`/api/search?q=${self.search}&page=${self.page}`).then(r => r.json())
 )
 results!: ResourceInstance<SearchResult[]>
 ```
 
-Changing `this.page` or `this.search` triggers an immediate refetch. Both are reactive dependencies because they're read inside the fetcher.
+Changing `self.page` or `self.search` triggers an immediate refetch because both signals are read inside the fetcher.
 
 ---
 

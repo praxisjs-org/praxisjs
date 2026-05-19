@@ -184,12 +184,16 @@ The `HistoryOf` type exposes: `.undo()`, `.redo()`, `.canUndo()`, `.canRedo()`. 
 
 Binds an async resource to the field. Automatically re-fetches when any signal read inside the fetcher changes.
 
+Pass `self` as the first parameter to receive the component instance — signal reads on `self` become reactive dependencies:
+
 ```tsx
 @Component()
 class PostList extends StatefulComponent {
   @State() page = 1
 
-  @Resource(() => fetch(`/api/posts?page=${this.page}`).then(r => r.json()))
+  @Resource((self: PostList) =>
+    fetch(`/api/posts?page=${self.page}`).then(r => r.json() as Promise<Post[]>)
+  )
   posts!: ResourceInstance<Post[]>
 
   render() {
@@ -203,6 +207,13 @@ class PostList extends StatefulComponent {
     )
   }
 }
+```
+
+For fetchers with no component dependency, the zero-argument form works without `self`:
+
+```tsx
+@Resource(() => fetch('/api/config').then(r => r.json() as Promise<Config>))
+config!: ResourceInstance<Config>
 ```
 
 | Option | Default | Description |

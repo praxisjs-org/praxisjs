@@ -8,20 +8,35 @@ import { createFieldDecorator, type FieldBinding } from "../create-field-decorat
 
 export type { ResourceInstance, ResourceOptions };
 
+type FieldDecoratorReturn = (_value: undefined, context: ClassFieldDecoratorContext) => void;
+
 /**
- * Binds an async resource to the field. The field holds a Resource<T> object
- * with reactive data, pending, error, and status signals, plus refetch/cancel/mutate methods.
+ * Binds an async resource to the field.
  *
- * class MyComponent extends StatefulComponent {
+ * No component dependency — plain arrow:
  *   @Resource(() => api.getUsers())
  *   users!: ResourceInstance<User[]>;
- *   // access: this.users.data(), this.users.pending(), this.users.refetch()
- * }
+ *
+ * Reads reactive component fields — receive the instance as `self`:
+ *   @Resource((self: MyComponent) => api.getPage(self.page))
+ *   items!: ResourceInstance<Item[]>;
  */
-export function Resource<T>(fetcher: () => Promise<T>, options: ResourceOptions<T> = {}) {
+export function Resource<T>(fetcher: () => Promise<T>, options?: ResourceOptions<T>): FieldDecoratorReturn;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unnecessary-type-parameters
+export function Resource<T, C extends object = any>(fetcher: (self: C) => Promise<T>, options?: ResourceOptions<T>): FieldDecoratorReturn;
+export function Resource<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  fetcher: (() => Promise<T>) | ((self: any) => Promise<T>),
+  options: ResourceOptions<T> = {},
+): FieldDecoratorReturn {
   return createFieldDecorator({
-    bind(_instance, _name, _initialValue): FieldBinding {
-      const r = resource(fetcher, options);
+    bind(instance, _name, _initialValue): FieldBinding {
+      const bound =
+        fetcher.length > 0
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? () => (fetcher as (self: any) => Promise<T>)(instance)
+          : (fetcher as () => Promise<T>);
+      const r = resource(bound, options);
       return {
         descriptor: {
           get(): ResourceInstance<T> { return r; },
@@ -30,5 +45,5 @@ export function Resource<T>(fetcher: () => Promise<T>, options: ResourceOptions<
         },
       };
     },
-  });
+  }) as unknown as FieldDecoratorReturn;
 }

@@ -6,6 +6,17 @@ icon: Tag
 
 # @praxisjs/decorators
 
+## 1.0.2
+
+`@Resource` now accepts a **self-receiving fetcher** — pass the component instance as the first argument to access reactive fields safely:
+
+```tsx
+@Resource((self: MyComponent) => api.getPage(self.page))
+items!: ResourceInstance<Item[]>
+```
+
+When the fetcher accepts one argument, the component instance is passed automatically at bind time. Any signals read on `self` become reactive dependencies. The zero-argument form (`() => api.getAll()`) continues to work unchanged.
+
 ## 1.0.1
 
 Updated dependencies — `@praxisjs/core@1.6.0`.
