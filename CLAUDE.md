@@ -18,13 +18,15 @@ Signal-driven TypeScript frontend framework. Monorepo managed with pnpm workspac
 
 ### Features (first-party plugins)
 
-| Package            | Role                                       |
-| ------------------ | ------------------------------------------ |
-| `@praxisjs/router` | Client-side router with `@Route` decorator |
-| `@praxisjs/store`  | Global state management                    |
-| `@praxisjs/motion` | Animation and transitions                  |
-| `@praxisjs/di`     | Dependency injection                       |
-| `@praxisjs/fsm`    | Finite state machine                       |
+| Package              | Role                                                       |
+| -------------------- | ---------------------------------------------------------- |
+| `@praxisjs/router`   | Client-side router with `@Route` decorator                 |
+| `@praxisjs/store`    | Global state management                                    |
+| `@praxisjs/motion`   | Animation and transitions                                  |
+| `@praxisjs/di`       | Dependency injection                                       |
+| `@praxisjs/fsm`      | Finite state machine                                       |
+| `@praxisjs/content`  | Content collections — `getCollection`, `getEntry`, `@Collection`, `@PagedCollection` |
+| `@praxisjs/head`     | Reactive `<head>` management (`@Head` decorator)           |
 
 ### Utils
 
@@ -35,11 +37,13 @@ Signal-driven TypeScript frontend framework. Monorepo managed with pnpm workspac
 
 ### DX
 
-| Package                 | Role                                          |
-| ----------------------- | --------------------------------------------- |
-| `@praxisjs/devtools`    | In-app devtools overlay (Vite + UnoCSS build) |
-| `@praxisjs/vite-plugin` | Vite plugin (`praxisjs({ hmr: true })`)       |
-| `create-praxisjs`       | CLI scaffolding tool (tsdown build)           |
+| Package                 | Role                                                                        |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `@praxisjs/devtools`    | In-app devtools overlay (Vite + UnoCSS build)                               |
+| `@praxisjs/vite-plugin` | Vite plugin (`praxisjs({ hmr: true })`)                                     |
+| `@praxisjs/mcp`         | MCP server — live documentation tools for Claude Code (Model Context Protocol) |
+| `@praxisjs/storybook`   | Storybook framework adapter for PraxisJS                                    |
+| `create-praxisjs`       | CLI scaffolding tool (tsdown build)                                         |
 
 ### Private
 
@@ -55,9 +59,9 @@ Signal-driven TypeScript frontend framework. Monorepo managed with pnpm workspac
 ```
 packages/
   foundation/   core  shared  decorators  jsx  runtime
-  features/     router  store  motion  di  fsm
+  features/     router  store  motion  di  fsm  content  head
   utils/        composables  concurrent
-  dx/           devtools  vite-plugin
+  dx/           devtools  vite-plugin  mcp  storybook
   create-praxisjs/
 playground/
 docs/
