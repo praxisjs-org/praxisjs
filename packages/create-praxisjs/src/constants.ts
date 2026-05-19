@@ -14,6 +14,11 @@ export const TEMPLATES = [
     display: "Full",
     description: "Router + store + di + composables + concurrent + devtools",
   },
+  {
+    name: "blog",
+    display: "Blog",
+    description: "Router + @praxisjs/content — markdown blog with frontmatter and reactive collections",
+  },
 ] as const;
 
 export type TemplateName = (typeof TEMPLATES)[number]["name"];
