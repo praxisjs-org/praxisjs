@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { resource, createResource } from "../async/resource";
+import { invalidateResource, _clearCache } from "../async/resource-cache";
 import { signal } from "../signal/signal";
 
 describe("resource", () => {
@@ -148,6 +149,164 @@ describe("resource — execute() sync throw via refetch()", () => {
     await vi.waitFor(() => r.status() === "error");
     expect(r.error()).toBeInstanceOf(Error);
     expect((r.error() as Error).message).toBe("plain string sync");
+  });
+});
+
+describe("resource — destroy()", () => {
+  it("destroy() stops the reactive effect — signal changes no longer trigger refetch", async () => {
+    const id = signal(1);
+    const fetcher = vi.fn((n: number) => Promise.resolve(n * 10));
+    const r = resource(() => fetcher(id()), { immediate: true });
+    await vi.waitFor(() => r.status() === "success");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    r.destroy();
+    id.set(2);
+    await new Promise((res) => setTimeout(res, 10));
+    expect(fetcher).toHaveBeenCalledTimes(1); // no re-fetch after destroy
+  });
+
+  it("destroy() is idempotent", async () => {
+    const r = resource(() => Promise.resolve(1));
+    await vi.waitFor(() => r.status() === "success");
+    expect(() => { r.destroy(); r.destroy(); }).not.toThrow();
+  });
+});
+
+describe("resource — cache + SWR (key, staleTime)", () => {
+  beforeEach(() => { _clearCache(); });
+
+  it("key: populates data from cache on creation (SWR)", async () => {
+    // First resource fills the cache
+    const r1 = resource(() => Promise.resolve("cached-value"), { key: "swr-test" });
+    await vi.waitFor(() => r1.status() === "success");
+
+    // Second resource with same key starts with cached data immediately
+    const r2 = resource(() => Promise.resolve("new-value"), { key: "swr-test" });
+    expect(r2.data()).toBe("cached-value"); // stale data shown immediately
+    expect(r2.status()).toBe("pending"); // fetching fresh data in background
+    await vi.waitFor(() => r2.data() === "new-value");
+    r1.destroy();
+    r2.destroy();
+  });
+
+  it("staleTime: skips fetch when cache is fresh", async () => {
+    const fetcher = vi.fn(() => Promise.resolve("fresh"));
+    const r1 = resource(fetcher, { key: "fresh-test", staleTime: 60_000 });
+    await vi.waitFor(() => r1.status() === "success");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    // Second resource within staleTime — no fetch
+    const r2 = resource(fetcher, { key: "fresh-test", staleTime: 60_000 });
+    expect(r2.data()).toBe("fresh");
+    expect(r2.status()).toBe("success");
+    await new Promise((res) => setTimeout(res, 10));
+    expect(fetcher).toHaveBeenCalledTimes(1); // no second fetch
+    r1.destroy();
+    r2.destroy();
+  });
+
+  it("staleTime: 0 (default) always refetches even with cached data", async () => {
+    const fetcher = vi.fn(() => Promise.resolve("v1"));
+    const r1 = resource(fetcher, { key: "always-stale" });
+    await vi.waitFor(() => r1.status() === "success");
+
+    const r2 = resource(fetcher, { key: "always-stale", staleTime: 0 });
+    expect(r2.data()).toBe("v1"); // shows stale immediately
+    await vi.waitFor(() => r2.status() === "success");
+    expect(fetcher).toHaveBeenCalledTimes(2); // did refetch
+    r1.destroy();
+    r2.destroy();
+  });
+});
+
+describe("resource — deduplication", () => {
+  beforeEach(() => { _clearCache(); });
+
+  it("two resources with the same key share a single in-flight request", async () => {
+    let resolveShared!: (v: string) => void;
+    const fetcher = vi.fn(
+      () => new Promise<string>((res) => { resolveShared = res; }),
+    );
+
+    const r1 = resource(fetcher, { key: "dedup-test" });
+    const r2 = resource(fetcher, { key: "dedup-test" });
+
+    expect(fetcher).toHaveBeenCalledTimes(1); // only one fetch started
+
+    resolveShared("shared-result");
+    await vi.waitFor(() => r1.status() === "success");
+    await vi.waitFor(() => r2.status() === "success");
+
+    expect(r1.data()).toBe("shared-result");
+    expect(r2.data()).toBe("shared-result");
+    r1.destroy();
+    r2.destroy();
+  });
+});
+
+describe("resource — key + rejection / sync-throw", () => {
+  beforeEach(() => { _clearCache(); });
+
+  it("key: clears in-flight entry on rejection (catch path)", async () => {
+    const r = resource(
+      () => Promise.reject(new Error("keyed failure")),
+      { key: "reject-test" },
+    );
+    await new Promise((res) => setTimeout(res, 0));
+    expect(r.status()).toBe("error");
+    expect((r.error() as Error).message).toBe("keyed failure");
+    r.destroy();
+  });
+
+  it("key: sync throw inside effect is captured as error", async () => {
+    const r = resource(
+      () => { throw new Error("sync in keyed effect"); },
+      { key: "sync-throw-keyed" },
+    );
+    await vi.waitFor(() => r.status() === "error");
+    expect((r.error() as Error).message).toBe("sync in keyed effect");
+    r.destroy();
+  });
+});
+
+describe("resource — invalidateResource()", () => {
+  beforeEach(() => { _clearCache(); });
+
+  it("clears cache and triggers refetch on all registered resources", async () => {
+    let call = 0;
+    const fetcher = vi.fn(() => Promise.resolve(++call));
+
+    const r1 = resource(fetcher, { key: "inv-test" });
+    const r2 = resource(fetcher, { key: "inv-test" });
+    await vi.waitFor(() => r1.status() === "success");
+    await vi.waitFor(() => r2.status() === "success");
+
+    const callsBefore = fetcher.mock.calls.length;
+    invalidateResource("inv-test");
+
+    await vi.waitFor(() => r1.status() === "success" && r1.data() !== callsBefore);
+    expect(fetcher.mock.calls.length).toBeGreaterThan(callsBefore);
+    r1.destroy();
+    r2.destroy();
+  });
+
+  it("no-op when key has no registered resources", () => {
+    expect(() => { invalidateResource("nonexistent-key"); }).not.toThrow();
+  });
+
+  it("unregisters resource on destroy — invalidate no longer triggers it", async () => {
+    let call = 0;
+    const fetcher = vi.fn(() => Promise.resolve(++call));
+    const r = resource(fetcher, { key: "unreg-test" });
+    await vi.waitFor(() => r.status() === "success");
+
+    r.destroy();
+    const callsBefore = fetcher.mock.calls.length;
+
+    invalidateResource("unreg-test");
+    await new Promise((res) => setTimeout(res, 10));
+    expect(fetcher.mock.calls.length).toBe(callsBefore); // no refetch after destroy
   });
 });
 

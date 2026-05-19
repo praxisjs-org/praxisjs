@@ -25,3 +25,4 @@ export {
   type Resource,
   type ResourceOptions,
 } from "./async/resource";
+export { invalidateResource, _clearCache } from "./async/resource-cache";

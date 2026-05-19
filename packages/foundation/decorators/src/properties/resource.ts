@@ -6,6 +6,7 @@ import {
 
 import { createFieldDecorator, type FieldBinding } from "../create-field-decorator";
 
+export { invalidateResource } from "@praxisjs/core/internal";
 export type { ResourceInstance, ResourceOptions };
 
 type FieldDecoratorReturn = (_value: undefined, context: ClassFieldDecoratorContext) => void;
@@ -43,6 +44,7 @@ export function Resource<T>(
           // eslint-disable-next-line @typescript-eslint/no-empty-function
           set(): void {},
         },
+        onUnmount() { r.destroy(); },
       };
     },
   }) as unknown as FieldDecoratorReturn;

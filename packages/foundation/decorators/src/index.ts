@@ -25,6 +25,7 @@ export {
   Compose,
   getter,
   Resource,
+  invalidateResource,
   type ResourceInstance,
   type ResourceOptions,
   Synced,

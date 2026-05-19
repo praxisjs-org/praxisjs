@@ -1,4 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+import { invalidateResource, _clearCache } from "@praxisjs/core/internal";
 
 import { Resource } from "../properties/resource";
 
@@ -137,5 +139,98 @@ describe("@Resource", () => {
     r.refetch();
     await vi.waitFor(() => r.status() === "success" && r.data() === 2);
     expect(callCount).toBe(2);
+  });
+
+  it("passes instance as self when fetcher has arity > 0", async () => {
+    const { ctx, run } = makeFieldCtx("r");
+    const fetcher = vi.fn((self: Record<string, unknown>) =>
+      Promise.resolve(self.value as number),
+    );
+    Resource(fetcher)(undefined, ctx);
+    const inst: Record<string, unknown> = { value: 42 };
+    run(inst);
+    const r = inst.r as { status: () => string; data: () => number };
+    await vi.waitFor(() => r.status() === "success");
+    expect(r.data()).toBe(42);
+    expect(fetcher).toHaveBeenCalledWith(inst);
+  });
+
+  it("onUnmount calls destroy() on the resource", async () => {
+    const { ctx, run } = makeFieldCtx("r");
+    Resource(() => Promise.resolve(1))(undefined, ctx);
+    const inst: Record<string, unknown> = {};
+    run(inst);
+    const r = inst.r as { destroy: () => void };
+    const spy = vi.spyOn(r, "destroy");
+    (inst as { onUnmount?: () => void }).onUnmount?.();
+    expect(spy).toHaveBeenCalledOnce();
+  });
+});
+
+describe("@Resource — cache / SWR / invalidation", () => {
+  beforeEach(() => { _clearCache(); });
+
+  function makeFieldCtx(name: string) {
+    const initializers: Array<(this: unknown) => void> = [];
+    return {
+      ctx: {
+        name,
+        kind: "field" as const,
+        addInitializer(fn: (this: unknown) => void) { initializers.push(fn); },
+      } as ClassFieldDecoratorContext,
+      run(instance: unknown) { initializers.forEach((fn) => { fn.call(instance); }); },
+    };
+  }
+
+  it("key: serves stale cached data immediately while refetching (SWR)", async () => {
+    const { ctx: ctx1, run: run1 } = makeFieldCtx("r1");
+    Resource(() => Promise.resolve("first"), { key: "dec-swr" })(undefined, ctx1);
+    const inst1: Record<string, unknown> = {};
+    run1(inst1);
+    const r1 = inst1.r1 as { status: () => string; data: () => string; destroy: () => void };
+    await vi.waitFor(() => r1.status() === "success");
+
+    // Second decorator instance — should see cached data straight away
+    const { ctx: ctx2, run: run2 } = makeFieldCtx("r2");
+    Resource(() => Promise.resolve("second"), { key: "dec-swr" })(undefined, ctx2);
+    const inst2: Record<string, unknown> = {};
+    run2(inst2);
+    const r2 = inst2.r2 as { status: () => string; data: () => string; destroy: () => void };
+
+    expect(r2.data()).toBe("first"); // stale data shown immediately
+    await vi.waitFor(() => r2.data() === "second");
+    r1.destroy();
+    r2.destroy();
+  });
+
+  it("invalidateResource() triggers refetch on decorated field", async () => {
+    let call = 0;
+    const { ctx, run } = makeFieldCtx("r");
+    Resource(() => Promise.resolve(++call), { key: "dec-inv" })(undefined, ctx);
+    const inst: Record<string, unknown> = {};
+    run(inst);
+    const r = inst.r as { status: () => string; data: () => number; destroy: () => void };
+    await vi.waitFor(() => r.status() === "success");
+    expect(r.data()).toBe(1);
+
+    invalidateResource("dec-inv");
+    await vi.waitFor(() => r.data() === 2);
+    r.destroy();
+  });
+
+  it("destroy() via onUnmount unregisters from cache — no refetch after unmount", async () => {
+    let call = 0;
+    const { ctx, run } = makeFieldCtx("r");
+    Resource(() => Promise.resolve(++call), { key: "dec-unreg" })(undefined, ctx);
+    const inst: Record<string, unknown> = {};
+    run(inst);
+    const r = inst.r as { status: () => string; data: () => number; destroy: () => void };
+    await vi.waitFor(() => r.status() === "success");
+
+    r.destroy();
+    const before = call;
+    invalidateResource("dec-unreg");
+    await new Promise((res) => setTimeout(res, 10));
+    expect(call).toBe(before);
   });
 });
