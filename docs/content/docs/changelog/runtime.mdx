@@ -6,6 +6,26 @@ icon: Boxes
 
 # @praxisjs/runtime
 
+## 0.2.19
+
+**New: `Portal`** — renders a JSX subtree into a target DOM node outside the component's natural parent. Useful for modals, tooltips, toasts, and drawers that must escape overflow or stacking context constraints.
+
+```tsx
+import { Portal } from '@praxisjs/runtime'
+
+// Mounts children into document.body
+<Portal>
+  <Modal />
+</Portal>
+
+// Mounts into a specific element or CSS selector
+<Portal to="#toast-root">
+  <Toast message={this.message} />
+</Portal>
+```
+
+Portal integrates with PraxisJS's scope system — content is removed from the target automatically when the surrounding component or reactive condition unmounts. Reactive children update normally via fine-grained reactivity.
+
 ## 0.2.18
 
 `innerHTML` prop support — `<div innerHTML={html} />` now correctly sets `element.innerHTML` (DOM property assignment) instead of calling `setAttribute`. Supports reactive values: `innerHTML={() => this.html}`.

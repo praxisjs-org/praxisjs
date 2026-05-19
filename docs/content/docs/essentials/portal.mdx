@@ -1,0 +1,145 @@
+---
+title: Portal
+description: Portal renders a component's JSX subtree into a different DOM node — escaping overflow, stacking context, and z-index constraints. Built into @praxisjs/runtime, no extra package needed.
+icon: SquareArrowOutUpRight
+---
+
+# Portal
+
+`Portal` renders its children into a target DOM node outside the component's natural parent. It is the standard way to implement modals, tooltips, drawers, and toasts that need to escape the current stacking context or overflow constraints.
+
+```tsx
+import { Portal } from '@praxisjs/runtime'
+```
+
+---
+
+## Basic usage
+
+```tsx
+import { Component, State } from '@praxisjs/decorators'
+import { StatefulComponent } from '@praxisjs/core'
+import { Portal } from '@praxisjs/runtime'
+
+@Component()
+class ConfirmDialog extends StatefulComponent {
+  @State() open = false
+
+  render() {
+    return (
+      <div>
+        <button onClick={() => { this.open = true }}>Delete</button>
+
+        {() => this.open && (
+          <Portal>
+            <div class="modal-backdrop">
+              <div class="modal">
+                <p>Are you sure?</p>
+                <button onClick={() => { this.open = false }}>Cancel</button>
+                <button onClick={() => { /* confirm */ }}>Delete</button>
+              </div>
+            </div>
+          </Portal>
+        )}
+      </div>
+    )
+  }
+}
+```
+
+The backdrop and modal are inserted directly into `document.body`, so they are never clipped by a parent with `overflow: hidden` or buried under other stacking contexts.
+
+---
+
+## `to` — choose the target
+
+By default, children are mounted into `document.body`. Use the `to` prop to specify a different target:
+
+```tsx
+// CSS selector
+<Portal to="#modal-root">...</Portal>
+
+// Direct element reference
+<Portal to={document.getElementById('toast-container')!}>...</Portal>
+
+// Reactive — re-evaluates when re-rendered
+@State() container: Element | null = null
+
+<Portal to={this.container}>...</Portal>
+```
+
+If `to` is `null` or a selector that matches nothing, the portal renders nothing and leaves no DOM behind.
+
+---
+
+## Lifecycle and cleanup
+
+Portal participates fully in PraxisJS's scope system. When the surrounding component unmounts (or when the reactive condition that gates the portal turns falsy), the portal content is removed from the target automatically — no manual cleanup needed.
+
+```tsx
+{() => this.showToast && (
+  <Portal to="#toast-root">
+    <Toast message={this.message} />
+  </Portal>
+)}
+// When this.showToast becomes false, the Toast is removed from #toast-root
+```
+
+Reactive children inside the portal update normally via PraxisJS's fine-grained reactivity — signals read inside `{() => ...}` are tracked and update only the affected DOM nodes.
+
+---
+
+## Common patterns
+
+### Modal
+
+```tsx
+{() => this.modalOpen && (
+  <Portal>
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:grid;place-items:center;z-index:50">
+      <div style="background:#fff;border-radius:12px;padding:24px;min-width:320px">
+        {this.props.children}
+      </div>
+    </div>
+  </Portal>
+)}
+```
+
+### Toast stack
+
+```tsx
+<Portal to="#toast-root">
+  {() => this.toasts.map(t => <ToastItem key={t.id} toast={t} />)}
+</Portal>
+```
+
+### Tooltip
+
+```tsx
+{() => this.hovered && (
+  <Portal>
+    <div
+      style={`position:fixed;top:${this.anchorY}px;left:${this.anchorX}px;z-index:99`}
+    >
+      {this.props.label}
+    </div>
+  </Portal>
+)}
+```
+
+---
+
+## API
+
+```ts
+import { Portal, type PortalProps } from '@praxisjs/runtime'
+```
+
+**`PortalProps`**
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `to` | `Element \| string \| null` | `document.body` | Target element or CSS selector. `null` renders nothing. |
+| `children` | `unknown` | — | Any valid JSX content — nodes, strings, reactive functions, arrays. |
+
+<StorybookLink story="essentials-portal--portal" label="Live demo — modal, toast, tooltip" />

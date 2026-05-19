@@ -34,3 +34,4 @@ export { Scope } from "./scope";
 export { runInScope, getCurrentScope } from "./context";
 export { mountElement } from "./element";
 export { mountComponent } from "./component";
+export { Portal, type PortalProps } from "./portal";

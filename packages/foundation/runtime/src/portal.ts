@@ -1,0 +1,41 @@
+import { StatelessComponent } from "@praxisjs/core";
+
+import { mountChildren } from "./children";
+import { getCurrentScope } from "./context";
+
+export interface PortalProps {
+  to?: Element | string | null;
+}
+
+export class Portal extends StatelessComponent<PortalProps> {
+  static readonly __isComponent = true as const;
+  static readonly __isStateless = true;
+
+  render() {
+    const scope = getCurrentScope();
+    const target = resolvePortalTarget(this.props.to);
+    if (!target) return null;
+
+    const start = document.createComment("");
+    const end = document.createComment("");
+
+    target.appendChild(start);
+    mountChildren(target, this.props.children, scope);
+    target.appendChild(end);
+
+    scope.add(() => {
+      const range = document.createRange();
+      range.setStartBefore(start);
+      range.setEndAfter(end);
+      range.deleteContents();
+    });
+
+    return document.createComment("portal");
+  }
+}
+
+function resolvePortalTarget(to?: Element | string | null): Element | null {
+  if (to == null) return typeof document !== "undefined" ? document.body : null;
+  if (typeof to === "string") return document.querySelector(to);
+  return to;
+}

@@ -6,6 +6,7 @@
     "reactivity",
     "jsx",
     "lifecycle",
-    "async-data"
+    "async-data",
+    "portal"
   ]
 }
