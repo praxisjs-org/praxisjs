@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Collection } from "../decorators";
+import { Collection, PagedCollection } from "../decorators";
 import { getCollection, registerCollection } from "../collection";
 import { ContentSchema } from "../types";
 
@@ -91,6 +91,52 @@ describe("@Collection field decorator", () => {
     expect(() => {
       instance.docs = null;
     }).not.toThrow();
+  });
+});
+
+// ── @PagedCollection ──────────────────────────────────────────────────────────
+
+describe("@PagedCollection field decorator", () => {
+  class Articles extends ContentSchema { title = ""; }
+
+  function setupArticles() {
+    registerCollection(Articles as never, {
+      glob: {
+        "./articles/a.md": "---\ntitle: A\n---",
+        "./articles/b.md": "---\ntitle: B\n---",
+        "./articles/c.md": "---\ntitle: C\n---",
+      },
+    });
+  }
+
+  it("injects a Resource with data(), pending(), and error()", () => {
+    setupArticles();
+    const { ctx, run } = makeFieldCtx("articles");
+    PagedCollection(Articles, "pager")(undefined, ctx);
+
+    const instance: Record<string, unknown> = {
+      pager: { page: 1, pageSize: 2 },
+    };
+    run(instance);
+
+    const res = instance.articles as Record<string, unknown>;
+    expect(typeof res.data).toBe("function");
+    expect(typeof res.pending).toBe("function");
+    expect(typeof res.error).toBe("function");
+    expect(typeof res.refetch).toBe("function");
+  });
+
+  it("no-op setter does not throw", () => {
+    setupArticles();
+    const { ctx, run } = makeFieldCtx("articles2");
+    PagedCollection(Articles, "pager")(undefined, ctx);
+
+    const instance: Record<string, unknown> = {
+      pager: { page: 1, pageSize: 5 },
+    };
+    run(instance);
+
+    expect(() => { instance.articles2 = null; }).not.toThrow();
   });
 });
 

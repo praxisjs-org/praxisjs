@@ -162,6 +162,11 @@ describe("getEntry", () => {
     expect(entry).toBeNull();
   });
 
+  it("throws when collection is not registered", async () => {
+    class UnregEntry extends ContentSchema { title = ""; }
+    await expect(getEntry(UnregEntry, "any")).rejects.toThrow("UnregEntry is not registered");
+  });
+
   it("loads only the matching file, not all files", async () => {
     class SingleLoad extends ContentSchema { title = ""; }
     let aLoaded = false;
