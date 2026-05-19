@@ -1,5 +1,30 @@
 # @praxisjs/router
 
+## 1.2.0
+
+### Minor Changes
+
+- 618152a: Route paths now support optional segments with the `:param?` syntax.
+
+  Appending `?` to any named segment makes it optional — the router matches both the path with the segment present and the path with it absent. When a segment is absent, its param value defaults to `""`.
+
+  ```ts
+  @Router([
+    { path: '/posts/:slug?', component: PostPage },
+  ])
+  ```
+
+  - `/posts/hello-world` → `params().slug === 'hello-world'`
+  - `/posts/` → `params().slug === ''`
+
+### Patch Changes
+
+- Updated dependencies [41eb531]
+- Updated dependencies [378cc54]
+  - @praxisjs/jsx@0.5.0
+  - @praxisjs/core@1.7.0
+  - @praxisjs/decorators@1.1.0
+
 ## 1.1.0
 
 ### Minor Changes
