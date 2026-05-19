@@ -1,6 +1,6 @@
 {
   "name": "@praxisjs/router",
-  "version": "1.0.13",
+  "version": "1.1.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

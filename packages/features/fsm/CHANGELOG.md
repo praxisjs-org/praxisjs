@@ -1,5 +1,34 @@
 # @praxisjs/fsm
 
+## 2.0.0
+
+### Major Changes
+
+- c54d96b: `@StateMachine` converted from a class decorator to a field decorator.
+
+  Declare the machine as a typed field — no `declare`, no `propertyKey` second argument. The field name is the machine reference used in `@Transition`.
+
+  ```tsx
+  // before
+  @StateMachine({ initial: 'idle', states: { ... } }, 'machine')
+  @Component()
+  class Foo extends StatefulComponent {
+    declare machine: Machine<State, Event>
+  }
+
+  // after
+  @Component()
+  class Foo extends StatefulComponent {
+    @StateMachine({ initial: 'idle', states: { ... } })
+    machine!: Machine<State, Event>
+  }
+  ```
+
+### Patch Changes
+
+- Updated dependencies [cfb0de2]
+  - @praxisjs/decorators@1.0.2
+
 ## 1.0.12
 
 ### Patch Changes
