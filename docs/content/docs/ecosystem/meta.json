@@ -2,6 +2,7 @@
   "title": "Packages",
   "icon": "Package",
   "pages": [
+    "content",
     "router",
     "store",
     "di",

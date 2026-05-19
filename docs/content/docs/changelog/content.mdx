@@ -1,0 +1,31 @@
+---
+title: "@praxisjs/content"
+description: Changelog for @praxisjs/content — markdown content collections with @Collection, ContentSchema, and Vite plugin.
+icon: File
+---
+
+# @praxisjs/content
+
+## 0.2.0
+
+**Pagination support.**
+
+- `getTotal(SchemaClass)` — synchronous, counts glob keys without loading any file
+- `getPage(SchemaClass, { page, pageSize })` — loads only the requested slice in parallel; keys are sorted before slicing for a stable order
+- `@PagedCollection(SchemaClass, pagerField)` — field decorator that wires a collection to any composable exposing `page` and `pageSize` (e.g. `Pagination` from `@praxisjs/composables`); re-fetches automatically when the page signal changes and keeps previous data visible while loading
+- `getEntry` optimized — now loads only the single file matching the slug instead of fetching all entries first
+- Glob loading changed to **lazy by default** — each `.md` file becomes its own chunk; `getCollection` and `getPage` load all files in their set in parallel
+- `PageOptions` type exported for use with `getPage`
+
+## 0.1.0
+
+Initial release — markdown content collections for PraxisJS.
+
+- `ContentSchema` base class — extend to define the frontmatter shape via class fields with default values
+- `@Collection('./path/*.md')` class decorator — registers the collection and its glob path; the Vite plugin expands the string to `import.meta.glob(...)` at build time (no runtime requests)
+- `@Collection(SchemaClass)` field decorator — injects a reactive `Resource<Entry<S>[]>` into any component field
+- `getCollection(SchemaClass)` / `getEntry(SchemaClass, slug)` — imperative async access for use outside component context
+- Runtime schema validation — fields are checked against their default value types; missing or mistyped fields fall back to defaults with `console.warn`
+- Zero-dependency frontmatter YAML parser for string, number, boolean, and primitive arrays
+- `marked` for HTML rendering (pluggable via `render` option)
+- `contentPlugin()` Vite plugin exported from `@praxisjs/content/vite`

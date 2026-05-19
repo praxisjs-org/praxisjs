@@ -10,6 +10,7 @@
     "decorators",
     "runtime",
     "---Packages---",
+    "content",
     "router",
     "store",
     "di",

@@ -1,0 +1,260 @@
+---
+title: Content
+description: "@praxisjs/content — markdown content collections with @Collection, class-based frontmatter schema, runtime validation, and a Vite plugin for zero-boilerplate build-time loading."
+icon: File
+---
+
+# Content
+
+Markdown content collections for PraxisJS. Define the shape of your `.md` files with a class, let the Vite plugin handle file loading at build time, and access entries reactively via `@Collection`.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm install @praxisjs/content
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm add @praxisjs/content
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn add @praxisjs/content
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add @praxisjs/content
+```
+</Tab>
+</Tabs>
+
+---
+
+## Setup
+
+Add the Vite plugin once to your config — it transforms `@Collection('./path/*.md')` string globs into build-time `import.meta.glob` calls automatically:
+
+```typescript
+// vite.config.ts
+import { praxisjs }      from '@praxisjs/vite-plugin'
+import { contentPlugin } from '@praxisjs/content/vite'
+
+export default {
+  plugins: [praxisjs(), contentPlugin()],
+}
+```
+
+---
+
+## Content directory convention
+
+Each collection lives in its own file alongside its markdown folder. The glob path is **relative to the file where the decorator is written**.
+
+```
+src/
+  content/
+    blog.ts          ← Blog schema  →  reads ./blog/*.md
+    docs.ts          ← Docs schema  →  reads ./docs/*.md
+    blog/
+      getting-started.md
+      signals-deep-dive.md
+    docs/
+      installation.md
+```
+
+<StorybookLink story="ecosystem-content-collection--default" label="Live demo — Content collection" />
+
+---
+
+## Defining a collection
+
+Create a file per collection. Extend `ContentSchema` and declare fields with default values — the defaults define both the TypeScript type and the runtime fallback when frontmatter is missing.
+
+```typescript
+// src/content/blog.ts
+import { Collection, ContentSchema } from '@praxisjs/content'
+
+@Collection('./blog/*.md')
+export class Blog extends ContentSchema {
+  title = ''           // string, warns if missing
+  date  = ''           // string, warns if missing
+  draft = false        // boolean, defaults to false (no warning)
+  tags: string[] = []  // string[], defaults to [] (no warning)
+}
+```
+
+**Frontmatter file example:**
+
+```markdown
+---
+title: Getting Started with PraxisJS
+date: 2024-01-15
+draft: false
+tags: [tutorial, beginner]
+---
+
+# Getting Started
+
+Welcome to **PraxisJS**! This guide walks you through the basics.
+```
+
+---
+
+## Using in a component
+
+`@Collection(Blog)` on a field injects a reactive `Resource<Entry<Blog>[]>`:
+
+```tsx
+import { Collection } from '@praxisjs/content'
+import type { Entry, Resource } from '@praxisjs/content'
+import { Blog } from '../content/blog'
+
+@Component()
+class BlogList extends StatefulComponent {
+  @Collection(Blog) posts!: Resource<Entry<Blog>[]>
+
+  render() {
+    return (
+      <div>
+        {() => this.posts.pending() && <p>Loading…</p>}
+        {() => this.posts.data()
+          ?.filter(p => !p.data.draft)
+          .map(p => (
+            <article>
+              <h2>{p.data.title}</h2>
+              <time>{p.data.date}</time>
+              <div innerHTML={p.html} />
+            </article>
+          ))
+        }
+      </div>
+    )
+  }
+}
+```
+
+The `Resource` exposes `.data()`, `.pending()`, `.error()`, and `.refetch()` — the same reactive API as `@praxisjs/core`'s `resource()`.
+
+---
+
+## `Entry<S>` shape
+
+```typescript
+interface Entry<S extends ContentSchema> {
+  slug: string  // filename without extension: 'getting-started'
+  data: S       // schema instance with all fields (defaults applied)
+  body: string  // raw markdown content
+  html: string  // rendered HTML (via marked)
+}
+```
+
+---
+
+## Imperative access
+
+Use `getCollection`, `getEntry`, `getPage`, and `getTotal` outside of component context — in route guards, utilities, or SSR code:
+
+```typescript
+import { getCollection, getEntry, getPage, getTotal } from '@praxisjs/content'
+import { Blog } from '../content/blog'
+
+const posts = await getCollection(Blog)                          // Promise<Entry<Blog>[]>
+const post  = await getEntry(Blog, 'getting-started')            // Promise<Entry<Blog> | null>
+const count = getTotal(Blog)                                     // number — no I/O, reads glob keys
+const page  = await getPage(Blog, { page: 2, pageSize: 10 })    // Promise<Entry<Blog>[]>
+```
+
+`getTotal` is synchronous and reads zero files — it only counts the keys already present in the glob record. `getPage` loads only the files for the requested slice, all in parallel.
+
+---
+
+## Pagination
+
+Use `@PagedCollection` to wire a collection directly to any composable that exposes `page` and `pageSize` — such as `Pagination` from `@praxisjs/composables`. It loads only the current page's files and re-fetches automatically when the page changes.
+
+```tsx
+import { Component, Compose } from '@praxisjs/decorators'
+import { Collection, ContentSchema, PagedCollection, getTotal } from '@praxisjs/content'
+import type { Entry, Resource } from '@praxisjs/content'
+import { Pagination } from '@praxisjs/composables'
+
+@Collection('./blog/*.md')
+export class Blog extends ContentSchema {
+  title = ''
+  date  = ''
+}
+
+const PAGE_SIZE = 10
+
+@Component()
+class BlogList extends StatefulComponent {
+  @Compose(Pagination, { total: getTotal(Blog), pageSize: PAGE_SIZE })
+  pager!: Pagination
+
+  @PagedCollection(Blog, 'pager')
+  posts!: Resource<Entry<Blog>[]>
+
+  render() {
+    return (
+      <div>
+        {() => this.posts.pending() && <p>Loading…</p>}
+        {() => this.posts.data()?.map(p => <article><h2>{p.data.title}</h2></article>)}
+        <button disabled={() => !this.pager.hasPrev} onClick={() => this.pager.prev()}>← Prev</button>
+        <span>{() => `${this.pager.page} / ${this.pager.totalPages}`}</span>
+        <button disabled={() => !this.pager.hasNext} onClick={() => this.pager.next()}>Next →</button>
+      </div>
+    )
+  }
+}
+```
+
+`@PagedCollection(Blog, 'pager')` reads `pager.page` and `pager.pageSize` reactively — when the page changes, only the new slice is fetched. Previous page data is kept visible while loading (equivalent to `keepPreviousData: true`).
+
+The second argument is the **field name** of the composable on the same component. The composable must be declared before the `@PagedCollection` field.
+
+<StorybookLink story="ecosystem-content-pagination--paginated-content" label="Live demo — paginated collection" />
+
+---
+
+## Schema validation
+
+Fields are validated at runtime against the default values declared in the schema class:
+
+| Situation | Behaviour |
+|---|---|
+| Frontmatter field matches default type | Copied to `data` as-is |
+| Frontmatter field has wrong type | `console.warn`, default value used |
+| Frontmatter field missing, default is `''` / `false` / `0` / `[]` | Silently keeps default |
+| Frontmatter field missing, default is non-empty | `console.warn`, default value used |
+
+---
+
+## Custom renderer
+
+Override the default `marked`-based HTML renderer per collection:
+
+```typescript
+import { marked } from 'marked'
+
+@Collection({
+  glob: import.meta.glob('./blog/*.md', { query: '?raw', import: 'default' }),
+  render: (md) => marked.parse(md, { gfm: true }),
+})
+class Blog extends ContentSchema { ... }
+```
+
+<Callout type="info">
+  When using a custom `render`, you can skip the Vite plugin and pass the glob result directly.
+</Callout>
+
+---
+
+## Bundle size
+
+By default the plugin generates a **lazy** glob — each `.md` file becomes its own chunk and is only fetched when `getCollection` is called. All files in a collection are loaded in parallel.
+
+If you need all files inlined into the main bundle (e.g. small static site, SSR), add `eager: true` when passing the glob directly via the `CollectionConfig` form above.
+
