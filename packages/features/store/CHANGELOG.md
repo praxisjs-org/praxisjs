@@ -1,5 +1,16 @@
 # @praxisjs/store
 
+## 1.2.0
+
+### Minor Changes
+
+- 4ec660f: Rename decorators for consistency: `@Store()` → `@Storable()` (class decorator), `@UseStore(Class)` → `@Store(Class)` (field decorator), `useStore()` → `store()` (imperative function).
+
+### Patch Changes
+
+- Updated dependencies [cfb0de2]
+  - @praxisjs/decorators@1.0.2
+
 ## 1.1.0
 
 ### Minor Changes
