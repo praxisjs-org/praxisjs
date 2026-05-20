@@ -57,7 +57,7 @@ Prefer to wire things up yourself? Here's what you need.
 
 ### 1. Install packages
 
-<Tabs items={['npm', 'pnpm', 'yarn']}>
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
 <Tab value="npm">
 ```sh
 npm install @praxisjs/core @praxisjs/jsx @praxisjs/runtime @praxisjs/decorators
@@ -74,6 +74,12 @@ pnpm add -D @praxisjs/vite-plugin
 ```sh
 yarn add @praxisjs/core @praxisjs/jsx @praxisjs/runtime @praxisjs/decorators
 yarn add -D @praxisjs/vite-plugin
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun add @praxisjs/core @praxisjs/jsx @praxisjs/runtime @praxisjs/decorators
+bun add -d @praxisjs/vite-plugin
 ```
 </Tab>
 </Tabs>
@@ -208,9 +214,7 @@ Select the integration. For **Claude Code**, skill files are added to `.claude/s
 
 To add only the MCP server (without the Claude Code skill):
 
-```sh
-npm install -D @praxisjs/mcp
-```
+<PackageInstall pkg="@praxisjs/mcp" dev />
 
 See the [MCP Server](/docs/tooling/mcp) page for client-specific setup (Cursor, VS Code/Copilot, Windsurf, Codex).
 

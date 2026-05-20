@@ -20,9 +20,7 @@ Core packages that every PraxisJS project depends on.
 | `@praxisjs/jsx` | `0.5.0` | JSX runtime (`jsx-runtime`, `jsx-dev-runtime`) |
 | `@praxisjs/shared` | `0.2.0` | Shared types and internal utilities (not installed directly) |
 
-```bash
-npm install @praxisjs/core @praxisjs/decorators @praxisjs/runtime @praxisjs/jsx
-```
+<PackageInstall pkg={['@praxisjs/core', '@praxisjs/decorators', '@praxisjs/runtime', '@praxisjs/jsx']} />
 
 ## Packages
 
@@ -39,14 +37,37 @@ First-party plugins — install only what your project needs.
 | `@praxisjs/fsm` | `2.0.0` | `@StateMachine` and `@Transition` finite state machines |
 | `@praxisjs/concurrent` | `1.2.9` | `@Task`, `@Queue`, `@Pool` async concurrency control |
 
-```bash
-npm install @praxisjs/router
-npm install @praxisjs/store
-npm install @praxisjs/di
-npm install @praxisjs/motion
-npm install @praxisjs/fsm
-npm install @praxisjs/concurrent
-```
+**Head**
+
+<PackageInstall pkg="@praxisjs/head" />
+
+**Content**
+
+<PackageInstall pkg="@praxisjs/content" />
+
+**Router**
+
+<PackageInstall pkg="@praxisjs/router" />
+
+**Store**
+
+<PackageInstall pkg="@praxisjs/store" />
+
+**DI**
+
+<PackageInstall pkg="@praxisjs/di" />
+
+**Motion**
+
+<PackageInstall pkg="@praxisjs/motion" />
+
+**FSM**
+
+<PackageInstall pkg="@praxisjs/fsm" />
+
+**Concurrency**
+
+<PackageInstall pkg="@praxisjs/concurrent" />
 
 ## Utilities
 
@@ -54,9 +75,7 @@ npm install @praxisjs/concurrent
 | ------- | ------- | ----------- |
 | `@praxisjs/composables` | `1.1.2` | DOM, browser, and list composable classes via `@Compose` |
 
-```bash
-npm install @praxisjs/composables
-```
+<PackageInstall pkg="@praxisjs/composables" />
 
 ## Tooling
 
@@ -67,12 +86,21 @@ npm install @praxisjs/composables
 | `@praxisjs/storybook` | `0.1.1` | Storybook framework adapter |
 | `@praxisjs/mcp` | `0.1.0` | MCP server — live docs access for any MCP-compatible AI assistant |
 
-```bash
-npm install -D @praxisjs/vite-plugin
-npm install -D @praxisjs/devtools
-npm install -D @praxisjs/storybook
-npm install -D @praxisjs/mcp
-```
+**Vite Plugin**
+
+<PackageInstall pkg="@praxisjs/vite-plugin" dev />
+
+**DevTools**
+
+<PackageInstall pkg="@praxisjs/devtools" dev />
+
+**Storybook**
+
+<PackageInstall pkg="@praxisjs/storybook" dev />
+
+**MCP**
+
+<PackageInstall pkg="@praxisjs/mcp" dev />
 
 ## CLI
 
@@ -80,6 +108,25 @@ npm install -D @praxisjs/mcp
 | ------- | ------- | ----------- |
 | `create-praxisjs` | `0.4.2` | Project scaffolding CLI |
 
-```bash
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
 npm create praxisjs@latest
 ```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm create praxisjs
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn create praxisjs
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun create praxisjs
+```
+</Tab>
+</Tabs>

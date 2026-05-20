@@ -4,6 +4,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 import { Cards, Card } from 'fumadocs-ui/components/card';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { StorybookLink } from './storybook-link';
+import { PackageInstall } from './package-install';
 import type { MDXComponents } from 'mdx/types';
 
 export function getMDXComponents(components?: MDXComponents) {
@@ -17,6 +18,7 @@ export function getMDXComponents(components?: MDXComponents) {
     Steps,
     Step,
     StorybookLink,
+    PackageInstall,
     ...components,
   } satisfies MDXComponents;
 }
