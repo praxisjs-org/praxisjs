@@ -1,4 +1,4 @@
-import type { RouteQuery } from "./types/route";
+import type { RouteQueryInternal } from "./types/route";
 
 export function compilePath(path: string): {
   regex: RegExp;
@@ -22,8 +22,8 @@ export function compilePath(path: string): {
   };
 }
 
-export function parseQuery(search: string): RouteQuery {
-  const query: RouteQuery = {};
+export function parseQuery(search: string): RouteQueryInternal {
+  const query: RouteQueryInternal = {};
   if (!search || search === "?") return query;
   const params = new URLSearchParams(
     search.startsWith("?") ? search.slice(1) : search,

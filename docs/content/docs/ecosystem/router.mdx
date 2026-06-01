@@ -127,7 +127,7 @@ class NavBar extends StatefulComponent {
 ### `@Params()` — route parameters
 
 ```tsx
-@Params() params!: Computed<RouteParams>
+@Params() params!: RouteParams
 
 render() {
   return <p>User ID: {() => this.params().id}</p>
@@ -137,7 +137,7 @@ render() {
 ### `@Query()` — URL query string
 
 ```tsx
-@Query() query!: Computed<RouteQuery>
+@Query() query!: RouteQuery
 
 render() {
   return <p>Page: {() => this.query().page ?? '1'}</p>
@@ -147,7 +147,7 @@ render() {
 ### `@Location()` — full route location
 
 ```tsx
-@Location() location!: Signal<RouteLocation>
+@Location() location!: RouteLocation
 
 render() {
   return <p>Path: {() => this.location().path}</p>
@@ -175,12 +175,12 @@ class NavBar extends StatefulComponent {
 
 | Field | Type | Description |
 |---|---|---|
-| `location` | `Signal<RouteLocation>` | Current route — `path`, `params`, `query`, `hash` |
+| `location` | `RouteLocation` | Current route — `path`, `params`, `query`, `hash` |
 | `currentComponent` | `Signal<RouteComponent \| null>` | Matched page component, or `null` when no route matches |
 | `currentLayout` | `Signal<RouteComponent \| null>` | Active layout component, or `null` |
 | `loading` | `Signal<boolean>` | `true` while a lazy component or layout is being resolved |
-| `params` | `Computed<RouteParams>` | Shorthand for `location().params` |
-| `query` | `Computed<RouteQuery>` | Shorthand for `location().query` |
+| `params` | `RouteParams` | Shorthand for `location().params` |
+| `query` | `RouteQuery` | Shorthand for `location().query` |
 
 Read them inside `{() => ...}` to create reactive bindings:
 
@@ -344,12 +344,11 @@ Injects `Router.currentLayout` as a reactive signal into any component field:
 
 ```tsx
 import { InjectLayout } from '@praxisjs/router'
-import type { Signal } from '@praxisjs/shared'
-import type { RouteComponent } from '@praxisjs/router'
+import type { LayoutInstance } from '@praxisjs/router'
 
 @Component()
 class DebugBar extends StatefulComponent {
-  @InjectLayout() layout!: Signal<RouteComponent | null>
+  @InjectLayout() layout!: LayoutInstance
 
   render() {
     return <p>Active layout: {() => this.layout()?.name ?? 'none'}</p>

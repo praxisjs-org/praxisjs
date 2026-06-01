@@ -4,7 +4,6 @@ import { Route, Params } from "@praxisjs/router";
 import { Link } from "@praxisjs/router";
 import { Collection } from "@praxisjs/content";
 import type { Entry, Resource } from "@praxisjs/content";
-import type { Computed } from "@praxisjs/shared";
 import type { RouteParams } from "@praxisjs/router";
 
 import { Post } from "../content/posts";
@@ -12,7 +11,7 @@ import { Post } from "../content/posts";
 @Route("/blog/:slug")
 @Component()
 export default class PostPage extends StatefulComponent {
-  @Params() params!: Computed<RouteParams>;
+  @Params() params!: RouteParams;
   @Collection(Post) posts!: Resource<Entry<Post>[]>;
 
   get post(): Entry<Post> | null {

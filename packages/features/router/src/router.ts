@@ -8,15 +8,15 @@ import type {
   LazyRouteComponent,
   RouteComponent,
   RouteDefinition,
-  RouteLocation,
-  RouteParams,
-  RouteQuery,
+  RouteLocationInternal,
+  RouteParamsInternal,
+  RouteQueryInternal,
 } from "./types/route";
 
 export class RouterInstance {
   private readonly compiled: CompiledRoute[] = [];
-  private readonly _location: Signal<RouteLocation>;
-  private _prevLocation: RouteLocation | null = null;
+  private readonly _location: Signal<RouteLocationInternal>;
+  private _prevLocation: RouteLocationInternal | null = null;
   private readonly _component: Signal<RouteComponent | null>;
   private readonly _layout: Signal<RouteComponent | null>;
   private readonly _loading: Signal<boolean>;
@@ -30,12 +30,12 @@ export class RouterInstance {
     RouteComponent
   >();
 
-  readonly location: Signal<RouteLocation>;
+  readonly location: Signal<RouteLocationInternal>;
   readonly currentComponent: Signal<RouteComponent | null>;
   readonly currentLayout: Signal<RouteComponent | null>;
   readonly loading: Signal<boolean>;
-  readonly params: Computed<RouteParams>;
-  readonly query: Computed<RouteQuery>;
+  readonly params: Computed<RouteParamsInternal>;
+  readonly query: Computed<RouteQueryInternal>;
 
   constructor(routes: RouteDefinition[]) {
     for (const route of routes) {
@@ -88,7 +88,7 @@ export class RouterInstance {
     pathname: string,
     search: string,
     hash: string,
-  ): RouteLocation {
+  ): RouteLocationInternal {
     const params = this.matchParams(pathname);
     return {
       path: pathname,
@@ -98,11 +98,11 @@ export class RouterInstance {
     };
   }
 
-  private matchParams(path: string): RouteParams {
+  private matchParams(path: string): RouteParamsInternal {
     for (const route of this.compiled) {
       const match = route.regex.exec(path);
       if (!match) continue;
-      const params: RouteParams = {};
+      const params: RouteParamsInternal = {};
       route.paramNames.forEach((name, i) => {
         params[name] = match[i + 1] ?? "";
       });
@@ -178,7 +178,7 @@ export class RouterInstance {
     await this.resolveAndSetComponent(loc.path);
   }
 
-  async push(path: string, query?: RouteQuery, hash?: string, _redirectDepth = 0): Promise<void> {
+  async push(path: string, query?: RouteQueryInternal, hash?: string, _redirectDepth = 0): Promise<void> {
     if (_redirectDepth > 10) {
       console.warn(`[Router] Maximum redirect depth exceeded navigating to "${path}"`);
       return;
@@ -208,7 +208,7 @@ export class RouterInstance {
     await this.resolveAndSetComponent(path);
   }
 
-  async replace(path: string, query?: RouteQuery): Promise<void> {
+  async replace(path: string, query?: RouteQueryInternal): Promise<void> {
     const search = query ? "?" + new URLSearchParams(query).toString() : "";
     const loc = this.buildLocation(path, search, "");
 
@@ -249,14 +249,14 @@ export function useRouter(): RouterInstance {
   return _router;
 }
 
-export function useParams(): Computed<RouteParams> {
+export function useParams(): Computed<RouteParamsInternal> {
   return useRouter().params;
 }
 
-export function useQuery(): Computed<RouteQuery> {
+export function useQuery(): Computed<RouteQueryInternal> {
   return useRouter().query;
 }
 
-export function useLocation(): Signal<RouteLocation> {
+export function useLocation(): Signal<RouteLocationInternal> {
   return useRouter().location;
 }

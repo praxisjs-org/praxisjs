@@ -1,10 +1,10 @@
-export type RouteParams = Record<string, string>;
-export type RouteQuery = Record<string, string>;
+export type RouteParamsInternal = Record<string, string>;
+export type RouteQueryInternal = Record<string, string>;
 
-export interface RouteLocation {
+export interface RouteLocationInternal {
   path: string;
-  params: RouteParams;
-  query: RouteQuery;
+  params: RouteParamsInternal;
+  query: RouteQueryInternal;
   hash: string;
 }
 
@@ -23,8 +23,8 @@ export interface RouteDefinition {
   layout?: RouteComponent | LazyRouteComponent;
   children?: RouteDefinition[];
   beforeEnter?: (
-    to: RouteLocation,
-    from: RouteLocation | null,
+    to: RouteLocationInternal,
+    from: RouteLocationInternal | null,
   ) => boolean | string | Promise<boolean | string>;
 }
 

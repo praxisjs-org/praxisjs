@@ -6,6 +6,23 @@ icon: Route
 
 # @praxisjs/router
 
+## 2.0.0
+
+<Callout type="warn" title="Breaking — route type aliases changed">
+
+`RouteParams`, `RouteQuery`, and `RouteLocation` are now signal/computed types. Field annotations no longer require importing `Signal` or `Computed`.
+
+| Decorator | Before | After |
+|---|---|---|
+| `@Params()` | `Computed<RouteParams>` | `RouteParams` |
+| `@Query()` | `Computed<RouteQuery>` | `RouteQuery` |
+| `@Location()` | `Signal<RouteLocation>` | `RouteLocation` |
+| `@InjectLayout()` | `Signal<RouteComponent \| null>` | `LayoutInstance` |
+
+If you typed `beforeEnter` guards explicitly with the old `RouteLocation`, remove the annotation (TypeScript infers from context) or use `Parameters<RouteDefinition['beforeEnter']>[0]`.
+
+</Callout>
+
 ## 1.2.0
 
 **Optional route segments** — append `?` to any named segment to make it optional.

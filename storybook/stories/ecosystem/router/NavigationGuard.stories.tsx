@@ -8,7 +8,6 @@ import {
   type RouterInstance,
 } from "@praxisjs/router";
 import { Storable, ReactiveStore, store } from "@praxisjs/store";
-import type { RouteLocation } from "@praxisjs/router";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
 // ─── Auth service ─────────────────────────────────────────────────────────────
@@ -195,7 +194,7 @@ class ControlPanel extends StatefulComponent {
   {
     path: "/dashboard",
     component: DashboardPage,
-    beforeEnter: async (_to: RouteLocation, _from: RouteLocation | null) => {
+    beforeEnter: async () => {
       const auth = inject(AuthService);
       if (!auth.loggedIn) {
         lastGuardEvent = "inject(AuthService).loggedIn = false → redirect /login";
@@ -208,7 +207,7 @@ class ControlPanel extends StatefulComponent {
   {
     path: "/admin",
     component: AdminPage,
-    beforeEnter: async (_to: RouteLocation, _from: RouteLocation | null) => {
+    beforeEnter: async () => {
       const session = store(SessionStore);
       if (session.role !== "admin") {
         lastGuardEvent = `store(SessionStore).role = '${session.role}' → redirect /login`;

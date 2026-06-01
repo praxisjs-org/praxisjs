@@ -9,7 +9,7 @@ import {
 
 import { createRouter, useRouter, lazy } from "./router";
 
-import type { RouteDefinition, RouteLocation, RouteParams, RouteQuery } from "./types/route";
+import type { RouteDefinition } from "./types/route";
 
 // ── @Route ────────────────────────────────────────────────────────────────────
 
@@ -159,4 +159,4 @@ export function InjectLayout() {
   }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
 }
 
-export type { RouteDefinition, RouteLocation, RouteParams, RouteQuery };
+export type { RouteDefinition };

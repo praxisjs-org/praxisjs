@@ -8,7 +8,6 @@ import {
   Query,
   type RouterInstance,
 } from "@praxisjs/router";
-import type { Computed } from "@praxisjs/shared";
 import type { RouteParams, RouteQuery } from "@praxisjs/router";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
@@ -44,8 +43,8 @@ class AboutPage extends StatefulComponent {
 
 @Component()
 class UserPage extends StatefulComponent {
-  @Params() params!: Computed<RouteParams>;
-  @Query() query!: Computed<RouteQuery>;
+  @Params() params!: RouteParams;
+  @Query() query!: RouteQuery;
 
   render() {
     return (
