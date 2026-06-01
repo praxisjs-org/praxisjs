@@ -1,5 +1,11 @@
 # create-praxisjs
 
+## 0.4.3
+
+### Patch Changes
+
+- f9cb9fb: Update `blog` template to use the new `@praxisjs/router` typed signal fields API — `@Params() params!: RouteParams` instead of `Computed<RouteParams>`.
+
 ## 0.4.2
 
 ### Patch Changes
