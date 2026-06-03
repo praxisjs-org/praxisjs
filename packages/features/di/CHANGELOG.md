@@ -1,5 +1,13 @@
 # @praxisjs/di
 
+## 1.3.3
+
+### Patch Changes
+
+- a0372af: Dependency updates — `@praxisjs/core` and `@praxisjs/decorators` bumped to latest versions.
+- Updated dependencies [a0372af]
+  - @praxisjs/decorators@1.1.1
+
 ## 1.3.2
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @praxisjs/devtools
 
+## 0.2.21
+
+### Patch Changes
+
+- a0372af: Dependency updates — `@praxisjs/core`, `@praxisjs/runtime`, `@praxisjs/decorators`, `@praxisjs/jsx` bumped to latest versions.
+- Updated dependencies [a0372af]
+  - @praxisjs/decorators@1.1.1
+  - @praxisjs/runtime@0.3.1
+  - @praxisjs/jsx@0.5.1
+
 ## 0.2.20
 
 ### Patch Changes

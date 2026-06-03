@@ -1,5 +1,11 @@
 # @praxisjs/decorators
 
+## 1.1.1
+
+### Patch Changes
+
+- a0372af: Internal test coverage improvements — branch, statement, function, and line coverage raised to 100% across all decorators. No public API changes.
+
 ## 1.1.0
 
 ### Minor Changes
