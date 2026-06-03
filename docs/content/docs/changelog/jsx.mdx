@@ -6,6 +6,11 @@ icon: Braces
 
 # @praxisjs/jsx
 
+## 0.5.2
+
+- `ComponentRef<C>` type added — resolves to `(instance: InstanceType<C> | null) => void`. Use it to type a field that holds a component instance obtained via `ref`.
+- `ref` prop now accepted on all component JSX tags — the runtime strips it before forwarding props to the component and calls the callback after `onMount` (and with `null` after unmount).
+
 ## 0.4.6
 
 - `children` prop now accepted on all component JSX usages — `LibraryManagedAttributes` includes `children?: Children` so components using `@Slot` or receiving any JSX children no longer produce a TypeScript error at the call site.

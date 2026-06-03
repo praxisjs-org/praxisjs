@@ -173,6 +173,55 @@ The `ref` callback receives the element on mount and `null` on unmount.
 
 ---
 
+## `ref` — accessing component instances
+
+The same `ref` prop works on component tags. The callback receives the **component instance** after `onMount` completes, and `null` after the component unmounts.
+
+```tsx
+@Component()
+class Parent extends StatefulComponent {
+  private modal: Modal | null = null
+
+  render() {
+    return (
+      <>
+        <button onClick={() => this.modal?.open()}>Open</button>
+        <Modal ref={(inst) => { this.modal = inst }} />
+      </>
+    )
+  }
+}
+```
+
+Use `ComponentRef<C>` from `@praxisjs/jsx` to type the field explicitly:
+
+```tsx
+import type { ComponentRef } from '@praxisjs/jsx'
+
+@Component()
+class Parent extends StatefulComponent {
+  private modal: ComponentRef<typeof Modal> = null  // (instance: Modal | null) => void ... typed field
+  // or just store the instance:
+  private modalInstance: Modal | null = null
+
+  render() {
+    return <Modal ref={(inst) => { this.modalInstance = inst }} />
+  }
+}
+```
+
+`ComponentRef<C>` resolves to `(instance: InstanceType<C> | null) => void`, so the callback argument is fully typed to the component class.
+
+<Callout type="info" title="Timing">
+  The `ref` callback fires in a microtask **after** `onMount` has run on the child component. If you need to call a method on the instance immediately after mount, do it inside `onMount` of the parent — the child will already be mounted by then.
+</Callout>
+
+<Callout type="warn" title="ref is not forwarded">
+  The `ref` prop is stripped by the runtime before the component receives its props. The child component never sees it — it is handled entirely by the parent's rendering scope.
+</Callout>
+
+---
+
 ## What's next?
 
 - [Lifecycle Hooks](/docs/essentials/lifecycle) — when `onMount` fires and how to clean up
