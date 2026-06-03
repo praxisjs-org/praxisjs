@@ -11,12 +11,12 @@
   },
   "dependencies": {
     "@praxisjs/core": "^1.7.0",
-    "@praxisjs/decorators": "^1.1.1",
-    "@praxisjs/jsx": "^0.5.1",
-    "@praxisjs/runtime": "^0.3.1"
+    "@praxisjs/decorators": "^1.2.0",
+    "@praxisjs/jsx": "^0.5.2",
+    "@praxisjs/runtime": "^0.3.2"
   },
   "devDependencies": {
-    "@praxisjs/vite-plugin": "^1.0.0",
+    "@praxisjs/vite-plugin": "^1.0.1",
     "eslint": "^10.1.0",
     "eslint-plugin-unicorn": "^63.0.0",
     "typescript": "^5.9.3",
