@@ -84,7 +84,7 @@ pnpm --filter @praxisjs/runtime build
 # Playground
 cd playground && pnpm dev       # or from root: pnpm --filter playground dev
 
-# Tests
+# Tests — always run from the monorepo root, never with --filter
 pnpm test                       # vitest run (all packages)
 pnpm test:watch
 pnpm test:coverage
