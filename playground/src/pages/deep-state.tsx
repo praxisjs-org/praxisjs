@@ -2,6 +2,9 @@ import { StatefulComponent } from "@praxisjs/core";
 import { Component, DeepState } from "@praxisjs/decorators";
 import { Head } from "@praxisjs/head";
 import { Route } from "@praxisjs/router";
+import { Styled } from "@praxisjs/css";
+
+import { PageStyles, CardStyles, DemoStyles, FormStyles, TagStyles } from "../shared-styles";
 
 interface Config {
   theme: { mode: "light" | "dark"; accent: string };
@@ -18,84 +21,61 @@ export default class DeepStatePage extends StatefulComponent {
     fontSize: 16,
     notifications: true,
   };
-
   @DeepState() tags: string[] = ["praxisjs", "signals"];
+
+  @Styled(PageStyles)  $page!: PageStyles;
+  @Styled(CardStyles)  $card!: CardStyles;
+  @Styled(DemoStyles)  $demo!: DemoStyles;
+  @Styled(FormStyles)  $form!: FormStyles;
+  @Styled(TagStyles)   $tags!: TagStyles;
 
   render() {
     return (
-      <div class="page">
-        <div class="page-hero">
-          <h1>@DeepState</h1>
-          <p>
+      <div class={this.$page.$page}>
+        <div class={this.$page.$hero}>
+          <h1 class={this.$page.$heroH1}>@DeepState</h1>
+          <p class={this.$page.$heroP}>
             Nested mutations are reactive — no new references needed. Mutate
             objects and arrays directly.
           </p>
         </div>
 
-        <div class="demo-grid">
-          <div class="card wide">
-            <p class="count-label">config object</p>
-            <pre class="code-preview">{() => JSON.stringify(this.config, null, 2)}</pre>
-            <div class="controls">
-              <button
-                onClick={() => {
-                  this.config.theme.mode =
-                    this.config.theme.mode === "light" ? "dark" : "light";
-                }}
-              >
+        <div class={this.$demo.$grid}>
+          <div class={this.$card.$cardWide}>
+            <p class={this.$card.$countLabel}>config object</p>
+            <pre class={this.$form.$codePreview}>{() => JSON.stringify(this.config, null, 2)}</pre>
+            <div class={this.$demo.$controls}>
+              <button onClick={() => { this.config.theme.mode = this.config.theme.mode === "light" ? "dark" : "light"; }}>
                 Toggle theme.mode
               </button>
-              <button
-                class="secondary"
-                onClick={() => { this.config.fontSize++; }}
-              >
-                fontSize++
-              </button>
-              <button
-                class="secondary"
-                onClick={() => {
-                  this.config.notifications = !this.config.notifications;
-                }}
-              >
+              <button class="secondary" onClick={() => { this.config.fontSize++; }}>fontSize++</button>
+              <button class="secondary" onClick={() => { this.config.notifications = !this.config.notifications; }}>
                 Toggle notifications
               </button>
             </div>
           </div>
 
-          <div class="card wide">
-            <p class="count-label">tags array</p>
-            <div class="tag-list">
-              {() =>
-                this.tags.map((tag, i) => (
-                  <span class="tag">
-                    {tag}
-                    <button
-                      class="tag-remove"
-                      onClick={() => { this.tags.splice(i, 1); }}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))
-              }
+          <div class={this.$card.$cardWide}>
+            <p class={this.$card.$countLabel}>tags array</p>
+            <div class={this.$tags.$list}>
+              {() => this.tags.map((tag, i) => (
+                <span class={this.$tags.$tag}>
+                  {tag}
+                  <button class="tag-remove" onClick={() => { this.tags.splice(i, 1); }}>×</button>
+                </span>
+              ))}
             </div>
-            <button
-              class="secondary"
-              onClick={() => {
-                const next = `tag-${this.tags.length + 1}`;
-                this.tags.push(next);
-              }}
-            >
+            <button class="secondary" onClick={() => { this.tags.push(`tag-${this.tags.length + 1}`); }}>
               push new tag
             </button>
           </div>
         </div>
 
-        <div class="info-box">
+        <div class={this.$demo.$infoBox}>
           <strong>How it works:</strong> a deep <code>Proxy</code> intercepts
           any write at any depth and increments a version signal. Effects that
-          read the field re-run automatically — no <code>this.config = &#123;...this.config&#125;</code>{" "}
-          required.
+          read the field re-run automatically — no{" "}
+          <code>this.config = &#123;...this.config&#125;</code> required.
         </div>
       </div>
     );

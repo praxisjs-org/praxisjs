@@ -1,6 +1,7 @@
 import { render } from "@praxisjs/runtime";
 
-import "./style.css";
+import "virtual:praxisjs/styles.css";
+import "./base-styles";
 import { App } from "./app";
 
 render(() => <App />, document.getElementById("app")!);

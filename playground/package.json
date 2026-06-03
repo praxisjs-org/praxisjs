@@ -22,6 +22,7 @@
     "@praxisjs/shared": "workspace:*",
     "@praxisjs/store": "workspace:*",
     "@praxisjs/content": "workspace:*",
+    "@praxisjs/css": "workspace:*",
     "@praxisjs/head": "workspace:*"
   },
   "devDependencies": {
