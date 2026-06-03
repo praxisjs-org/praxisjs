@@ -1,0 +1,244 @@
+---
+title: Design Tokens
+description: "TokenSheet, ThemeInstance, @Themed, @Theme — class-based design tokens with skeleton/theme inheritance and zero re-render switching."
+icon: Layers
+---
+
+# Design Tokens
+
+The token system is built around two concepts: a **skeleton** that declares token names (and provides CSS var references), and **theme classes** that supply the actual values. Themes are plain classes — they extend the skeleton and override only what they need.
+
+---
+
+## `TokenSheet` — the base class
+
+Extend `TokenSheet` to declare your token contract. Fields marked with `!` are name-only declarations — no default values yet.
+
+```ts
+import { TokenSheet } from '@praxisjs/css'
+
+class AppTokens extends TokenSheet {
+  colorPrimary!:   string
+  colorSecondary!: string
+  colorBg!:        string
+  colorText!:      string
+  colorMuted!:     string
+  spaceSm!:        string
+  spaceMd!:        string
+  spaceLg!:        string
+  radiusMd!:       string
+  radiusFull!:     string
+}
+```
+
+The skeleton is the single source of truth for token names. Its static properties return CSS custom property references — `AppTokens.colorPrimary` → `'var(--color-primary)'`.
+
+---
+
+## `tokenVars()` — typed CSS var references
+
+Use `tokenVars()` to get a fully-typed accessor for stylesheet definitions.
+
+```ts
+import { tokenVars } from '@praxisjs/css'
+import { AppTokens } from './tokens'
+
+export const t = tokenVars(AppTokens)
+// t.colorPrimary → 'var(--color-primary)'
+// t.spaceMd      → 'var(--space-md)'
+```
+
+Use `t` directly inside `Stylesheet` fields — no casts needed:
+
+```ts
+import { Stylesheet } from '@praxisjs/css'
+import { t } from './tokens'
+
+class BtnStyles extends Stylesheet {
+  $root = this.css({
+    background:   t.colorPrimary,
+    padding:      t.spaceMd,
+    borderRadius: t.radiusMd,
+    color:        '#fff',
+  })
+    .hover({ filter: 'brightness(0.9)' })
+    .disabled({ opacity: 0.4, pointerEvents: 'none' })
+}
+```
+
+---
+
+## Theme classes — extend the skeleton
+
+A theme is a concrete class that extends the skeleton and provides the actual values. Themes can inherit from each other — only override what changes:
+
+```ts
+// tokens/light.ts
+export class LightTheme extends AppTokens {
+  colorPrimary   = '#3b82f6'
+  colorSecondary = '#64748b'
+  colorBg        = '#ffffff'
+  colorText      = '#0f172a'
+  colorMuted     = '#94a3b8'
+  spaceSm        = '8px'
+  spaceMd        = '16px'
+  spaceLg        = '24px'
+  radiusMd       = '8px'
+  radiusFull     = '9999px'
+}
+
+// tokens/dark.ts — only overrides what changes
+export class DarkTheme extends LightTheme {
+  colorPrimary = '#60a5fa'
+  colorBg      = '#0f172a'
+  colorText    = '#f8fafc'
+  colorMuted   = '#475569'
+}
+
+// tokens/high-contrast.ts — chain as deep as needed
+export class HighContrastTheme extends DarkTheme {
+  colorPrimary = '#93c5fd'
+  colorText    = '#ffffff'
+}
+```
+
+Unoverridden tokens inherit from the parent theme through normal JavaScript prototype chains — no special logic required.
+
+---
+
+## `@Themed` — install on the root component
+
+`@Themed` is a class decorator that creates the singleton `ThemeInstance` and injects `:root` CSS vars when the root component mounts. Must appear above `@Component()`.
+
+```tsx
+import { Themed } from '@praxisjs/css'
+import { AppTokens } from './tokens'
+import { LightTheme } from './tokens/light'
+
+@Themed(AppTokens, LightTheme)
+@Component()
+class App extends StatefulComponent {
+  render() { ... }
+}
+```
+
+### With `persist` and `syncTabs`
+
+```tsx
+@Themed(AppTokens, LightTheme, {
+  persist:  true,   // save active theme to localStorage — restored on next load
+  syncTabs: true,   // sync theme changes across browser tabs via BroadcastChannel
+})
+@Component()
+class App extends StatefulComponent { ... }
+```
+
+---
+
+## `@Theme()` — field decorator for switching
+
+Inject the `ThemeInstance` into any component that needs to switch themes. Equivalent to calling `theme()` imperatively.
+
+```tsx
+import { Theme, ThemeInstance } from '@praxisjs/css'
+import { DarkTheme, LightTheme } from './tokens'
+
+@Component()
+class Header extends StatefulComponent {
+  @Theme() theme!: ThemeInstance
+
+  render() {
+    return (
+      <div>
+        <button onClick={() => this.theme.switch(LightTheme)}>Light</button>
+        <button onClick={() => this.theme.switch(DarkTheme)}>Dark</button>
+      </div>
+    )
+  }
+}
+```
+
+---
+
+## `theme()` — imperative access
+
+Use `theme()` anywhere outside a component — route guards, services, event handlers:
+
+```ts
+import { theme } from '@praxisjs/css'
+import { DarkTheme } from './tokens/dark'
+
+theme().switch(DarkTheme)
+```
+
+---
+
+## Reactive theme switching with signals
+
+Combine `theme()` with `effect()` for fully reactive theme control:
+
+```ts
+import { signal, effect } from '@praxisjs/core'
+import { theme } from '@praxisjs/css'
+import { LightTheme, DarkTheme } from './tokens'
+
+export const isDark = signal(false)
+
+effect(() => theme().switch(isDark() ? DarkTheme : LightTheme))
+
+// Toggle from anywhere:
+isDark.set(true)
+```
+
+---
+
+## How it works
+
+`@Themed` instantiates the default theme class with `new LightTheme()`, reads all enumerable string/number properties, and writes them as `:root { --color-primary: #3b82f6; ... }` into a single `<style data-praxis-theme>` element in `document.head`.
+
+`ThemeInstance.switch(ThemeClass)` replaces the `<style>` element content — the entire swap is a single DOM text write. CSS custom properties cascade to all elements immediately with no component re-renders.
+
+`tokenVars(AppTokens).colorPrimary` returns `'var(--color-primary)'` — a plain string that is resolved by the browser against the `:root` vars at paint time.
+
+<Callout type="info" title="camelCase → CSS var name">
+  Token field names are converted using camelCase → kebab-case: `colorPrimary` → `--color-primary`, `spaceMd` → `--space-md`, `radiusFull` → `--radius-full`.
+</Callout>
+
+---
+
+## API reference
+
+### `TokenSheet`
+
+Abstract base class. Extend to declare the token skeleton or theme values. Static property access returns CSS var references.
+
+### `tokenVars(TokenSheetSubclass)`
+
+Returns a typed `Record<tokenName, string>` where each value is `'var(--token-name)'`. Use in `Stylesheet` field definitions.
+
+### `ThemeInstance`
+
+| Member | Description |
+|---|---|
+| `switch(ThemeClass)` | Activates a new theme — updates `:root`, persists, broadcasts |
+| `current` | The currently active theme instance |
+| `destroy()` | Removes the `<style>` element and closes the `BroadcastChannel` |
+
+### `@Themed(skeleton, DefaultTheme, config?)`
+
+Class decorator. Installs the token system on the root component.
+
+| Config | Type | Description |
+|---|---|---|
+| `persist` | `boolean` | Save/restore active theme via `localStorage` |
+| `syncTabs` | `boolean` | Sync theme across tabs via `BroadcastChannel` |
+
+### `@Theme()`
+
+Field decorator. Injects the singleton `ThemeInstance`.
+
+### `theme()`
+
+Imperative accessor for the singleton `ThemeInstance`. Throws if `@Themed` has not been applied.
+
+<StorybookLink story="ecosystem-css-tokens--tokens-story" label="Live demo — TokenSheet + ThemeInstance" />

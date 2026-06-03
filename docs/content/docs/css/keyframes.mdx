@@ -1,0 +1,148 @@
+---
+title: Keyframes
+description: "keyframes() — define scoped @keyframes animations with content-hashed names. No build step, no name collisions."
+icon: Play
+---
+
+# Keyframes
+
+`keyframes()` defines a `@keyframes` animation, injects it into `document.head`, and returns a scoped name safe to use in any `animation` or `animationName` property.
+
+The name is **content-hashed** — two identical animations always produce the same name and share one injection. Two different animations never collide.
+
+---
+
+## Basic usage
+
+```ts
+import { keyframes, Stylesheet } from '@praxisjs/css'
+
+const pulse = keyframes('pulse', {
+  from: { opacity: 1 },
+  to:   { opacity: 0.4 },
+})
+
+class LoaderStyles extends Stylesheet {
+  $spinner = this.css({
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    background: 'var(--accent)',
+    animation: `${pulse} 1.2s ease-in-out infinite alternate`,
+  })
+}
+```
+
+The generated CSS:
+
+```css
+@keyframes prx-pulse-a1b2c3 {
+  from { opacity: 1; }
+  to   { opacity: 0.4; }
+}
+```
+
+---
+
+## Percentage stops
+
+```ts
+const bounce = keyframes('bounce', {
+  '0%':   { transform: 'translateY(0)' },
+  '40%':  { transform: 'translateY(-12px)' },
+  '60%':  { transform: 'translateY(-6px)' },
+  '100%': { transform: 'translateY(0)' },
+})
+
+class BounceStyles extends Stylesheet {
+  $icon = this.css({ animation: `${bounce} 0.6s ease-in-out` })
+}
+```
+
+---
+
+## Multiple keyframes per stylesheet
+
+```ts
+const fadeIn  = keyframes('fade-in',  { from: { opacity: 0 }, to: { opacity: 1 } })
+const slideUp = keyframes('slide-up', { from: { transform: 'translateY(12px)', opacity: 0 }, to: { transform: 'translateY(0)', opacity: 1 } })
+const spin    = keyframes('spin',     { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } })
+
+class ModalStyles extends Stylesheet {
+  $overlay = this.css({ animation: `${fadeIn} 0.2s ease` })
+  $panel   = this.css({ animation: `${slideUp} 0.3s ease` })
+  $loading = this.css({ animation: `${spin} 0.8s linear infinite` })
+}
+```
+
+---
+
+## Shared animations
+
+`keyframes()` is safe to call at module level and share across multiple stylesheets. The injection is deduplicated by content hash.
+
+```ts
+// animations.ts — define once, import anywhere
+export const fadeIn  = keyframes('fade-in',  { from: { opacity: 0 }, to: { opacity: 1 } })
+export const slideUp = keyframes('slide-up', {
+  from: { opacity: 0, transform: 'translateY(8px)' },
+  to:   { opacity: 1, transform: 'translateY(0)' },
+})
+
+// button-styles.ts
+import { fadeIn } from './animations'
+
+class ButtonStyles extends Stylesheet {
+  $ripple = this.css({ animation: `${fadeIn} 0.15s ease` })
+}
+
+// modal-styles.ts
+import { slideUp } from './animations'
+
+class ModalStyles extends Stylesheet {
+  $panel = this.css({ animation: `${slideUp} 0.25s ease` })
+}
+```
+
+---
+
+## Combining with `@Style()`
+
+Use `@Style()` to make the animation duration or timing reactive:
+
+```tsx
+import { keyframes, Style, Stylesheet, Styled } from '@praxisjs/css'
+
+const spin = keyframes('spin', {
+  from: { transform: 'rotate(0deg)' },
+  to:   { transform: 'rotate(360deg)' },
+})
+
+class SpinnerStyles extends Stylesheet {
+  $root = this.css({
+    display: 'inline-block',
+    width: '20px', height: '20px',
+    borderRadius: '50%',
+    border: '2px solid #e5e7eb',
+    borderTopColor: 'var(--accent)',
+    animation: `${spin} var(--speed, 0.8s) linear infinite`,
+  })
+}
+
+@Component()
+class Spinner extends StatefulComponent {
+  @Style('--speed') speed = '0.8s'   // control animation speed reactively
+
+  @Styled(SpinnerStyles) $s!: SpinnerStyles
+
+  render() {
+    return <span class={this.$s.$root} />
+  }
+}
+```
+
+<Callout type="info" title="SSR">
+  When `document` is not available (server-side rendering), `keyframes()` skips the injection and still returns the scoped name. Inject the style server-side via your framework's head management.
+</Callout>
+
+<StorybookLink story="ecosystem-css-keyframes--keyframes-story" label="Live demo — keyframes() animations" />

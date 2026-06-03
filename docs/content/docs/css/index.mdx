@@ -1,0 +1,127 @@
+---
+title: CSS
+description: "@praxisjs/css — scoped class names, reactive CSS custom properties, and a fluent builder. Zero runtime overhead in production with static extraction."
+icon: Palette
+---
+
+# CSS
+
+`@praxisjs/css` brings CSS into the PraxisJS decorator model. Scoped class names defined in typed classes, reactive CSS custom properties that update the DOM directly, and a fluent builder with full IDE autocomplete. Pair it with the Vite plugin for zero-overhead static extraction in production.
+
+<PackageInstall pkg="@praxisjs/css" />
+
+---
+
+## At a glance
+
+```tsx
+import { keyframes, ReactiveStylesheet, Stylesheet, Styled, Param, Style, cx } from '@praxisjs/css'
+
+// 1. Define styles with the fluent builder
+class CardStyles extends ReactiveStylesheet {
+  @Param() color  = '#6d5bbd'   // reactive CSS var → --color
+  @Param() radius = '8px'       // reactive CSS var → --radius
+
+  $root = this.css({ display: 'flex', gap: '12px', borderRadius: 'var(--radius)' })
+    .hover({ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' })
+
+  $selected = this.css({ border: '2px solid var(--color)' })
+  $title    = this.css({ fontSize: '1rem', fontWeight: 600, color: 'var(--color)' })
+}
+
+// 2. Use in a StatefulComponent
+@Component()
+class Card extends StatefulComponent {
+  @State() selected = false
+
+  @Styled(CardStyles) $card!: CardStyles  // injects scoped class names + reactive vars
+
+  @Style('--surface') surface = '#fff'    // component-level CSS var
+
+  render() {
+    return (
+      <div class={() => cx(this.$card.$root, { [this.$card.$selected]: this.selected })}>
+        <h3 class={this.$card.$title}>Card</h3>
+        <button onClick={() => { this.$card.color = '#ef4444' }}>Change color</button>
+      </div>
+    )
+  }
+}
+```
+
+---
+
+## Two base classes
+
+| Class | Use when | Works with |
+|---|---|---|
+| [`Stylesheet`](/css/stylesheets) | Only `$`-prefixed CSS class fields | Any component |
+| [`ReactiveStylesheet`](/css/reactive) | `$` fields **+** `@Param()` reactive vars | `StatefulComponent` only |
+
+TypeScript enforces this — using `@Styled(ReactiveStylesheetSubclass)` on a `StatelessComponent` field is a compile-time error.
+
+---
+
+## Static extraction (Vite plugin)
+
+For production builds, `praxisjsCSS()` extracts all stylesheet rules at build time — no `<style>` tags are injected at runtime. CSS lives in a static asset with normal HTTP caching.
+
+```ts
+// vite.config.ts
+import { praxisjs, praxisjsCSS } from '@praxisjs/vite-plugin'
+
+export default defineConfig({
+  plugins: [praxisjs(), praxisjsCSS()],
+})
+```
+
+Then import the virtual module in your app entry:
+
+```ts
+// main.ts
+import 'virtual:praxisjs/styles.css'   // includes all extracted CSS
+```
+
+Add the type declaration once (e.g. in `vite-env.d.ts`):
+
+```ts
+/// <reference types="vite/client" />
+declare module 'virtual:praxisjs/styles.css' {}
+```
+
+**How it works**: during the Vite build, the plugin scans all source files for `Stylesheet` subclasses, `keyframes()` calls, `globalStyle()` calls, and `@Themed()` decorators. It bundles and evaluates them in a sandboxed Node.js context to compute the exact CSS output, then emits it as `virtual:praxisjs/styles.css`. In production, `injectStyle` becomes a no-op — the CSS is already in the bundle.
+
+In **development** (Vite dev server), the virtual module is empty and CSS is injected at runtime as usual. HMR works without any extra configuration.
+
+<Callout>
+  Reactive CSS vars (`@Param()`, `@Style()`) and theme switching (`ThemeInstance.switch()`) always update the DOM at runtime — the plugin only extracts static rules.
+</Callout>
+
+---
+
+## API overview
+
+### Stylesheets
+
+| Export | Description |
+|---|---|
+| [`Stylesheet`](/css/stylesheets) | Base class for static CSS definitions |
+| [`ReactiveStylesheet`](/css/reactive) | Base class with `@Param()` support |
+| [`@Styled(StyleClass)`](/css/stylesheets) | Field decorator — injects scoped class names |
+| [`this.css({})`](/css/builder) | Fluent builder with full `csstype` autocomplete |
+| [`@Param()`](/css/reactive) | Reactive CSS var field inside a `ReactiveStylesheet` |
+| [`@Style('--var')`](/css/reactive) | Reactive CSS var on the component element |
+| [`keyframes()`](/css/keyframes) | Scoped `@keyframes` animation |
+| [`globalStyle(factory)`](/css/global-style) | Unscoped global CSS via fluent builder or raw string — resets, `@font-face`, base rules |
+| [`preflight()`](/css/global-style#preflight) | Opinionated browser reset inspired by Tailwind CSS preflight |
+| [`cx()`](/css/cx) | Class name composition utility |
+
+### Design tokens
+
+| Export | Description |
+|---|---|
+| [`TokenSheet`](/css/tokens) | Base class for token skeletons and theme value classes |
+| [`tokenVars(TokenClass)`](/css/tokens) | Typed CSS var reference accessor for use in `Stylesheet` fields |
+| [`@Themed(skeleton, DefaultTheme)`](/css/tokens) | Class decorator — installs the token system on the root component |
+| [`@Theme()`](/css/tokens) | Field decorator — injects the active `ThemeInstance` |
+| [`theme()`](/css/tokens) | Imperative accessor for the singleton `ThemeInstance` |

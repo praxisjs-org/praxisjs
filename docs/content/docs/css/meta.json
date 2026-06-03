@@ -1,0 +1,13 @@
+{
+  "title": "CSS",
+  "icon": "Palette",
+  "pages": [
+    "stylesheets",
+    "builder",
+    "keyframes",
+    "reactive",
+    "tokens",
+    "cx",
+    "global-style"
+  ]
+}

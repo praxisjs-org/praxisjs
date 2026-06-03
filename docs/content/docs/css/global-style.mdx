@@ -1,0 +1,163 @@
+---
+title: Global Styles
+description: "globalStyle() and preflight() — inject unscoped CSS once, at module level. Ideal for resets, @font-face, and base element rules."
+icon: Globe
+---
+
+# `globalStyle()`
+
+`globalStyle()` injects unscoped CSS into `<head>` exactly once. It receives a **factory function** that is passed `css` — the same builder function as `this.css()` in a `Stylesheet` class — and returns a [`CSSBuilder`](/css/builder) or a raw CSS string.
+
+Use `.on(selector, props)` to target specific elements with the fluent builder:
+
+```ts
+import { globalStyle } from '@praxisjs/css'
+
+globalStyle(css =>
+  css({})
+    .on('*, *::before, *::after', { boxSizing: 'border-box', margin: 0, padding: 0 })
+    .on('body', { fontFamily: 'system-ui, sans-serif', lineHeight: 1.5 })
+    .on('img, svg', { display: 'block', maxWidth: '100%' })
+)
+```
+
+Pass a raw CSS string when you need selectors or at-rules that the builder can't express:
+
+```ts
+globalStyle(_css => `
+  @font-face {
+    font-family: 'Inter';
+    src: url('/fonts/inter-var.woff2') format('woff2');
+    font-weight: 100 900;
+    font-display: swap;
+  }
+`)
+
+globalStyle(_css => `@layer reset, tokens, base, components, utilities;`)
+```
+
+---
+
+## Usage pattern
+
+Call `globalStyle()` at module level in a dedicated file, then import it in your app entry:
+
+```ts
+// src/base-styles.ts
+import { globalStyle } from '@praxisjs/css'
+
+globalStyle(css =>
+  css({})
+    .on('*, *::before, *::after', { boxSizing: 'border-box', margin: 0, padding: 0 })
+    .on('body', { fontFamily: 'system-ui', lineHeight: 1.5, color: 'var(--color-text)' })
+    .on('button', { font: 'inherit', cursor: 'pointer', border: 'none', background: 'none' })
+    .on('a', { color: 'inherit', textDecoration: 'none' })
+)
+```
+
+```ts
+// src/main.ts
+import './base-styles'     // side-effect import — runs globalStyle() once
+import { App } from './app'
+```
+
+---
+
+## Deduplication
+
+`globalStyle()` is content-hashed — calling a factory that produces the same CSS twice injects only one `<style>` element. Safe to call in modules that are imported from multiple places.
+
+---
+
+## Static extraction
+
+With the `praxisjsCSS()` Vite plugin, `globalStyle()` calls are extracted at build time. The CSS lives in the static bundle — no `<style>` element is injected at runtime in production.
+
+<Callout>
+  Global styles appear **before** scoped class rules in the extracted CSS. This ensures resets apply before any component styles.
+</Callout>
+
+---
+
+## SSR
+
+When `document` is not available (server-side rendering), `globalStyle()` is a no-op and does not throw. Inject global styles on the server via your framework's head management.
+
+---
+
+## API
+
+```ts
+type GlobalStyleFactory = (css: (props: CSSProperties) => CSSBuilder) => CSSBuilder | string
+
+function globalStyle(factory: GlobalStyleFactory): void
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `factory` | `GlobalStyleFactory` | Receives `css` (= `createCSSBuilder`) and returns a `CSSBuilder` or raw CSS string. |
+
+<Callout type="info">
+  For component-scoped styles, use [`@Styled()`](/css/stylesheets). For scoped `@keyframes` animations, use [`keyframes()`](/css/keyframes).
+</Callout>
+
+---
+
+# `preflight()`
+
+`preflight()` injects an opinionated browser reset into `<head>` exactly once. It normalises browser defaults across elements — removes margins and padding, resets borders, makes replaced elements block-level, and sets sensible form and typography defaults.
+
+```ts
+import { preflight } from '@praxisjs/css'
+
+preflight()
+```
+
+Inspired by the [Tailwind CSS preflight reset](https://github.com/tailwindlabs/tailwindcss/blob/main/packages/tailwindcss/preflight.css), adapted to use standard system font stacks without any Tailwind-specific references.
+
+---
+
+## What it resets
+
+- `box-sizing: border-box` on all elements — removes margin and padding
+- Resets default `border` to `0 solid`
+- Sets `line-height: 1.5`, system font stack (`ui-sans-serif, system-ui, sans-serif, …`), and disables iOS font size adjustment on `html`/`:host`
+- Removes heading font sizes and weights (`h1`–`h6` inherit from parent)
+- Resets link colours and text decoration
+- Makes `img`, `svg`, `video`, `canvas`, `audio`, `iframe`, `embed`, `object` `display: block; vertical-align: middle`
+- Constrains images and videos to their parent width (`max-width: 100%; height: auto`)
+- Removes default list styles (`ol`, `ul`, `menu`)
+- Resets form element styles to `inherit` (`font`, `color`, `letter-spacing`, `border-radius`, `background-color`, `opacity`)
+- Normalises `::placeholder` opacity in Firefox; sets semi-transparent placeholder colour in modern browsers
+- Removes default textarea horizontal resize
+
+---
+
+## Usage
+
+Call `preflight()` at the top of your app entry before mounting the root component:
+
+```ts
+// src/main.ts
+import { preflight } from '@praxisjs/css'
+import { App } from './app'
+
+preflight()
+mount(App, document.getElementById('app')!)
+```
+
+Like `globalStyle()`, `preflight()` is idempotent — calling it multiple times injects the CSS only once.
+
+---
+
+## With the Vite plugin
+
+`preflight()` is extracted at build time by `praxisjsCSS()` just like any other `globalStyle()` call. The reset CSS appears at the top of the static bundle, before all scoped component styles.
+
+---
+
+## API
+
+```ts
+function preflight(): void
+```

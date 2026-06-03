@@ -1,0 +1,157 @@
+---
+title: Reactive CSS
+description: "@Param() and @Style() — reactive CSS custom properties that update the DOM directly, without re-renders."
+icon: Zap
+---
+
+# Reactive CSS
+
+Two decorators let you bind signal values directly to CSS custom properties on DOM elements. Both update `element.style` directly — no class toggling, no re-render.
+
+---
+
+## `@Param()` — vars inside a stylesheet
+
+`@Param()` marks a field inside a `ReactiveStylesheet` subclass as a reactive CSS custom property. Setting the field on the injected stylesheet object calls `element.style.setProperty('--fieldName', value)` on the component's container element.
+
+```tsx
+import { Param, ReactiveStylesheet, Styled } from '@praxisjs/css'
+import { Component, State } from '@praxisjs/decorators'
+import { StatefulComponent } from '@praxisjs/core'
+
+class CardStyles extends ReactiveStylesheet {
+  @Param() color  = '#3b82f6'   // → --color on the element
+  @Param() radius = '8px'       // → --radius on the element
+
+  $root  = this.css({ borderRadius: 'var(--radius)', border: '2px solid var(--color)' })
+  $title = this.css({ color: 'var(--color)', fontWeight: 600 })
+}
+
+@Component()
+class Card extends StatefulComponent {
+  @Styled(CardStyles) $card!: CardStyles
+
+  render() {
+    return (
+      <div class={this.$card.$root}>
+        <h3 class={this.$card.$title}>Title</h3>
+        <button onClick={() => { this.$card.color = '#ef4444' }}>Red</button>
+        <button onClick={() => { this.$card.color = '#3b82f6' }}>Blue</button>
+      </div>
+    )
+  }
+}
+```
+
+Setting `this.$card.color = '#ef4444'` calls `element.style.setProperty('--color', '#ef4444')`. The class names in `$root` and `$title` stay the same — only the CSS var value changes.
+
+### Per-instance independence
+
+Each component instance gets its own independent signal for each `@Param()` field. Two `Card` components on the same page have completely independent `color` and `radius` values.
+
+<Callout type="info" title="Only inside ReactiveStylesheet">
+  `@Param()` is constrained to `ReactiveStylesheet` subclasses at the TypeScript level. Using `@Styled(ReactiveStylesheetSubclass)` on a `StatelessComponent` field is also a compile-time error.
+</Callout>
+
+<StorybookLink story="ecosystem-css-styled--styled-story" label="Live demo — @Param() in action" />
+
+---
+
+## `@Style('--var')` — vars on the component
+
+`@Style()` is a field decorator that works like `@State` but also syncs the value to a CSS custom property directly on the component's container element.
+
+The property name must start with `--`. Use it for component-wide theming variables that child elements consume via `var(--name)`.
+
+```tsx
+import { Style } from '@praxisjs/css'
+import { Component } from '@praxisjs/decorators'
+import { StatefulComponent } from '@praxisjs/core'
+
+@Component()
+class ThemeProvider extends StatefulComponent {
+  @Style('--accent') accent = '#6d5bbd'
+  @Style('--bg')     bg     = '#f8f7ff'
+  @Style('--radius') radius = '8px'
+
+  setTheme(accent: string, bg: string) {
+    this.accent = accent
+    this.bg     = bg
+  }
+
+  render() {
+    return (
+      <div style="padding: 20px; background: var(--bg);">
+        <button
+          style="background: var(--accent); border-radius: var(--radius);"
+          onClick={() => this.setTheme('#ef4444', '#fef2f2')}
+        >
+          Red theme
+        </button>
+        {this.props.children}
+      </div>
+    )
+  }
+}
+```
+
+All child elements using `var(--bg)`, `var(--accent)`, or `var(--radius)` update instantly when `setTheme()` runs.
+
+<Callout type="info" title="Cleanup on unmount">
+  `@Style` removes the CSS property and stops the reactive effect when the component unmounts.
+</Callout>
+
+<StorybookLink story="ecosystem-css-style--style-story" label="Live demo — @Style()" />
+
+---
+
+## `@Param()` vs `@Style()`
+
+| | `@Param()` | `@Style()` |
+|--|------------|------------|
+| Defined in | `ReactiveStylesheet` subclass | Component class |
+| Accessed via | `this.$card.color` | `this.accent` |
+| CSS var | `--fieldName` | `--fieldName` |
+| Component restriction | `StatefulComponent` only (via `ReactiveStylesheet`) | Any component |
+| Best for | Styles tightly coupled to a `@Styled` class | Component-wide theming variables |
+
+Both set CSS custom properties on the container element — the difference is organizational.
+
+---
+
+## Combining both
+
+`@Style()` sets vars on the container; `@Param()` reads them in the class CSS. Together they separate theme control from class structure:
+
+```tsx
+import { ReactiveStylesheet, Param, Style, Styled } from '@praxisjs/css'
+
+class AlertStyles extends ReactiveStylesheet {
+  $root = this.css({
+    padding: '16px', borderRadius: 'var(--radius)',
+    borderLeft: '4px solid var(--border)',
+    background: 'var(--bg)',
+  })
+}
+
+@Component()
+class Alert extends StatefulComponent {
+  // @Style controls the container vars — shared by all nested elements
+  @Style('--bg')     bg     = '#eff6ff'
+  @Style('--border') border = '#3b82f6'
+  @Style('--radius') radius = '8px'
+
+  @Styled(AlertStyles) $alert!: AlertStyles
+
+  setVariant(bg: string, border: string) {
+    this.bg     = bg
+    this.border = border
+  }
+
+  render() {
+    return <div class={this.$alert.$root}>{this.props.children}</div>
+  }
+}
+```
+
+<StorybookLink story="ecosystem-css-styled-and-style--styled-and-style-story" label="Live demo — @Styled + @Style combined" />

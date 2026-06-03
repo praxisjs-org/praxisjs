@@ -1,0 +1,72 @@
+---
+title: "@praxisjs/css"
+description: Changelog for @praxisjs/css — scoped CSS decorators and reactive CSS properties for PraxisJS.
+icon: Palette
+---
+
+# @praxisjs/css
+
+## 0.1.0
+
+Initial release.
+
+**`Stylesheet` and `ReactiveStylesheet` — base classes**
+
+Extend `Stylesheet` to define `$`-prefixed class fields using the fluent `this.css({})` builder or raw CSS strings. Extend `ReactiveStylesheet` when you also need `@Param()` reactive CSS custom properties.
+
+**`@Styled(StyleClass)` — scoped class name injection**
+
+Field decorator that processes a `Stylesheet` subclass and injects a typed class name map into the component. Each `$`-prefixed field becomes a globally-unique, content-hashed class name (e.g. `prx-root-a1b2c3`). Works on any component; `ReactiveStylesheet` subclasses are restricted to `StatefulComponent` at the TypeScript level.
+
+**`this.css({})` — fluent CSS builder**
+
+Typed CSS builder backed by `csstype`. Chains pseudo-classes, pseudo-elements, and at-rules:
+`.hover()`, `.focus()`, `.focusVisible()`, `.disabled()`, `.media()`, `.container()`, `.supports()`, `.on()`, and more.
+
+**`@Param()` — reactive CSS vars inside a stylesheet**
+
+Marks a `ReactiveStylesheet` field as a reactive CSS custom property. Setting `this.$card.color = '#ef4444'` calls `element.style.setProperty('--color', '#ef4444')` with no re-render.
+
+**`@Style('--var')` — reactive CSS vars on the component**
+
+Field decorator that binds a signal value directly to a CSS custom property on the component's container element. Updates in the same tick as the signal.
+
+**`keyframes(name, stops)` — scoped animations**
+
+Defines a `@keyframes` block and injects it once into `document.head`. Name is content-hashed to prevent collisions. Returns the scoped name for use in `animation` properties.
+
+**`globalStyle(factory)` — unscoped global CSS**
+
+Injects unscoped CSS exactly once (content-hashed). Receives a factory function passed `css` (= `createCSSBuilder`, identical to `this.css()` in `Stylesheet`) that returns a `CSSBuilder` or raw CSS string. Use `.on(selector, props)` for element-level rules or return a raw string for `@font-face`, layers, and other at-rules. Routed through the Vite plugin for static extraction.
+
+**`cx(...args)` — class name composition**
+
+Composes class names from strings, objects, and arrays. Falsy values are filtered. Designed to work with `@Styled` class name references.
+
+**Design token system — `TokenSheet`, `ThemeInstance`, `@Themed`, `@Theme`, `theme()`**
+
+- **`TokenSheet`** — base class for token skeletons and themes. Static property access returns CSS var references: `AppTokens.colorPrimary` → `'var(--color-primary)'`.
+- **`tokenVars(cls)`** — typed accessor for CSS var refs for use in `Stylesheet` field definitions.
+- **`ThemeInstance`** — manages the active theme: injects `:root` CSS vars, switches with `.switch(ThemeClass)`, persists to `localStorage`, syncs across tabs via `BroadcastChannel`.
+- **`@Themed(skeleton, DefaultTheme, config?)`** — class decorator on the root component that creates the singleton `ThemeInstance`. Accepts `{ persist, syncTabs }` config.
+- **`@Theme()`** — field decorator that injects the singleton `ThemeInstance`.
+- **`theme()`** — imperative accessor for the singleton `ThemeInstance`.
+
+**Static extraction via `praxisjsCSS()` Vite plugin**
+
+CSS rules are extracted at build time and emitted as `virtual:praxisjs/styles.css`. No `<style>` elements are injected at runtime in production.
+
+- `praxisjsCSS()` — Vite plugin exported from `@praxisjs/vite-plugin`. Scans source files, evaluates them in a sandboxed Node.js context, and emits the combined CSS as a static asset.
+- In development, the virtual module is empty and CSS is injected at runtime as usual. HMR works without extra configuration.
+
+**`@praxisjs/css/server` — SSR collector API**
+
+`createCollector()`, `setCollector()`, `getCollector()` — route CSS through a memory buffer instead of the DOM, for server-side rendering.
+
+**`@praxisjs/css/extract` — build-time extraction API**
+
+`extractionModule(emit)` — low-level factory for build-time CSS collection without the Vite plugin, for framework integrators.
+
+**`preflight()` — browser reset**
+
+Injects an opinionated browser reset: normalises `box-sizing`, removes default margins and padding, resets borders, makes replaced elements block-level, and sets sensible form and typography defaults. Inspired by the Tailwind CSS preflight — adapted to use standard system font stacks with no Tailwind-specific references. Idempotent and compatible with static extraction via `praxisjsCSS()`.

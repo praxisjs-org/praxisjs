@@ -1,0 +1,128 @@
+---
+title: cx()
+description: "cx() — compose class names from strings, objects, and arrays. Pairs naturally with @Styled class names."
+icon: Merge
+---
+
+# `cx()` — class composition
+
+`cx()` composes class names from any combination of strings, objects, and arrays. Falsy values are filtered automatically. It pairs naturally with `@Styled` class names.
+
+```ts
+import { cx } from '@praxisjs/css'
+```
+
+---
+
+## Signatures
+
+```ts
+// Plain strings
+cx('base', 'modifier')
+// → "base modifier"
+
+// Object — key added when value is truthy
+cx('base', { active: true, disabled: false, loading: 0 })
+// → "base active"
+
+// Arrays — recursively flattened
+cx('a', ['b', false, 'c'])
+// → "a b c"
+
+// Falsy values filtered — null, undefined, false, 0 (unless top-level), ""
+cx(null, undefined, false, '', 'valid')
+// → "valid"
+
+// With @Styled class names
+cx(this.$card.$root, { [this.$card.$selected]: this.selected })
+```
+
+---
+
+## With `@Styled`
+
+The most common use: compose the base class with conditional modifier classes from the same stylesheet.
+
+```tsx
+class BtnStyles extends Stylesheet {
+  $base     = this.css({ display: 'inline-flex', padding: '8px 16px' })
+  $primary  = this.css({ background: 'var(--accent)', color: 'white' })
+  $ghost    = this.css({ background: 'transparent', color: 'var(--accent)' })
+  $disabled = this.css({ opacity: 0.4, pointerEvents: 'none' })
+  $loading  = this.css({ cursor: 'wait' })
+}
+
+@Component()
+class Button extends StatefulComponent {
+  @State() variant: 'primary' | 'ghost' = 'primary'
+  @State() disabled = false
+  @State() loading  = false
+
+  @Styled(BtnStyles) $btn!: BtnStyles
+
+  render() {
+    return (
+      <button
+        class={() => cx(
+          this.$btn.$base,
+          this.variant === 'primary' ? this.$btn.$primary : this.$btn.$ghost,
+          { [this.$btn.$disabled]: this.disabled },
+          { [this.$btn.$loading]:  this.loading  },
+        )}
+        disabled={() => this.disabled}
+      >
+        <slot />
+      </button>
+    )
+  }
+}
+```
+
+---
+
+## Type signature
+
+```ts
+type ClassValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | ClassValue[]
+  | Record<string, unknown>
+
+function cx(...args: ClassValue[]): string
+```
+
+Numeric values (including `0`) are converted to strings. Booleans, `null`, and `undefined` are filtered — except for `0` as a top-level argument which is included as `"0"`.
+
+---
+
+## Static class names
+
+`@Styled` class names are strings — they can be used without `cx()` for static assignments:
+
+```tsx
+render() {
+  return (
+    // Static — no reactive wrapper needed
+    <h2 class={this.$card.$title}>Title</h2>
+  )
+}
+```
+
+Use `cx()` (inside an arrow function) only when the class list changes reactively:
+
+```tsx
+render() {
+  return (
+    // Reactive — arrow function re-evaluates when this.selected changes
+    <div class={() => cx(this.$card.$root, { [this.$card.$selected]: this.selected })}>
+      ...
+    </div>
+  )
+}
+```
+
+<StorybookLink story="ecosystem-css-cx--cx-story" label="Live demo — cx()" />

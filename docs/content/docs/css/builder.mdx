@@ -1,0 +1,206 @@
+---
+title: CSS Builder
+description: "this.css({}) — fluent CSS builder with csstype autocomplete, pseudo-classes, pseudo-elements, and at-rules."
+icon: Wand
+---
+
+# CSS Builder
+
+`this.css({})` is a protected method available on every `Stylesheet` subclass. It accepts a typed CSS properties object and returns a chainable `CSSBuilder` for adding nested rules.
+
+All ~300 CSS properties are typed via `csstype` — IDE autocomplete with no extensions required.
+
+---
+
+## Basic usage
+
+```ts
+import { Stylesheet } from '@praxisjs/css'
+
+class BtnStyles extends Stylesheet {
+  $base = this.css({
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'opacity 0.15s',
+  })
+    .hover({ opacity: 0.9 })
+    .disabled({ opacity: 0.4, pointerEvents: 'none' })
+    .focus({ outline: '2px solid var(--accent)', outlineOffset: '2px' })
+    .media('max-width: 640px', { width: '100%' })
+}
+```
+
+Plain CSS template strings are also accepted for quick one-liners:
+
+```ts
+class Styles extends Stylesheet {
+  $label = `font-size: 0.875rem; font-weight: 500;`
+}
+```
+
+---
+
+## Pseudo-classes — interaction
+
+| Method | Selector |
+|---|---|
+| `.hover(props)` | `&:hover` |
+| `.focus(props)` | `&:focus` |
+| `.focusWithin(props)` | `&:focus-within` |
+| `.focusVisible(props)` | `&:focus-visible` |
+| `.active(props)` | `&:active` |
+| `.visited(props)` | `&:visited` |
+| `.target(props)` | `&:target` |
+
+```ts
+$link = this.css({ color: 'var(--accent)', textDecoration: 'none' })
+  .hover({ textDecoration: 'underline' })
+  .focus({ outline: '2px solid var(--accent)' })
+  .visited({ color: 'var(--accent-muted)' })
+```
+
+---
+
+## Pseudo-classes — form state
+
+| Method | Selector |
+|---|---|
+| `.disabled(props)` | `&:disabled, &[disabled], &[aria-disabled="true"]` |
+| `.enabled(props)` | `&:enabled` |
+| `.checked(props)` | `&:checked` |
+| `.indeterminate(props)` | `&:indeterminate` |
+| `.required(props)` | `&:required` |
+| `.optional(props)` | `&:optional` |
+| `.valid(props)` | `&:valid` |
+| `.invalid(props)` | `&:invalid` |
+| `.readOnly(props)` | `&:read-only` |
+
+```ts
+$input = this.css({ border: '1px solid #d1d5db', borderRadius: '4px', padding: '6px 10px' })
+  .focus({ borderColor: 'var(--accent)', outline: 'none' })
+  .invalid({ borderColor: '#ef4444' })
+  .disabled({ opacity: 0.5, cursor: 'not-allowed' })
+  .readOnly({ background: '#f9fafb' })
+```
+
+---
+
+## Pseudo-classes — structural
+
+| Method | Selector |
+|---|---|
+| `.first(props)` | `&:first-child` |
+| `.last(props)` | `&:last-child` |
+| `.nthChild(n, props)` | `&:nth-child(n)` |
+| `.empty(props)` | `&:empty` |
+
+```ts
+$item = this.css({ padding: '12px', borderBottom: '1px solid #e5e7eb' })
+  .first({ borderTop: '1px solid #e5e7eb' })
+  .last({ borderBottom: 'none' })
+  .nthChild('2n', { background: '#f9fafb' })
+```
+
+---
+
+## Pseudo-classes — relational (Selectors Level 4)
+
+| Method | Selector |
+|---|---|
+| `.has(selector, props)` | `&:has(selector)` |
+| `.is(selector, props)` | `&:is(selector)` |
+| `.where(selector, props)` | `&:where(selector)` (zero specificity) |
+| `.not(selector, props)` | `&:not(selector)` |
+
+```ts
+$card = this.css({ padding: '16px' })
+  .has('img', { padding: '0' })           // card with an image → remove padding
+  .not('.featured', { opacity: 0.7 })    // non-featured cards → dimmed
+```
+
+---
+
+## Pseudo-elements
+
+| Method | Selector |
+|---|---|
+| `.before(props)` | `&::before` |
+| `.after(props)` | `&::after` |
+| `.placeholder(props)` | `&::placeholder` |
+| `.selection(props)` | `&::selection` |
+| `.firstLine(props)` | `&::first-line` |
+| `.firstLetter(props)` | `&::first-letter` |
+| `.marker(props)` | `&::marker` |
+| `.backdrop(props)` | `&::backdrop` |
+
+```ts
+$tooltip = this.css({ position: 'relative' })
+  .before({
+    content: '""',
+    position: 'absolute',
+    bottom: '100%',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    borderWidth: '6px',
+    borderStyle: 'solid',
+    borderColor: 'transparent transparent #333 transparent',
+  })
+
+$dropcap = this.css({ lineHeight: 1.6 })
+  .firstLetter({ fontSize: '3em', fontWeight: 700, float: 'left', marginRight: '4px' })
+```
+
+---
+
+## At-rules
+
+| Method | Output |
+|---|---|
+| `.media(query, props)` | `@media (query) { ... }` |
+| `.container(query, props)` | `@container (query) { ... }` |
+| `.supports(condition, props)` | `@supports (condition) { ... }` |
+| `.on(selector, props)` | Arbitrary selector or at-rule |
+
+```ts
+$grid = this.css({ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' })
+  .media('max-width: 768px', { gridTemplateColumns: 'repeat(2, 1fr)' })
+  .media('max-width: 480px', { gridTemplateColumns: '1fr' })
+  .container('min-width: 600px', { gridTemplateColumns: 'repeat(4, 1fr)' })
+  .supports('display: masonry', { gridTemplateColumns: 'masonry' })
+```
+
+### `.on()` — escape hatch
+
+Use `.on()` for any selector or at-rule not covered by the named methods:
+
+```ts
+$root = this.css({ color: 'inherit' })
+  .on('&::webkit-scrollbar', { width: '6px' })
+  .on('&::webkit-scrollbar-thumb', { background: '#d1d5db', borderRadius: '3px' })
+  .on('@layer utilities', { display: 'flex' })
+```
+
+---
+
+## CSS nesting
+
+All nested blocks use [CSS nesting](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting) (Chrome 112+, Firefox 117+, Safari 17+). No PostCSS or build step required.
+
+The builder generates:
+
+```css
+.prx-base-abc123 {
+  display: inline-flex;
+  padding: 8px 16px;
+  &:hover { opacity: 0.9; }
+  &:disabled, &[disabled], &[aria-disabled="true"] { opacity: 0.4; pointer-events: none; }
+  @media (max-width: 640px) { width: 100%; }
+}
+```
+
+<StorybookLink story="ecosystem-css-builder--builder-story" label="Live demo — pseudo-states & pseudo-elements" />
+<StorybookLink story="ecosystem-css-styled--styled-story" label="Live demo — builder with @Param()" />
