@@ -1,4 +1,4 @@
-import type { Computed } from "@praxisjs/shared";
+import type { Computed, WritableComputed } from "@praxisjs/shared";
 
 import { activeEffect, runEffect, type Effect } from "./effect";
 import { addSub, removeSub, notifySubs, type SubList } from "./signal";
@@ -68,5 +68,13 @@ export function computed<T>(getter: () => T): Computed<T> {
   };
 
   c.__isComputed = true;
+  return c;
+}
+
+export function writableComputed<T>(getter: () => T, setter: (value: T) => void): WritableComputed<T> {
+  const c = computed(getter) as WritableComputed<T>;
+  c.set = setter;
+  c.update = (updater) => { setter(updater(c())); };
+  c.__isWritableComputed = true;
   return c;
 }

@@ -188,6 +188,84 @@ describe("Computed decorator", () => {
   });
 });
 
+// ── Computed (writable) ───────────────────────────────────────────────────────
+
+function getterCtx(name: string) {
+  const initializers: Array<(this: unknown) => void> = [];
+  return {
+    ctx: {
+      name,
+      kind: "getter" as const,
+      addInitializer(fn: (this: unknown) => void) {
+        initializers.push(fn);
+      },
+    } as unknown as ClassGetterDecoratorContext,
+    run(instance: unknown) {
+      initializers.forEach((fn) => { fn.call(instance); });
+    },
+  };
+}
+
+describe("Computed decorator — writable (set option)", () => {
+  it("setter is called when property is assigned", () => {
+    const written: number[] = [];
+    const { ctx, run } = getterCtx("double");
+
+    const s = signal(3);
+    const getter = function (this: object) { return s() * 2; };
+    Computed({ set: (v: unknown) => { written.push(v as number); } })(getter, ctx);
+
+    const instance = {} as unknown as StatefulComponent;
+    run(instance);
+
+    (instance as unknown as Record<string, unknown>).double = 42;
+    expect(written).toEqual([42]);
+  });
+
+  it("setter receives the component instance as this", () => {
+    let capturedThis: unknown;
+    const { ctx, run } = getterCtx("val");
+
+    const getter = function (this: object) { return 0; };
+    Computed({ set(this: unknown, _v: unknown) { capturedThis = this; } })(getter, ctx);
+
+    const instance = { id: "target" } as unknown as StatefulComponent;
+    run(instance);
+
+    (instance as unknown as Record<string, unknown>).val = 99;
+    expect(capturedThis).toBe(instance);
+  });
+
+  it("getter still returns the computed value after set option is added", () => {
+    const s = signal(5);
+    const { ctx, run } = getterCtx("doubled");
+
+    const getter = function (this: object) { return s() * 2; };
+    Computed({ set: (_v: unknown) => { /* no-op */ } })(getter, ctx);
+
+    const instance = {} as unknown as StatefulComponent;
+    run(instance);
+
+    expect((instance as unknown as Record<string, unknown>).doubled).toBe(10);
+    s.set(7);
+    expect((instance as unknown as Record<string, unknown>).doubled).toBe(14);
+  });
+
+  it("setter writes through to underlying signals, updating the getter", () => {
+    const s = signal(0);
+    const { ctx, run } = getterCtx("celsius");
+
+    const getter = function (this: object) { return s(); };
+    Computed({ set: (v: unknown) => { s.set(v as number); } })(getter, ctx);
+
+    const instance = {} as unknown as StatefulComponent;
+    run(instance);
+
+    (instance as unknown as Record<string, unknown>).celsius = 100;
+    expect((instance as unknown as Record<string, unknown>).celsius).toBe(100);
+  });
+});
+
 // ── Watch ─────────────────────────────────────────────────────────────────────
 
 describe("Watch decorator", () => {

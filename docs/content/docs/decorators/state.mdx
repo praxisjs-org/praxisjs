@@ -78,7 +78,7 @@ class Button extends StatefulComponent {
 
 ## `@Computed()`
 
-A read-only derived getter cached as a reactive `computed()`. Recomputes only when its signal dependencies change. When multiple dependencies change in the same synchronous block, subscribers are notified **once** with the final value.
+A derived getter cached as a reactive `computed()`. Recomputes only when its signal dependencies change. When multiple dependencies change in the same synchronous block, subscribers are notified **once** with the final value.
 
 ```tsx
 @Component()
@@ -97,6 +97,76 @@ class Cart extends StatefulComponent {
 ```
 
 <StorybookLink story="decorators-state-props-computed--computed-cart" label="Live demo — @Computed" />
+
+### Writable computed — getter + setter pair
+
+Add a plain `set` accessor alongside the decorated getter. TypeScript sees the property as read-write, and `@Computed()` handles only the reactive caching on the getter side.
+
+```tsx
+@Component()
+class TemperatureConverter extends StatefulComponent {
+  @State() celsius = 0
+
+  @Computed()
+  get fahrenheit(): number {
+    return (this.celsius * 9) / 5 + 32
+  }
+
+  set fahrenheit(value: number) {
+    this.celsius = ((value - 32) * 5) / 9
+  }
+
+  render() {
+    return (
+      <div>
+        <input
+          type="number"
+          value={() => this.celsius}
+          onInput={(e: Event) => { this.celsius = Number((e.target as HTMLInputElement).value) }}
+        />
+        <input
+          type="number"
+          value={() => this.fahrenheit}
+          onInput={(e: Event) => { this.fahrenheit = Number((e.target as HTMLInputElement).value) }}
+        />
+      </div>
+    )
+  }
+}
+```
+
+The setter writes back to `celsius`, which reactively invalidates the cached getter — so `fahrenheit` recomputes on the next read. TypeScript is fully aware of the setter, so assigning to `this.fahrenheit` type-checks correctly.
+
+<Callout type="info" title="One source of truth">
+  The setter does not store its own value. It updates the signals that the getter depends on, keeping the derived value always consistent.
+</Callout>
+
+<StorybookLink story="decorators-state-props-writablecomputed--temperature-converter-story" label="Live demo — @Computed with setter" />
+
+### Alternative — `@Computed({ set })`
+
+Pass a `set` function to the decorator factory as a compact alternative. The behavior is identical at runtime; the setter's `this` is bound to the component instance.
+
+```tsx
+@Computed({
+  set(this: TemperatureConverter, fahrenheit: number) {
+    this.celsius = ((fahrenheit - 32) * 5) / 9
+  },
+})
+get fahrenheit(): number {
+  return (this.celsius * 9) / 5 + 32
+}
+```
+
+<Callout type="warn" title="TypeScript readonly limitation">
+  When using `@Computed({ set })`, TypeScript still sees the property as read-only because the setter is installed at runtime via `Object.defineProperty`. Assigning to the property inside the component will require a cast:
+
+  ```ts
+  (this as { fahrenheit: number }).fahrenheit = value
+  ```
+
+  Prefer the plain getter + setter pair above when TypeScript compatibility matters.
+</Callout>
 
 ---
 

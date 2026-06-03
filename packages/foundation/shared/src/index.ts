@@ -1,2 +1,2 @@
 export type { Children, ComponentElement } from "./types/children";
-export type { Computed, Signal } from "./types/signal";
+export type { Computed, WritableComputed, Signal } from "./types/signal";

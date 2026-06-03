@@ -6,6 +6,14 @@ icon: Activity
 
 # @praxisjs/core
 
+## 1.8.0
+
+**`writableComputed(getter, setter)` — new internal primitive.**
+
+Added `writableComputed<T>(getter: () => T, setter: (value: T) => void): WritableComputed<T>` to `@praxisjs/core/internal`. It wraps a `computed()` with `set` and `update` methods, returning a `WritableComputed<T>`. Used internally by `@Computed({ set })` in `@praxisjs/decorators`.
+
+Also added `WritableComputed<T>` type to `@praxisjs/shared` — extends `Computed<T>` with `set(value: T): void` and `update(updater: (prev: T) => T): void`.
+
 ## 1.7.0
 
 **`resource()` — cache, deduplication, stale-while-revalidate, refetch on focus.**

@@ -11,6 +11,7 @@ export {
   syncedSignal,
   peek,
   computed,
+  writableComputed,
   batch,
   effect,
   untrack,
