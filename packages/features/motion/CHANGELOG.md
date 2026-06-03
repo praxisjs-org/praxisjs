@@ -1,5 +1,12 @@
 # @praxisjs/motion
 
+## 1.1.14
+
+### Patch Changes
+
+- Updated dependencies [a0372af]
+  - @praxisjs/decorators@1.1.1
+
 ## 1.1.13
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@praxisjs/vite-plugin",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,12 +15,9 @@
     "dev": "tsc --watch"
   },
   "peerDependencies": {
-    "vite": ">=7.0.0"
-  },
-  "packageManager": "pnpm@10.30.2",
-  "peerDependencies": {
     "@praxisjs/css": "workspace:*"
   },
+  "packageManager": "pnpm@10.30.2",
   "devDependencies": {
     "@praxisjs/css": "workspace:*",
     "@types/node": "^25.9.1",

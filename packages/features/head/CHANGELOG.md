@@ -1,5 +1,12 @@
 # @praxisjs/head
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [a0372af]
+  - @praxisjs/decorators@1.1.1
+
 ## 0.1.0
 
 ### Minor Changes
