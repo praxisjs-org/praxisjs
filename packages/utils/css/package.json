@@ -1,0 +1,34 @@
+{
+  "name": "@praxisjs/css",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./server": {
+      "import": "./dist/server.js",
+      "types": "./dist/server.d.ts"
+    },
+    "./extract": {
+      "import": "./dist/extract.js",
+      "types": "./dist/extract.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "packageManager": "pnpm@10.30.2",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@praxisjs/core": "workspace:*",
+    "@praxisjs/decorators": "workspace:*",
+    "csstype": "^3.2.3"
+  }
+}
