@@ -6,9 +6,20 @@ icon: Tag
 
 # @praxisjs/decorators
 
-## 1.1.1
+## 1.2.0
 
-Internal test coverage improvements — branch, statement, function, and line coverage raised to 100% across all decorators. No public API changes.
+**`@When` — optional condition function.**
+
+`@When(propName, condition?)` now accepts an optional predicate. The method fires exactly once, on the first value for which `condition(value)` returns `true`. Without a condition, the existing behaviour is preserved — fires on the first truthy value.
+
+```ts
+@When('score', score => score >= 100)
+onWin() { ... }
+```
+
+Internal fix: `@When` now reads the property inside a reactive `effect()`, so it works correctly with `@State`-decorated fields in addition to raw `Signal`/`Computed` properties.
+
+Internal test coverage raised to 100% across all decorators.
 
 ## 1.1.0
 

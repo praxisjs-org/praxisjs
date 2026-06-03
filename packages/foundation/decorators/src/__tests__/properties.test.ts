@@ -549,6 +549,78 @@ describe("When decorator", () => {
     await Promise.resolve();
     expect(handler).toHaveBeenCalledTimes(1);
   });
+
+  it("fires immediately when the watched prop is a plain truthy value (non-signal)", () => {
+    const { ctx, run } = methodCtxFor("onPlain");
+    const handler = vi.fn();
+    When("plainProp")(handler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).plainProp = "hello";
+    run(instance);
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith("hello");
+  });
+
+  it("condition: fires when condition returns true", async () => {
+    const { ctx, run } = methodCtxFor("onHigh");
+    const handler = vi.fn();
+    When("count", (v: number) => v > 5)(handler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const s = signal(0);
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).count = s;
+    run(instance);
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    s.set(3);   // condition false — should not fire
+    await Promise.resolve();
+    expect(handler).not.toHaveBeenCalled();
+
+    s.set(7);   // condition true — should fire
+    await Promise.resolve();
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith(7);
+  });
+
+  it("condition: does not fire when value is truthy but condition returns false", async () => {
+    const { ctx, run } = methodCtxFor("onPositive");
+    const handler = vi.fn();
+    When("n", (v: number) => v > 100)(handler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const s = signal(0);
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).n = s;
+    run(instance);
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    s.set(1);   // truthy but condition fails
+    s.set(50);  // truthy but condition fails
+    await Promise.resolve();
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("condition: fires on the first value satisfying the condition, then stops", async () => {
+    const { ctx, run } = methodCtxFor("onFirst");
+    const handler = vi.fn();
+    When("v", (v: number) => v >= 10)(handler, ctx as unknown as ClassMethodDecoratorContext);
+
+    const s = signal(0);
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).v = s;
+    run(instance);
+    (instance as unknown as { onMount: () => void }).onMount?.();
+
+    s.set(10);  // first match — fires
+    await Promise.resolve();
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    s.set(20);  // when() already disposed — should not fire again
+    await Promise.resolve();
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ── Prop (additional branches) ────────────────────────────────────────────────

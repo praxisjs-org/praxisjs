@@ -77,9 +77,9 @@ class Form extends StatefulComponent {
 
 ---
 
-## `@When(propName)`
+## `@When(propName, condition?)`
 
-Calls the decorated method **exactly once**, the first time the named property becomes truthy. Automatically set up on mount and cleaned up on unmount.
+Calls the decorated method **exactly once**, the first time the named property satisfies the condition. Automatically set up on mount and cleaned up on unmount.
 
 ```tsx
 @Component()
@@ -103,6 +103,33 @@ class DataLoader extends StatefulComponent {
 Use `@When` for one-time initialization that depends on a value arriving — like the first API response, or a user becoming authenticated.
 
 <StorybookLink story="decorators-watchers-when--when-once" label="Live demo — @When" />
+
+### Condition function
+
+Pass an optional predicate as the second argument. The method fires the first time the predicate returns `true` for the current value. Without a condition, the method fires on the first truthy value.
+
+```tsx
+@Component()
+class Game extends StatefulComponent {
+  @State() score = 0
+
+  // fires when score reaches 100 for the first time
+  @When('score', score => score >= 100)
+  onWin() {
+    console.log('You won with score:', this.score)
+  }
+
+  // fires the first time the user's plan is 'pro' or 'enterprise'
+  @When('plan', plan => plan === 'pro' || plan === 'enterprise')
+  onUpgrade(plan: string) {
+    this.enablePremiumFeatures(plan)
+  }
+}
+```
+
+The predicate receives the current value of the property. The method is called **only once** — on the first value that satisfies the condition. Subsequent changes that also satisfy the condition do not re-fire it.
+
+<StorybookLink story="decorators-watchers-when-condition--when-condition" label="Live demo — @When with condition" />
 
 ---
 
