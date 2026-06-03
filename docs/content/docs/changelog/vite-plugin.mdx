@@ -6,6 +6,23 @@ icon: Hammer
 
 # @praxisjs/vite-plugin
 
+## 0.2.0
+
+**`praxisjsCSS()` — static CSS extraction plugin for `@praxisjs/css`.**
+
+Scans TypeScript source files for `Stylesheet` subclasses, `keyframes()`, `globalStyle()`, and `@Themed()` decorators, evaluates them in a sandboxed Node.js context, and emits all CSS into `virtual:praxisjs/styles.css`. In production, `__PRAXIS_CSS_STATIC__` is set to `true` and runtime `<style>` injection becomes a no-op. In development, the virtual module is empty and CSS is injected at runtime as usual.
+
+```ts
+// vite.config.ts
+import { praxisjs, praxisjsCSS } from '@praxisjs/vite-plugin'
+
+export default defineConfig({
+  plugins: [praxisjs(), praxisjsCSS()],
+})
+```
+
+`@praxisjs/css` is now a peer dependency.
+
 ## 0.1.1
 
 Refreshed workspace dependencies for stability and security (`@types/node`, `eslint`, `unocss`).
