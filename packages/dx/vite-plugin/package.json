@@ -18,8 +18,13 @@
     "vite": ">=7.0.0"
   },
   "packageManager": "pnpm@10.30.2",
+  "peerDependencies": {
+    "@praxisjs/css": "workspace:*"
+  },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@praxisjs/css": "workspace:*",
+    "@types/node": "^25.9.1",
+    "esbuild": "^0.25.12",
     "typescript": "^5.9.3",
     "vite": "^7.3.1"
   }

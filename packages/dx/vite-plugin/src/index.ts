@@ -1,4 +1,8 @@
+import { praxisjsCSS } from "./css.js";
+
 import type { Plugin, ViteDevServer } from "vite";
+
+export { praxisjsCSS };
 
 export interface PraxisJSVitePluginOptions {
   hmr?: boolean;
