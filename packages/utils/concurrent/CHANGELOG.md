@@ -1,5 +1,12 @@
 # @praxisjs/concurrent
 
+## 1.2.13
+
+### Patch Changes
+
+- Updated dependencies [3fb2309]
+  - @praxisjs/decorators@1.2.0
+
 ## 1.2.12
 
 ### Patch Changes
