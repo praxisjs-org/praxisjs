@@ -6,6 +6,50 @@ icon: GitBranch
 
 # @praxisjs/fsm
 
+## 2.1.0
+
+**Guards and per-transition actions on `@StateMachine`.**
+
+Transitions can now declare a `guard` and/or `action` instead of a plain target string:
+
+```ts
+states: {
+  editing: {
+    on: {
+      SUBMIT: { target: 'submitting', guard: () => formIsValid, action: () => clearErrors() },
+    },
+  },
+}
+```
+
+If the guard returns `false`, `send()` returns `false` and nothing runs — no `onExit`, no state change, no history entry. `can(event)` also evaluates the guard.
+
+**Instance access in guards.** Pass the component class as the third generic `@StateMachine<S, E, T>` — guards and actions then receive the instance as their first argument:
+
+```ts
+@StateMachine<State, Event, MyForm>({
+  initial: 'editing',
+  states: {
+    editing: {
+      on: {
+        SUBMIT: {
+          target: 'submitting',
+          guard:  (self) => self.name.trim().length > 0,
+          action: (self) => self.clearErrors(),
+        },
+      },
+    },
+  },
+})
+machine!: Machine<State, Event>
+```
+
+Guards read live field values — they are re-evaluated on every `send()` call, not at definition time.
+
+**`onEnter` / `onExit` context.** Both hooks now receive an optional `{ event, from }` / `{ event, to }` argument. Zero-argument callbacks remain valid — no migration needed.
+
+**New export:** `TransitionTarget<S, T>` type for the object form of a transition config.
+
 ## 2.0.0 — Breaking
 
 `@StateMachine` converted from a **class decorator** to a **field decorator**, matching the PraxisJS decorator-first convention (`@State`, `@Compose`, `@Collection`).

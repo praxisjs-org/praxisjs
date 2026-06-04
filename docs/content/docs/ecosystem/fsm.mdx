@@ -1,6 +1,6 @@
 ---
 title: State Machines
-description: "@praxisjs/fsm — finite state machines via @StateMachine and @Transition decorators, with typed states/events, reactive state signal, and per-state lifecycle hooks."
+description: "@praxisjs/fsm — finite state machines via @StateMachine and @Transition decorators, with typed states/events, reactive state signal, guards, per-transition actions, and per-state lifecycle hooks."
 icon: GitBranch
 ---
 
@@ -73,7 +73,7 @@ class DataFetcher extends StatefulComponent {
 
 ## `@Transition(property, event)`
 
-Wraps a method so it only executes when the named event causes a valid transition in the machine. If the event is not valid from the current state, the method body is skipped silently.
+Wraps a method so it only executes when the named event causes a valid transition in the machine. If the event is not valid from the current state (or a guard blocks it), the method body is skipped silently.
 
 ```tsx
 @Transition('machine', 'OPEN')
@@ -100,15 +100,88 @@ Access via `this.machine` (or the configured property name).
 | `state()` | `S` | Current state — reactive signal, use in `{() => ...}` in JSX |
 | `history()` | `Array<{from, event, to}>` | Full transition history |
 | `is(state)` | `boolean` | True if the current state matches |
-| `can(event)` | `boolean` | True if the event is valid from the current state |
+| `can(event)` | `boolean` | True if the event is valid from the current state and any guard passes |
 | `send(event)` | `boolean` | Trigger a transition — returns `true` if it happened |
 | `reset()` | `void` | Return to the initial state |
 
 ---
 
+## Guards
+
+A **guard** is a function on a transition that must return `true` for the transition to proceed. If the guard returns `false`, `send()` returns `false` and nothing happens — `onExit`, history, and `onEnter` are all skipped.
+
+To add a guard, replace the plain state string with a `TransitionTarget` object:
+
+```tsx
+states: {
+  editing: {
+    on: {
+      SUBMIT: { target: 'submitting', guard: () => formIsValid },
+    },
+  },
+}
+```
+
+`can(event)` also evaluates the guard, so you can disable UI elements reactively:
+
+```tsx
+<button disabled={() => !this.machine.can('SUBMIT')}>Submit</button>
+```
+
+### Guards with instance access
+
+Pass the component class as the third generic to `@StateMachine<S, E, T>`. Guards and actions then receive the component instance as their first argument:
+
+```tsx
+@StateMachine<State, Event, MyForm>({
+  initial: 'editing',
+  states: {
+    editing: {
+      on: {
+        SUBMIT: {
+          target: 'submitting',
+          guard:  (self) => self.name.trim().length > 0 && self.email.includes('@'),
+          action: (self) => self.clearErrors(),
+        },
+      },
+    },
+    submitting: { on: { DONE: 'success', FAIL: 'error' } },
+    success:    { on: { RESET: 'editing' } },
+    error:      { on: { RESET: 'editing' } },
+  },
+})
+machine!: Machine<State, Event>
+```
+
+Guards are re-evaluated on every `send()` call — they read the live field values at transition time.
+
+<StorybookLink story="ecosystem-fsm-guardedwizard--guarded-wizard" label="Live demo — guarded wizard form" />
+
+---
+
+## Per-transition action
+
+An **action** is a side-effect callback on a specific transition. It runs after the state is committed and `onTransition` fires, but before `onEnter`. Like guards, it receives the component instance when the third generic is provided:
+
+```tsx
+states: {
+  idle: {
+    on: {
+      START: {
+        target: 'running',
+        guard:  (self) => self.isReady(),
+        action: (self) => self.timer.start(),
+      },
+    },
+  },
+}
+```
+
+---
+
 ## Per-state lifecycle hooks
 
-Define `onEnter` and `onExit` callbacks directly in the state definition, and a global `onTransition` for every change:
+Define `onEnter` and `onExit` callbacks directly in the state definition. Both receive an optional context with the triggering `event` and the from/to state:
 
 ```tsx
 @StateMachine<State, Event>({
@@ -116,8 +189,12 @@ Define `onEnter` and `onExit` callbacks directly in the state definition, and a 
   states: {
     loading: {
       on: { RESOLVE: 'success', REJECT: 'error' },
-      onEnter() { console.log('started loading') },
-      onExit()  { console.log('done loading') },
+      onEnter({ event, from }) {
+        console.log(`entered loading via ${event} from ${from}`)
+      },
+      onExit({ event, to }) {
+        console.log(`left loading via ${event}, heading to ${to}`)
+      },
     },
     success: { on: { RESET: 'idle' } },
     error:   { on: { RESET: 'idle' } },
@@ -129,6 +206,18 @@ Define `onEnter` and `onExit` callbacks directly in the state definition, and a 
 })
 machine!: Machine<State, Event>
 ```
+
+The context parameter is optional — zero-argument callbacks continue to work unchanged.
+
+**Execution order** for a successful transition:
+
+1. Guard checked (aborts if `false`)
+2. `onExit` on the current state
+3. State updated
+4. History updated
+5. Global `onTransition`
+6. Per-transition `action`
+7. `onEnter` on the new state
 
 ---
 
