@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { Task, Queue, Pool } from "../decorators";
+import { QueueClearedError } from "../queue";
 
 function fieldCtx(name: string) {
   const initializers: Array<(this: unknown) => void> = [];
@@ -31,12 +32,14 @@ describe("Task decorator", () => {
       loading: () => boolean;
       error: () => Error | null;
       lastResult: () => number | null;
+      cancelAll: () => void;
     };
 
     expect(typeof taskLoad).toBe("function");
     expect(taskLoad.loading).toBeDefined();
     expect(taskLoad.error).toBeDefined();
     expect(taskLoad.lastResult).toBeDefined();
+    expect(taskLoad.cancelAll).toBeDefined();
 
     const result = await taskLoad(5);
     expect(result).toBe(10);
@@ -59,6 +62,29 @@ describe("Task decorator", () => {
     resolve("done");
     await p;
     expect(taskFetch.loading()).toBe(false);
+  });
+
+  it("cancelAll() aborts the in-flight signal", async () => {
+    const { ctx, run } = fieldCtx("taskFetch");
+    Task("fetch")(undefined, ctx);
+
+    let capturedSignal!: AbortSignal;
+    let resolve!: () => void;
+    const instance: Record<string, unknown> = {
+      fetch: async (signal: AbortSignal) => {
+        capturedSignal = signal;
+        await new Promise<void>((r) => { resolve = r; });
+      },
+    };
+    run(instance);
+
+    const taskFetch = instance.taskFetch as { (): Promise<void>; cancelAll: () => void };
+    const p = taskFetch();
+    taskFetch.cancelAll();
+    resolve();
+    await p;
+
+    expect(capturedSignal.aborted).toBe(true);
   });
 });
 
@@ -98,10 +124,12 @@ describe("Queue decorator", () => {
 
     let resolveFirst!: () => void;
     const instance: Record<string, unknown> = {
-      save: async (_: unknown, idx: unknown) =>
-        idx === 0
+      save: async (signal: AbortSignal, _: unknown, idx: unknown) => {
+        void signal;
+        return idx === 0
           ? new Promise<void>((r) => { resolveFirst = r; })
-          : Promise.resolve(),
+          : Promise.resolve();
+      },
     };
     run(instance);
 
@@ -133,6 +161,7 @@ describe("Pool decorator", () => {
       active: () => number;
       pending: () => number;
       error: () => Error | null;
+      cancelAll: () => void;
     };
 
     expect(typeof taskProcess).toBe("function");
@@ -140,6 +169,7 @@ describe("Pool decorator", () => {
     expect(taskProcess.active).toBeDefined();
     expect(taskProcess.pending).toBeDefined();
     expect(taskProcess.error).toBeDefined();
+    expect(taskProcess.cancelAll).toBeDefined();
 
     const result = await taskProcess(9);
     expect(result).toBe(10);
@@ -188,5 +218,50 @@ describe("Pool decorator", () => {
     await t1;
     resolvers[1]();
     await t2;
+  });
+
+  it("cancelAll() cancels pending and active tasks", async () => {
+    const { ctx, run } = fieldCtx("taskWork");
+    Pool("work", 1)(undefined, ctx);
+
+    let resolveFirst!: () => void;
+    const instance: Record<string, unknown> = {
+      work: async (signal: AbortSignal, idx: unknown) => {
+        void signal;
+        if (idx === 0) await new Promise<void>((r) => { resolveFirst = r; });
+      },
+    };
+    run(instance);
+
+    const taskWork = instance.taskWork as {
+      (...args: unknown[]): Promise<void>;
+      active: () => number;
+      pending: () => number;
+      cancelAll: () => void;
+    };
+
+    const t1 = taskWork(0);
+    const t2 = taskWork(1);
+
+    await Promise.resolve();
+    taskWork.cancelAll();
+    resolveFirst();
+
+    await Promise.all([t1, t2]);
+
+    expect(taskWork.active()).toBe(0);
+    expect(taskWork.pending()).toBe(0);
+  });
+});
+
+// ── QueueClearedError re-export ────────────────────────────────────────────────
+
+describe("QueueClearedError", () => {
+  it("is exported from the package", () => {
+    expect(QueueClearedError).toBeDefined();
+    const e = new QueueClearedError();
+    expect(e).toBeInstanceOf(Error);
+    expect(e.name).toBe("QueueClearedError");
+    expect(e.message).toBe("Queue cleared");
   });
 });

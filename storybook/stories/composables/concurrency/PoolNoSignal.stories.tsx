@@ -3,30 +3,38 @@ import { Component, State } from "@praxisjs/decorators";
 import { Pool, PoolOf } from "@praxisjs/concurrent";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
+/**
+ * @Pool without AbortSignal — no "signal" first param.
+ *
+ * cancelAll() instantly resolves all pending items as undefined and removes
+ * them from the queue, but the already-running operations keep executing
+ * until they finish naturally. Their results are simply ignored.
+ * Add "signal: AbortSignal" as first param to abort active ops too.
+ */
+
 type FileEntry = {
   name: string;
-  status: "queued" | "uploading" | "done" | "cancelled" | "error";
+  status: "queued" | "uploading" | "done" | "dropped" | "error";
 };
 
 @Component()
-class PoolDemo extends StatefulComponent {
+class PoolNoSignalDemo extends StatefulComponent {
   @State() files: FileEntry[] = [];
+  @State() ghostUploads = 0;
 
-  async uploadFile(signal: AbortSignal, name: string) {
+  async uploadFile(name: string) {
+    this.ghostUploads++;
+    await new Promise<void>((r) => setTimeout(r, 1200 + Math.random() * 1200));
+    this.ghostUploads--;
     this.files = this.files.map((f) =>
-      f.name === name ? { ...f, status: "uploading" } : f,
-    );
-    await new Promise<void>((resolve, reject) => {
-      const t = setTimeout(resolve, 1000 + Math.random() * 1500);
-      signal.addEventListener("abort", () => { clearTimeout(t); reject(new DOMException("Aborted", "AbortError")); }, { once: true });
-    });
-    this.files = this.files.map((f) =>
-      f.name === name ? { ...f, status: Math.random() > 0.15 ? "done" : "error" } : f,
+      f.name === name && f.status === "uploading"
+        ? { ...f, status: Math.random() > 0.15 ? "done" : "error" }
+        : f,
     );
   }
 
   @Pool("uploadFile", 2)
-  taskUpload!: PoolOf<PoolDemo, "uploadFile">;
+  taskUpload!: PoolOf<PoolNoSignalDemo, "uploadFile">;
 
   enqueue(count: number) {
     const batch = Array.from({ length: count }, (_, i) => ({
@@ -36,9 +44,9 @@ class PoolDemo extends StatefulComponent {
     this.files = [...this.files, ...batch];
     batch.forEach((f) => {
       void this.taskUpload(f.name).then((result) => {
-        if (result === undefined && this.files.some((x) => x.name === f.name && x.status === "uploading")) {
+        if (result === undefined) {
           this.files = this.files.map((x) =>
-            x.name === f.name ? { ...x, status: "cancelled" } : x,
+            x.name === f.name && x.status === "queued" ? { ...x, status: "dropped" } : x,
           );
         }
       });
@@ -48,39 +56,40 @@ class PoolDemo extends StatefulComponent {
   cancelAll() {
     this.taskUpload.cancelAll();
     this.files = this.files.map((f) =>
-      f.status === "uploading" || f.status === "queued" ? { ...f, status: "cancelled" } : f,
+      f.status === "queued" ? { ...f, status: "dropped" } : f,
     );
   }
 
   render() {
     const bg = (s: FileEntry["status"]) => ({
-      queued: "#f9fafb", uploading: "#ede9fe", done: "#f0fdf4", cancelled: "#fafafa", error: "#fef2f2",
+      queued: "#f9fafb", uploading: "#ede9fe", done: "#f0fdf4", dropped: "#fafafa", error: "#fef2f2",
     }[s]);
     const border = (s: FileEntry["status"]) => ({
-      queued: "#e5e7eb", uploading: "#ddd6fe", done: "#bbf7d0", cancelled: "#e5e7eb", error: "#fca5a5",
+      queued: "#e5e7eb", uploading: "#ddd6fe", done: "#bbf7d0", dropped: "#e5e7eb", error: "#fca5a5",
     }[s]);
     const color = (s: FileEntry["status"]) => ({
-      queued: "#9ca3af", uploading: "#5b21b6", done: "#16a34a", cancelled: "#9ca3af", error: "#dc2626",
+      queued: "#9ca3af", uploading: "#5b21b6", done: "#16a34a", dropped: "#9ca3af", error: "#dc2626",
     }[s]);
     const icon = (s: FileEntry["status"]) => ({
-      queued: "○", uploading: "⏳", done: "✓", cancelled: "↩", error: "✗",
+      queued: "○", uploading: "⏳", done: "✓", dropped: "↩", error: "✗",
     }[s]);
 
     return (
       <div style="display:flex;flex-direction:column;gap:14px;font-family:sans-serif;min-width:340px;max-width:420px">
         <div>
-          <h3 style="margin:0 0 2px;font-size:1rem">@Pool(2) — max 2 concurrent uploads</h3>
+          <h3 style="margin:0 0 2px;font-size:1rem">@Pool(2) — without AbortSignal</h3>
           <p style="margin:0;font-size:.78rem;color:#6b7280">
-            At most 2 files upload at once. <code>cancelAll()</code> aborts active via <code>AbortSignal</code> and drops pending ones.
+            No <code>signal</code> param → <code>cancelAll()</code> drops <em>queued</em> items instantly
+            but active uploads keep running until they finish.
           </p>
         </div>
 
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button
             style="padding:6px 16px;border-radius:6px;border:none;background:#6d5bbd;color:#fff;cursor:pointer;font-size:.88rem;font-weight:500"
-            onClick={() => { this.enqueue(4); }}
+            onClick={() => { this.enqueue(5); }}
           >
-            Queue 4 files
+            Queue 5 files
           </button>
           <button
             style="padding:6px 14px;border-radius:6px;border:1px solid #fca5a5;color:#dc2626;background:#fff;cursor:pointer;font-size:.88rem"
@@ -101,6 +110,15 @@ class PoolDemo extends StatefulComponent {
           <span>Queued: <strong>{() => this.taskUpload.pending()}</strong></span>
         </div>
 
+        {() => this.ghostUploads > 0 && (
+          <div style="display:flex;gap:6px;padding:8px 12px;border-radius:6px;background:#fffbeb;border:1px solid #fde68a;font-size:.8rem;color:#92400e;align-items:center">
+            <span>⚠</span>
+            <span>
+              <strong>{this.ghostUploads}</strong> upload{this.ghostUploads > 1 ? "s" : ""} still running in the background (timer not cleared).
+            </span>
+          </div>
+        )}
+
         {() => this.files.length === 0
           ? <p style="margin:0;font-size:.82rem;color:#d1d5db">Queue files to see pool in action.</p>
           : (
@@ -119,7 +137,7 @@ class PoolDemo extends StatefulComponent {
         }
 
         <p style="margin:0;font-size:.75rem;color:#d1d5db">
-          ~85 % chance of success per file. Abort clears the timer immediately via <code>AbortSignal</code>.
+          Add <code>signal: AbortSignal</code> as first param to abort active uploads immediately.
         </p>
       </div>
     );
@@ -134,7 +152,7 @@ export default meta;
 
 type Story = StoryObj;
 
-export const PoolStory: Story = {
-  name: "@Pool — concurrent limit",
-  render: () => <PoolDemo />,
+export const PoolNoSignalStory: Story = {
+  name: "@Pool — without signal",
+  render: () => <PoolNoSignalDemo />,
 };
