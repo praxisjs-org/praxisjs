@@ -182,6 +182,46 @@ describe("mountComponent", () => {
     scope.dispose();
   });
 
+  it("onError returning a Node mounts it as fallback UI", () => {
+    class FallbackComp extends StatefulComponent {
+      static __isComponent = true as const;
+      static __isStateless = false;
+      onError(_err: Error) {
+        const p = document.createElement("p");
+        p.textContent = "error boundary";
+        return p;
+      }
+      render(): never {
+        throw new Error("render error");
+      }
+    }
+    const scope = new Scope();
+    const container = document.createElement("div");
+    const nodes = mountComponent(FallbackComp, {}, scope);
+    nodes.forEach((n) => container.appendChild(n));
+    expect(container.querySelector("p")?.textContent).toBe("error boundary");
+    scope.dispose();
+  });
+
+  it("onError returning null renders nothing as fallback", () => {
+    class NullFallbackComp extends StatefulComponent {
+      static __isComponent = true as const;
+      static __isStateless = false;
+      onError(_err: Error) {
+        return null;
+      }
+      render(): never {
+        throw new Error("render error");
+      }
+    }
+    const scope = new Scope();
+    const container = document.createElement("div");
+    const nodes = mountComponent(NullFallbackComp, {}, scope);
+    nodes.forEach((n) => container.appendChild(n));
+    expect(container.textContent).toBe("");
+    scope.dispose();
+  });
+
   it("onMount microtask fires after dispose() — onMount is still called (current behavior)", async () => {
     class MountAfterDisposeComp extends StatefulComponent {
       static __isComponent = true as const;

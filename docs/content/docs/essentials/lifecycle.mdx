@@ -107,7 +107,57 @@ onUnmount() {
 
 ## `onError(error)`
 
-Called when an error is thrown inside the component or its children. Use it to display fallback UI without crashing the whole tree.
+Called when an error is thrown inside `render()`. If `onError` returns a `Node`, `Node[]`, or `null`, that result is mounted as fallback DOM — this is PraxisJS's error boundary model.
+
+### Returning fallback DOM
+
+The simplest pattern: return nodes directly from `onError` and they replace the failed component output.
+
+```tsx
+@Component()
+class SafeCard extends StatefulComponent {
+  onError(err: Error) {
+    return <p class="error-fallback">Failed to load: {err.message}</p>
+  }
+
+  render() {
+    return <Card data={this.data} />
+  }
+}
+```
+
+Return `null` (or `void`) to silently suppress the error — the component renders nothing:
+
+```tsx
+onError(err: Error) {
+  reportToMonitoring(err)
+  return null
+}
+```
+
+<StorybookLink story="essentials-lifecycle-errorboundaryfallback--error-boundary-fallback" label="Live demo — direct fallback" />
+
+### Callback to parent + retry
+
+`onError` can also notify a parent component via a prop callback, letting the parent own the recovery UI and remount the child on retry:
+
+```tsx
+@Component()
+class RemoteCard extends StatelessComponent<{ attempt: number; onFail: (e: Error) => void }> {
+  onError(err: Error) {
+    this.props.onFail(err)
+    return null
+  }
+
+  render() { /* ... */ }
+}
+```
+
+<StorybookLink story="essentials-lifecycle-errorboundaryretry--error-boundary-retry" label="Live demo — callback to parent + retry" />
+
+### Reactive fallback with `@State`
+
+When you need the fallback to be interactive (e.g. a retry button), store the error in state and branch inside `render()`:
 
 ```tsx
 @Component()
@@ -116,7 +166,6 @@ class SafeLoader extends StatefulComponent {
 
   onError(err: Error) {
     this.error = err
-    console.error('Component error:', err)
   }
 
   render() {
@@ -126,6 +175,12 @@ class SafeLoader extends StatefulComponent {
   }
 }
 ```
+
+<StorybookLink story="essentials-lifecycle-errorboundarystate--error-boundary-state" label="Live demo — @State + reactive fallback" />
+
+<Callout type="info" title="JSX in onError">
+  JSX is valid inside `onError` — it compiles to ordinary node-creation calls. The result is static (not reactive), which is fine for error states.
+</Callout>
 
 ---
 

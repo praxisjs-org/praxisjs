@@ -8,6 +8,20 @@ icon: Activity
 
 ## 1.8.0
 
+**`onError` can now return fallback DOM (error boundary).**
+
+`onError(error: Error)` now has return type `Node | Node[] | null | void`. When `onError` returns a node or array of nodes, the runtime mounts them in place of the failed component output. Return `null` or `void` to render nothing (previous behavior is unchanged).
+
+```ts
+onError(err: Error) {
+  return <p class="error-fallback">Failed to load: {err.message}</p>
+}
+```
+
+See [Lifecycle Hooks — `onError`](/docs/essentials/lifecycle#onerrorerror) for full usage.
+
+---
+
 **`writableComputed(getter, setter)` — new internal primitive.**
 
 Added `writableComputed<T>(getter: () => T, setter: (value: T) => void): WritableComputed<T>` to `@praxisjs/core/internal`. It wraps a `computed()` with `set` and `update` methods, returning a `WritableComputed<T>`. Used internally by `@Computed({ set })` in `@praxisjs/decorators`.

@@ -6,6 +6,16 @@ icon: Boxes
 
 # @praxisjs/runtime
 
+## 0.4.0
+
+**`onError` return value is now mounted as fallback DOM.**
+
+When a component's `render()` throws, `mountComponent` now captures the return value of `onError`. If it returns a `Node` or `Node[]`, those nodes are passed to `mountChildren` and inserted into the DOM in place of the failed render output. Returning `null` or `void` continues to produce an empty mount (previous behavior).
+
+This pairs with the updated `onError` signature in `@praxisjs/core` — see its changelog for details.
+
+---
+
 ## 0.2.19
 
 **New: `Portal`** — renders a JSX subtree into a target DOM node outside the component's natural parent. Useful for modals, tooltips, toasts, and drawers that must escape overflow or stacking context constraints.

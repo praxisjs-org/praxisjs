@@ -19,7 +19,7 @@ export abstract class RootComponent<T extends object = Record<string, never>> {
   onBeforeMount?(): void;
   onMount?(): void;
   onUnmount?(): void;
-  onError?(error: Error): void;
+  onError?(error: Error): Node | Node[] | null | undefined;
 
   abstract render(): Node | Node[] | null;
 }

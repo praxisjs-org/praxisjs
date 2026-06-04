@@ -44,7 +44,8 @@ export function mountComponent(
       try {
         dom = instance.render();
       } catch (e) {
-        instance.onError?.(e instanceof Error ? e : new Error(String(e)));
+        const fallback = instance.onError?.(e instanceof Error ? e : new Error(String(e)));
+        if (fallback != null) dom = fallback;
       }
     });
 

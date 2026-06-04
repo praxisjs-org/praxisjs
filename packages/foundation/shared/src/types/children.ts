@@ -44,5 +44,5 @@ export interface ComponentInstance {
   onBeforeMount?(): void;
   onMount?(): void;
   onUnmount?(): void;
-  onError?(e: Error): void;
+  onError?(e: Error): Node | Node[] | null | undefined;
 }
