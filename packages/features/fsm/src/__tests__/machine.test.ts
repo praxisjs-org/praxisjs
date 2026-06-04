@@ -228,4 +228,206 @@ describe("createMachine", () => {
     expect(m.history()).toHaveLength(0);
     expect(m.state()).toBe("idle");
   });
+
+  // ── Guards ──────────────────────────────────────────────────────────────────
+
+  it("guard returning true allows the transition", () => {
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: { target: "b", guard: () => true } } },
+        b: {},
+      },
+    });
+    expect(m.send("NEXT")).toBe(true);
+    expect(m.state()).toBe("b");
+  });
+
+  it("guard returning false blocks the transition — send returns false", () => {
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: { target: "b", guard: () => false } } },
+        b: {},
+      },
+    });
+    expect(m.send("NEXT")).toBe(false);
+    expect(m.state()).toBe("a");
+  });
+
+  it("guard returning false — history not updated", () => {
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: { target: "b", guard: () => false } } },
+        b: {},
+      },
+    });
+    m.send("NEXT");
+    expect(m.history()).toHaveLength(0);
+  });
+
+  it("guard returning false — onExit is NOT called", () => {
+    const onExit = vi.fn();
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: { target: "b", guard: () => false } }, onExit },
+        b: {},
+      },
+    });
+    m.send("NEXT");
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
+  it("can() returns false when guard returns false", () => {
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: { target: "b", guard: () => false } } },
+        b: {},
+      },
+    });
+    expect(m.can("NEXT")).toBe(false);
+  });
+
+  it("can() returns true when guard returns true", () => {
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: { target: "b", guard: () => true } } },
+        b: {},
+      },
+    });
+    expect(m.can("NEXT")).toBe(true);
+  });
+
+  it("guard is evaluated at transition time, not at definition time", () => {
+    let allow = false;
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: { target: "b", guard: () => allow } } },
+        b: {},
+      },
+    });
+    expect(m.send("NEXT")).toBe(false);
+    allow = true;
+    expect(m.send("NEXT")).toBe(true);
+    expect(m.state()).toBe("b");
+  });
+
+  it("transition without guard behaves as before (plain string target)", () => {
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: "b" } },
+        b: {},
+      },
+    });
+    expect(m.can("NEXT")).toBe(true);
+    expect(m.send("NEXT")).toBe(true);
+    expect(m.state()).toBe("b");
+  });
+
+  // ── Per-transition action ───────────────────────────────────────────────────
+
+  it("action is called on successful transition", () => {
+    const action = vi.fn();
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: { target: "b", action } } },
+        b: {},
+      },
+    });
+    m.send("NEXT");
+    expect(action).toHaveBeenCalledOnce();
+  });
+
+  it("action is NOT called when guard blocks the transition", () => {
+    const action = vi.fn();
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: { target: "b", guard: () => false, action } } },
+        b: {},
+      },
+    });
+    m.send("NEXT");
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  it("action runs after onTransition and before onEnter", () => {
+    const order: string[] = [];
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: { target: "b", action: () => { order.push("action"); } } } },
+        b: { onEnter: () => { order.push("onEnter"); } },
+      },
+      onTransition: () => { order.push("onTransition"); },
+    });
+    m.send("NEXT");
+    expect(order).toEqual(["onTransition", "action", "onEnter"]);
+  });
+
+  // ── onEnter / onExit context ────────────────────────────────────────────────
+
+  it("onEnter receives event and from-state in context", () => {
+    let ctx: { event: string; from: string } | undefined;
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: "b" } },
+        b: { onEnter: (c) => { ctx = c; } },
+      },
+    });
+    m.send("NEXT");
+    expect(ctx).toEqual({ event: "NEXT", from: "a" });
+  });
+
+  it("onExit receives event and to-state in context", () => {
+    let ctx: { event: string; to: string } | undefined;
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: "b" }, onExit: (c) => { ctx = c; } },
+        b: {},
+      },
+    });
+    m.send("NEXT");
+    expect(ctx).toEqual({ event: "NEXT", to: "b" });
+  });
+
+  it("onEnter and onExit called without context on reset()", () => {
+    const onEnter = vi.fn();
+    const onExit = vi.fn();
+    const m = createMachine<"idle" | "active", "START">({
+      initial: "idle",
+      states: {
+        idle: { on: { START: "active" }, onEnter },
+        active: { onExit },
+      },
+    });
+    m.send("START");
+    m.reset();
+    expect(onExit).toHaveBeenCalledWith(undefined);
+    expect(onEnter).toHaveBeenCalledWith(undefined);
+  });
+
+  it("zero-argument onEnter/onExit still work with context (backward compat)", () => {
+    const onEnter = vi.fn();
+    const onExit = vi.fn();
+    const m = createMachine<"a" | "b", "NEXT">({
+      initial: "a",
+      states: {
+        a: { on: { NEXT: "b" }, onExit },
+        b: { onEnter },
+      },
+    });
+    m.send("NEXT");
+    expect(onExit).toHaveBeenCalledOnce();
+    expect(onEnter).toHaveBeenCalledOnce();
+  });
 });

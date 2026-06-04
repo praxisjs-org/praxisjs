@@ -28,21 +28,33 @@ export function Transition(machineProp: string, event: string) {
   ) => void;
 }
 
-export function StateMachine<S extends string, E extends string>(
-  definition: MachineDefinition<S, E>,
+export function StateMachine<
+  S extends string,
+  E extends string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends object = any,
+>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  definition: MachineDefinition<S, E, T> | ((this: any) => MachineDefinition<S, E, T>),
 ) {
   const machines = new WeakMap<object, Machine<S, E>>();
 
-  return function <T extends object>(
+  return function <U extends object>(
     _value: undefined,
-    context: ClassFieldDecoratorContext<T, Machine<S, E>>,
+    context: ClassFieldDecoratorContext<U, Machine<S, E>>,
   ): void {
     context.addInitializer(function (this: object) {
       const name = context.name;
       Object.defineProperty(this, name, {
         get(): Machine<S, E> {
-          const self = this as object;
-          if (!machines.has(self)) machines.set(self, createMachine(definition));
+          const self = this as T;
+          if (!machines.has(self)) {
+            const def =
+              typeof definition === "function"
+                ? definition.call(self)
+                : definition;
+            machines.set(self, createMachine(def, self));
+          }
           return machines.get(self) as Machine<S, E>;
         },
         // eslint-disable-next-line @typescript-eslint/no-empty-function

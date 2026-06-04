@@ -95,6 +95,49 @@ describe("StateMachine decorator", () => {
     instance.machine = "overwrite-attempt"; // triggers set(): void {} (no-op)
     expect(instance.machine).toBe(original);
   });
+
+  it("accepts a factory function — machine created with instance as this", () => {
+    const { ctx, run } = fieldCtx("machine");
+    const instances: object[] = [];
+    const factory = function (this: object) {
+      instances.push(this);
+      return TOGGLE_DEF;
+    };
+    StateMachine(factory)(undefined, ctx as ClassFieldDecoratorContext<object, Machine<"off"|"on","toggle">>);
+
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    // Access triggers lazy creation
+    const m = instance.machine as Machine<string, string>;
+    expect(m.state()).toBe("off");
+    expect(instances).toHaveLength(1);
+    expect(instances[0]).toBe(instance);
+  });
+
+  it("factory receives correct instance — guard can close over instance state", () => {
+    const { ctx, run } = fieldCtx("machine");
+    let allow = false;
+
+    const factory = function (this: object) {
+      return {
+        initial: "a" as const,
+        states: {
+          a: { on: { NEXT: { target: "b" as const, guard: () => allow } } },
+          b: {},
+        },
+      };
+    };
+    StateMachine(factory)(undefined, ctx as ClassFieldDecoratorContext<object, Machine<"a"|"b","NEXT">>);
+
+    const instance: Record<string, unknown> = {};
+    run(instance);
+    const m = instance.machine as Machine<string, string>;
+
+    expect(m.send("NEXT")).toBe(false);
+    allow = true;
+    expect(m.send("NEXT")).toBe(true);
+    expect(m.state()).toBe("b");
+  });
 });
 
 // ── Transition ────────────────────────────────────────────────────────────────
