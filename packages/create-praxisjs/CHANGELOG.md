@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- Bump template dependencies to match updated @praxisjs packages.
+- Bump template dependencies to match updated @praxisjs-org packages.
 
 ## 0.4.4
 
