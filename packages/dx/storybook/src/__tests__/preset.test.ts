@@ -6,7 +6,13 @@ vi.mock("@praxisjs/vite-plugin", () => ({ default: mockPraxisPlugin }));
 const mockReadFileSync = vi.hoisted(() => vi.fn());
 vi.mock("node:fs", () => ({ readFileSync: mockReadFileSync }));
 
-import { viteFinal, core, managerEntries } from "../preset";
+const mockReadFile = vi.hoisted(() => vi.fn());
+vi.mock("node:fs/promises", () => ({ readFile: mockReadFile }));
+
+const mockLoadCsf = vi.hoisted(() => vi.fn());
+vi.mock("storybook/internal/csf-tools", () => ({ loadCsf: mockLoadCsf }));
+
+import { viteFinal, core, managerEntries, experimental_indexers } from "../preset";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -121,5 +127,74 @@ describe("storySourcePlugin — transform()", () => {
     const transform = getTransform();
     const result = transform(source, "/src/foo.stories.ts?t=123");
     expect(result).not.toBeNull();
+  });
+});
+
+// ── experimental_indexers ─────────────────────────────────────────────────────
+
+describe("experimental_indexers()", () => {
+  function getIndexer() {
+    const [indexer] = experimental_indexers([]);
+    return indexer;
+  }
+
+  it("returns the praxis indexer first, followed by existing indexers", () => {
+    const existing = { test: /\.mdx$/, createIndex: vi.fn() };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = experimental_indexers([existing as any]);
+    expect(result).toHaveLength(2);
+    expect(result[1]).toBe(existing);
+  });
+
+  it("defaults to no existing indexers", () => {
+    const result = experimental_indexers();
+    expect(result).toHaveLength(1);
+  });
+
+  it("matches .stories.tsx and .stories.ts files", () => {
+    const indexer = getIndexer();
+    expect(indexer.test.test("Foo.stories.tsx")).toBe(true);
+    expect(indexer.test.test("Foo.stories.ts")).toBe(true);
+    expect(indexer.test.test("Foo.story.tsx")).toBe(true);
+    expect(indexer.test.test("Foo.ts")).toBe(false);
+  });
+
+  it("returns empty array for empty files", async () => {
+    mockReadFile.mockResolvedValue("   ");
+    const indexer = getIndexer();
+    const result = await indexer.createIndex("/src/Foo.stories.tsx", { makeTitle: vi.fn() });
+    expect(result).toEqual([]);
+    expect(mockLoadCsf).not.toHaveBeenCalled();
+  });
+
+  it("strips `accessor` keyword before passing code to loadCsf", async () => {
+    const withAccessor = `
+      class Foo {
+        @Computed() accessor fahrenheit!: number;
+      }
+      export default meta;
+    `;
+    mockReadFile.mockResolvedValue(withAccessor);
+    const fakeInputs = [{ exportName: "MyStory" }];
+    mockLoadCsf.mockReturnValue({ parse: () => ({ indexInputs: fakeInputs }) });
+
+    const indexer = getIndexer();
+    const result = await indexer.createIndex("/src/Foo.stories.tsx", { makeTitle: vi.fn() });
+
+    expect(result).toBe(fakeInputs);
+    const passedCode: string = mockLoadCsf.mock.calls[0][0];
+    expect(passedCode).not.toContain("accessor ");
+    expect(passedCode).toContain("fahrenheit");
+  });
+
+  it("passes files without `accessor` to loadCsf unchanged", async () => {
+    const code = `export const Story = {};\nexport default meta;`;
+    mockReadFile.mockResolvedValue(code);
+    mockLoadCsf.mockReturnValue({ parse: () => ({ indexInputs: [] }) });
+
+    const indexer = getIndexer();
+    await indexer.createIndex("/src/Foo.stories.tsx", { makeTitle: vi.fn() });
+
+    expect(mockLoadCsf.mock.calls[0][0]).toBe(code);
   });
 });

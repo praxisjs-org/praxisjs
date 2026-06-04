@@ -54,6 +54,14 @@ export {
 export {
   createGetterDecorator,
   type GetterBehavior,
+  createWritableGetterDecorator,
+  type WritableGetterBehavior,
+  type WritableGetterBinding,
   createGetterObserverDecorator,
   type GetterObserverBehavior,
 } from "./create-getter-decorator";
+export {
+  createAccessorDecorator,
+  type AccessorBehavior,
+  type AccessorBinding,
+} from "./create-accessor-decorator";

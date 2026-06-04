@@ -8,9 +8,23 @@ icon: Tag
 
 ## 1.3.0
 
-**`@Computed({ set })` — writable computed.**
+**`@Computed` — writable computed with getter + setter support.**
 
-`@Computed` now accepts an optional `set` function. When provided, assigning to the decorated property calls the setter with the component instance as `this`, allowing you to write back to the underlying signals:
+`@Computed` now accepts `get` and `set` options for a TypeScript-compatible compact form using the `accessor` keyword — TypeScript sees the field as read-write, no cast required:
+
+```ts
+@Computed({
+  get(this: MyComponent): number {
+    return (this.celsius * 9) / 5 + 32
+  },
+  set(this: MyComponent, value: number) {
+    this.celsius = ((value - 32) * 5) / 9
+  },
+})
+accessor fahrenheit!: number
+```
+
+Alternatively, pass only `set` alongside a plain `get` accessor. This has identical runtime behavior but TypeScript cannot see the setter:
 
 ```ts
 @Computed({
@@ -23,7 +37,7 @@ get fahrenheit(): number {
 }
 ```
 
-The getter remains a cached reactive `computed()` — it recomputes automatically when its dependencies change. The setter is the only way to write to a writable computed; the derived value itself is never stored separately.
+The getter is always a cached reactive `computed()` that recomputes when its signal dependencies change.
 
 ## 1.2.0
 

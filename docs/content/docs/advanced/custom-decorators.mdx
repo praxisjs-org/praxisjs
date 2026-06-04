@@ -1,6 +1,6 @@
 ---
 title: Creating Decorators
-description: How to build custom decorators in PraxisJS using createFieldDecorator, createMethodDecorator, createLifecycleMethodDecorator, createGetterDecorator, createGetterObserverDecorator, and createClassDecorator.
+description: How to build custom decorators in PraxisJS using createFieldDecorator, createMethodDecorator, createLifecycleMethodDecorator, createGetterDecorator, createWritableGetterDecorator, createGetterObserverDecorator, createAccessorDecorator, and createClassDecorator.
 icon: Tag
 ---
 
@@ -9,6 +9,17 @@ icon: Tag
 PraxisJS provides factory functions for creating decorators. Each handles a different use case and manages per-instance state correctly.
 
 <PackageInstall pkg={['@praxisjs/decorators', '@praxisjs/core']} />
+
+| Factory | Applied to | `bind` / `wrap` called | Use when |
+|---|---|---|---|
+| `createFieldDecorator` | plain field | once per instance | replacing a `field = value` with custom reactive behavior |
+| `createMethodDecorator` | method | once per instance | wrapping a method with cross-cutting logic |
+| `createLifecycleMethodDecorator` | method | once per instance (in `onMount`) | auto-registering a method as an event listener |
+| `createGetterDecorator` | `get` accessor | on every read | transforming or constraining a getter's return value |
+| `createWritableGetterDecorator` | `get` accessor | once per instance | intercepting both reads and writes; setter owned by the decorator |
+| `createGetterObserverDecorator` | `get` accessor | once per instance | observing a getter for side effects without changing its value |
+| `createAccessorDecorator` | `accessor` field | once per instance (lazy) | owning the full state of a writable reactive field |
+| `createClassDecorator` | class | once per instance | augmenting lifecycle hooks or wrapping `render()` |
 
 <Callout type="info" title="Internal APIs">
 Decorator implementations have access to the reactive engine through `@praxisjs/core/internal` — `signal`, `computed`, `effect`, `batch`, `peek`, and more. See the [Internal APIs](/docs/internal/core) reference for the full list.
@@ -203,6 +214,113 @@ class Slider extends StatefulComponent {
 ```
 
 <StorybookLink story="guide-custom-decorators-getterdecorator--getter-decorator" label="Live demo — createGetterDecorator (@Clamp)" />
+
+### `createWritableGetterDecorator` — getter with a decorator-owned setter
+
+`bind(instance, name, original)` is called once per instance. `original` is the getter formula from the class body. Return `{ get, set? }` — both are installed on the instance via `Object.defineProperty`.
+
+Use this when the decorator needs to intercept writes as well as reads, and the getter formula stays visible in the class body.
+
+**Example — `@Overrideable`** lets any computed getter be pinned to a static value by assigning to it, while falling back to the derived value when cleared:
+
+```ts
+import { createWritableGetterDecorator } from '@praxisjs/decorators'
+import { signal } from '@praxisjs/core/internal'
+
+export function Overrideable<T>() {
+  return createWritableGetterDecorator<T>({
+    bind(_instance, _name, original) {
+      const override = signal<T | undefined>(undefined)
+
+      return {
+        get: () => override() !== undefined ? override() : original.call(_instance) as T,
+        set: (value) => override.set(value as T | undefined),
+      }
+    },
+  })
+}
+```
+
+```tsx
+@Component()
+class PageHeader extends StatefulComponent {
+  @State() page = { title: 'Home' }
+
+  @Overrideable<string>()
+  get title() { return this.page.title }   // derived by default
+
+  render() {
+    return (
+      <div>
+        <h1>{() => this.title}</h1>
+        <button onClick={() => { this.title = 'Custom' }}>Pin title</button>
+        <button onClick={() => { this.title = undefined }}>Reset</button>
+      </div>
+    )
+  }
+}
+```
+
+When `this.title = 'Custom'` is assigned, the override signal is set and the getter returns `'Custom'`. Assigning `undefined` clears the override so the getter falls back to `this.page.title`.
+
+<Callout type="info" title="Setter optionality">
+  If `set` is omitted from the returned binding, the property remains read-only at runtime. TypeScript may still see a setter if one is declared in the class body — the decorator does not interfere with it.
+</Callout>
+
+---
+
+## Accessor decorators
+
+Use `createAccessorDecorator` to replace an `accessor` field with fully custom reactive behavior. Unlike getter decorators, the field has no formula — both `get` and `set` are owned entirely by the decorator.
+
+`bind(instance, name, initialValue)` is called once per instance on first access. `initialValue` is the value from the `accessor foo = value` initializer.
+
+**Example — `@Bounded(min, max)`** creates a reactive numeric field that clamps every read and write:
+
+```ts
+import { createAccessorDecorator } from '@praxisjs/decorators'
+import { signal } from '@praxisjs/core/internal'
+
+export function Bounded(min: number, max: number) {
+  return createAccessorDecorator({
+    bind(_instance, _name, initialValue) {
+      const clamp = (v: number) => Math.min(max, Math.max(min, v))
+      const s = signal(clamp((initialValue as number) ?? min))
+
+      return {
+        get: () => clamp(s()),
+        set: (value) => s.set(clamp(value as number)),
+      }
+    },
+  })
+}
+```
+
+```tsx
+@Component()
+class VideoPlayer extends StatefulComponent {
+  @Bounded(0, 100)
+  accessor volume = 80     // initialised to 80, clamped to [0, 100]
+
+  render() {
+    return (
+      <input
+        type="range" min={0} max={100}
+        value={() => this.volume}
+        onInput={(e) => { this.volume = Number((e.target as HTMLInputElement).value) }}
+      />
+    )
+  }
+}
+```
+
+Setting `this.volume = 150` stores `100`; setting `this.volume = -5` stores `0`. The `accessor` keyword tells TypeScript the field is read-write.
+
+<Callout type="info" title="accessor vs field decorator">
+  Use `createAccessorDecorator` when the decorator owns the full state of the property (no external signals). Use `createFieldDecorator` when the property wraps a plain class field that may be assigned at class instantiation.
+</Callout>
+
+---
 
 ### `createGetterObserverDecorator` — observe a getter for side effects
 

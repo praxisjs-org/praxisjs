@@ -3,7 +3,8 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",
-    "experimentalDecorators": false
+    "experimentalDecorators": false,
+    "skipLibCheck": true
   },
   "include": ["src"],
   "exclude": ["src/preset-cjs.ts"]

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-import { computed } from "../signal/computed";
+import { computed, writableComputed } from "../signal/computed";
 import { signal } from "../signal/signal";
 
 describe("computed", () => {
@@ -223,5 +223,47 @@ describe("computed", () => {
       unsub();
       unsub();
     }).not.toThrow();
+  });
+});
+
+describe("writableComputed", () => {
+  it("read returns the getter value", () => {
+    const s = signal(5);
+    const wc = writableComputed(() => s() * 2, (_v) => { /* no-op */ });
+    expect(wc()).toBe(10);
+  });
+
+  it("set calls the setter", () => {
+    const s = signal(0);
+    const wc = writableComputed(() => s(), (v) => { s.set(v); });
+    wc.set(42);
+    expect(s()).toBe(42);
+    expect(wc()).toBe(42);
+  });
+
+  it("update applies the updater and calls the setter", () => {
+    const s = signal(10);
+    const wc = writableComputed(() => s(), (v) => { s.set(v); });
+    wc.update((current) => current + 5);
+    expect(s()).toBe(15);
+    expect(wc()).toBe(15);
+  });
+
+  it("marks __isWritableComputed = true", () => {
+    const wc = writableComputed(() => 1, (_v) => { /* no-op */ });
+    expect(wc.__isWritableComputed).toBe(true);
+  });
+
+  it("inherits __isComputed = true from computed", () => {
+    const wc = writableComputed(() => 1, (_v) => { /* no-op */ });
+    expect(wc.__isComputed).toBe(true);
+  });
+
+  it("recomputes when underlying signal changes", () => {
+    const s = signal(3);
+    const wc = writableComputed(() => s() * 2, (_v) => { /* no-op */ });
+    expect(wc()).toBe(6);
+    s.set(7);
+    expect(wc()).toBe(14);
   });
 });

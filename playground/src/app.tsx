@@ -9,6 +9,7 @@ import About from "./pages/about";
 import SyncedPage from "./pages/synced";
 import DeepStatePage from "./pages/deep-state";
 import PerformancePage from "./pages/performance";
+import ComputedPage from "./pages/computed";
 
 // ─── App shell styles ─────────────────────────────────────────────────────────
 
@@ -72,6 +73,7 @@ class AppStyles extends Stylesheet {
   SyncedPage,
   DeepStatePage,
   PerformancePage,
+  ComputedPage,
   { path: "/blog",       component: Lazy(() => import("./pages/blog")) },
   { path: "/blog/:slug", component: Lazy(() => import("./pages/post")) },
 ])
@@ -92,6 +94,7 @@ export class App extends StatefulComponent {
             <Link to="/about"       class={this.$s.$link}>About</Link>
             <Link to="/synced"      class={this.$s.$link}>@Synced</Link>
             <Link to="/deep-state"  class={this.$s.$link}>@DeepState</Link>
+            <Link to="/computed"    class={this.$s.$link}>@Computed</Link>
             <Link to="/performance" class={this.$s.$link}>Performance</Link>
             <Link to="/blog"        class={this.$s.$link}>Blog</Link>
           </div>

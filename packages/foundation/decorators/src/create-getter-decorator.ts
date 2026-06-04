@@ -23,6 +23,45 @@ export function createGetterDecorator(behavior: GetterBehavior) {
   };
 }
 
+export interface WritableGetterBinding {
+  get: () => unknown;
+  set?: (value: unknown) => void;
+}
+
+export interface WritableGetterBehavior {
+  /**
+   * Called once per instance during construction. Returns the get/set pair
+   * that will be installed on the instance via `Object.defineProperty`.
+   * If `set` is omitted, the property is read-only at runtime (though TypeScript
+   * may still see a setter if one is declared in the class body).
+   */
+  bind(
+    instance: object,
+    name: string | symbol,
+    original: (this: object) => unknown,
+  ): WritableGetterBinding;
+}
+
+export function createWritableGetterDecorator(behavior: WritableGetterBehavior) {
+  return function <This, T>(
+    target: (this: This) => T,
+    context: ClassGetterDecoratorContext<This, T>,
+  ): (this: This) => T {
+    context.addInitializer(function (this: unknown) {
+      const instance = this as object;
+      const binding = behavior.bind(instance, context.name, target as (this: object) => unknown);
+      const descriptor: PropertyDescriptor = {
+        get: binding.get,
+        configurable: true,
+        enumerable: false,
+      };
+      if (binding.set !== undefined) descriptor.set = binding.set;
+      Object.defineProperty(instance, context.name, descriptor);
+    });
+    return target;
+  };
+}
+
 export interface GetterObserverBehavior {
   /**
    * Called once per instance when the class is initialized.

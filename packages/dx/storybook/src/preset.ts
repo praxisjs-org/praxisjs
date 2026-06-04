@@ -1,6 +1,31 @@
 import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 
 import praxisjs from "@praxisjs/vite-plugin";
+
+import type { Indexer } from "storybook/internal/types";
+
+// Regex to strip the `accessor` keyword from class field declarations.
+// Storybook's internal babelParse uses `decorators-legacy` but omits
+// `decoratorAutoAccessors`, causing a parse error on `accessor fieldName`.
+// Removing the keyword is safe for story indexing — loadCsf only needs to
+// locate exports, not understand class internals.
+const ACCESSOR_KEYWORD_RE = /\baccessor\s+(?=[a-zA-Z_$#])/g;
+
+const praxisCsfIndexer: Indexer = {
+  test: /(stories|story)\.(m?js|ts)x?$/,
+  createIndex: async (fileName, options) => {
+    const rawCode = await readFile(fileName, "utf-8");
+    if (!rawCode.trim()) return [];
+    const { loadCsf } = await import("storybook/internal/csf-tools");
+    const code = rawCode.replace(ACCESSOR_KEYWORD_RE, "");
+    return loadCsf(code, { ...options, fileName }).parse().indexInputs;
+  },
+};
+
+export function experimental_indexers(existingIndexers: Indexer[] = []): Indexer[] {
+  return [praxisCsfIndexer, ...existingIndexers];
+}
 
 function storySourcePlugin() {
   return {

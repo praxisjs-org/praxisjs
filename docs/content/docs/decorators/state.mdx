@@ -143,30 +143,29 @@ The setter writes back to `celsius`, which reactively invalidates the cached get
 
 <StorybookLink story="decorators-state-props-writablecomputed--temperature-converter-story" label="Live demo — @Computed with setter" />
 
-### Alternative — `@Computed({ set })`
+### Compact form — `@Computed({ get, set })` on `accessor`
 
-Pass a `set` function to the decorator factory as a compact alternative. The behavior is identical at runtime; the setter's `this` is bound to the component instance.
+Pass both `get` and `set` to the decorator factory and declare the field with the `accessor` keyword. TypeScript treats `accessor` fields as read-write, so no cast is needed.
 
 ```tsx
 @Computed({
+  get(this: TemperatureConverter): number {
+    return (this.celsius * 9) / 5 + 32
+  },
   set(this: TemperatureConverter, fahrenheit: number) {
     this.celsius = ((fahrenheit - 32) * 5) / 9
   },
 })
-get fahrenheit(): number {
-  return (this.celsius * 9) / 5 + 32
-}
+accessor fahrenheit!: number
 ```
 
-<Callout type="warn" title="TypeScript readonly limitation">
-  When using `@Computed({ set })`, TypeScript still sees the property as read-only because the setter is installed at runtime via `Object.defineProperty`. Assigning to the property inside the component will require a cast:
+The `!` (definite assignment assertion) tells TypeScript that the decorator initializes the field, so no initializer expression is needed. At runtime, reads go through a reactive `computed` backed by `get`; writes call `set` directly.
 
-  ```ts
-  (this as { fahrenheit: number }).fahrenheit = value
-  ```
-
-  Prefer the plain getter + setter pair above when TypeScript compatibility matters.
+<Callout type="info" title="accessor vs getter + setter">
+  Both forms are fully TypeScript-compatible. Use the `accessor` form when you prefer to keep the getter formula and setter logic co-located inside the decorator options. Use the plain getter + setter pair when you want the getter formula visible as a class method for readability or when you need to call `super`.
 </Callout>
+
+<StorybookLink story="decorators-state-props-writablecomputedaccessor--temperature-converter-accessor-story" label="Live demo — @Computed({ get, set }) accessor form" />
 
 ---
 
