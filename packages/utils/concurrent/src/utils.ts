@@ -5,7 +5,8 @@
  * Works on unminified source (class methods, arrow functions, async functions).
  * Bound functions always return false — check the original method before binding.
  */
-export function acceptsSignal(fn: (...args: unknown[]) => unknown): boolean {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function acceptsSignal(fn: (...args: any[]) => any): boolean {
   try {
     const src = fn.toString();
     // Match the first character of the parameter list, e.g.:
