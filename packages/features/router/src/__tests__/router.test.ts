@@ -60,6 +60,22 @@ describe("Router", () => {
     expect(r.location().hash).toBe("section");
   });
 
+  it("push() with inline hash in path string extracts hash and matches route", async () => {
+    const r = makeRouter();
+    await r.push("/about#intro");
+    expect(r.location().path).toBe("/about");
+    expect(r.location().hash).toBe("intro");
+    expect(r.currentComponent()).toBe(AboutPage);
+  });
+
+  it("push() inline hash does not interfere with route params", async () => {
+    const r = makeRouter();
+    await r.push("/users/7#profile");
+    expect(r.location().path).toBe("/users/7");
+    expect(r.location().hash).toBe("profile");
+    expect(r.params()).toEqual({ id: "7" });
+  });
+
   it("replace() navigates without adding history entry", async () => {
     const r = makeRouter();
     const before = window.history.length;
@@ -110,6 +126,18 @@ describe("Router", () => {
     ]);
     await r.push("/a"); // /a → /b → /a → /b ... should stop
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("Maximum redirect depth"));
+    warn.mockRestore();
+  });
+
+  it("max redirect depth warning shows route name when target is a NamedNavigationTarget", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const r = new RouterInstance([
+      { path: "/about", name: "about", component: AboutPage },
+    ]);
+    // Call push directly with _redirectDepth > 10 and a named target
+    // to exercise the `typeof target === "string" ? target : target.name` branch.
+    await r.push({ name: "about" }, undefined, undefined, 11);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("about"));
     warn.mockRestore();
   });
 
@@ -293,6 +321,24 @@ describe("Router lazy component", () => {
     resolveLoader({ default: AboutPage });
     await pushPromise;
     expect(r.loading()).toBe(false);
+  });
+
+  it("replace() with inline hash in path string extracts hash and matches route", async () => {
+    const r = makeRouter();
+    await r.replace("/about#section");
+    expect(r.location().path).toBe("/about");
+    expect(r.location().hash).toBe("section");
+    expect(r.currentComponent()).toBe(AboutPage);
+  });
+
+  it("replace() inline hash with named target sets hash from target.hash", async () => {
+    const r = new RouterInstance([
+      { path: "/", component: HomePage },
+      { path: "/about", name: "about", component: AboutPage },
+    ]);
+    await r.replace({ name: "about", hash: "top" });
+    expect(r.location().path).toBe("/about");
+    expect(r.location().hash).toBe("top");
   });
 
   it("replace() with query string updates location", async () => {

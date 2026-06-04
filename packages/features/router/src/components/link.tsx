@@ -4,8 +4,10 @@ import type { Children } from "@praxisjs/shared";
 
 import { useRouter } from "../router";
 
+import type { NamedNavigationTarget } from "../types/route";
+
 interface LinkProps {
-  to: string;
+  to: string | NamedNavigationTarget;
   replace?: boolean;
   class?: string;
   activeClass?: string;
@@ -26,6 +28,7 @@ export class Link extends StatelessComponent<LinkProps> {
     } = this.props;
 
     const router = useRouter();
+    const resolvedPath = typeof to === "string" ? to : router.resolvePath(to);
 
     const handleClick = (e: MouseEvent) => {
       e.preventDefault();
@@ -38,9 +41,9 @@ export class Link extends StatelessComponent<LinkProps> {
 
     return (
       <a
-        href={to}
+        href={resolvedPath}
         class={() => {
-          const isActive = router.location().path === to;
+          const isActive = router.location().path === resolvedPath;
           return [cls, isActive ? activeClass : ""].filter(Boolean).join(" ");
         }}
         style={style}
