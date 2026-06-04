@@ -30,6 +30,29 @@ class HomePage extends StatefulComponent {
 
 ---
 
+## Preload and prefetch
+
+Use `preload` to hint the browser to fetch critical resources early (fonts, hero images, scripts). Use `prefetch` to speculatively load resources for likely future navigations.
+
+```tsx
+@Head({
+  preload: [
+    { href: '/fonts/inter.woff2', as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' },
+    { href: '/hero.jpg', as: 'image' },
+  ],
+  prefetch: [
+    { href: '/about' },
+    { href: '/chunk-vendor.js', as: 'script' },
+  ],
+})
+@Component()
+class HomePage extends StatefulComponent { … }
+```
+
+Both arrays are fully reactive when passed inside a getter — the links update in the same tick as any other `HeadConfig` field.
+
+---
+
 ## Reactive config
 
 Pass a getter function to read signals. Any signal read inside re-runs the update automatically:
@@ -39,6 +62,7 @@ Pass a getter function to read signals. Any signal read inside re-runs the updat
   title: `${self.post.data()?.title ?? 'Loading…'} — My Blog`,
   description: self.post.data()?.summary ?? '',
   canonical: `https://myblog.com/posts/${self.slug}`,
+  preload: [{ href: self.post.data()?.coverImage ?? '', as: 'image' }],
   og: {
     title: self.post.data()?.title,
     description: self.post.data()?.summary,
@@ -94,7 +118,7 @@ class HeadDisplay extends StatefulComponent {
 ## HeadConfig reference
 
 ```ts
-import type { HeadConfig, MetaTag } from '@praxisjs/head'
+import type { HeadConfig, MetaTag, LinkPreload, LinkPrefetch } from '@praxisjs/head'
 ```
 
 | Field | Type | Description |
@@ -102,6 +126,8 @@ import type { HeadConfig, MetaTag } from '@praxisjs/head'
 | `title` | `string` | Sets `document.title` |
 | `description` | `string` | `<meta name="description">` |
 | `canonical` | `string` | `<link rel="canonical" href="...">` |
+| `preload` | `LinkPreload[]` | `<link rel="preload">` — hints the browser to fetch resources early |
+| `prefetch` | `LinkPrefetch[]` | `<link rel="prefetch">` — speculatively loads resources for future navigations |
 | `meta` | `MetaTag[]` | Arbitrary `<meta>` tags by `name` or `property` |
 | `og.title` | `string` | `<meta property="og:title">` |
 | `og.description` | `string` | `<meta property="og:description">` |
@@ -113,6 +139,18 @@ import type { HeadConfig, MetaTag } from '@praxisjs/head'
 | `twitter.title` | `string` | `<meta name="twitter:title">` |
 | `twitter.description` | `string` | `<meta name="twitter:description">` |
 | `twitter.image` | `string` | `<meta name="twitter:image">` |
+
+**`LinkPreload`**
+
+```ts
+{ href: string; as: string; type?: string; crossOrigin?: 'anonymous' | 'use-credentials' }
+```
+
+**`LinkPrefetch`**
+
+```ts
+{ href: string; as?: string }
+```
 
 **`MetaTag`**
 
@@ -158,4 +196,5 @@ When `PostPage` unmounts, `Layout`'s entry takes over automatically.
 `@Head` only manages tags it creates (marked with `data-praxis-head`). Pre-existing tags in the HTML template are not modified or removed. For a fully JS-managed head (SPA), omit default meta tags from the HTML and let `@Head` manage them entirely.
 </Callout>
 
-<StorybookLink story="essentials-head--head" label="Live demo — reactive title, og, twitter" />
+<StorybookLink story="essentials-head--head-story" label="Live demo — reactive title, og, twitter" />
+<StorybookLink story="essentials-head--head-preload-story" label="Live demo — preload & prefetch" />

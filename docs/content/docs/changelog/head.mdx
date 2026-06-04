@@ -1,10 +1,21 @@
 ---
 title: "@praxisjs/head"
-description: Changelog for @praxisjs/head — reactive document title, meta, og:*, and twitter:* management via the @Head decorator.
+description: Changelog for @praxisjs/head — reactive document title, meta, og:*, twitter:*, preload, and prefetch management via the @Head decorator.
 icon: Globe
 ---
 
 # @praxisjs/head
+
+## 0.2.0
+
+Added `preload` and `prefetch` link support to `HeadConfig`.
+
+- `preload?: LinkPreload[]` — emits `<link rel="preload" href="..." as="...">` tags. Supports optional `type` and `crossOrigin` attributes (required for fonts with cross-origin isolation).
+- `prefetch?: LinkPrefetch[]` — emits `<link rel="prefetch" href="...">` tags with an optional `as` hint.
+
+Both fields are reactive: passing them inside a getter re-applies the correct link tags whenever their signal dependencies change. All managed tags are cleaned up on unmount.
+
+New exported types: `LinkPreload`, `LinkPrefetch`.
 
 ## 0.1.0
 
