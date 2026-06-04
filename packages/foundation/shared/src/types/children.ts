@@ -44,5 +44,6 @@ export interface ComponentInstance {
   onBeforeMount?(): void;
   onMount?(): void;
   onUnmount?(): void;
-  onError?(e: Error): Node | Node[] | null | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  onError?(e: Error): Node | Node[] | null | undefined | void;
 }

@@ -33,7 +33,7 @@ class MultiComp extends StatefulComponent {
 class ErrorComp extends StatefulComponent {
   static __isComponent = true as const;
   static __isStateless = false;
-  onError(_err: Error) {}
+  onError(_err: Error): undefined {}
   render(): never {
     throw new Error("render error");
   }
@@ -42,7 +42,7 @@ class ErrorComp extends StatefulComponent {
 class NonErrorThrowComp extends StatefulComponent {
   static __isComponent = true as const;
   static __isStateless = false;
-  onError(_err: Error) {}
+  onError(_err: Error): undefined {}
   render(): never {
     // eslint-disable-next-line @typescript-eslint/only-throw-error
     throw "string render error";
@@ -170,7 +170,7 @@ describe("mountComponent", () => {
     class ThrowingErrorComp extends StatefulComponent {
       static __isComponent = true as const;
       static __isStateless = false;
-      onError(_err: Error) {
+      onError(_err: Error): never {
         throw new Error("onError also throws");
       }
       render(): never {
@@ -282,7 +282,7 @@ describe("mountComponent", () => {
     class NoRenderComp extends StatefulComponent {
       static __isComponent = true as const;
       static __isStateless = false;
-      onError(err: Error) { caughtError = err; }
+      onError(err: Error): undefined { caughtError = err; }
       render(): Node[] { throw new TypeError("render is not implemented"); }
     }
     const scope = new Scope();

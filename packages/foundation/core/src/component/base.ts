@@ -19,7 +19,8 @@ export abstract class RootComponent<T extends object = Record<string, never>> {
   onBeforeMount?(): void;
   onMount?(): void;
   onUnmount?(): void;
-  onError?(error: Error): Node | Node[] | null | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  onError?(error: Error): Node | Node[] | null | undefined | void;
 
   abstract render(): Node | Node[] | null;
 }
