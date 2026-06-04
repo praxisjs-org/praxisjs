@@ -38,17 +38,39 @@ class UserProfile extends StatefulComponent {
 
 ---
 
+## AbortSignal support (opt-in)
+
+Name the first parameter of your async method `signal` to receive an `AbortSignal`. The decorator detects the parameter name and injects the signal automatically — callers never pass it.
+
+```tsx
+async loadUser(signal: AbortSignal, id: number) {
+  // Pass to fetch, setTimeout wrappers, or any Web API that accepts a signal
+  this.user = await fetch(`/api/users/${id}`, { signal }).then(r => r.json())
+}
+```
+
+Methods without a `signal` parameter work exactly as before. The feature is additive and fully backward-compatible.
+
+When a signal is present:
+- `@Task` — each new invocation aborts the previous signal
+- `@Queue` — `clear()` also aborts the currently running item's signal
+- `@Pool` — `cancelAll()` aborts all active signals
+
+`AbortError` thrown by a cancelled operation is never stored in `.error()`.
+
+---
+
 ## `@Task(methodName)` — concurrent execution
 
-Runs calls concurrently. If multiple calls are in-flight, only the last one updates state — earlier results are discarded.
+Runs calls concurrently. If multiple calls are in-flight, only the last one updates state — earlier results are discarded. With `signal`, earlier requests are also actively aborted.
 
 ```tsx
 @Component()
 class UserProfile extends StatefulComponent {
   @State() user: User | null = null
 
-  async loadUser(id: number) {
-    this.user = await api.getUser(id)
+  async loadUser(signal: AbortSignal, id: number) {
+    this.user = await fetch(`/api/users/${id}`, { signal }).then(r => r.json())
   }
 
   @Task('loadUser')
@@ -63,6 +85,7 @@ class UserProfile extends StatefulComponent {
         )}
         {() => this.user && <UserCard user={this.user} />}
         <button onClick={() => this.taskLoadUser(1)}>Load user 1</button>
+        <button onClick={() => this.taskLoadUser.cancelAll()}>Cancel</button>
       </div>
     )
   }
@@ -71,21 +94,22 @@ class UserProfile extends StatefulComponent {
 
 Reactive state: `.loading()`, `.error()`, `.lastResult()`, `.cancelAll()`
 
-<StorybookLink story="composables-concurrency-task--task-story" label="Live demo — @Task" />
+<StorybookLink story="composables-concurrency-task--task-story" label="Live demo — @Task (with AbortSignal)" />
+<StorybookLink story="composables-concurrency-task--task-no-signal-story" label="Live demo — @Task (without signal)" />
 
 ---
 
 ## `@Queue(methodName)` — serial execution
 
-Calls run one at a time. If a call arrives while one is running, it waits its turn.
+Calls run one at a time. If a call arrives while one is running, it waits its turn. With `signal`, calling `clear()` also aborts the currently running call.
 
 ```tsx
 import { Queue, QueueOf } from '@praxisjs/concurrent'
 
 @Component()
 class DocumentEditor extends StatefulComponent {
-  async saveDocument(data: DocumentData) {
-    await api.save(data)
+  async saveDocument(signal: AbortSignal, data: DocumentData) {
+    await fetch('/api/save', { method: 'POST', body: JSON.stringify(data), signal })
   }
 
   @Queue('saveDocument')
@@ -108,7 +132,7 @@ Reactive state: `.loading()`, `.error()`, `.pending()`, `.clear()`
 
 ### Clearing the queue
 
-`.clear()` cancels all queued (not-yet-started) calls. Each cancelled call's promise rejects with a `QueueClearedError`:
+`.clear()` cancels all queued (not-yet-started) calls and, when `signal` is declared, aborts the running call too. Each cancelled call's promise rejects with `QueueClearedError`:
 
 ```tsx
 import { QueueClearedError } from '@praxisjs/concurrent'
@@ -127,7 +151,8 @@ async saveAll() {
 }
 ```
 
-<StorybookLink story="composables-concurrency-queue--queue-story" label="Live demo — @Queue" />
+<StorybookLink story="composables-concurrency-queue--queue-story" label="Live demo — @Queue (with AbortSignal)" />
+<StorybookLink story="composables-concurrency-queue--queue-no-signal-story" label="Live demo — @Queue (without signal)" />
 
 ---
 
@@ -140,8 +165,8 @@ import { Pool, PoolOf } from '@praxisjs/concurrent'
 
 @Component()
 class FileUploader extends StatefulComponent {
-  async uploadFile(file: File) {
-    await api.upload(file)
+  async uploadFile(signal: AbortSignal, file: File) {
+    await fetch('/upload', { method: 'POST', body: file, signal })
   }
 
   @Pool('uploadFile', 3)  // max 3 uploads at once
@@ -156,15 +181,19 @@ class FileUploader extends StatefulComponent {
       <p>
         Uploading: {() => this.taskUploadFile.active()} /
         Queued: {() => this.taskUploadFile.pending()}
+        <button onClick={() => this.taskUploadFile.cancelAll()}>Cancel all</button>
       </p>
     )
   }
 }
 ```
 
-Reactive state: `.loading()`, `.error()`, `.active()`, `.pending()`
+Reactive state: `.loading()`, `.error()`, `.active()`, `.pending()`, `.cancelAll()`
 
-<StorybookLink story="composables-concurrency-pool--pool-story" label="Live demo — @Pool" />
+`.cancelAll()` aborts all active signals (when `signal` is declared) and resolves all pending calls as `undefined`.
+
+<StorybookLink story="composables-concurrency-pool--pool-story" label="Live demo — @Pool (with AbortSignal)" />
+<StorybookLink story="composables-concurrency-pool--pool-no-signal-story" label="Live demo — @Pool (without signal)" />
 
 ---
 
@@ -173,12 +202,12 @@ Reactive state: `.loading()`, `.error()`, `.active()`, `.pending()`
 | Property | `@Task` | `@Queue` | `@Pool` | Description |
 |---|:-:|:-:|:-:|---|
 | `.loading()` | ✓ | ✓ | ✓ | True while any call is in-flight |
-| `.error()` | ✓ | ✓ | ✓ | Last error, or `null` |
+| `.error()` | ✓ | ✓ | ✓ | Last error, or `null` (AbortError excluded) |
 | `.lastResult()` | ✓ | | | Return value of last successful call |
 | `.pending()` | | ✓ | ✓ | Calls waiting in the queue |
 | `.active()` | | | ✓ | Calls currently running |
-| `.cancelAll()` | ✓ | | | Discards in-flight results (does not abort the promise) |
-| `.clear()` | | ✓ | | Cancels all queued calls with `QueueClearedError` |
+| `.cancelAll()` | ✓ | | ✓ | Abort in-flight / pending operations |
+| `.clear()` | | ✓ | | Cancel all queued calls with `QueueClearedError` |
 
 ---
 
@@ -191,3 +220,5 @@ Use these generics to type the companion field with full intellisense:
 | `TaskOf<Class, 'method'>` | Type for a `@Task` companion field |
 | `QueueOf<Class, 'method'>` | Type for a `@Queue` companion field |
 | `PoolOf<Class, 'method'>` | Type for a `@Pool` companion field |
+
+When the method declares `signal: AbortSignal` as its first parameter, the type helper automatically strips it from the public callable signature — callers only see the remaining arguments.

@@ -1,6 +1,6 @@
 ---
 title: Router
-description: "@praxisjs/router — signal-based client-side router. Configure routes with @Router, define lazy routes with @Lazy, annotate pages with @Route, and inject reactive router state with @Router(), @Params, @Query, @Location."
+description: "@praxisjs/router — signal-based client-side router. Configure routes with @Router, define lazy routes with @Lazy, annotate pages with @Route, inject reactive router state with @Router(), @Params, @Query, @Location, and navigate by name with push({ name }) or replace({ name })."
 icon: Route
 ---
 
@@ -53,12 +53,12 @@ class App extends StatefulComponent {
 
 ---
 
-## `@Route(path)`
+## `@Route(path | options)`
 
 Co-locates the route path with the page component. Pass the decorated class directly to `@Router` — the path is read automatically.
 
 ```tsx
-// pages/About.tsx
+// pages/About.tsx — simple string form
 @Route('/about')
 @Component()
 export default class About extends StatefulComponent {
@@ -67,19 +67,36 @@ export default class About extends StatefulComponent {
 ```
 
 ```tsx
+// pages/UserDetail.tsx — options object form (adds name and meta)
+@Route({ path: '/users/:id', name: 'user', meta: { requiresAuth: true } })
+@Component()
+export default class UserDetail extends StatefulComponent {
+  render() { return <main>User detail</main> }
+}
+```
+
+```tsx
 // app.tsx
-@Router([About])  // path from @Route('/about')
+@Router([About, UserDetail])  // path/name/meta read from @Route
 @Component()
 class App extends StatefulComponent { /* ... */ }
 ```
 
-You can still use the object form when you need `children`, `beforeEnter`, or other options:
+You can still use the object form directly in `@Router` when you need `children`, `beforeEnter`, or other options:
 
 ```tsx
 @Router([
-  { path: About.__routePath, component: About, beforeEnter: authGuard },
+  { path: '/about', name: 'about', component: About, beforeEnter: authGuard },
 ])
 ```
+
+### `RouteOptions`
+
+| Field | Type | Description |
+|---|---|---|
+| `path` | `string` | URL pattern (supports `:param`, `:param?`, `**`) |
+| `name` | `string` (optional) | Unique route name for programmatic navigation |
+| `meta` | `Record<string, unknown>` (optional) | Arbitrary metadata (roles, breadcrumbs, title, …) |
 
 ---
 
@@ -154,7 +171,26 @@ render() {
 }
 ```
 
-`RouteLocation` has `path`, `params`, `query`, and `hash`.
+`RouteLocation` has `path`, `params`, `query`, `hash`, `name`, and `meta`.
+
+### `@Meta()` — route meta
+
+Injects the `meta` computed for the current route. Useful for reading roles, breadcrumbs, page titles, or any other per-route metadata.
+
+```tsx
+import { Meta } from '@praxisjs/router'
+import type { Computed } from '@praxisjs/shared'
+import type { RouteMeta } from '@praxisjs/router'
+
+@Component()
+class PageTitle extends StatefulComponent {
+  @Meta() meta!: Computed<RouteMeta>
+
+  render() {
+    return <title>{() => String(this.meta().title ?? 'App')}</title>
+  }
+}
+```
 
 ---
 
@@ -175,12 +211,13 @@ class NavBar extends StatefulComponent {
 
 | Field | Type | Description |
 |---|---|---|
-| `location` | `RouteLocation` | Current route — `path`, `params`, `query`, `hash` |
+| `location` | `RouteLocation` | Current route — `path`, `params`, `query`, `hash`, `name`, `meta` |
 | `currentComponent` | `Signal<RouteComponent \| null>` | Matched page component, or `null` when no route matches |
 | `currentLayout` | `Signal<RouteComponent \| null>` | Active layout component, or `null` |
 | `loading` | `Signal<boolean>` | `true` while a lazy component or layout is being resolved |
 | `params` | `RouteParams` | Shorthand for `location().params` |
 | `query` | `RouteQuery` | Shorthand for `location().query` |
+| `meta` | `Computed<RouteMeta>` | Shorthand for `location().meta` |
 
 Read them inside `{() => ...}` to create reactive bindings:
 
@@ -188,19 +225,27 @@ Read them inside `{() => ...}` to create reactive bindings:
 {() => this.router.loading() && <Spinner />}
 {() => this.router.params().id}
 {() => this.router.location().path}
+{() => this.router.meta().title}
 ```
 
 ### Navigation methods
 
+Navigation accepts either a **path string** or a **named target** — `{ name, params?, query?, hash? }`:
+
 ```ts
-// Push a new entry onto the history stack
+// Push a new entry onto the history stack — by path
 await this.router.push('/users/42')
 await this.router.push('/search', { q: 'foo' })        // with query
 await this.router.push('/docs', undefined, 'intro')    // with hash
 
+// Push by name (recommended — decouples navigation from URL shape)
+await this.router.push({ name: 'user', params: { id: '42' } })
+await this.router.push({ name: 'search', query: { q: 'foo' } })
+await this.router.push({ name: 'docs', hash: 'intro' })
+
 // Replace the current history entry (no back-button entry added)
 await this.router.replace('/login')
-await this.router.replace('/search', { q: 'foo' })
+await this.router.replace({ name: 'login' })
 
 // History traversal
 this.router.back()
@@ -210,6 +255,26 @@ this.router.go(-2)   // arbitrary delta
 
 `push` and `replace` return a `Promise<void>` that resolves once the navigation (including any `beforeEnter` guards and lazy-load resolution) is complete.
 
+### `resolvePath(target)`
+
+Converts a named target to its concrete path string without navigating. Useful for `href` generation or passing to third-party APIs:
+
+```ts
+router.resolvePath({ name: 'user', params: { id: '42' } })
+// → '/users/42'
+```
+
+### `afterEach(handler)` — global lifecycle hook
+
+Register a handler that runs after every completed navigation. Returns an unregister function:
+
+```ts
+const unregister = router.afterEach((to, from) => {
+  analytics.pageView(to.path)
+})
+// Call unregister() to remove the handler
+```
+
 ---
 
 ## `<Link>` component
@@ -217,14 +282,21 @@ this.router.go(-2)   // arbitrary delta
 ```tsx
 import { Link } from '@praxisjs/router'
 
+{/* by path */}
 <Link to="/home">Home</Link>
 <Link to="/users" activeClass="nav-active">Users</Link>
 <Link to="/settings" replace>Settings</Link>
+
+{/* by name */}
+<Link to={{ name: 'user', params: { id: '42' } }}>User 42</Link>
+<Link to={{ name: 'search', query: { q: 'praxis' } }}>Search</Link>
 ```
+
+`<Link>` resolves named targets to a concrete path for the `href` attribute and compares it against the current route for the active class.
 
 | Prop | Type | Description |
 |---|---|---|
-| `to` | `string` | Target path |
+| `to` | `string \| NamedNavigationTarget` | Target path or named route target |
 | `replace` | `boolean` | Replace current entry instead of pushing |
 | `activeClass` | `string` | CSS class added when the route is active |
 
@@ -358,6 +430,90 @@ class DebugBar extends StatefulComponent {
 
 ---
 
+## Named routes
+
+Give any route a `name` to navigate by name instead of hardcoding paths. When a URL changes, only the route definition needs updating — all call sites continue to work.
+
+```ts
+@Router([
+  { path: '/',           name: 'home',    component: HomePage },
+  { path: '/users/:id',  name: 'user',    component: UserDetail },
+  { path: '/about',      name: 'about',   component: AboutPage },
+])
+```
+
+Navigate with `push({ name })` or `replace({ name })`:
+
+```ts
+// navigate to /users/42
+await router.push({ name: 'user', params: { id: '42' } })
+
+// with query and hash
+await router.push({ name: 'about', query: { ref: 'nav' }, hash: 'team' })
+```
+
+Use in `<Link>`:
+
+```tsx
+<Link to={{ name: 'user', params: { id: profile.id } }}>View Profile</Link>
+```
+
+<StorybookLink story="ecosystem-router-named-routes--default" label="Live demo — Named routes" />
+
+---
+
+## Route meta
+
+Attach arbitrary data to any route with the `meta` field. Common uses: auth requirements, breadcrumbs, page titles.
+
+```ts
+@Router([
+  { path: '/',        name: 'home',    component: HomePage, meta: { title: 'Home' } },
+  { path: '/admin',   name: 'admin',   component: AdminPage, meta: { requiresAuth: true, roles: ['admin'] } },
+  { path: '/docs/**', name: 'docs',    component: DocsPage,  meta: { breadcrumb: 'Docs' } },
+])
+```
+
+Access meta in a `beforeEnter` guard:
+
+```ts
+{
+  path: '/admin',
+  name: 'admin',
+  meta: { requiresAuth: true },
+  component: AdminPage,
+  beforeEnter: async (to) => {
+    if (to.meta.requiresAuth && !auth.loggedIn) return '/login'
+    return true
+  },
+}
+```
+
+Read reactively in a component with `@Meta()`:
+
+```tsx
+@Component()
+class AppTitle extends StatefulComponent {
+  @Meta() meta!: Computed<RouteMeta>
+
+  render() {
+    return <title>{() => String(this.meta().title ?? 'My App')}</title>
+  }
+}
+```
+
+Or via the `RouterInstance`:
+
+```ts
+router.meta()           // current route meta object
+router.location().meta  // same, via the location signal
+router.location().name  // current route name (or undefined)
+```
+
+<StorybookLink story="ecosystem-router-route-meta--default" label="Live demo — Route meta (title, breadcrumbs, auth)" />
+
+---
+
 ## Route path syntax
 
 ### Named parameters
@@ -390,6 +546,132 @@ Use `**` to match any tail (including slashes). Typically placed last as a catch
 { path: '/docs/**',  component: DocsPage }  // /docs/guide/intro → full tail captured
 { path: '**',        component: NotFound }  // catch-all fallback
 ```
+
+---
+
+## Navigation lifecycle hooks
+
+### `afterEnter` — per-route hook
+
+Runs after entering a specific route. Executes after the component and layout are resolved. Useful for analytics, page-specific focus management, or side effects scoped to a single route.
+
+```ts
+{
+  path: '/dashboard',
+  component: DashboardPage,
+  afterEnter(to, from) {
+    analytics.track('page_view', { path: to.path })
+    document.getElementById('main')?.focus()
+  },
+}
+```
+
+`afterEnter` receives `(to, from)` just like `beforeEnter`. Unlike `beforeEnter`, the return value is ignored — it runs fire-and-forget (not async-awaited for navigation timing).
+
+### `router.afterEach()` — global hook
+
+Register a handler that fires after every completed navigation, across all routes.
+
+```ts
+const router = useRouter()
+
+// Register — returns an unregister function
+const unregister = router.afterEach((to, from) => {
+  analytics.pageView(to.path)
+})
+
+// Tear down when no longer needed
+unregister()
+```
+
+`afterEach` runs after `afterEnter` for the matched route. Handlers are called in registration order. Navigation that is blocked by `beforeEnter` returning `false` does **not** trigger `afterEach`.
+
+**Typical uses:**
+
+| Use case | Approach |
+|---|---|
+| Analytics / page view tracking | `router.afterEach((to) => analytics.track(to.path))` |
+| Focus management | `router.afterEach(() => document.getElementById('main')?.focus())` |
+| Document title | `router.afterEach((to) => { document.title = String(to.meta.title ?? 'App') })` |
+| Breadcrumb updates | `router.afterEach((to) => breadcrumb.set(to.meta.breadcrumb))` |
+
+**Hook execution order per navigation:**
+
+```
+beforeEnter (guard)
+  ↓ (if not blocked)
+component / layout resolved
+  ↓
+afterEnter  (per-route)
+  ↓
+afterEach   (global, all handlers in order)
+  ↓
+scrollBehavior (if configured)
+```
+
+<StorybookLink story="ecosystem-router-navigation-hooks--default" label="Live demo — afterEnter + afterEach event log" />
+
+---
+
+## Scroll restoration
+
+Configure scroll behavior per navigation via the `scrollBehavior` option passed to `createRouter` (or `@Router`). Called after every navigation completes (including popstate back/forward).
+
+```ts
+createRouter(routes, {
+  scrollBehavior(to, from, savedPosition) {
+    // Back/forward navigation: restore previous scroll position
+    if (savedPosition) return savedPosition
+
+    // Hash navigation: scroll to the target element
+    if (to.hash) return { el: `#${to.hash}` }
+
+    // Otherwise: scroll to top
+    return { top: 0, left: 0 }
+  },
+})
+```
+
+With `@Router`:
+
+```ts
+@Router(
+  [Home, About, UserDetail],
+  {
+    scrollBehavior(to, from, savedPosition) {
+      return savedPosition ?? { top: 0 }
+    },
+  },
+)
+@Component()
+class App extends StatefulComponent { /* ... */ }
+```
+
+### `scrollBehavior` signature
+
+```ts
+type ScrollBehavior = (
+  to: RouteLocationInternal,
+  from: RouteLocationInternal | null,
+  savedPosition: SavedScrollPosition | null,
+) => ScrollPosition | Promise<ScrollPosition>
+```
+
+`scrollBehavior` can be async — the router awaits the returned Promise before applying scroll.
+
+### `ScrollPosition` values
+
+| Return value | Effect |
+|---|---|
+| `{ top, left }` | `window.scrollTo(left, top)` |
+| `{ el: '#id' }` | `element.scrollIntoView()` |
+| `false` | no scrolling |
+
+### How scroll positions are saved
+
+Before each `push()` navigation, the router saves the current `window.scrollX` / `window.scrollY` into the current `history.state` entry. On back/forward (popstate), the saved coordinates are passed as `savedPosition` to your `scrollBehavior`. If no coordinates were saved (e.g. first page load), `savedPosition` is `null`.
+
+<StorybookLink story="ecosystem-router-scroll-restoration--default" label="Live demo — scrollBehavior (top · hash · savedPosition)" />
 
 ---
 

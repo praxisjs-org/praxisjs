@@ -6,6 +6,40 @@ icon: Route
 
 # @praxisjs/router
 
+## 2.1.0
+
+**Named routes** — give routes a `name` and navigate by name instead of hardcoding paths.
+
+- `name?: string` field on `RouteDefinition` and on the `@Route({ path, name, meta })` options object
+- `push({ name, params?, query?, hash? })` and `replace({ name, ... })` — navigate by name; params are interpolated into the path pattern
+- `router.resolvePath({ name, params? })` — convert a named target to a path string without navigating
+- `NamedNavigationTarget` and `NavigationInput` types exported from the package
+- `<Link to={{ name, params?, query?, hash? }}>` — `to` prop now accepts `string | NamedNavigationTarget`
+
+**Route meta** — attach arbitrary metadata to any route definition.
+
+- `meta?: Record<string, unknown>` field on `RouteDefinition` / `@Route` options
+- `location().meta` — current route meta object (defaults to `{}` when unset)
+- `location().name` — current route name (`string | undefined`)
+- `router.meta` — reactive `Computed<RouteMeta>` shorthand for `location().meta`
+- `@Meta()` — new field decorator; injects `router.meta` into any component field
+- `useMeta()` — composable returning `router.meta`
+- `RouteMeta` type exported from the package
+
+**Navigation lifecycle hooks** — post-navigation callbacks for analytics, focus management, and side effects.
+
+- `afterEnter?: (to, from) => void` — per-route hook in `RouteDefinition`; fires after the component is resolved, before global `afterEach` handlers
+- `router.afterEach(handler)` — global hook; fires after every completed navigation (not called when `beforeEnter` blocks); returns an unregister function
+- Hook execution order: `beforeEnter → component resolved → afterEnter → afterEach → scrollBehavior`
+
+**Scroll restoration** — configurable scroll behavior per navigation.
+
+- `scrollBehavior?: ScrollBehavior` option added to `RouterOptions` / `createRouter` / `@Router`
+- Receives `(to, from, savedPosition)` — `savedPosition` is non-null on back/forward navigations
+- Return `{ top, left }` to scroll to coordinates, `{ el }` to scroll an element into view, or `false` to skip scrolling; can return a `Promise`
+- Scroll position of the departing page is automatically saved into `history.state` before each `push()`; restored via `savedPosition` on popstate
+- Exported: `ScrollPosition`, `ScrollBehavior`, `SavedScrollPosition`, `RouterOptions`
+
 ## 2.0.0
 
 <Callout type="warn" title="Breaking — route type aliases changed">
