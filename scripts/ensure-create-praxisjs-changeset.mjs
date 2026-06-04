@@ -47,7 +47,7 @@ if (!hasWorkspaceChanges || createPraxisAlreadyIncluded) {
 }
 
 const filename = join(changesetDir, `auto-create-praxisjs-bump-${Date.now()}.md`)
-const content = `---\n"create-praxisjs": patch\n---\n\nBump template dependencies to match updated @praxisjs packages.\n`
+const content = `---\n"create-praxisjs": patch\n---\n\nBump template dependencies to match updated @praxisjs-org packages.\n`
 
 writeFileSync(filename, content)
 console.log(`Auto-generated changeset for create-praxisjs: ${filename}`)
