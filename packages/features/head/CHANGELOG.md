@@ -1,5 +1,22 @@
 # @praxisjs/head
 
+## 0.2.0
+
+### Minor Changes
+
+- f8ccd4b: Add `preload` and `prefetch` link support to `@Head` / `HeadConfig`.
+  - `preload?: LinkPreload[]` — emits `<link rel="preload">` tags with `href`, `as`, optional `type` and `crossOrigin`
+  - `prefetch?: LinkPrefetch[]` — emits `<link rel="prefetch">` tags with `href` and optional `as`
+
+  Both fields are reactive when used inside a getter and cleaned up automatically on component unmount.
+
+### Patch Changes
+
+- Updated dependencies [80442e0]
+  - @praxisjs/decorators@1.3.0
+  - @praxisjs/core@1.8.0
+  - @praxisjs/shared@0.3.0
+
 ## 0.1.2
 
 ### Patch Changes

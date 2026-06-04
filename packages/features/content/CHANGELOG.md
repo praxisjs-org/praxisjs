@@ -1,5 +1,13 @@
 # @praxisjs/content
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [80442e0]
+  - @praxisjs/decorators@1.3.0
+  - @praxisjs/core@1.8.0
+
 ## 0.1.3
 
 ### Patch Changes

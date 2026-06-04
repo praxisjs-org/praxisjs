@@ -1,5 +1,17 @@
 # @praxisjs/store
 
+## 1.3.0
+
+### Minor Changes
+
+- ce3a21f: Add plugin system — `useStorePlugin`, `clearPlugins`, and the `StorePlugin` interface. Plugins receive four hooks (`onInit`, `onMutation`, `onAction`, `onActionDone`) and work with both `createStore` (functional API) and class-based `@Storable` stores. The `onInit` hook receives an `extend()` function to add custom properties to every store instance (e.g. `$persist`, `$undo`).
+
+### Patch Changes
+
+- Updated dependencies [80442e0]
+  - @praxisjs/decorators@1.3.0
+  - @praxisjs/core@1.8.0
+
 ## 1.2.3
 
 ### Patch Changes
