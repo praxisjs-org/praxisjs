@@ -108,6 +108,75 @@ describe("pushHead / removeHead", () => {
     expect(document.title).toBe("");
   });
 
+  it("adds preload link with href and as", () => {
+    const id = Symbol();
+    pushHead(id, { preload: [{ href: "/fonts/inter.woff2", as: "font" }] });
+    const el = document.querySelector<HTMLLinkElement>('link[rel="preload"]');
+    expect(el?.href).toContain("/fonts/inter.woff2");
+    expect(el?.getAttribute("as")).toBe("font");
+  });
+
+  it("adds preload link with type and crossOrigin", () => {
+    const id = Symbol();
+    pushHead(id, {
+      preload: [{ href: "/fonts/inter.woff2", as: "font", type: "font/woff2", crossOrigin: "anonymous" }],
+    });
+    const el = document.querySelector<HTMLLinkElement>('link[rel="preload"]');
+    expect(el?.type).toBe("font/woff2");
+    expect(el?.crossOrigin).toBe("anonymous");
+  });
+
+  it("adds multiple preload links", () => {
+    const id = Symbol();
+    pushHead(id, {
+      preload: [
+        { href: "/style.css", as: "style" },
+        { href: "/app.js", as: "script" },
+      ],
+    });
+    const els = document.querySelectorAll('link[rel="preload"]');
+    expect(els.length).toBe(2);
+    expect(els[0].getAttribute("as")).toBe("style");
+    expect(els[1].getAttribute("as")).toBe("script");
+  });
+
+  it("adds prefetch link with href", () => {
+    const id = Symbol();
+    pushHead(id, { prefetch: [{ href: "/about" }] });
+    const el = document.querySelector<HTMLLinkElement>('link[rel="prefetch"]');
+    expect(el?.href).toContain("/about");
+  });
+
+  it("adds prefetch link with optional as", () => {
+    const id = Symbol();
+    pushHead(id, { prefetch: [{ href: "/chunk.js", as: "script" }] });
+    const el = document.querySelector<HTMLLinkElement>('link[rel="prefetch"]');
+    expect(el?.getAttribute("as")).toBe("script");
+  });
+
+  it("adds multiple prefetch links", () => {
+    const id = Symbol();
+    pushHead(id, {
+      prefetch: [
+        { href: "/about" },
+        { href: "/contact" },
+      ],
+    });
+    const els = document.querySelectorAll('link[rel="prefetch"]');
+    expect(els.length).toBe(2);
+  });
+
+  it("cleans up preload and prefetch on removeHead", () => {
+    const id = Symbol();
+    pushHead(id, {
+      preload: [{ href: "/font.woff2", as: "font" }],
+      prefetch: [{ href: "/next-page" }],
+    });
+    removeHead(id);
+    expect(document.querySelector('link[rel="preload"]')).toBeNull();
+    expect(document.querySelector('link[rel="prefetch"]')).toBeNull();
+  });
+
   it("meta tag with neither name nor property is silently skipped", () => {
     const id = Symbol();
     pushHead(id, { meta: [{ content: "orphan-content" }] });

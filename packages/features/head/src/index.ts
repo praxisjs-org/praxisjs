@@ -5,9 +5,9 @@ import {
   type ClassEnhancement,
 } from "@praxisjs/decorators";
 
-import { pushHead, removeHead, type HeadConfig, type MetaTag, headVersion } from "./head-stack";
+import { pushHead, removeHead, type HeadConfig, type MetaTag, type LinkPreload, type LinkPrefetch, headVersion } from "./head-stack";
 
-export type { HeadConfig, MetaTag };
+export type { HeadConfig, MetaTag, LinkPreload, LinkPrefetch };
 export { headVersion };
 
 class HeadBehavior extends ClassBehavior {

@@ -6,10 +6,24 @@ export interface MetaTag {
   content: string;
 }
 
+export interface LinkPreload {
+  href: string;
+  as: string;
+  type?: string;
+  crossOrigin?: "anonymous" | "use-credentials";
+}
+
+export interface LinkPrefetch {
+  href: string;
+  as?: string;
+}
+
 export interface HeadConfig {
   title?: string;
   description?: string;
   canonical?: string;
+  preload?: LinkPreload[];
+  prefetch?: LinkPrefetch[];
   meta?: MetaTag[];
   og?: {
     title?: string;
@@ -74,6 +88,8 @@ function _apply(): void {
   if (config.title != null) document.title = config.title;
   if (config.description != null) _metaName("description", config.description);
   if (config.canonical != null) _canonical(config.canonical);
+  for (const link of config.preload ?? []) _linkPreload(link);
+  for (const link of config.prefetch ?? []) _linkPrefetch(link);
 
   for (const tag of config.meta ?? []) {
     if (tag.property != null) _metaProp(tag.property, tag.content);
@@ -134,6 +150,26 @@ function _canonical(href: string): void {
   const el = document.createElement("link");
   el.rel = "canonical";
   el.href = href;
+  el.setAttribute(ATTR, "");
+  document.head.appendChild(el);
+}
+
+function _linkPreload(link: LinkPreload): void {
+  const el = document.createElement("link");
+  el.rel = "preload";
+  el.href = link.href;
+  el.setAttribute("as", link.as);
+  if (link.type != null) el.type = link.type;
+  if (link.crossOrigin != null) el.crossOrigin = link.crossOrigin;
+  el.setAttribute(ATTR, "");
+  document.head.appendChild(el);
+}
+
+function _linkPrefetch(link: LinkPrefetch): void {
+  const el = document.createElement("link");
+  el.rel = "prefetch";
+  el.href = link.href;
+  if (link.as != null) el.setAttribute("as", link.as);
   el.setAttribute(ATTR, "");
   document.head.appendChild(el);
 }
