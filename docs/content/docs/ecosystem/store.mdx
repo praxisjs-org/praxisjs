@@ -145,6 +145,129 @@ When any component calls `cart.addItem()`, both `CartSummary` and `CheckoutPage`
 
 ---
 
+## Plugins
+
+Plugins extend every store created after they are registered. Call `useStorePlugin` once at app startup — plugins apply to all stores created from that point on.
+
+```ts
+import { useStorePlugin } from '@praxisjs/store'
+import type { StorePlugin } from '@praxisjs/store'
+
+useStorePlugin(myPlugin)
+```
+
+A plugin is a plain object with a `name` and any combination of four hooks:
+
+```ts
+import type { StorePlugin } from '@praxisjs/store'
+
+const myPlugin: StorePlugin = {
+  name: 'my-plugin',
+
+  // Called once when the store is first created.
+  // Use `extend` to add properties to the store (e.g. $persist, $undo).
+  onInit({ store, storeName, extend }) {
+    extend({ $tag: storeName })
+  },
+
+  // Called after every state mutation (direct assignment or $patch).
+  onMutation({ key, value, prevValue, storeName }) { /* ... */ },
+
+  // Called before a store method executes.
+  onAction({ name, args, storeName }) { /* ... */ },
+
+  // Called after a store method returns (or resolves, if async).
+  // `error` is set when an async method rejects.
+  onActionDone({ name, result, error, storeName }) { /* ... */ },
+}
+```
+
+### Plugin hooks
+
+| Hook | When it runs | Receives |
+|---|---|---|
+| `onInit` | Once, when the store is first created | `store`, `storeName`, `extend(props)` |
+| `onMutation` | After each signal assignment | `key`, `value`, `prevValue`, `storeName` |
+| `onAction` | Before each method call | `name`, `args`, `storeName` |
+| `onActionDone` | After each method returns/resolves | `name`, `result`, `error?`, `storeName` |
+
+<Callout type="info" title="Plugin registration order matters">
+  Plugins are snapshotted at store creation time. Register all plugins before creating stores (or before the first `store()` call for class-based stores). Plugins registered later will not be applied to already-created stores.
+</Callout>
+
+### Logger plugin
+
+```ts
+import { useStorePlugin } from '@praxisjs/store'
+
+useStorePlugin({
+  name: 'logger',
+  onMutation({ storeName, key, value, prevValue }) {
+    console.log(`[${storeName}] ${key}: ${String(prevValue)} → ${String(value)}`)
+  },
+  onAction({ storeName, name, args }) {
+    console.log(`[${storeName}] ${name}(${args.join(', ')})`)
+  },
+})
+```
+
+<StorybookLink story="ecosystem-store-logger-plugin--default" label="Live demo — Logger plugin" />
+
+### Persistence plugin
+
+```ts
+import { useStorePlugin } from '@praxisjs/store'
+
+useStorePlugin({
+  name: 'persist',
+  onInit({ store, storeName }) {
+    const saved = localStorage.getItem(storeName)
+    if (saved) Object.assign(store, JSON.parse(saved) as Record<string, unknown>)
+  },
+  onMutation({ storeName, key, value }) {
+    const current = JSON.parse(localStorage.getItem(storeName) ?? '{}') as Record<string, unknown>
+    localStorage.setItem(storeName, JSON.stringify({ ...current, [key]: value }))
+  },
+})
+```
+
+<StorybookLink story="ecosystem-store-persistence-plugin--default" label="Live demo — Persistence plugin" />
+
+### Extending stores with `extend()`
+
+`onInit` receives an `extend(props)` function. Call it to add extra properties to every store instance — useful for adding `$undo`, `$persist`, or devtools helpers:
+
+```ts
+useStorePlugin({
+  name: 'undo',
+  onInit({ store, extend }) {
+    const history: unknown[] = []
+    extend({
+      $undo() {
+        if (history.length) Object.assign(store, history.pop() as object)
+      },
+    })
+  },
+  onMutation({ store }) {
+    history.push({ ...(store as Record<string, unknown>) })
+  },
+})
+```
+
+<StorybookLink story="ecosystem-store-extend-plugin--default" label="Live demo — extend() / Undo plugin" />
+
+### `clearPlugins()`
+
+Removes all registered plugins. Primarily used in tests to isolate plugin state between test cases.
+
+```ts
+import { clearPlugins } from '@praxisjs/store'
+
+beforeEach(() => clearPlugins())
+```
+
+---
+
 ## Auth store example
 
 A common pattern — a store that holds authentication state and exposes derived values:

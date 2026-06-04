@@ -6,6 +6,10 @@ icon: Store
 
 # @praxisjs/store
 
+## 1.3.0
+
+Plugin system — `useStorePlugin`, `clearPlugins`, and the `StorePlugin` interface. Plugins hook into store lifecycle via `onInit`, `onMutation`, `onAction`, and `onActionDone`. Works with both `createStore` (functional) and class-based `@Storable` stores. See the [Plugins](/docs/ecosystem/store#plugins) section for usage and built-in plugin recipes.
+
 ## 1.2.0
 
 **API rename** — `@Store()` (class decorator) → `@Storable()`, `@UseStore(Class)` (field decorator) → `@Store(Class)`, `useStore()` → `store()`.
