@@ -30,6 +30,7 @@ export function mountComponent(
 
     const start = document.createComment(`[${ctor.name}]`);
     const end = document.createComment(`[/${ctor.name}]`);
+    let disposed = false;
 
     // Expose anchor so decorators like @Virtual can find the parent element
     instance._anchor = end;
@@ -53,12 +54,14 @@ export function mountComponent(
     container.appendChild(end);
 
     queueMicrotask(() => {
+      if (disposed) return;
       instance._mounted = true;
       instance.onMount?.();
       ref?.(instance);
     });
 
     scope.add(() => {
+      disposed = true;
       instance.onUnmount?.();
       instance._mounted = false;
       ref?.(null);

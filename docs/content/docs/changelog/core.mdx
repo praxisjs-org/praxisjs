@@ -6,6 +6,18 @@ icon: Activity
 
 # @praxisjs/core
 
+## 1.8.1
+
+**Bug fix: dynamic reactive dependencies are cleaned up correctly.**
+
+Effects now unsubscribe from dependencies they no longer read when they rerun or stop. Computed values also drop stale branch subscriptions before recomputing, so conditional dependencies do not keep invalidating values after the active branch changes.
+
+Signal notifications now iterate over a stable subscriber snapshot, ensuring that subscription changes during notification do not skip remaining listeners.
+
+**Bug fix: keyed resources keep cache and in-flight state consistent.**
+
+Calling `mutate()` on a resource with a `key` now writes the optimistic value into the shared cache, so future resources with the same key start from the mutated data. Settled keyed requests also clear their shared in-flight entry even if the local result was made stale by `cancel()`.
+
 ## 1.8.0
 
 **`onError` can now return fallback DOM (error boundary).**

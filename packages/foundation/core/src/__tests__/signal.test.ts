@@ -179,6 +179,25 @@ describe("signal", () => {
     expect(holder.subs).toBe(fn1);
   });
 
+  it("addSub does not add a duplicate subscriber to an array holder", () => {
+    const fn1: Effect = () => {};
+    const fn2: Effect = () => {};
+    const holder: { subs: SubList } = { subs: [fn1, fn2] };
+
+    addSub(holder, fn2);
+
+    expect(holder.subs).toEqual([fn1, fn2]);
+  });
+
+  it("removeSub normalizes an emptied array holder back to null", () => {
+    const fn: Effect = () => {};
+    const holder: { subs: SubList } = { subs: [fn] };
+
+    removeSub(holder, fn);
+
+    expect(holder.subs).toBeNull();
+  });
+
   it("set() with mutated object reference (same ref) does NOT notify — Object.is semantics", () => {
     const obj = { count: 0 };
     const s = signal(obj);

@@ -6,6 +6,12 @@ icon: Braces
 
 # @praxisjs/jsx
 
+## 0.5.4
+
+**Bug fix: fragments preserve primitive children.**
+
+Fragments now keep primitive children such as strings and `0` instead of dropping them before runtime mounting. Nested fragment arrays are still flattened, and `null`, `undefined`, and `false` continue to render nothing.
+
 ## 0.5.2
 
 - `ComponentRef<C>` type added — resolves to `(instance: InstanceType<C> | null) => void`. Use it to type a field that holds a component instance obtained via `ref`.

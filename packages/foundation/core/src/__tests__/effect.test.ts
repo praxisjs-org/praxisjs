@@ -1,6 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 
-import { effect, track, activeEffect } from "../signal/effect";
+import {
+  effect,
+  track,
+  activeEffect,
+  cleanupEffectDeps,
+  recordDependency,
+  type SubscriberHolder,
+} from "../signal/effect";
+import { batch } from "../signal/batch";
 import { signal } from "../signal/signal";
 
 describe("effect", () => {
@@ -63,6 +71,50 @@ describe("effect", () => {
     expect(values).toEqual([0]); // only initial run
   });
 
+  it("drops dependencies that are no longer read", () => {
+    const useA = signal(true);
+    const a = signal(1);
+    const b = signal(10);
+    const values: number[] = [];
+
+    effect(() => {
+      values.push(useA() ? a() : b());
+    });
+
+    useA.set(false);
+    expect(values).toEqual([1, 10]);
+
+    a.set(2);
+    expect(values).toEqual([1, 10]);
+
+    b.set(20);
+    expect(values).toEqual([1, 10, 20]);
+  });
+
+  it("does not skip other subscribers when one effect changes subscriptions while notifying", () => {
+    const useOther = signal(false);
+    const source = signal(0);
+    const other = signal(100);
+    const first = vi.fn();
+    const second = vi.fn();
+
+    effect(() => {
+      first(useOther() ? other() : source());
+    });
+    effect(() => {
+      second(source());
+    });
+
+    useOther.set(true);
+    first.mockClear();
+    second.mockClear();
+
+    source.set(1);
+
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledWith(1);
+  });
+
   it("effect with no reactive dependencies runs once only", () => {
     const ran = vi.fn();
     effect(() => {
@@ -101,6 +153,45 @@ describe("effect", () => {
     }).not.toThrow();
     // cleanup is only called once (on first stop)
     expect(cleanupFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a queued run after the effect was stopped", () => {
+    const s = signal(0);
+    const values: number[] = [];
+    const stop = effect(() => {
+      values.push(s());
+    });
+
+    batch(() => {
+      s.set(1);
+      stop();
+    });
+
+    expect(values).toEqual([0]);
+  });
+
+  it("cleanupEffectDeps handles empty, single, and array dependency holders", () => {
+    const tracked = vi.fn();
+    const other = vi.fn();
+    const emptyHolder: SubscriberHolder = { subs: null };
+    const singleHolder: SubscriberHolder = { subs: tracked };
+    const arrayHolder: SubscriberHolder = { subs: [tracked, other] };
+    const unmatchedSingleHolder: SubscriberHolder = { subs: other };
+    const unmatchedArrayHolder: SubscriberHolder = { subs: [other] };
+
+    recordDependency(tracked, emptyHolder);
+    recordDependency(tracked, singleHolder);
+    recordDependency(tracked, arrayHolder);
+    recordDependency(tracked, unmatchedSingleHolder);
+    recordDependency(tracked, unmatchedArrayHolder);
+
+    cleanupEffectDeps(tracked);
+
+    expect(emptyHolder.subs).toBeNull();
+    expect(singleHolder.subs).toBeNull();
+    expect(arrayHolder.subs).toEqual([other]);
+    expect(unmatchedSingleHolder.subs).toBe(other);
+    expect(unmatchedArrayHolder.subs).toEqual([other]);
   });
 
   it("exception inside nested track() restores outer activeEffect", () => {

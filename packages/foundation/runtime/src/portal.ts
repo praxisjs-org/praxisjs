@@ -24,6 +24,7 @@ export class Portal extends StatelessComponent<PortalProps> {
     target.appendChild(end);
 
     scope.add(() => {
+      if (!start.parentNode || start.parentNode !== end.parentNode) return;
       const range = document.createRange();
       range.setStartBefore(start);
       range.setEndAfter(end);

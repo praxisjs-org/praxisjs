@@ -131,6 +131,27 @@ describe("computed", () => {
     expect(c()).toBe(21);
   });
 
+  it("dynamic dependency: stale branch changes do not dirty the computed", () => {
+    const toggle = signal(true);
+    const a = signal(10);
+    const b = signal(20);
+    const fn = vi.fn(() => (toggle() ? a() : b()));
+    const c = computed(fn);
+
+    expect(c()).toBe(10);
+    toggle.set(false);
+    expect(c()).toBe(20);
+    expect(fn).toHaveBeenCalledTimes(2);
+
+    a.set(11);
+    expect(c()).toBe(20);
+    expect(fn).toHaveBeenCalledTimes(2);
+
+    b.set(21);
+    expect(c()).toBe(21);
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
   it("unsubscribe then re-subscribe works correctly", async () => {
     const s = signal(1);
     const c = computed(() => s() * 3);

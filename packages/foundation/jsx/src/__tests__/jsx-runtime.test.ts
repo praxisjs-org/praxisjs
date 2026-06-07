@@ -43,6 +43,17 @@ describe("Fragment", () => {
     expect(result[1]).toBe(b);
   });
 
+  it("preserves primitive children, including 0, for runtime mounting", () => {
+    const node = document.createElement("strong");
+    const result = withScope(() =>
+      jsx(Fragment, { children: ["count: ", 0, false, null, [node]] }),
+    ) as Node[];
+    const container = document.createElement("div");
+    for (const child of result) container.appendChild(child);
+    expect(container.textContent).toBe("count: 0");
+    expect(container.querySelector("strong")).toBe(node);
+  });
+
   it("returns [] when children is a non-Node non-Array value (e.g. plain object)", () => {
     const result = withScope(() =>
       jsx(Fragment, { children: { foo: "bar" } as unknown }),

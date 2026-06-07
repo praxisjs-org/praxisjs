@@ -222,7 +222,7 @@ describe("mountComponent", () => {
     scope.dispose();
   });
 
-  it("onMount microtask fires after dispose() — onMount is still called (current behavior)", async () => {
+  it("skips onMount and instance ref when disposed before the mount microtask", async () => {
     class MountAfterDisposeComp extends StatefulComponent {
       static __isComponent = true as const;
       static __isStateless = false;
@@ -231,11 +231,12 @@ describe("mountComponent", () => {
     }
     const scope = new Scope();
     const onMount = vi.spyOn(MountAfterDisposeComp.prototype, "onMount");
-    mountComponent(MountAfterDisposeComp, {}, scope);
+    const refs: Array<object | null> = [];
+    mountComponent(MountAfterDisposeComp, { ref: (inst: object | null) => { refs.push(inst); } }, scope);
     scope.dispose(); // dispose before microtask flushes
     await Promise.resolve(); // flush microtask
-    // The queueMicrotask callback runs regardless — documents current behavior
-    expect(onMount).toHaveBeenCalled();
+    expect(onMount).not.toHaveBeenCalled();
+    expect(refs).toEqual([null]);
     onMount.mockRestore();
   });
 

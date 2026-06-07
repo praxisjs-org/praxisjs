@@ -63,6 +63,21 @@ import type {
 
 export const Fragment = Symbol("Fragment");
 
+function collectFragmentChildren(children: unknown, out: Node[]): void {
+  if (children === null || children === undefined || children === false) return;
+  if (Array.isArray(children)) {
+    for (const child of children) collectFragmentChildren(child, out);
+    return;
+  }
+  if (children instanceof Node) {
+    out.push(children);
+    return;
+  }
+  if (typeof children === "string" || typeof children === "number") {
+    out.push(document.createTextNode(String(children)));
+  }
+}
+
 type PropsOf<T> = T extends string
   ? T extends keyof JSX.IntrinsicElements
     ? JSX.IntrinsicElements[T]
@@ -79,10 +94,9 @@ export function jsx<T extends string | ComponentConstructor | symbol>(
 
   if (type === Fragment) {
     const { children } = props;
-    if (!children) return [];
-    if (Array.isArray(children)) return children.flat(Infinity) as Node[];
-    if (children instanceof Node) return [children];
-    return [];
+    const nodes: Node[] = [];
+    collectFragmentChildren(children, nodes);
+    return nodes;
   }
 
   if (typeof type === "string") {

@@ -218,6 +218,22 @@ describe("resource — cache + SWR (key, staleTime)", () => {
     r1.destroy();
     r2.destroy();
   });
+
+  it("key: mutate() updates the shared cache for future resources", async () => {
+    const fetcher = vi.fn(() => Promise.resolve("server-value"));
+    const r1 = resource(fetcher, { key: "mutate-cache", staleTime: 60_000 });
+    await vi.waitFor(() => r1.status() === "success");
+
+    r1.mutate("optimistic-value");
+
+    const r2 = resource(fetcher, { key: "mutate-cache", staleTime: 60_000 });
+    expect(r2.data()).toBe("optimistic-value");
+    expect(r2.status()).toBe("success");
+    await new Promise((res) => setTimeout(res, 10));
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    r1.destroy();
+    r2.destroy();
+  });
 });
 
 describe("resource — deduplication", () => {
@@ -240,6 +256,27 @@ describe("resource — deduplication", () => {
 
     expect(r1.data()).toBe("shared-result");
     expect(r2.data()).toBe("shared-result");
+    r1.destroy();
+    r2.destroy();
+  });
+
+  it("key: cancel() clears the settled in-flight request even when the local result is stale", async () => {
+    let resolveFirst!: (v: string) => void;
+    const fetcher = vi.fn(
+      () => new Promise<string>((res) => { resolveFirst = res; }),
+    );
+
+    const r1 = resource(fetcher, { key: "cancel-inflight" });
+    r1.cancel();
+    resolveFirst("stale");
+    await new Promise((res) => setTimeout(res, 0));
+
+    const r2 = resource(() => Promise.resolve("fresh"), { key: "cancel-inflight" });
+    await vi.waitFor(() => r2.data() === "fresh");
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(r1.data()).toBeNull();
+    expect(r2.data()).toBe("fresh");
     r1.destroy();
     r2.destroy();
   });

@@ -1,11 +1,17 @@
 import type { Signal } from "@praxisjs/shared";
 
 import { isBatching, enqueueEffect } from "./batch";
-import { activeEffect, type Effect } from "./effect";
+import {
+  activeEffect,
+  recordDependency,
+  type Effect,
+  type SubList,
+  type SubscriberHolder,
+} from "./effect";
 
-export type SubList = Effect | Effect[] | null;
+export type { SubList } from "./effect";
 
-export function addSub(holder: { subs: SubList }, eff: Effect): void {
+export function addSub(holder: SubscriberHolder, eff: Effect): void {
   const subs = holder.subs;
   if (subs === null) {
     holder.subs = eff;
@@ -14,9 +20,10 @@ export function addSub(holder: { subs: SubList }, eff: Effect): void {
   } else {
     if (!subs.includes(eff)) subs.push(eff);
   }
+  recordDependency(eff, holder);
 }
 
-export function removeSub(holder: { subs: SubList }, eff: Effect): void {
+export function removeSub(holder: SubscriberHolder, eff: Effect): void {
   const subs = holder.subs;
   if (subs === null) return;
   if (typeof subs === "function") {
@@ -24,6 +31,7 @@ export function removeSub(holder: { subs: SubList }, eff: Effect): void {
   } else {
     const idx = subs.indexOf(eff);
     if (idx >= 0) subs.splice(idx, 1);
+    if (subs.length === 0) holder.subs = null;
   }
 }
 
@@ -32,13 +40,14 @@ export function notifySubs(subs: Exclude<SubList, null>, batching: boolean): voi
     if (batching) enqueueEffect(subs); else subs();
     return;
   }
+  const snapshot = [...subs];
   if (batching) {
-    for (const sub of subs) enqueueEffect(sub);
+    for (const sub of snapshot) enqueueEffect(sub);
     return;
   }
   let lastError: unknown;
   let hasError = false;
-  for (const sub of subs) {
+  for (const sub of snapshot) {
     try {
       sub();
     } catch (e) {

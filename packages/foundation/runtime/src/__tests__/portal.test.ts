@@ -76,6 +76,13 @@ describe("Portal", () => {
     expect(document.body.textContent).toBe("pre-existing");
   });
 
+  it("does not throw if portal anchors were removed before dispose", () => {
+    const child = document.createTextNode("temporary");
+    const { scope } = mount({ children: child });
+    document.body.innerHTML = "";
+    expect(() => scope.dispose()).not.toThrow();
+  });
+
   it("multiple portals into the same target clean up independently", () => {
     const child1 = document.createTextNode("first");
     const child2 = document.createTextNode("second");

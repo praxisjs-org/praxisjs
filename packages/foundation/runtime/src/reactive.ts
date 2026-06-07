@@ -1,6 +1,5 @@
 import { runInScope } from "./context";
-
-import type { Scope } from "./scope";
+import { Scope } from "./scope";
 
 function collectNodes(value: unknown, out: Node[]): void {
   if (value === null || value === undefined || value === false) return;
@@ -28,11 +27,11 @@ export function mountReactive(
   parent.appendChild(end);
 
   let currentNodes: Node[] = [];
-  let childScope = parentScope.fork();
+  let childScope = new Scope();
 
   parentScope.effect(() => {
     childScope.dispose();
-    childScope = parentScope.fork();
+    childScope = new Scope();
 
     const result = runInScope(childScope, fn);
     const newNodes: Node[] = [];

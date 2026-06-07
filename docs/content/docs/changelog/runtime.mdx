@@ -6,6 +6,16 @@ icon: Boxes
 
 # @praxisjs/runtime
 
+## 0.4.1
+
+**Bug fix: disposed components no longer run stale mount callbacks.**
+
+If a component is disposed before the queued mount microtask runs, `mountComponent` now skips `onMount` and `ref(instance)`. The unmount cleanup still runs and calls `ref(null)`, preventing stale instance refs after early disposal.
+
+**Cleanup improvements for reactive children and portals.**
+
+Reactive child updates no longer register a new parent cleanup on every rerender. Portal cleanup also tolerates anchors that were removed externally before disposal, avoiding teardown errors when a target container is cleared outside PraxisJS.
+
 ## 0.4.0
 
 **`onError` return value is now mounted as fallback DOM.**

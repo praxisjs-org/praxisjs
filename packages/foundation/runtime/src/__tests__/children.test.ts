@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 import { signal } from "@praxisjs/core/internal";
 
 import { mountChildren } from "../children";
+import { getCurrentScope } from "../context";
 import { mountReactive } from "../reactive";
 import { Scope } from "../scope";
 
@@ -136,6 +137,25 @@ describe("mountChildren", () => {
     s.set(null);
     expect(el.textContent).toBe("");
     scope.dispose();
+  });
+
+  it("disposes only the active reactive child scope on parent dispose", () => {
+    const el = container();
+    const scope = new Scope();
+    const s = signal("first");
+    const cleanups: string[] = [];
+
+    mountChildren(el, () => {
+      const value = s();
+      getCurrentScope().add(() => cleanups.push(value));
+      return value;
+    }, scope);
+
+    s.set("second");
+    expect(cleanups).toEqual(["first"]);
+
+    scope.dispose();
+    expect(cleanups).toEqual(["first", "second"]);
   });
 
   it("non-array object passed directly — falls through and mounts nothing", () => {

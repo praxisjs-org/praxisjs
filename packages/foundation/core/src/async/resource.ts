@@ -60,6 +60,10 @@ export function resource<T>(
   function _execute(fn: Promise<T>): void {
     const currentRunId = ++_runId;
 
+    function clearInflight(): void {
+      if (key && getInflight(key) === fn) deleteInflight(key);
+    }
+
     // untrack: _data.set(result) in the resolve handler must not re-trigger the enclosing effect.
     const hasCachedData = key !== undefined && untrack(() => _data()) !== null;
     if (!keepPreviousData && !hasCachedData) {
@@ -69,19 +73,19 @@ export function resource<T>(
     _status.set("pending");
 
     fn.then((result) => {
+      clearInflight();
       if (currentRunId !== _runId) return;
       _data.set(result);
       _error.set(null);
       _status.set("success");
       if (key) {
         setCacheEntry(key, result);
-        deleteInflight(key);
       }
     }).catch((err: unknown) => {
+      clearInflight();
       if (currentRunId !== _runId) return;
       _error.set(err instanceof Error ? err : new Error(String(err)));
       _status.set("error");
-      if (key) deleteInflight(key);
     });
   }
 
@@ -177,6 +181,7 @@ export function resource<T>(
       _data.set(data);
       _error.set(null);
       _status.set("success");
+      if (key) setCacheEntry(key, data);
     },
     destroy,
   };

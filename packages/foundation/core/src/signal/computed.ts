@@ -1,7 +1,7 @@
 import type { Computed, WritableComputed } from "@praxisjs/shared";
 
-import { activeEffect, runEffect, type Effect } from "./effect";
-import { addSub, removeSub, notifySubs, type SubList } from "./signal";
+import { activeEffect, cleanupEffectDeps, runEffect, type Effect, type SubList } from "./effect";
+import { addSub, removeSub, notifySubs } from "./signal";
 
 type ComputedRecompute = Effect & { __isComputedRecompute: true };
 
@@ -47,7 +47,9 @@ export function computed<T>(getter: () => T): Computed<T> {
     }
     if (dirty) {
       const prevEffect = activeEffect;
-      runEffect(getRecompute());
+      const recomputeEffect = getRecompute();
+      cleanupEffectDeps(recomputeEffect);
+      runEffect(recomputeEffect);
       try {
         cachedValue = getter();
         dirty = false;
