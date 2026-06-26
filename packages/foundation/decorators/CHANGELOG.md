@@ -1,5 +1,18 @@
 # @praxisjs/decorators
 
+## 1.4.0
+
+### Minor Changes
+
+- bcaad96: Add `@Ref<T>()` decorator, `createRef<T>()` helper, and `Ref<T>` type for typed DOM element refs.
+
+  Replaces the manual `{ current: null as T | null }` field with a decorator that produces a callable ref — pass it directly to the JSX `ref` prop and read `.current` to access the element. Works transparently with `@Compose` via the existing string-name resolution. Use `createRef<T>()` for module-level refs outside of classes.
+
+### Patch Changes
+
+- Updated dependencies [376e38c]
+  - @praxisjs/core@1.8.2
+
 ## 1.3.1
 
 ### Patch Changes
