@@ -4,6 +4,7 @@ export type {
   // Primitives
   Reactive,
   Booleanish,
+  LiteralUnion,
   CSSProperties,
   // Attribute value types
   HTMLInputTypeAttribute,

@@ -14,7 +14,7 @@ export type Booleanish = boolean | "true" | "false";
  * Widens a string literal union so that any `string` value is assignable
  * while IDE autocomplete still suggests the known members.
  */
-type LiteralUnion<T extends string> = T | (string & {});
+export type LiteralUnion<T extends string> = T | (string & {});
 
 // ---------------------------------------------------------------------------
 // Attribute value enumerations
@@ -66,9 +66,9 @@ export type ReferrerPolicy = LiteralUnion<
   | "strict-origin-when-cross-origin"
   | "unsafe-url"
 >;
-export type CrossOrigin = "anonymous" | "use-credentials" | "";
-export type Decoding = "async" | "sync" | "auto";
-export type Loading = "eager" | "lazy";
+export type CrossOrigin = LiteralUnion<"anonymous" | "use-credentials" | "">;
+export type Decoding = LiteralUnion<"async" | "sync" | "auto">;
+export type Loading = LiteralUnion<"eager" | "lazy">;
 export type Dir = LiteralUnion<"ltr" | "rtl" | "auto">;
 export type AutoCapitalize = LiteralUnion<
   "off" | "none" | "on" | "sentences" | "words" | "characters"
@@ -112,10 +112,12 @@ export interface AriaAttributes {
   "aria-activedescendant"?: string;
   /** Indicates whether assistive technologies will present all, or only parts of, the changed region based on the change notifications defined by the aria-relevant attribute. */
   "aria-atomic"?: Reactive<Booleanish>;
+  /** Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for a combobox, searchbox, or textbox and specifies how predictions would be presented. */
+  "aria-autocomplete"?: LiteralUnion<"none" | "inline" | "list" | "both">;
   /** Indicates an element's "busy" status. */
   "aria-busy"?: Reactive<Booleanish>;
   /** Indicates the current "checked" state of checkboxes, radio buttons, and other widgets. */
-  "aria-checked"?: Reactive<boolean | "true" | "false" | "mixed">;
+  "aria-checked"?: Reactive<Booleanish | LiteralUnion<"mixed">>;
   /** Defines the total number of columns in a table, grid, or treegrid. */
   "aria-colcount"?: number;
   /** Defines an element's column index or position with respect to the total number of columns within a table, grid, or treegrid. */
@@ -128,7 +130,7 @@ export interface AriaAttributes {
   "aria-controls"?: string;
   /** Indicates the element that represents the current item within a container or set of related elements. */
   "aria-current"?: Reactive<
-    Booleanish | "page" | "step" | "location" | "date" | "time"
+    Booleanish | LiteralUnion<"page" | "step" | "location" | "date" | "time">
   >;
   /** Identifies the element(s) that describes the object. */
   "aria-describedby"?: string;
@@ -138,16 +140,20 @@ export interface AriaAttributes {
   "aria-details"?: string;
   /** Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable. */
   "aria-disabled"?: Reactive<Booleanish>;
+  /** Identifies the element that provides an error message for the current element. */
+  "aria-errormessage"?: string;
+  /** Indicates whether the element, or another grouping element it controls, is currently expanded or collapsed. */
+  "aria-expanded"?: Reactive<Booleanish>;
   /** Identifies the next element (or elements) in an alternate reading order of content which, at the user's discretion, allows assistive technology to override the general default of reading in document source order. */
   "aria-flowto"?: string;
   /** Indicates the availability and type of interactive popup element, such as menu or dialog, that can be triggered by an element. */
   "aria-haspopup"?: Reactive<
-    Booleanish | "menu" | "listbox" | "tree" | "grid" | "dialog"
+    Booleanish | LiteralUnion<"menu" | "listbox" | "tree" | "grid" | "dialog">
   >;
   /** Indicates whether the element is exposed to an accessibility API. */
   "aria-hidden"?: Reactive<Booleanish>;
   /** Indicates the entered value does not conform to the format expected by the application. */
-  "aria-invalid"?: Reactive<Booleanish | "grammar" | "spelling">;
+  "aria-invalid"?: Reactive<Booleanish | LiteralUnion<"grammar" | "spelling">>;
   /** Indicates keyboard shortcuts that an author has implemented to activate or give focus to an element. */
   "aria-keyshortcuts"?: string;
   /** Defines a string value that labels the current element. */
@@ -157,7 +163,7 @@ export interface AriaAttributes {
   /** Defines the hierarchical level of an element within a structure. */
   "aria-level"?: number;
   /** Indicates that an element will be updated, and describes the types of updates the user agents, assistive technologies, and user can expect from the live region. */
-  "aria-live"?: Reactive<"off" | "assertive" | "polite">;
+  "aria-live"?: Reactive<LiteralUnion<"off" | "assertive" | "polite">>;
   /** Indicates whether an element is modal when displayed. */
   "aria-modal"?: Reactive<Booleanish>;
   /** Indicates whether a text box accepts multiple lines of input or only a single line. */
@@ -165,7 +171,7 @@ export interface AriaAttributes {
   /** Indicates that the user may select more than one item from the current selectable descendants. */
   "aria-multiselectable"?: Reactive<Booleanish>;
   /** Indicates whether the element's orientation is horizontal, vertical, or unknown/ambiguous. */
-  "aria-orientation"?: "horizontal" | "vertical";
+  "aria-orientation"?: LiteralUnion<"horizontal" | "vertical">;
   /** Identifies an element (or elements) in order to define a visual, functional, or contextual parent/child relationship between DOM elements where the DOM hierarchy cannot be used to represent the relationship. */
   "aria-owns"?: string;
   /** Defines a short hint (a word or short phrase) intended to aid the user with data entry when the control has no value. */
@@ -173,11 +179,11 @@ export interface AriaAttributes {
   /** Defines an element's number or position in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM. */
   "aria-posinset"?: number;
   /** Indicates the current "pressed" state of toggle buttons. */
-  "aria-pressed"?: Reactive<boolean | "true" | "false" | "mixed">;
+  "aria-pressed"?: Reactive<Booleanish | LiteralUnion<"mixed">>;
   /** Indicates that the element is not editable, but is otherwise operable. */
   "aria-readonly"?: Reactive<Booleanish>;
   /** Indicates what notifications the user agent will trigger when the accessibility tree within a live region is modified. */
-  "aria-relevant"?: Reactive<
+  "aria-relevant"?: Reactive<LiteralUnion<
     | "additions"
     | "additions removals"
     | "additions text"
@@ -188,7 +194,7 @@ export interface AriaAttributes {
     | "text"
     | "text additions"
     | "text removals"
-  >;
+  >>;
   /** Indicates that user input is required on the element before a form may be submitted. */
   "aria-required"?: Reactive<Booleanish>;
   /** Defines a human-readable, author-localized description for the role of an element. */
@@ -206,7 +212,7 @@ export interface AriaAttributes {
   /** Defines the number of items in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM. */
   "aria-setsize"?: number;
   /** Indicates if items in a table or grid are sorted in ascending or descending order. */
-  "aria-sort"?: "none" | "ascending" | "descending" | "other";
+  "aria-sort"?: LiteralUnion<"none" | "ascending" | "descending" | "other">;
   /** Defines the maximum allowed value for a range widget. */
   "aria-valuemax"?: number;
   /** Defines the minimum allowed value for a range widget. */
@@ -314,6 +320,10 @@ export interface DOMAttributes<T extends EventTarget = EventTarget> {
   onMouseEnter?: (e: NativeEventOf<MouseEvent, T>) => void;
   onMouseLeave?: (e: NativeEventOf<MouseEvent, T>) => void;
   onMouseMove?: (e: NativeEventOf<MouseEvent, T>) => void;
+  /** Fires when the pointer moves over an element or its children (bubbles). */
+  onMouseOver?: (e: NativeEventOf<MouseEvent, T>) => void;
+  /** Fires when the pointer moves out of an element or its children (bubbles). */
+  onMouseOut?: (e: NativeEventOf<MouseEvent, T>) => void;
   onContextMenu?: (e: NativeEventOf<MouseEvent, T>) => void;
   // Keyboard
   onKeyDown?: (e: NativeEventOf<KeyboardEvent, T>) => void;
@@ -323,23 +333,52 @@ export interface DOMAttributes<T extends EventTarget = EventTarget> {
   // Focus
   onFocus?: (e: NativeEventOf<FocusEvent, T>) => void;
   onBlur?: (e: NativeEventOf<FocusEvent, T>) => void;
-  // Form
-  onChange?: (e: NativeEventOf<Event, T>) => void;
-  onInput?: (e: NativeEventOf<InputEvent, T>) => void;
-  onSubmit?: (e: NativeEventOf<SubmitEvent, T>) => void;
-  onReset?: (e: NativeEventOf<Event, T>) => void;
-  // Drag
-  onDragStart?: (e: NativeEventOf<DragEvent, T>) => void;
-  onDragEnd?: (e: NativeEventOf<DragEvent, T>) => void;
-  onDragOver?: (e: NativeEventOf<DragEvent, T>) => void;
-  onDrop?: (e: NativeEventOf<DragEvent, T>) => void;
+  // Pointer
+  onPointerDown?: (e: NativeEventOf<PointerEvent, T>) => void;
+  onPointerUp?: (e: NativeEventOf<PointerEvent, T>) => void;
+  onPointerMove?: (e: NativeEventOf<PointerEvent, T>) => void;
+  onPointerEnter?: (e: NativeEventOf<PointerEvent, T>) => void;
+  onPointerLeave?: (e: NativeEventOf<PointerEvent, T>) => void;
+  onPointerOver?: (e: NativeEventOf<PointerEvent, T>) => void;
+  onPointerOut?: (e: NativeEventOf<PointerEvent, T>) => void;
+  onPointerCancel?: (e: NativeEventOf<PointerEvent, T>) => void;
+  onGotPointerCapture?: (e: NativeEventOf<PointerEvent, T>) => void;
+  onLostPointerCapture?: (e: NativeEventOf<PointerEvent, T>) => void;
   // Touch
   onTouchStart?: (e: NativeEventOf<TouchEvent, T>) => void;
   onTouchEnd?: (e: NativeEventOf<TouchEvent, T>) => void;
   onTouchMove?: (e: NativeEventOf<TouchEvent, T>) => void;
+  // Drag
+  onDrag?: (e: NativeEventOf<DragEvent, T>) => void;
+  onDragStart?: (e: NativeEventOf<DragEvent, T>) => void;
+  onDragEnd?: (e: NativeEventOf<DragEvent, T>) => void;
+  onDragEnter?: (e: NativeEventOf<DragEvent, T>) => void;
+  onDragLeave?: (e: NativeEventOf<DragEvent, T>) => void;
+  onDragOver?: (e: NativeEventOf<DragEvent, T>) => void;
+  onDrop?: (e: NativeEventOf<DragEvent, T>) => void;
   // Scroll / Wheel
   onScroll?: (e: NativeEventOf<Event, T>) => void;
+  onScrollEnd?: (e: NativeEventOf<Event, T>) => void;
   onWheel?: (e: NativeEventOf<WheelEvent, T>) => void;
+  // Form
+  onChange?: (e: NativeEventOf<Event, T>) => void;
+  onInput?: (e: NativeEventOf<InputEvent, T>) => void;
+  onBeforeInput?: (e: NativeEventOf<InputEvent, T>) => void;
+  onSubmit?: (e: NativeEventOf<SubmitEvent, T>) => void;
+  onReset?: (e: NativeEventOf<Event, T>) => void;
+  onSelect?: (e: NativeEventOf<Event, T>) => void;
+  onInvalid?: (e: NativeEventOf<Event, T>) => void;
+  // Clipboard
+  onCopy?: (e: NativeEventOf<ClipboardEvent, T>) => void;
+  onCut?: (e: NativeEventOf<ClipboardEvent, T>) => void;
+  onPaste?: (e: NativeEventOf<ClipboardEvent, T>) => void;
+  // Composition (IME)
+  onCompositionStart?: (e: NativeEventOf<CompositionEvent, T>) => void;
+  onCompositionUpdate?: (e: NativeEventOf<CompositionEvent, T>) => void;
+  onCompositionEnd?: (e: NativeEventOf<CompositionEvent, T>) => void;
+  // Resource
+  onLoad?: (e: NativeEventOf<Event, T>) => void;
+  onError?: (e: NativeEventOf<Event, T>) => void;
   // Animation / Transition
   onAnimationEnd?: (e: NativeEventOf<AnimationEvent, T>) => void;
   onTransitionEnd?: (e: NativeEventOf<TransitionEvent, T>) => void;
@@ -362,13 +401,23 @@ export interface HTMLAttributes<T extends Element = HTMLElement>
   lang?: Reactive<string>;
   dir?: Reactive<Dir>;
   slot?: string;
+  accessKey?: string;
+  nonce?: string;
   // Visibility / interaction
   hidden?: Reactive<boolean>;
   tabIndex?: Reactive<number>;
   draggable?: Reactive<boolean>;
-  contentEditable?: Reactive<Booleanish | "inherit" | "plaintext-only">;
+  /** Autofocus on mount (global HTML5 attribute). */
+  autoFocus?: boolean;
+  contentEditable?: Reactive<Booleanish | LiteralUnion<"inherit" | "plaintext-only">>;
   spellcheck?: Reactive<Booleanish>;
-  translate?: "yes" | "no";
+  translate?: LiteralUnion<"yes" | "no">;
+  /** Marks the element as inert — blocks all user interaction and assistive technology. */
+  inert?: Reactive<boolean>;
+  /** Declares the element as a popover. Use `"auto"` (default, light-dismiss) or `"manual"`. */
+  popover?: boolean | LiteralUnion<"auto" | "manual">;
+  /** CSS `::part()` export list for shadow DOM styling. */
+  part?: string;
   // Input hints
   inputMode?: Reactive<InputMode>;
   enterKeyHint?: Reactive<EnterKeyHint>;
@@ -388,6 +437,8 @@ export interface HTMLAttributes<T extends Element = HTMLElement>
   key?: string | number | symbol;
   ref?: (el: T) => void;
   children?: Children;
+  // Data attributes
+  [key: `data-${string}`]: Reactive<string | number | boolean> | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -535,7 +586,7 @@ export interface ImgHTMLAttributes<
   srcSet?: Reactive<string>;
   useMap?: string;
   width?: Reactive<number | string>;
-  fetchPriority?: "high" | "low" | "auto";
+  fetchPriority?: LiteralUnion<"high" | "low" | "auto">;
 }
 
 export interface IframeHTMLAttributes<
@@ -611,6 +662,28 @@ export interface MediaHTMLAttributes<T extends HTMLMediaElement = HTMLMediaEleme
   playsInline?: boolean;
   preload?: LiteralUnion<"none" | "metadata" | "auto">;
   src?: Reactive<string>;
+  // Media events
+  onAbort?: (e: NativeEventOf<Event, T>) => void;
+  onCanPlay?: (e: NativeEventOf<Event, T>) => void;
+  onCanPlayThrough?: (e: NativeEventOf<Event, T>) => void;
+  onDurationChange?: (e: NativeEventOf<Event, T>) => void;
+  onEmptied?: (e: NativeEventOf<Event, T>) => void;
+  onEnded?: (e: NativeEventOf<Event, T>) => void;
+  onLoadedData?: (e: NativeEventOf<Event, T>) => void;
+  onLoadedMetadata?: (e: NativeEventOf<Event, T>) => void;
+  onLoadStart?: (e: NativeEventOf<Event, T>) => void;
+  onPause?: (e: NativeEventOf<Event, T>) => void;
+  onPlay?: (e: NativeEventOf<Event, T>) => void;
+  onPlaying?: (e: NativeEventOf<Event, T>) => void;
+  onProgress?: (e: NativeEventOf<ProgressEvent, T>) => void;
+  onRateChange?: (e: NativeEventOf<Event, T>) => void;
+  onSeeked?: (e: NativeEventOf<Event, T>) => void;
+  onSeeking?: (e: NativeEventOf<Event, T>) => void;
+  onStalled?: (e: NativeEventOf<Event, T>) => void;
+  onSuspend?: (e: NativeEventOf<Event, T>) => void;
+  onTimeUpdate?: (e: NativeEventOf<Event, T>) => void;
+  onVolumeChange?: (e: NativeEventOf<Event, T>) => void;
+  onWaiting?: (e: NativeEventOf<Event, T>) => void;
 }
 
 export type AudioHTMLAttributes<
@@ -719,6 +792,8 @@ export interface InputHTMLAttributes<
   type?: Reactive<HTMLInputTypeAttribute>;
   value?: Reactive<string | number | readonly string[]>;
   width?: Reactive<number | string>;
+  popovertarget?: string;
+  popovertargetaction?: LiteralUnion<"hide" | "show" | "toggle">;
 }
 
 export interface ButtonHTMLAttributes<
@@ -838,6 +913,7 @@ export interface DetailsHTMLAttributes<
   open?: Reactive<boolean>;
   name?: string;
   onToggle?: (e: NativeEventOf<Event, T>) => void;
+  onBeforeToggle?: (e: NativeEventOf<Event, T>) => void;
 }
 
 export interface DialogHTMLAttributes<
@@ -846,6 +922,8 @@ export interface DialogHTMLAttributes<
   open?: Reactive<boolean>;
   onClose?: (e: NativeEventOf<Event, T>) => void;
   onCancel?: (e: NativeEventOf<Event, T>) => void;
+  onToggle?: (e: NativeEventOf<Event, T>) => void;
+  onBeforeToggle?: (e: NativeEventOf<Event, T>) => void;
 }
 
 export interface SlotHTMLAttributes<
@@ -957,6 +1035,15 @@ export interface SVGAttributes<T extends Element = SVGElement>
   mask?: Reactive<string>;
   filter?: Reactive<string>;
   transform?: Reactive<string>;
+  cursor?: Reactive<string>;
+  /** Controls whether the element can be a hit-test target for pointer events. */
+  pointerEvents?: Reactive<LiteralUnion<"none" | "auto" | "visiblePainted" | "visibleFill" | "visibleStroke" | "visible" | "painted" | "fill" | "stroke" | "all">>;
+  vectorEffect?: Reactive<LiteralUnion<"none" | "non-scaling-stroke" | "non-scaling-size" | "non-rotation" | "fixed-position">>;
+  shapeRendering?: Reactive<LiteralUnion<"auto" | "optimizeSpeed" | "crispEdges" | "geometricPrecision">>;
+  textRendering?: Reactive<LiteralUnion<"auto" | "optimizeSpeed" | "optimizeLegibility" | "geometricPrecision">>;
+  imageRendering?: Reactive<LiteralUnion<"auto" | "optimizeSpeed" | "optimizeQuality" | "pixelated">>;
+  colorInterpolation?: Reactive<LiteralUnion<"auto" | "sRGB" | "linearRGB">>;
+  paintOrder?: Reactive<string>;
   // Geometry (shared)
   x?: Reactive<number | string>;
   y?: Reactive<number | string>;
