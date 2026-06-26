@@ -1,11 +1,12 @@
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, Compose } from "@praxisjs/decorators";
+import { Component, Compose, Ref } from "@praxisjs/decorators";
 import { Focus } from "@praxisjs/composables";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
 @Component()
 class FocusDemo extends StatefulComponent {
-  inputRef = { current: null as HTMLInputElement | null };
+  @Ref<HTMLInputElement>()
+  inputRef!: Ref<HTMLInputElement>;
 
   @Compose(Focus, "inputRef")
   focus!: Focus;
@@ -17,7 +18,7 @@ class FocusDemo extends StatefulComponent {
         <input
           style={() => `padding:10px 14px;border-radius:8px;font-family:inherit;font-size:.95rem;border:2px solid ${this.focus.focused ? "#6d5bbd" : "#e5e7eb"};outline:none;transition:border-color .15s`}
           placeholder="Click to focus…"
-          ref={(el: HTMLInputElement) => { this.inputRef.current = el; }}
+          ref={this.inputRef}
         />
         <div style={() => `padding:10px 14px;border-radius:8px;font-size:.88rem;font-weight:600;text-align:center;background:${this.focus.focused ? "#ede9fe" : "#f5f5f5"};color:${this.focus.focused ? "#5b21b6" : "#9ca3af"};transition:all .15s`}>
           {() => this.focus.focused ? "Input is focused" : "Input is blurred"}

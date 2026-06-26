@@ -1,5 +1,5 @@
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, Compose, Lazy, State, getter } from "@praxisjs/decorators";
+import { Component, Compose, Lazy, State, getter, Ref } from "@praxisjs/decorators";
 import { Head } from "@praxisjs/head";
 import { VirtualList, type VirtualItem } from "@praxisjs/composables";
 import { Route } from "@praxisjs/router";
@@ -80,7 +80,8 @@ const ROWS: Row[] = Array.from({ length: 50_000 }, (_, i) => ({
 export default class PerformancePage extends StatefulComponent {
   @State() filterText = "";
 
-  containerRef = { current: null as HTMLDivElement | null };
+  @Ref<HTMLDivElement>()
+  containerRef!: Ref<HTMLDivElement>;
 
   get filteredRows(): Row[] {
     const q = this.filterText.toLowerCase();
@@ -163,7 +164,7 @@ export default class PerformancePage extends StatefulComponent {
           </div>
 
           <div
-            ref={(el: HTMLDivElement) => { this.containerRef.current = el; }}
+            ref={this.containerRef}
             class={this.$virt.$container}
           >
             <div style={() => `height:${this.virtual.totalHeight}px;position:relative`}>

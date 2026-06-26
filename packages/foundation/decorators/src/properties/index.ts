@@ -8,3 +8,4 @@ export { Compose, getter } from "./compose";
 export { Resource, invalidateResource, type ResourceInstance, type ResourceOptions } from "./resource";
 export { Synced } from "./synced";
 export { DeepState } from "./deep-state";
+export { Ref, createRef } from "./ref";

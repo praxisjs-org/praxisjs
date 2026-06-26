@@ -1,11 +1,12 @@
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, Compose } from "@praxisjs/decorators";
+import { Component, Compose, Ref } from "@praxisjs/decorators";
 import { ElementSize } from "@praxisjs/composables";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
 @Component()
 class ElementSizeDemo extends StatefulComponent {
-  containerRef = { current: null as HTMLDivElement | null };
+  @Ref<HTMLDivElement>()
+  containerRef!: Ref<HTMLDivElement>;
 
   @Compose(ElementSize, "containerRef")
   size!: ElementSize;
@@ -15,7 +16,7 @@ class ElementSizeDemo extends StatefulComponent {
       <div style="display:flex;flex-direction:column;gap:14px;font-family:sans-serif;min-width:280px">
         <h3 style="margin:0;font-size:1rem">ElementSize — reactive element dimensions</h3>
         <div
-          ref={(el: HTMLDivElement) => { this.containerRef.current = el; }}
+          ref={this.containerRef}
           style="resize:both;overflow:auto;padding:20px;border:2px dashed #e5e7eb;border-radius:8px;background:#fafafa;min-width:100px;min-height:60px;cursor:se-resize"
         >
           <p style="margin:0;font-size:.82rem;color:#9ca3af;text-align:center;pointer-events:none">

@@ -30,6 +30,8 @@ export {
   type ResourceOptions,
   Synced,
   DeepState,
+  Ref,
+  createRef,
 } from "./properties";
 export { type Command, createCommand, Emit, OnCommand } from "./events";
 export {

@@ -1,5 +1,5 @@
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, Compose, State, getter } from "@praxisjs/decorators";
+import { Component, Compose, State, getter, Ref } from "@praxisjs/decorators";
 import { VirtualList, type VirtualItem } from "@praxisjs/composables";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
@@ -14,7 +14,8 @@ const ITEMS: ListItem[] = Array.from({ length: 2000 }, (_, i) => ({
 @Component()
 class VirtualDemo extends StatefulComponent {
   @State() filter = "";
-  containerRef = { current: null as HTMLDivElement | null };
+  @Ref<HTMLDivElement>()
+  containerRef!: Ref<HTMLDivElement>;
 
   get filteredItems(): ListItem[] {
     const q = this.filter.toLowerCase();
@@ -40,7 +41,7 @@ class VirtualDemo extends StatefulComponent {
           </span>
         </div>
         <div
-          ref={(el: HTMLDivElement) => { this.containerRef.current = el; }}
+          ref={this.containerRef}
           style="height:400px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px"
         >
           <div style={() => `height:${this.virtual.totalHeight}px;position:relative`}>

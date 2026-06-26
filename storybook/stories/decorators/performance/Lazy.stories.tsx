@@ -1,8 +1,8 @@
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, Lazy } from "@praxisjs/decorators";
+import { Component, Lazy, createRef } from "@praxisjs/decorators";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
-const scrollRoot = { current: null as HTMLDivElement | null };
+const scrollRoot = createRef<HTMLDivElement>();
 
 @Component()
 class HeavyWidget extends StatefulComponent {
@@ -33,7 +33,7 @@ class LazyDemo extends StatefulComponent {
           Scroll inside the box below — the component renders once it enters the visible area.
         </p>
         <div
-          ref={(el: HTMLDivElement) => { scrollRoot.current = el; }}
+          ref={scrollRoot}
           style="height:280px;overflow-y:scroll;border:1px solid #e5e7eb;border-radius:8px"
         >
           <div style="height:340px;background:repeating-linear-gradient(45deg,#f8fafc,#f8fafc 10px,#f1f5f9 10px,#f1f5f9 20px);display:flex;align-items:center;justify-content:center;font-size:.82rem;color:#94a3b8;user-select:none">

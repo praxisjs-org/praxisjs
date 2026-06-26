@@ -1,11 +1,12 @@
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, Compose } from "@praxisjs/decorators";
+import { Component, Compose, Ref } from "@praxisjs/decorators";
 import { Intersection } from "@praxisjs/composables";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
 @Component()
 class IntersectionDemo extends StatefulComponent {
-  boxRef = { current: null as HTMLDivElement | null };
+  @Ref<HTMLDivElement>()
+  boxRef!: Ref<HTMLDivElement>;
 
   @Compose(Intersection, "boxRef", { threshold: 0.5 })
   visibility!: Intersection;
@@ -22,7 +23,7 @@ class IntersectionDemo extends StatefulComponent {
             ↓ scroll ↓
           </div>
           <div
-            ref={(el: HTMLDivElement) => { this.boxRef.current = el; }}
+            ref={this.boxRef}
             style={() => `margin-top:8px;height:70px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;transition:all .3s;background:${this.visibility.visible ? "#ede9fe" : "#f1f5f9"};color:${this.visibility.visible ? "#5b21b6" : "#9ca3af"};border:2px solid ${this.visibility.visible ? "#6d5bbd" : "#e5e7eb"}`}
           >
             {() => this.visibility.visible ? "In viewport ✓" : "Out of view"}

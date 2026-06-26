@@ -336,6 +336,69 @@ items: Product[] = []
 
 ---
 
+## `@Ref<T>()`
+
+Creates a DOM element ref. The decorated field becomes a `Ref<T>` object — a callable function that you pass directly to the JSX `ref` prop, with a `.current` property holding the element after mount.
+
+```tsx
+import { Component, Ref } from '@praxisjs/decorators'
+
+@Component()
+class ResizeWatcher extends StatefulComponent {
+  @Ref<HTMLDivElement>()
+  containerRef!: Ref<HTMLDivElement>
+
+  render() {
+    return (
+      <div ref={this.containerRef}>
+        {/* this.containerRef.current holds the element after mount */}
+      </div>
+    )
+  }
+}
+```
+
+Pass the field name as a string to `@Compose` — the composable receives the ref object and reads `.current` on mount:
+
+```tsx
+import { Component, Compose, Ref } from '@praxisjs/decorators'
+import { ElementSize } from '@praxisjs/composables'
+
+@Component()
+class Card extends StatefulComponent {
+  @Ref<HTMLDivElement>()
+  cardRef!: Ref<HTMLDivElement>
+
+  @Compose(ElementSize, 'cardRef')
+  size!: ElementSize
+
+  render() {
+    return (
+      <div ref={this.cardRef}>
+        Width: {() => this.size.width}px
+      </div>
+    )
+  }
+}
+```
+
+**Type:** `Ref<T>` is `((el: T | null) => void) & { current: T | null }` — it is both the callback for `ref={}` and holds the element in `.current`. Import `Ref` as both the decorator and the type annotation from a single import.
+
+For refs outside of a class (module-level constants, options passed to `@Lazy`), use `createRef<T>()`:
+
+```tsx
+import { createRef } from '@praxisjs/decorators'
+
+const scrollRoot = createRef<HTMLDivElement>()
+
+const LazyWidget = Lazy({ root: scrollRoot })(Widget, {} as ClassDecoratorContext)
+
+// In render:
+<div ref={scrollRoot}>...</div>
+```
+
+---
+
 ## `@DeepState()`
 
 Like `@State`, but uses a deep `Proxy` so nested mutations are reactive without needing to create new references.

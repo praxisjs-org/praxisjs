@@ -1,11 +1,12 @@
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, Compose } from "@praxisjs/decorators";
+import { Component, Compose, Ref } from "@praxisjs/decorators";
 import { ScrollPosition } from "@praxisjs/composables";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
 @Component()
 class ScrollPositionDemo extends StatefulComponent {
-  scrollRef = { current: null as HTMLDivElement | null };
+  @Ref<HTMLDivElement>()
+  scrollRef!: Ref<HTMLDivElement>;
 
   @Compose(ScrollPosition, "scrollRef")
   scroll!: ScrollPosition;
@@ -29,7 +30,7 @@ class ScrollPositionDemo extends StatefulComponent {
           </div>
         </div>
         <div
-          ref={(el: HTMLDivElement) => { this.scrollRef.current = el; }}
+          ref={this.scrollRef}
           style="height:200px;overflow:auto;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa"
         >
           <div style="width:700px;padding:12px;display:flex;flex-direction:column;gap:6px">

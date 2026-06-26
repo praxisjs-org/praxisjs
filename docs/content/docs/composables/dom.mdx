@@ -17,7 +17,7 @@ DOM composables from `@praxisjs/composables`. Attach them to any component with 
 Tracks the browser window's inner dimensions reactively. Updates on every `resize` event.
 
 ```tsx
-import { Compose } from '@praxisjs/decorators'
+import { Compose, Ref } from '@praxisjs/decorators'
 import { WindowSize } from '@praxisjs/composables'
 
 @Component()
@@ -58,7 +58,8 @@ render() {
 
 ```tsx
 // Track a specific scrollable element
-containerRef = { current: null as HTMLDivElement | null }
+@Ref<HTMLDivElement>()
+containerRef!: Ref<HTMLDivElement>
 
 @Compose(ScrollPosition, 'containerRef')
 scroll!: ScrollPosition
@@ -66,7 +67,7 @@ scroll!: ScrollPosition
 render() {
   return (
     <div
-      ref={(el) => { this.containerRef.current = el }}
+      ref={this.containerRef}
       style="height:300px;overflow:auto"
     >
       <p>Scroll: {() => this.scroll.y}px</p>
@@ -76,8 +77,8 @@ render() {
 }
 ```
 
-<Callout type="info" title="Pass the ref string, not the element">
-  Pass the property name as a string (`'containerRef'`) rather than the element directly. The element doesn't exist at decoration time — the string is resolved to the actual ref object at mount when the DOM is ready.
+<Callout type="info" title="Pass the ref name as a string">
+  Pass the property name as a string (`'containerRef'`) to `@Compose`. The element doesn't exist at decoration time — the string is resolved to the `Ref` object at mount when the DOM is ready.
 </Callout>
 
 **Properties:** `x: number`, `y: number`
@@ -93,14 +94,15 @@ Tracks an element's dimensions reactively via `ResizeObserver`. Updates whenever
 ```tsx
 @Component()
 class ResizeWatcher extends StatefulComponent {
-  containerRef = { current: null as HTMLDivElement | null }
+  @Ref<HTMLDivElement>()
+  containerRef!: Ref<HTMLDivElement>
 
   @Compose(ElementSize, 'containerRef')
   size!: ElementSize
 
   render() {
     return (
-      <div ref={(el) => { this.containerRef.current = el }}>
+      <div ref={this.containerRef}>
         <p>Width: {() => this.size.width}px, Height: {() => this.size.height}px</p>
       </div>
     )
@@ -121,14 +123,15 @@ Tracks whether an element is intersecting the viewport (or a scroll container) v
 ```tsx
 @Component()
 class LazySection extends StatefulComponent {
-  sectionRef = { current: null as HTMLElement | null }
+  @Ref<HTMLElement>()
+  sectionRef!: Ref<HTMLElement>
 
   @Compose(Intersection, 'sectionRef', { threshold: 0.5 })
   visibility!: Intersection
 
   render() {
     return (
-      <section ref={(el) => { this.sectionRef.current = el }}>
+      <section ref={this.sectionRef}>
         {() => this.visibility.visible ? <HeavyContent /> : <Placeholder />}
       </section>
     )
@@ -151,7 +154,8 @@ Tracks whether an element currently has focus.
 ```tsx
 @Component()
 class SearchBar extends StatefulComponent {
-  inputRef = { current: null as HTMLInputElement | null }
+  @Ref<HTMLInputElement>()
+  inputRef!: Ref<HTMLInputElement>
 
   @Compose(Focus, 'inputRef')
   focus!: Focus
@@ -159,7 +163,7 @@ class SearchBar extends StatefulComponent {
   render() {
     return (
       <div>
-        <input ref={(el) => { this.inputRef.current = el }} placeholder="Search..." />
+        <input ref={this.inputRef} placeholder="Search..." />
         {() => this.focus.focused && <span class="hint">Press Enter to search</span>}
       </div>
     )

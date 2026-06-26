@@ -6,6 +6,49 @@ icon: Tag
 
 # @praxisjs/decorators
 
+## 1.4.0
+
+**`@Ref<T>()` — DOM element ref decorator.**
+
+Replaces the manual `{ current: null as T | null }` pattern with a typed decorator. The decorated field becomes a `Ref<T>` — callable as the JSX `ref` callback and holding the element in `.current`:
+
+```tsx
+import { Ref } from '@praxisjs/decorators'
+
+@Component()
+class Card extends StatefulComponent {
+  @Ref<HTMLDivElement>()
+  cardRef!: Ref<HTMLDivElement>
+
+  render() {
+    return <div ref={this.cardRef}>...</div>
+  }
+}
+```
+
+`Ref<T>` is both the decorator function and the type annotation — one import, used in both positions.
+
+Works with `@Compose` exactly as before — pass the field name as a string:
+
+```ts
+@Ref<HTMLDivElement>()
+containerRef!: Ref<HTMLDivElement>
+
+@Compose(ElementSize, 'containerRef')
+size!: ElementSize
+```
+
+For refs outside of a class, use `createRef<T>()`:
+
+```ts
+import { createRef } from '@praxisjs/decorators'
+
+const scrollRoot = createRef<HTMLDivElement>()
+// pass to @Lazy, store in module scope, etc.
+```
+
+---
+
 ## 1.3.0
 
 **`@Computed` — writable computed with getter + setter support.**

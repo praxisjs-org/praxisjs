@@ -25,7 +25,7 @@ The inner structure uses three stacked elements: a top spacer, the visible items
 
 ```tsx
 import { VirtualList, type VirtualItem } from '@praxisjs/composables'
-import { Compose, getter } from '@praxisjs/decorators'
+import { Compose, getter, Ref } from '@praxisjs/decorators'
 
 interface User { id: number; name: string; email: string }
 
@@ -33,7 +33,8 @@ interface User { id: number; name: string; email: string }
 class UserTable extends StatefulComponent {
   @Prop() items: User[] = []
 
-  containerRef = { current: null as HTMLDivElement | null }
+  @Ref<HTMLDivElement>()
+  containerRef!: Ref<HTMLDivElement>
 
   @Compose(VirtualList, 'containerRef', getter('items'), 48, 5)
   virtual!: VirtualList<User>
@@ -41,7 +42,7 @@ class UserTable extends StatefulComponent {
   render() {
     return (
       <div
-        ref={(el) => { this.containerRef.current = el }}
+        ref={this.containerRef}
         style="height:400px;overflow-y:auto"
       >
         {/* Total scroll height maintained by a position:relative wrapper */}
