@@ -30,7 +30,7 @@ icon: Braces
 - `inert: Reactive<boolean>` — blocks all user interaction and assistive technology
 - `popover: boolean | "auto" | "manual"` — Popover API; `true` emits the empty attribute (defaults to `"auto"`)
 - `accessKey`, `nonce`, `part`
-- `data-*` — template-literal index signature `[key: \`data-${string}\`]` accepts reactive values; no cast needed
+- `data-*` — any `data-` prefixed attribute is now accepted on all JSX elements with a reactive value; no cast needed
 
 `MediaHTMLAttributes<T>` — all 21 standard media events (`onPlay`, `onPause`, `onTimeUpdate`, `onProgress`, etc.) are now typed and wired.
 
