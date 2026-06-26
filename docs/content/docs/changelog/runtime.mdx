@@ -6,6 +6,27 @@ icon: Boxes
 
 # @praxisjs/runtime
 
+## 0.5.0
+
+**Bug fix: `onToggle`, `onClose`, and `onCancel` are now wired as event listeners.**
+
+These handlers were declared in `DetailsHTMLAttributes` and `DialogHTMLAttributes` but were absent from `EVENT_MAP`. The runtime was treating them as reactive getters instead of calling `addEventListener`. They now work correctly.
+
+**EVENT_MAP expanded from 24 to 82 entries.**
+
+New event categories wired by the runtime:
+
+- **Pointer** — `onPointerDown`, `onPointerUp`, `onPointerMove`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onPointerCancel`, `onGotPointerCapture`, `onLostPointerCapture`
+- **Mouse** — `onMouseOver`, `onMouseOut`
+- **Drag** — `onDrag`, `onDragEnter`, `onDragLeave`
+- **Form** — `onBeforeInput`, `onSelect`, `onInvalid`
+- **Clipboard** — `onCopy`, `onCut`, `onPaste`
+- **Composition (IME)** — `onCompositionStart`, `onCompositionUpdate`, `onCompositionEnd`
+- **Resource** — `onLoad`, `onError`
+- **Scroll** — `onScrollEnd`
+- **Element-specific** — `onBeforeToggle`
+- **Media** — `onAbort`, `onCanPlay`, `onCanPlayThrough`, `onDurationChange`, `onEmptied`, `onEnded`, `onLoadedData`, `onLoadedMetadata`, `onLoadStart`, `onPause`, `onPlay`, `onPlaying`, `onProgress`, `onRateChange`, `onSeeked`, `onSeeking`, `onStalled`, `onSuspend`, `onTimeUpdate`, `onVolumeChange`, `onWaiting`
+
 ## 0.4.1
 
 **Bug fix: disposed components no longer run stale mount callbacks.**

@@ -6,6 +6,44 @@ icon: Braces
 
 # @praxisjs/jsx
 
+## 0.6.0
+
+**Expanded DOM event types and new HTML/SVG attributes.**
+
+`AriaAttributes`:
+- `"aria-expanded"` — was missing entirely; used in accordions, disclosures, and dropdowns
+- `"aria-autocomplete"` — combobox and searchbox hint values: `"none" | "inline" | "list" | "both"`
+- `"aria-errormessage"` — references the element providing the validation error message
+
+`DOMAttributes<T>` — new handlers matching the runtime's expanded EVENT_MAP:
+- **Pointer**: `onPointerDown`, `onPointerUp`, `onPointerMove`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onPointerCancel`, `onGotPointerCapture`, `onLostPointerCapture` — typed as `PointerEvent`
+- **Mouse**: `onMouseOver`, `onMouseOut` (bubbling variants of enter/leave)
+- **Drag**: `onDrag`, `onDragEnter`, `onDragLeave`
+- **Clipboard**: `onCopy`, `onCut`, `onPaste` — typed as `ClipboardEvent`
+- **Composition**: `onCompositionStart`, `onCompositionUpdate`, `onCompositionEnd` — typed as `CompositionEvent`
+- **Form**: `onBeforeInput` (`InputEvent`), `onSelect`, `onInvalid`
+- **Resource**: `onLoad`, `onError`
+- **Scroll**: `onScrollEnd`
+
+`HTMLAttributes<T>` — new global attributes:
+- `autoFocus` — `autofocus` is a global HTML5 attribute, not restricted to form controls
+- `inert: Reactive<boolean>` — blocks all user interaction and assistive technology
+- `popover: boolean | "auto" | "manual"` — Popover API; `true` emits the empty attribute (defaults to `"auto"`)
+- `accessKey`, `nonce`, `part`
+- `data-*` — template-literal index signature `[key: \`data-${string}\`]` accepts reactive values; no cast needed
+
+`MediaHTMLAttributes<T>` — all 21 standard media events (`onPlay`, `onPause`, `onTimeUpdate`, `onProgress`, etc.) are now typed and wired.
+
+`DetailsHTMLAttributes` / `DialogHTMLAttributes`: `onBeforeToggle` added.
+
+`InputHTMLAttributes`: `popovertarget` and `popovertargetaction` added (consistent with `ButtonHTMLAttributes`).
+
+`SVGAttributes<T>` — new presentation attributes:
+- `pointerEvents` — typed with all valid SVG `pointer-events` keyword values
+- `vectorEffect`, `shapeRendering`, `textRendering`, `imageRendering`, `colorInterpolation`, `paintOrder`, `cursor`
+
+`LiteralUnion<T>` is now exported from `@praxisjs/jsx` for use in application code.
+
 ## 0.5.4
 
 **Bug fix: fragments preserve primitive children.**

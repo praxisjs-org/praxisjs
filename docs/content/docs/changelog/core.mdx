@@ -6,6 +6,14 @@ icon: Activity
 
 # @praxisjs/core
 
+## 1.8.2
+
+**Internal: `_setProps` consolidated into `RootComponent`.**
+
+`_setProps(props)` was implemented identically in both `StatefulComponent` and `StatelessComponent`. It is now defined once on `RootComponent` and removed from the subclasses. No behavior change.
+
+The framework-internal fields `_rawProps`, `_mounted`, `_anchor`, `_defaults`, and `_stateDirty` are now annotated with `@internal` JSDoc, hiding them from TypeDoc output and IDE autocomplete. No public API change.
+
 ## 1.8.1
 
 **Bug fix: dynamic reactive dependencies are cleaned up correctly.**
