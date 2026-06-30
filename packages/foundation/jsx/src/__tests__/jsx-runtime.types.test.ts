@@ -12,6 +12,18 @@ import type {
   ButtonType,
   HTMLInputTypeAttribute,
   LinkTarget,
+  AriaAttributes,
+  BaseHTMLAttributes,
+  LinkHTMLAttributes,
+  FormHTMLAttributes,
+  LiHTMLAttributes,
+  ProgressHTMLAttributes,
+  ScriptHTMLAttributes,
+  TrackHTMLAttributes,
+  TableHTMLAttributes,
+  TdHTMLAttributes,
+  DelHTMLAttributes,
+  TimeHTMLAttributes,
 } from "../dom-types";
 
 describe("Reactive<T>", () => {
@@ -25,6 +37,187 @@ describe("Reactive<T>", () => {
 
   it("rejects a plain number for Reactive<string>", () => {
     expectTypeOf<number>().not.toMatchTypeOf<Reactive<string>>();
+  });
+});
+
+describe("AriaAttributes", () => {
+  it("aria-valuenow accepts a reactive number (range widgets)", () => {
+    type Prop = NonNullable<AriaAttributes["aria-valuenow"]>;
+    expectTypeOf<5>().toMatchTypeOf<Prop>();
+    expectTypeOf<() => number>().toMatchTypeOf<Prop>();
+  });
+
+  it("aria-valuetext accepts a reactive string (range widgets)", () => {
+    type Prop = NonNullable<AriaAttributes["aria-valuetext"]>;
+    expectTypeOf<"50%">().toMatchTypeOf<Prop>();
+    expectTypeOf<() => string>().toMatchTypeOf<Prop>();
+  });
+
+  it("aria-valuemin / aria-valuemax accept a reactive number", () => {
+    type MinProp = NonNullable<AriaAttributes["aria-valuemin"]>;
+    type MaxProp = NonNullable<AriaAttributes["aria-valuemax"]>;
+    expectTypeOf<() => number>().toMatchTypeOf<MinProp>();
+    expectTypeOf<() => number>().toMatchTypeOf<MaxProp>();
+  });
+
+  it("aria-selected accepts a reactive boolean (baseline for comparison)", () => {
+    type Prop = NonNullable<AriaAttributes["aria-selected"]>;
+    expectTypeOf<() => boolean>().toMatchTypeOf<Prop>();
+  });
+
+  it("aria-activedescendant accepts a reactive string", () => {
+    type Prop = NonNullable<AriaAttributes["aria-activedescendant"]>;
+    expectTypeOf<() => string>().toMatchTypeOf<Prop>();
+  });
+
+  it("aria-level / aria-posinset / aria-setsize accept a reactive number", () => {
+    expectTypeOf<() => number>().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-level"]>
+    >();
+    expectTypeOf<() => number>().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-posinset"]>
+    >();
+    expectTypeOf<() => number>().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-setsize"]>
+    >();
+  });
+
+  it("aria-rowindex / aria-colindex / aria-rowcount / aria-colcount accept a reactive number", () => {
+    expectTypeOf<() => number>().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-rowindex"]>
+    >();
+    expectTypeOf<() => number>().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-colindex"]>
+    >();
+    expectTypeOf<() => number>().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-rowcount"]>
+    >();
+    expectTypeOf<() => number>().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-colcount"]>
+    >();
+  });
+
+  it("aria-sort / aria-orientation / aria-autocomplete accept a reactive literal union", () => {
+    expectTypeOf<() => "ascending">().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-sort"]>
+    >();
+    expectTypeOf<() => "vertical">().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-orientation"]>
+    >();
+    expectTypeOf<() => "list">().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-autocomplete"]>
+    >();
+  });
+
+  it("aria-controls / aria-describedby / aria-labelledby / aria-owns accept a reactive string", () => {
+    expectTypeOf<() => string>().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-controls"]>
+    >();
+    expectTypeOf<() => string>().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-describedby"]>
+    >();
+    expectTypeOf<() => string>().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-labelledby"]>
+    >();
+    expectTypeOf<() => string>().toMatchTypeOf<
+      NonNullable<AriaAttributes["aria-owns"]>
+    >();
+  });
+});
+
+describe("HTMLAttributes — global attribute reactivity", () => {
+  it("role accepts a reactive literal union", () => {
+    expectTypeOf<() => "tab">().toMatchTypeOf<
+      NonNullable<HTMLAttributes["role"]>
+    >();
+  });
+
+  it("slot / accessKey / part accept a reactive string", () => {
+    expectTypeOf<() => string>().toMatchTypeOf<
+      NonNullable<HTMLAttributes["slot"]>
+    >();
+    expectTypeOf<() => string>().toMatchTypeOf<
+      NonNullable<HTMLAttributes["accessKey"]>
+    >();
+    expectTypeOf<() => string>().toMatchTypeOf<
+      NonNullable<HTMLAttributes["part"]>
+    >();
+  });
+
+  it("popover accepts a reactive boolean or literal union", () => {
+    expectTypeOf<() => "manual">().toMatchTypeOf<
+      NonNullable<HTMLAttributes["popover"]>
+    >();
+  });
+
+  it("autoFocus stays a plain boolean — one-shot mount semantics, not reactive", () => {
+    type AutoFocusProp = NonNullable<HTMLAttributes["autoFocus"]>;
+    expectTypeOf<() => boolean>().not.toMatchTypeOf<AutoFocusProp>();
+  });
+});
+
+describe("Cross-interface Reactive<T> consistency", () => {
+  it("href is reactive on <base> and <link>, matching <a>/<area>/SVG", () => {
+    expectTypeOf<() => string>().toMatchTypeOf<
+      NonNullable<BaseHTMLAttributes["href"]>
+    >();
+    expectTypeOf<() => string>().toMatchTypeOf<
+      NonNullable<LinkHTMLAttributes["href"]>
+    >();
+  });
+
+  it("target is reactive on <base> and <form>, matching <a>/<area>", () => {
+    expectTypeOf<() => "_blank">().toMatchTypeOf<
+      NonNullable<BaseHTMLAttributes["target"]>
+    >();
+    expectTypeOf<() => "_blank">().toMatchTypeOf<
+      NonNullable<FormHTMLAttributes["target"]>
+    >();
+  });
+
+  it("value is reactive on <li>, matching every other value-bearing element", () => {
+    expectTypeOf<() => number>().toMatchTypeOf<
+      NonNullable<LiHTMLAttributes["value"]>
+    >();
+  });
+
+  it("max is reactive on <progress>, matching <input>/<meter>", () => {
+    expectTypeOf<() => number>().toMatchTypeOf<
+      NonNullable<ProgressHTMLAttributes["max"]>
+    >();
+  });
+
+  it("src is reactive on <script> and <track>, matching <img>/<iframe>/media", () => {
+    expectTypeOf<() => string>().toMatchTypeOf<
+      NonNullable<ScriptHTMLAttributes["src"]>
+    >();
+    expectTypeOf<() => string>().toMatchTypeOf<
+      NonNullable<TrackHTMLAttributes["src"]>
+    >();
+  });
+
+  it("width is reactive on <table>, matching <img>/<iframe>/<video>/etc.", () => {
+    expectTypeOf<() => number>().toMatchTypeOf<
+      NonNullable<TableHTMLAttributes["width"]>
+    >();
+  });
+
+  it("height/width are reactive on <td>, matching every other sized element", () => {
+    expectTypeOf<() => number>().toMatchTypeOf<
+      NonNullable<TdHTMLAttributes["height"]>
+    >();
+    expectTypeOf<() => number>().toMatchTypeOf<
+      NonNullable<TdHTMLAttributes["width"]>
+    >();
+  });
+
+  it("dateTime is reactive on <del>, matching <time>", () => {
+    expectTypeOf<() => string>().toMatchTypeOf<
+      NonNullable<DelHTMLAttributes["dateTime"]>
+    >();
+    expectTypeOf<() => string>().toMatchTypeOf<
+      NonNullable<TimeHTMLAttributes["dateTime"]>
+    >();
   });
 });
 

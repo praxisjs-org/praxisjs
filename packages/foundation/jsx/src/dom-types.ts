@@ -109,43 +109,43 @@ export type CSSProperties = {
 
 export interface AriaAttributes {
   /** Identifies the currently active element when DOM focus is on a composite widget, combobox, textbox, group, or application. */
-  "aria-activedescendant"?: string;
+  "aria-activedescendant"?: Reactive<string>;
   /** Indicates whether assistive technologies will present all, or only parts of, the changed region based on the change notifications defined by the aria-relevant attribute. */
   "aria-atomic"?: Reactive<Booleanish>;
   /** Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for a combobox, searchbox, or textbox and specifies how predictions would be presented. */
-  "aria-autocomplete"?: LiteralUnion<"none" | "inline" | "list" | "both">;
+  "aria-autocomplete"?: Reactive<LiteralUnion<"none" | "inline" | "list" | "both">>;
   /** Indicates an element's "busy" status. */
   "aria-busy"?: Reactive<Booleanish>;
   /** Indicates the current "checked" state of checkboxes, radio buttons, and other widgets. */
   "aria-checked"?: Reactive<Booleanish | LiteralUnion<"mixed">>;
   /** Defines the total number of columns in a table, grid, or treegrid. */
-  "aria-colcount"?: number;
+  "aria-colcount"?: Reactive<number>;
   /** Defines an element's column index or position with respect to the total number of columns within a table, grid, or treegrid. */
-  "aria-colindex"?: number;
+  "aria-colindex"?: Reactive<number>;
   /** Defines a human readable text alternative of aria-colindex. */
-  "aria-colindextext"?: string;
+  "aria-colindextext"?: Reactive<string>;
   /** Defines the number of columns spanned by a cell or gridcell within a table, grid, or treegrid. */
-  "aria-colspan"?: number;
+  "aria-colspan"?: Reactive<number>;
   /** Identifies the element(s) whose contents or presence are controlled by the current element. */
-  "aria-controls"?: string;
+  "aria-controls"?: Reactive<string>;
   /** Indicates the element that represents the current item within a container or set of related elements. */
   "aria-current"?: Reactive<
     Booleanish | LiteralUnion<"page" | "step" | "location" | "date" | "time">
   >;
   /** Identifies the element(s) that describes the object. */
-  "aria-describedby"?: string;
+  "aria-describedby"?: Reactive<string>;
   /** Defines a string value that describes or annotates the current element. */
-  "aria-description"?: string;
+  "aria-description"?: Reactive<string>;
   /** Identifies the element that provides a detailed, extended description for the object. */
-  "aria-details"?: string;
+  "aria-details"?: Reactive<string>;
   /** Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable. */
   "aria-disabled"?: Reactive<Booleanish>;
   /** Identifies the element that provides an error message for the current element. */
-  "aria-errormessage"?: string;
+  "aria-errormessage"?: Reactive<string>;
   /** Indicates whether the element, or another grouping element it controls, is currently expanded or collapsed. */
   "aria-expanded"?: Reactive<Booleanish>;
   /** Identifies the next element (or elements) in an alternate reading order of content which, at the user's discretion, allows assistive technology to override the general default of reading in document source order. */
-  "aria-flowto"?: string;
+  "aria-flowto"?: Reactive<string>;
   /** Indicates the availability and type of interactive popup element, such as menu or dialog, that can be triggered by an element. */
   "aria-haspopup"?: Reactive<
     Booleanish | LiteralUnion<"menu" | "listbox" | "tree" | "grid" | "dialog">
@@ -155,13 +155,13 @@ export interface AriaAttributes {
   /** Indicates the entered value does not conform to the format expected by the application. */
   "aria-invalid"?: Reactive<Booleanish | LiteralUnion<"grammar" | "spelling">>;
   /** Indicates keyboard shortcuts that an author has implemented to activate or give focus to an element. */
-  "aria-keyshortcuts"?: string;
+  "aria-keyshortcuts"?: Reactive<string>;
   /** Defines a string value that labels the current element. */
   "aria-label"?: Reactive<string>;
   /** Identifies the element(s) that labels the current element. */
-  "aria-labelledby"?: string;
+  "aria-labelledby"?: Reactive<string>;
   /** Defines the hierarchical level of an element within a structure. */
-  "aria-level"?: number;
+  "aria-level"?: Reactive<number>;
   /** Indicates that an element will be updated, and describes the types of updates the user agents, assistive technologies, and user can expect from the live region. */
   "aria-live"?: Reactive<LiteralUnion<"off" | "assertive" | "polite">>;
   /** Indicates whether an element is modal when displayed. */
@@ -171,13 +171,13 @@ export interface AriaAttributes {
   /** Indicates that the user may select more than one item from the current selectable descendants. */
   "aria-multiselectable"?: Reactive<Booleanish>;
   /** Indicates whether the element's orientation is horizontal, vertical, or unknown/ambiguous. */
-  "aria-orientation"?: LiteralUnion<"horizontal" | "vertical">;
+  "aria-orientation"?: Reactive<LiteralUnion<"horizontal" | "vertical">>;
   /** Identifies an element (or elements) in order to define a visual, functional, or contextual parent/child relationship between DOM elements where the DOM hierarchy cannot be used to represent the relationship. */
-  "aria-owns"?: string;
+  "aria-owns"?: Reactive<string>;
   /** Defines a short hint (a word or short phrase) intended to aid the user with data entry when the control has no value. */
-  "aria-placeholder"?: string;
+  "aria-placeholder"?: Reactive<string>;
   /** Defines an element's number or position in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM. */
-  "aria-posinset"?: number;
+  "aria-posinset"?: Reactive<number>;
   /** Indicates the current "pressed" state of toggle buttons. */
   "aria-pressed"?: Reactive<Booleanish | LiteralUnion<"mixed">>;
   /** Indicates that the element is not editable, but is otherwise operable. */
@@ -198,31 +198,31 @@ export interface AriaAttributes {
   /** Indicates that user input is required on the element before a form may be submitted. */
   "aria-required"?: Reactive<Booleanish>;
   /** Defines a human-readable, author-localized description for the role of an element. */
-  "aria-roledescription"?: string;
+  "aria-roledescription"?: Reactive<string>;
   /** Defines the total number of rows in a table, grid, or treegrid. */
-  "aria-rowcount"?: number;
+  "aria-rowcount"?: Reactive<number>;
   /** Defines an element's row index or position with respect to the total number of rows within a table, grid, or treegrid. */
-  "aria-rowindex"?: number;
+  "aria-rowindex"?: Reactive<number>;
   /** Defines a human readable text alternative of aria-rowindex. */
-  "aria-rowindextext"?: string;
+  "aria-rowindextext"?: Reactive<string>;
   /** Defines the number of rows spanned by a cell or gridcell within a table, grid, or treegrid. */
-  "aria-rowspan"?: number;
+  "aria-rowspan"?: Reactive<number>;
   /** Indicates the current "selected" state of various widgets. */
   "aria-selected"?: Reactive<Booleanish>;
   /** Defines the number of items in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM. */
-  "aria-setsize"?: number;
+  "aria-setsize"?: Reactive<number>;
   /** Indicates if items in a table or grid are sorted in ascending or descending order. */
-  "aria-sort"?: LiteralUnion<"none" | "ascending" | "descending" | "other">;
+  "aria-sort"?: Reactive<LiteralUnion<"none" | "ascending" | "descending" | "other">>;
   /** Defines the maximum allowed value for a range widget. */
-  "aria-valuemax"?: number;
+  "aria-valuemax"?: Reactive<number>;
   /** Defines the minimum allowed value for a range widget. */
-  "aria-valuemin"?: number;
+  "aria-valuemin"?: Reactive<number>;
   /** Defines the current value for a range widget. */
-  "aria-valuenow"?: number;
+  "aria-valuenow"?: Reactive<number>;
   /** Defines the human readable text alternative of aria-valuenow for a range widget. */
-  "aria-valuetext"?: string;
+  "aria-valuetext"?: Reactive<string>;
   /** Defines the ARIA role of the element. */
-  role?: LiteralUnion<
+  role?: Reactive<LiteralUnion<
     | "alert"
     | "alertdialog"
     | "application"
@@ -294,7 +294,7 @@ export interface AriaAttributes {
     | "tree"
     | "treegrid"
     | "treeitem"
-  >;
+  >>;
 }
 
 // ---------------------------------------------------------------------------
@@ -400,24 +400,29 @@ export interface HTMLAttributes<T extends Element = HTMLElement>
   title?: Reactive<string>;
   lang?: Reactive<string>;
   dir?: Reactive<Dir>;
-  slot?: string;
-  accessKey?: string;
+  /** Web Components named-slot assignment. */
+  slot?: Reactive<string>;
+  accessKey?: Reactive<string>;
+  /** Content Security Policy nonce. Single-use: browsers blank this out after first read. */
   nonce?: string;
   // Visibility / interaction
   hidden?: Reactive<boolean>;
   tabIndex?: Reactive<number>;
   draggable?: Reactive<boolean>;
-  /** Autofocus on mount (global HTML5 attribute). */
+  /**
+   * Autofocus on mount (global HTML5 attribute). One-shot by spec — the browser
+   * only consults this at insertion time, so it is not reactive.
+   */
   autoFocus?: boolean;
   contentEditable?: Reactive<Booleanish | LiteralUnion<"inherit" | "plaintext-only">>;
   spellcheck?: Reactive<Booleanish>;
-  translate?: LiteralUnion<"yes" | "no">;
+  translate?: Reactive<LiteralUnion<"yes" | "no">>;
   /** Marks the element as inert — blocks all user interaction and assistive technology. */
   inert?: Reactive<boolean>;
   /** Declares the element as a popover. Use `"auto"` (default, light-dismiss) or `"manual"`. */
-  popover?: boolean | LiteralUnion<"auto" | "manual">;
+  popover?: Reactive<boolean | LiteralUnion<"auto" | "manual">>;
   /** CSS `::part()` export list for shadow DOM styling. */
-  part?: string;
+  part?: Reactive<string>;
   // Input hints
   inputMode?: Reactive<InputMode>;
   enterKeyHint?: Reactive<EnterKeyHint>;
@@ -426,12 +431,15 @@ export interface HTMLAttributes<T extends Element = HTMLElement>
   // Raw HTML injection
   innerHTML?: Reactive<string>;
   // Micro-data
-  itemID?: string;
-  itemProp?: string;
-  itemRef?: string;
-  itemScope?: boolean;
-  itemType?: string;
-  // Custom elements
+  itemID?: Reactive<string>;
+  itemProp?: Reactive<string>;
+  itemRef?: Reactive<string>;
+  itemScope?: Reactive<boolean>;
+  itemType?: Reactive<string>;
+  /**
+   * Customized built-in element name (`is="my-button"`). Fixed at
+   * `document.createElement(tag, { is })` time — cannot change post-construction.
+   */
   is?: string;
   // JSX internals
   key?: string | number | symbol;
@@ -450,14 +458,14 @@ export interface HTMLAttributes<T extends Element = HTMLElement>
 export interface BaseHTMLAttributes<
   T extends HTMLBaseElement = HTMLBaseElement,
 > extends HTMLAttributes<T> {
-  href?: string;
-  target?: LinkTarget;
+  href?: Reactive<string>;
+  target?: Reactive<LinkTarget>;
 }
 
 export interface LinkHTMLAttributes<
   T extends HTMLLinkElement = HTMLLinkElement,
 > extends HTMLAttributes<T> {
-  as?: LiteralUnion<
+  as?: Reactive<LiteralUnion<
     | "audio"
     | "document"
     | "embed"
@@ -470,49 +478,49 @@ export interface LinkHTMLAttributes<
     | "track"
     | "video"
     | "worker"
-  >;
-  crossOrigin?: CrossOrigin;
-  href?: string;
-  hrefLang?: string;
-  integrity?: string;
-  media?: string;
-  referrerPolicy?: ReferrerPolicy;
-  rel?: string;
-  sizes?: string;
-  type?: string;
-  charSet?: string;
+  >>;
+  crossOrigin?: Reactive<CrossOrigin>;
+  href?: Reactive<string>;
+  hrefLang?: Reactive<string>;
+  integrity?: Reactive<string>;
+  media?: Reactive<string>;
+  referrerPolicy?: Reactive<ReferrerPolicy>;
+  rel?: Reactive<string>;
+  sizes?: Reactive<string>;
+  type?: Reactive<string>;
+  charSet?: Reactive<string>;
 }
 
 export interface MetaHTMLAttributes<
   T extends HTMLMetaElement = HTMLMetaElement,
 > extends HTMLAttributes<T> {
-  charSet?: string;
-  content?: string;
-  httpEquiv?: string;
-  name?: string;
-  media?: string;
+  charSet?: Reactive<string>;
+  content?: Reactive<string>;
+  httpEquiv?: Reactive<string>;
+  name?: Reactive<string>;
+  media?: Reactive<string>;
 }
 
 export interface ScriptHTMLAttributes<
   T extends HTMLScriptElement = HTMLScriptElement,
 > extends HTMLAttributes<T> {
-  async?: boolean;
-  crossOrigin?: CrossOrigin;
-  defer?: boolean;
-  integrity?: string;
-  noModule?: boolean;
-  referrerPolicy?: ReferrerPolicy;
-  src?: string;
-  type?: string;
-  charSet?: string;
+  async?: Reactive<boolean>;
+  crossOrigin?: Reactive<CrossOrigin>;
+  defer?: Reactive<boolean>;
+  integrity?: Reactive<string>;
+  noModule?: Reactive<boolean>;
+  referrerPolicy?: Reactive<ReferrerPolicy>;
+  src?: Reactive<string>;
+  type?: Reactive<string>;
+  charSet?: Reactive<string>;
 }
 
 export interface StyleHTMLAttributes<
   T extends HTMLStyleElement = HTMLStyleElement,
 > extends HTMLAttributes<T> {
-  media?: string;
-  scoped?: boolean;
-  type?: string;
+  media?: Reactive<string>;
+  scoped?: Reactive<boolean>;
+  type?: Reactive<string>;
 }
 
 // --- Sectioning / grouping ---
@@ -520,26 +528,26 @@ export interface StyleHTMLAttributes<
 export interface BlockquoteHTMLAttributes<
   T extends HTMLQuoteElement = HTMLQuoteElement,
 > extends HTMLAttributes<T> {
-  cite?: string;
+  cite?: Reactive<string>;
 }
 
 export interface OlHTMLAttributes<
   T extends HTMLOListElement = HTMLOListElement,
 > extends HTMLAttributes<T> {
-  reversed?: boolean;
-  start?: number;
-  type?: LiteralUnion<"1" | "a" | "A" | "i" | "I">;
+  reversed?: Reactive<boolean>;
+  start?: Reactive<number>;
+  type?: Reactive<LiteralUnion<"1" | "a" | "A" | "i" | "I">>;
 }
 
 export interface LiHTMLAttributes<T extends HTMLLIElement = HTMLLIElement>
   extends HTMLAttributes<T> {
-  value?: number;
+  value?: Reactive<number>;
 }
 
 export interface MenuHTMLAttributes<
   T extends HTMLMenuElement = HTMLMenuElement,
 > extends HTMLAttributes<T> {
-  type?: string;
+  type?: Reactive<string>;
 }
 
 // --- Text-level ---
@@ -549,13 +557,13 @@ export interface AnchorHTMLAttributes<
 > extends HTMLAttributes<T> {
   download?: Reactive<string | boolean>;
   href?: Reactive<string>;
-  hrefLang?: string;
-  media?: string;
-  ping?: string;
-  referrerPolicy?: ReferrerPolicy;
-  rel?: string;
+  hrefLang?: Reactive<string>;
+  media?: Reactive<string>;
+  ping?: Reactive<string>;
+  referrerPolicy?: Reactive<ReferrerPolicy>;
+  rel?: Reactive<string>;
   target?: Reactive<LinkTarget>;
-  type?: string;
+  type?: Reactive<string>;
 }
 
 export interface DataHTMLAttributes<
@@ -575,32 +583,32 @@ export interface TimeHTMLAttributes<
 export interface ImgHTMLAttributes<
   T extends HTMLImageElement = HTMLImageElement,
 > extends HTMLAttributes<T> {
-  alt?: string;
-  crossOrigin?: CrossOrigin;
-  decoding?: Decoding;
+  alt?: Reactive<string>;
+  crossOrigin?: Reactive<CrossOrigin>;
+  decoding?: Reactive<Decoding>;
   height?: Reactive<number | string>;
-  loading?: Loading;
-  referrerPolicy?: ReferrerPolicy;
-  sizes?: string;
+  loading?: Reactive<Loading>;
+  referrerPolicy?: Reactive<ReferrerPolicy>;
+  sizes?: Reactive<string>;
   src?: Reactive<string>;
   srcSet?: Reactive<string>;
-  useMap?: string;
+  useMap?: Reactive<string>;
   width?: Reactive<number | string>;
-  fetchPriority?: LiteralUnion<"high" | "low" | "auto">;
+  fetchPriority?: Reactive<LiteralUnion<"high" | "low" | "auto">>;
 }
 
 export interface IframeHTMLAttributes<
   T extends HTMLIFrameElement = HTMLIFrameElement,
 > extends HTMLAttributes<T> {
-  allow?: string;
+  allow?: Reactive<string>;
   allowFullScreen?: Reactive<boolean>;
   height?: Reactive<number | string>;
-  loading?: Loading;
-  name?: string;
-  referrerPolicy?: ReferrerPolicy;
+  loading?: Reactive<Loading>;
+  name?: Reactive<string>;
+  referrerPolicy?: Reactive<ReferrerPolicy>;
   sandbox?: Reactive<string>;
   src?: Reactive<string>;
-  srcDoc?: string;
+  srcDoc?: Reactive<string>;
   title?: Reactive<string>;
   width?: Reactive<number | string>;
 }
@@ -610,19 +618,19 @@ export interface EmbedHTMLAttributes<
 > extends HTMLAttributes<T> {
   height?: Reactive<number | string>;
   src?: Reactive<string>;
-  type?: string;
+  type?: Reactive<string>;
   width?: Reactive<number | string>;
 }
 
 export interface ObjectHTMLAttributes<
   T extends HTMLObjectElement = HTMLObjectElement,
 > extends HTMLAttributes<T> {
-  data?: string;
-  form?: string;
+  data?: Reactive<string>;
+  form?: Reactive<string>;
   height?: Reactive<number | string>;
-  name?: string;
-  type?: string;
-  useMap?: string;
+  name?: Reactive<string>;
+  type?: Reactive<string>;
+  useMap?: Reactive<string>;
   width?: Reactive<number | string>;
 }
 
@@ -630,37 +638,41 @@ export interface SourceHTMLAttributes<
   T extends HTMLSourceElement = HTMLSourceElement,
 > extends HTMLAttributes<T> {
   height?: Reactive<number | string>;
-  media?: string;
-  sizes?: string;
+  media?: Reactive<string>;
+  sizes?: Reactive<string>;
   src?: Reactive<string>;
   srcSet?: Reactive<string>;
-  type?: string;
+  type?: Reactive<string>;
   width?: Reactive<number | string>;
 }
 
 export interface TrackHTMLAttributes<
   T extends HTMLTrackElement = HTMLTrackElement,
 > extends HTMLAttributes<T> {
-  default?: boolean;
-  kind?: LiteralUnion<
+  default?: Reactive<boolean>;
+  kind?: Reactive<LiteralUnion<
     "subtitles" | "captions" | "descriptions" | "chapters" | "metadata"
-  >;
-  label?: string;
-  src?: string;
-  srcLang?: string;
+  >>;
+  label?: Reactive<string>;
+  src?: Reactive<string>;
+  srcLang?: Reactive<string>;
 }
 
 export interface MediaHTMLAttributes<T extends HTMLMediaElement = HTMLMediaElement>
   extends HTMLAttributes<T> {
+  /**
+   * One-shot by spec — the browser only consults `autoplay` at insertion
+   * time, so it is not reactive.
+   */
   autoPlay?: boolean;
   controls?: Reactive<boolean>;
-  controlsList?: string;
-  crossOrigin?: CrossOrigin;
+  controlsList?: Reactive<string>;
+  crossOrigin?: Reactive<CrossOrigin>;
   loop?: Reactive<boolean>;
-  mediaGroup?: string;
+  mediaGroup?: Reactive<string>;
   muted?: Reactive<boolean>;
-  playsInline?: boolean;
-  preload?: LiteralUnion<"none" | "metadata" | "auto">;
+  playsInline?: Reactive<boolean>;
+  preload?: Reactive<LiteralUnion<"none" | "metadata" | "auto">>;
   src?: Reactive<string>;
   // Media events
   onAbort?: (e: NativeEventOf<Event, T>) => void;
@@ -694,11 +706,11 @@ export interface VideoHTMLAttributes<
   T extends HTMLVideoElement = HTMLVideoElement,
 > extends MediaHTMLAttributes<T> {
   height?: Reactive<number | string>;
-  playsInline?: boolean;
+  playsInline?: Reactive<boolean>;
   poster?: Reactive<string>;
   width?: Reactive<number | string>;
-  disablePictureInPicture?: boolean;
-  disableRemotePlayback?: boolean;
+  disablePictureInPicture?: Reactive<boolean>;
+  disableRemotePlayback?: Reactive<boolean>;
 }
 
 export interface CanvasHTMLAttributes<
@@ -711,21 +723,21 @@ export interface CanvasHTMLAttributes<
 export interface MapHTMLAttributes<
   T extends HTMLMapElement = HTMLMapElement,
 > extends HTMLAttributes<T> {
-  name?: string;
+  name?: Reactive<string>;
 }
 
 export interface AreaHTMLAttributes<
   T extends HTMLAreaElement = HTMLAreaElement,
 > extends HTMLAttributes<T> {
-  alt?: string;
-  coords?: string;
-  download?: string;
+  alt?: Reactive<string>;
+  coords?: Reactive<string>;
+  download?: Reactive<string | boolean>;
   href?: Reactive<string>;
-  hrefLang?: string;
-  media?: string;
-  referrerPolicy?: ReferrerPolicy;
-  rel?: string;
-  shape?: string;
+  hrefLang?: Reactive<string>;
+  media?: Reactive<string>;
+  referrerPolicy?: Reactive<ReferrerPolicy>;
+  rel?: Reactive<string>;
+  shape?: Reactive<string>;
   target?: Reactive<LinkTarget>;
 }
 
@@ -734,106 +746,120 @@ export interface AreaHTMLAttributes<
 export interface FormHTMLAttributes<
   T extends HTMLFormElement = HTMLFormElement,
 > extends HTMLAttributes<T> {
-  acceptCharset?: string;
+  acceptCharset?: Reactive<string>;
   action?: Reactive<string>;
-  autoComplete?: string;
-  encType?: FormEncType;
-  method?: FormMethod;
-  name?: string;
-  noValidate?: boolean;
-  target?: LinkTarget;
-  rel?: string;
+  autoComplete?: Reactive<string>;
+  encType?: Reactive<FormEncType>;
+  method?: Reactive<FormMethod>;
+  name?: Reactive<string>;
+  noValidate?: Reactive<boolean>;
+  target?: Reactive<LinkTarget>;
+  rel?: Reactive<string>;
 }
 
 export interface FieldsetHTMLAttributes<
   T extends HTMLFieldSetElement = HTMLFieldSetElement,
 > extends HTMLAttributes<T> {
   disabled?: Reactive<boolean>;
-  form?: string;
-  name?: string;
+  form?: Reactive<string>;
+  name?: Reactive<string>;
 }
 
 export interface InputHTMLAttributes<
   T extends HTMLInputElement = HTMLInputElement,
 > extends HTMLAttributes<T> {
-  accept?: string;
-  alt?: string;
-  autoComplete?: LiteralUnion<string>;
+  accept?: Reactive<string>;
+  alt?: Reactive<string>;
+  autoComplete?: Reactive<LiteralUnion<string>>;
+  /**
+   * Autofocus on mount. One-shot by spec — the browser only consults this
+   * at insertion time, so it is not reactive.
+   */
   autoFocus?: boolean;
-  capture?: boolean | LiteralUnion<"user" | "environment">;
+  capture?: Reactive<boolean | LiteralUnion<"user" | "environment">>;
   checked?: Reactive<boolean>;
-  crossOrigin?: CrossOrigin;
+  crossOrigin?: Reactive<CrossOrigin>;
+  /** Uncontrolled-baseline value, set once on mount — not reactive. */
   defaultChecked?: boolean;
+  /** Uncontrolled-baseline value, set once on mount — not reactive. */
   defaultValue?: string | number | readonly string[];
-  dirName?: string;
+  dirName?: Reactive<string>;
   disabled?: Reactive<boolean>;
   enterKeyHint?: Reactive<EnterKeyHint>;
-  form?: string;
-  formAction?: string;
-  formEncType?: FormEncType;
-  formMethod?: FormMethod;
-  formNoValidate?: boolean;
-  formTarget?: string;
+  form?: Reactive<string>;
+  formAction?: Reactive<string>;
+  formEncType?: Reactive<FormEncType>;
+  formMethod?: Reactive<FormMethod>;
+  formNoValidate?: Reactive<boolean>;
+  formTarget?: Reactive<string>;
   height?: Reactive<number | string>;
-  list?: string;
+  list?: Reactive<string>;
   max?: Reactive<number | string>;
-  maxLength?: number;
+  maxLength?: Reactive<number>;
   min?: Reactive<number | string>;
-  minLength?: number;
-  multiple?: boolean;
-  name?: string;
-  pattern?: string;
+  minLength?: Reactive<number>;
+  multiple?: Reactive<boolean>;
+  name?: Reactive<string>;
+  pattern?: Reactive<string>;
   placeholder?: Reactive<string>;
   readOnly?: Reactive<boolean>;
   required?: Reactive<boolean>;
-  size?: number;
-  src?: string;
+  size?: Reactive<number>;
+  src?: Reactive<string>;
   step?: Reactive<number | string>;
   type?: Reactive<HTMLInputTypeAttribute>;
   value?: Reactive<string | number | readonly string[]>;
   width?: Reactive<number | string>;
-  popovertarget?: string;
-  popovertargetaction?: LiteralUnion<"hide" | "show" | "toggle">;
+  popovertarget?: Reactive<string>;
+  popovertargetaction?: Reactive<LiteralUnion<"hide" | "show" | "toggle">>;
 }
 
 export interface ButtonHTMLAttributes<
   T extends HTMLButtonElement = HTMLButtonElement,
 > extends HTMLAttributes<T> {
+  /**
+   * Autofocus on mount. One-shot by spec — the browser only consults this
+   * at insertion time, so it is not reactive.
+   */
   autoFocus?: boolean;
   disabled?: Reactive<boolean>;
-  form?: string;
-  formAction?: string;
-  formEncType?: FormEncType;
-  formMethod?: FormMethod;
-  formNoValidate?: boolean;
-  formTarget?: string;
-  name?: string;
+  form?: Reactive<string>;
+  formAction?: Reactive<string>;
+  formEncType?: Reactive<FormEncType>;
+  formMethod?: Reactive<FormMethod>;
+  formNoValidate?: Reactive<boolean>;
+  formTarget?: Reactive<string>;
+  name?: Reactive<string>;
   type?: Reactive<ButtonType>;
   value?: Reactive<string>;
-  popovertarget?: string;
-  popovertargetaction?: LiteralUnion<"hide" | "show" | "toggle">;
+  popovertarget?: Reactive<string>;
+  popovertargetaction?: Reactive<LiteralUnion<"hide" | "show" | "toggle">>;
 }
 
 export interface LabelHTMLAttributes<
   T extends HTMLLabelElement = HTMLLabelElement,
 > extends HTMLAttributes<T> {
-  form?: string;
-  htmlFor?: string;
+  form?: Reactive<string>;
+  htmlFor?: Reactive<string>;
   /** DOM attribute alias for `htmlFor`. */
-  for?: string;
+  for?: Reactive<string>;
 }
 
 export interface SelectHTMLAttributes<
   T extends HTMLSelectElement = HTMLSelectElement,
 > extends HTMLAttributes<T> {
-  autoComplete?: string;
+  autoComplete?: Reactive<string>;
+  /**
+   * Autofocus on mount. One-shot by spec — the browser only consults this
+   * at insertion time, so it is not reactive.
+   */
   autoFocus?: boolean;
   disabled?: Reactive<boolean>;
-  form?: string;
-  multiple?: boolean;
-  name?: string;
+  form?: Reactive<string>;
+  multiple?: Reactive<boolean>;
+  name?: Reactive<string>;
   required?: Reactive<boolean>;
-  size?: number;
+  size?: Reactive<number>;
   value?: Reactive<string | number | readonly string[]>;
 }
 
@@ -841,14 +867,14 @@ export interface OptgroupHTMLAttributes<
   T extends HTMLOptGroupElement = HTMLOptGroupElement,
 > extends HTMLAttributes<T> {
   disabled?: Reactive<boolean>;
-  label?: string;
+  label?: Reactive<string>;
 }
 
 export interface OptionHTMLAttributes<
   T extends HTMLOptionElement = HTMLOptionElement,
 > extends HTMLAttributes<T> {
   disabled?: Reactive<boolean>;
-  label?: string;
+  label?: Reactive<string>;
   selected?: Reactive<boolean>;
   value?: Reactive<string | number>;
 }
@@ -856,48 +882,53 @@ export interface OptionHTMLAttributes<
 export interface OutputHTMLAttributes<
   T extends HTMLOutputElement = HTMLOutputElement,
 > extends HTMLAttributes<T> {
-  form?: string;
-  htmlFor?: string;
-  name?: string;
+  form?: Reactive<string>;
+  htmlFor?: Reactive<string>;
+  name?: Reactive<string>;
 }
 
 export interface TextareaHTMLAttributes<
   T extends HTMLTextAreaElement = HTMLTextAreaElement,
 > extends HTMLAttributes<T> {
-  autoComplete?: string;
+  autoComplete?: Reactive<string>;
+  /**
+   * Autofocus on mount. One-shot by spec — the browser only consults this
+   * at insertion time, so it is not reactive.
+   */
   autoFocus?: boolean;
-  cols?: number;
+  cols?: Reactive<number>;
+  /** Uncontrolled-baseline value, set once on mount — not reactive. */
   defaultValue?: string;
-  dirName?: string;
+  dirName?: Reactive<string>;
   disabled?: Reactive<boolean>;
-  form?: string;
-  maxLength?: number;
-  minLength?: number;
-  name?: string;
+  form?: Reactive<string>;
+  maxLength?: Reactive<number>;
+  minLength?: Reactive<number>;
+  name?: Reactive<string>;
   placeholder?: Reactive<string>;
   readOnly?: Reactive<boolean>;
   required?: Reactive<boolean>;
-  rows?: number;
+  rows?: Reactive<number>;
   value?: Reactive<string>;
-  wrap?: LiteralUnion<"hard" | "soft" | "off">;
+  wrap?: Reactive<LiteralUnion<"hard" | "soft" | "off">>;
 }
 
 export interface MeterHTMLAttributes<
   T extends HTMLMeterElement = HTMLMeterElement,
 > extends HTMLAttributes<T> {
-  form?: string;
-  high?: number;
-  low?: number;
+  form?: Reactive<string>;
+  high?: Reactive<number>;
+  low?: Reactive<number>;
   max?: Reactive<number | string>;
   min?: Reactive<number | string>;
-  optimum?: number;
+  optimum?: Reactive<number>;
   value?: Reactive<string | number>;
 }
 
 export interface ProgressHTMLAttributes<
   T extends HTMLProgressElement = HTMLProgressElement,
 > extends HTMLAttributes<T> {
-  max?: number | string;
+  max?: Reactive<number | string>;
   value?: Reactive<string | number>;
 }
 
@@ -911,7 +942,7 @@ export interface DetailsHTMLAttributes<
   T extends HTMLDetailsElement = HTMLDetailsElement,
 > extends HTMLAttributes<T> {
   open?: Reactive<boolean>;
-  name?: string;
+  name?: Reactive<string>;
   onToggle?: (e: NativeEventOf<Event, T>) => void;
   onBeforeToggle?: (e: NativeEventOf<Event, T>) => void;
 }
@@ -929,7 +960,7 @@ export interface DialogHTMLAttributes<
 export interface SlotHTMLAttributes<
   T extends HTMLSlotElement = HTMLSlotElement,
 > extends HTMLAttributes<T> {
-  name?: string;
+  name?: Reactive<string>;
 }
 
 // --- Tabular ---
@@ -937,48 +968,48 @@ export interface SlotHTMLAttributes<
 export interface TableHTMLAttributes<
   T extends HTMLTableElement = HTMLTableElement,
 > extends HTMLAttributes<T> {
-  cellPadding?: number | string;
-  cellSpacing?: number | string;
-  summary?: string;
-  width?: number | string;
+  cellPadding?: Reactive<number | string>;
+  cellSpacing?: Reactive<number | string>;
+  summary?: Reactive<string>;
+  width?: Reactive<number | string>;
 }
 
 export interface ColHTMLAttributes<
   T extends HTMLTableColElement = HTMLTableColElement,
 > extends HTMLAttributes<T> {
-  span?: number;
-  width?: number | string;
+  span?: Reactive<number>;
+  width?: Reactive<number | string>;
 }
 
 export interface ColgroupHTMLAttributes<
   T extends HTMLTableColElement = HTMLTableColElement,
 > extends HTMLAttributes<T> {
-  span?: number;
+  span?: Reactive<number>;
 }
 
 export interface TdHTMLAttributes<
   T extends HTMLTableCellElement = HTMLTableCellElement,
 > extends HTMLAttributes<T> {
-  align?: LiteralUnion<"left" | "center" | "right" | "justify" | "char">;
-  colSpan?: number;
-  headers?: string;
-  rowSpan?: number;
-  scope?: LiteralUnion<"col" | "row" | "colgroup" | "rowgroup">;
-  abbr?: string;
-  height?: number | string;
-  width?: number | string;
-  valign?: LiteralUnion<"top" | "middle" | "bottom" | "baseline">;
+  align?: Reactive<LiteralUnion<"left" | "center" | "right" | "justify" | "char">>;
+  colSpan?: Reactive<number>;
+  headers?: Reactive<string>;
+  rowSpan?: Reactive<number>;
+  scope?: Reactive<LiteralUnion<"col" | "row" | "colgroup" | "rowgroup">>;
+  abbr?: Reactive<string>;
+  height?: Reactive<number | string>;
+  width?: Reactive<number | string>;
+  valign?: Reactive<LiteralUnion<"top" | "middle" | "bottom" | "baseline">>;
 }
 
 export interface ThHTMLAttributes<
   T extends HTMLTableCellElement = HTMLTableCellElement,
 > extends HTMLAttributes<T> {
-  align?: LiteralUnion<"left" | "center" | "right" | "justify" | "char">;
-  colSpan?: number;
-  headers?: string;
-  rowSpan?: number;
-  scope?: LiteralUnion<"col" | "row" | "colgroup" | "rowgroup">;
-  abbr?: string;
+  align?: Reactive<LiteralUnion<"left" | "center" | "right" | "justify" | "char">>;
+  colSpan?: Reactive<number>;
+  headers?: Reactive<string>;
+  rowSpan?: Reactive<number>;
+  scope?: Reactive<LiteralUnion<"col" | "row" | "colgroup" | "rowgroup">>;
+  abbr?: Reactive<string>;
 }
 
 // --- Content edits ---
@@ -986,15 +1017,15 @@ export interface ThHTMLAttributes<
 export interface DelHTMLAttributes<
   T extends HTMLModElement = HTMLModElement,
 > extends HTMLAttributes<T> {
-  cite?: string;
-  dateTime?: string;
+  cite?: Reactive<string>;
+  dateTime?: Reactive<string>;
 }
 
 export interface InsHTMLAttributes<
   T extends HTMLModElement = HTMLModElement,
 > extends HTMLAttributes<T> {
-  cite?: string;
-  dateTime?: string;
+  cite?: Reactive<string>;
+  dateTime?: Reactive<string>;
 }
 
 // ---------------------------------------------------------------------------
