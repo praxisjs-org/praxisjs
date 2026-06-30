@@ -6,6 +6,10 @@ icon: Rocket
 
 # create-praxisjs
 
+## 0.4.8
+
+Fix `npx create-praxisjs add` throwing `ENOENT` when installing the Claude or Codex skill integration — the published package was missing the `plugins/` directory (`files` in `package.json` only listed `dist` and `templates`).
+
 ## 0.4.4
 
 Updated template dependency — `@praxisjs/decorators@1.2.0`.
