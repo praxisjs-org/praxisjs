@@ -38,6 +38,18 @@ describe("Reactive<T>", () => {
   it("rejects a plain number for Reactive<string>", () => {
     expectTypeOf<number>().not.toMatchTypeOf<Reactive<string>>();
   });
+
+  it("accepts null", () => {
+    expectTypeOf<null>().toMatchTypeOf<Reactive<string>>();
+  });
+
+  it("accepts undefined", () => {
+    expectTypeOf<undefined>().toMatchTypeOf<Reactive<string>>();
+  });
+
+  it("accepts a zero-arg function that can return null or undefined", () => {
+    expectTypeOf<() => string | null | undefined>().toMatchTypeOf<Reactive<string>>();
+  });
 });
 
 describe("AriaAttributes", () => {

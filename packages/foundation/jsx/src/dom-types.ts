@@ -4,8 +4,13 @@ import type { Children } from "@praxisjs/shared";
 // Primitive helpers
 // ---------------------------------------------------------------------------
 
-/** A value OR a zero-argument function returning that value (for reactive bindings). */
-export type Reactive<T> = T | (() => T);
+/**
+ * A value OR a zero-argument function returning that value (for reactive
+ * bindings). `null`/`undefined` are always accepted too — both as a static
+ * value and as what the function returns — so a prop can be conditionally
+ * omitted or cleared (the runtime removes the attribute in that case).
+ */
+export type Reactive<T> = T | null | undefined | (() => T | null | undefined);
 
 /** Boolean that can also be expressed as its string form for HTML attributes. */
 export type Booleanish = boolean | "true" | "false";

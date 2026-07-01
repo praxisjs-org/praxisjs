@@ -6,6 +6,12 @@ icon: Braces
 
 # @praxisjs/jsx
 
+## 0.7.0
+
+**`Reactive<T>` now accepts `null`/`undefined`.**
+
+`Reactive<T>` is now `T | null | undefined | (() => T | null | undefined)` — both as a static value and as what the reactive function returns. This lets any JSX attribute be conditionally omitted or cleared (`href={maybeUrl}`, `checked={() => flag() || null}`) without a type-cast; the runtime already removes the attribute when a prop resolves to `null`/`undefined`.
+
 ## 0.6.1
 
 **Audited every attribute in `dom-types.ts` for `Reactive<T>` coverage and closed every gap.** The runtime has always accepted a zero-argument function for any JSX attribute (re-evaluated reactively in an effect — see `applyProp` in `@praxisjs/runtime`), but the types only reflected that for a subset of attributes. Passing a function for the rest was a type error even though it worked at runtime.
