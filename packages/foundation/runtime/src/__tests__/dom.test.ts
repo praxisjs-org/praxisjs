@@ -225,6 +225,50 @@ describe("applyProp", () => {
     applyProp(el, "data-active", false, scope);
     expect(el.hasAttribute("data-active")).toBe(false);
   });
+
+  it("sets muted prop directly on a media element (no hardcoded list needed)", () => {
+    const el = document.createElement("video");
+    const scope = new Scope();
+    applyProp(el, "muted", true, scope);
+    expect(el.muted).toBe(true);
+    // the muted *attribute* only sets defaultMuted — it should stay untouched
+    expect(el.hasAttribute("muted")).toBe(false);
+  });
+
+  it("tracks reactive muted — keeps working after user interaction dirties the element", () => {
+    const el = document.createElement("video");
+    const scope = new Scope();
+    const muted = signal(false);
+    applyProp(el, "muted", () => muted(), scope);
+    el.muted = true; // simulate the user/browser changing live state directly
+    muted.set(true);
+    expect(el.muted).toBe(true);
+    muted.set(false);
+    expect(el.muted).toBe(false);
+    scope.dispose();
+  });
+
+  it("does not write SVG geometry props as DOM properties (read-only accessors would throw)", () => {
+    const el = createElement("rect") as SVGRectElement;
+    const scope = new Scope();
+    expect(() => { applyProp(el, "width", "50", scope); }).not.toThrow();
+    expect(el.getAttribute("width")).toBe("50");
+  });
+
+  it("falls back to setAttribute for read-only reference properties like 'list'", () => {
+    const el = document.createElement("input");
+    const scope = new Scope();
+    expect(() => { applyProp(el, "list", "my-datalist", scope); }).not.toThrow();
+    expect(el.getAttribute("list")).toBe("my-datalist");
+  });
+
+  it("removes attribute for a two-way-reflected prop when value is undefined", () => {
+    const el = document.createElement("div");
+    el.id = "old-id";
+    const scope = new Scope();
+    applyProp(el, "id", undefined, scope);
+    expect(el.hasAttribute("id")).toBe(false);
+  });
 });
 
 // ── addEvent ─────────────────────────────────────────────────────────────────

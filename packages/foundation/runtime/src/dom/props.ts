@@ -1,4 +1,4 @@
-import { EVENT_MAP, VALUE_PROPS } from "./constants";
+import { EVENT_MAP } from "./constants";
 import { addEvent } from "./events";
 
 import type { Scope } from "../scope";
@@ -42,12 +42,28 @@ function applyAttr(el: Element, key: string, value: unknown): void {
   }
 }
 
+// Read-only accessors (SVG geometry, `list`, `form`, `part`, `classList`…)
+// must be excluded here or assignment below throws.
+function hasWritableProperty(el: Element, key: string): boolean {
+  let target: object | null = el;
+  while (target) {
+    const descriptor = Object.getOwnPropertyDescriptor(target, key);
+    if (descriptor) {
+      return descriptor.set !== undefined || descriptor.writable === true;
+    }
+    target = Object.getPrototypeOf(target) as object | null;
+  }
+  return false;
+}
+
 function setProp(el: Element, key: string, value: unknown): void {
   if (key === "class" || key === "className") {
     applyClass(el, value);
   } else if (key === "style") {
     applyStyle(el, value);
-  } else if (VALUE_PROPS.has(key)) {
+  } else if (value === null || value === undefined) {
+    el.removeAttribute(key);
+  } else if (hasWritableProperty(el, key)) {
     (el as unknown as Record<string, unknown>)[key] = value;
   } else {
     applyAttr(el, key, value);

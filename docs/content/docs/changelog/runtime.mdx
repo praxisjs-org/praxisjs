@@ -6,6 +6,12 @@ icon: Boxes
 
 # @praxisjs/runtime
 
+## 0.5.1
+
+**`VALUE_PROPS` replaced with runtime feature detection.**
+
+Instead of a hardcoded list of prop names, the runtime now checks whether a prop resolves to a real, assignable property (a setter, or a writable data property) on the element's prototype chain, and writes it there automatically. This covers `checked`/`value`/`selected`/`innerHTML` — and any current or future DOM property with the same quirk — with no list to maintain, and correctly falls back to `setAttribute` for read-only accessors — SVG geometry (`width`, `cx`, `r`…) and reference/collection getters like `list`, `form`, `part`, `classList` — which would otherwise throw on assignment.
+
 ## 0.5.0
 
 **Bug fix: `onToggle`, `onClose`, and `onCancel` are now wired as event listeners.**

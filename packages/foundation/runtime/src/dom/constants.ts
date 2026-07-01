@@ -125,5 +125,3 @@ export const EVENT_MAP: Record<string, string> = {
   onVolumeChange: "volumechange",
   onWaiting: "waiting",
 };
-
-export const VALUE_PROPS = new Set(["checked", "value", "disabled", "selected", "innerHTML"]);
