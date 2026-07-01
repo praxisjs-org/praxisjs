@@ -1,5 +1,14 @@
 # @praxisjs/devtools
 
+## 0.2.27
+
+### Patch Changes
+
+- Updated dependencies [98076e7]
+- Updated dependencies [92d8213]
+  - @praxisjs/runtime@0.5.1
+  - @praxisjs/jsx@0.7.0
+
 ## 0.2.26
 
 ### Patch Changes

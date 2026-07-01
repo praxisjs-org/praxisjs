@@ -1,5 +1,16 @@
 # @praxisjs/jsx
 
+## 0.7.0
+
+### Minor Changes
+
+- 92d8213: `Reactive<T>` now accepts `null`/`undefined`, both as a static value and as what the reactive function returns (`Reactive<T> = T | null | undefined | (() => T | null | undefined)`). This lets any JSX attribute be conditionally omitted or cleared — the runtime already removes the attribute when a prop resolves to `null`/`undefined` — without a type-cast at the call site.
+
+### Patch Changes
+
+- Updated dependencies [98076e7]
+  - @praxisjs/runtime@0.5.1
+
 ## 0.6.1
 
 ### Patch Changes
