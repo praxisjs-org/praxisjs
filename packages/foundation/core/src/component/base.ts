@@ -32,6 +32,11 @@ export abstract class RootComponent<T extends object = Record<string, never>> {
     Object.assign(this._rawProps, props);
   }
 
+  /**
+   * Raw props, typed. `StatelessComponent` re-exposes this as its public
+   * props API; on `StatefulComponent` it's internal — use `@Prop()` instead.
+   * @internal
+   */
   get props(): T {
     return this._rawProps;
   }

@@ -15,4 +15,11 @@ export abstract class StatefulComponent extends RootComponent<
    */
   _stateDirty = false;
 
+  /**
+   * Raw props. Use `@Prop()` fields instead of reading this directly in user code.
+   * @internal
+   */
+  override get props(): Record<string, unknown> {
+    return this._rawProps;
+  }
 }
