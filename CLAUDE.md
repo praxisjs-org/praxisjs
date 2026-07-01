@@ -334,6 +334,12 @@ Linting runs on staged `packages/**/*.{ts,tsx}` files via Husky pre-commit hook.
 
 ---
 
+## Comments
+
+Default to no comments — well-named identifiers already say what the code does. Only add one when the *why* isn't obvious from reading it: a hidden constraint, a workaround for a specific bug, an invariant a future edit could silently break. If removing the comment wouldn't confuse a future reader, don't write it.
+
+---
+
 ## Documentation
 
 Docs source: `docs/content/docs/`. Built with [Fumadocs](https://fumadocs.vercel.app) + Next.js (`output: export`). Structure:
