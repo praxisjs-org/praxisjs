@@ -82,6 +82,10 @@ Declares an external prop whose value is a function. Use it when the parent pass
 
 `@Prop()` treats a function prop as a reactive getter and calls it when the field is read. `@FunctionProp()` keeps the function intact.
 
+<Callout type="warn" title="Non-function values">
+  If the parent passes a non-function value, `@FunctionProp()` still returns it as-is but logs a `console.warn` in development (skipped when `NODE_ENV === "production"`).
+</Callout>
+
 ```tsx
 type Product = { name: string; price: number }
 type ProductFilter = (product: Product) => boolean

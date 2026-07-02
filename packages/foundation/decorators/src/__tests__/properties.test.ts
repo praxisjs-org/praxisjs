@@ -201,6 +201,34 @@ describe("FunctionProp decorator", () => {
 
     expect((instance as unknown as Record<string, unknown>).filter).toBe(nextFilter);
   });
+
+  it("warns on a non-function raw prop in non-production", () => {
+    const { ctx, run } = fieldCtx("filter");
+    FunctionProp()(undefined, ctx);
+
+    const instance = new TestComponent({ filter: "not-a-function" });
+    run(instance);
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect((instance as unknown as Record<string, unknown>).filter).toBe("not-a-function");
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("[FunctionProp]"));
+    warn.mockRestore();
+  });
+
+  it("does not warn in production", () => {
+    const { ctx, run } = fieldCtx("filter");
+    FunctionProp()(undefined, ctx);
+
+    const instance = new TestComponent({ filter: "not-a-function" });
+    run(instance);
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubEnv("NODE_ENV", "production");
+    expect((instance as unknown as Record<string, unknown>).filter).toBe("not-a-function");
+    expect(warn).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+    warn.mockRestore();
+  });
 });
 
 // ── Computed ──────────────────────────────────────────────────────────────────
