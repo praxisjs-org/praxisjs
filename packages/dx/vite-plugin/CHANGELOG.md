@@ -1,5 +1,11 @@
 # @praxisjs/vite-plugin
 
+## 1.0.7
+
+### Patch Changes
+
+- @praxisjs/css@0.1.7
+
 ## 1.0.6
 
 ### Patch Changes

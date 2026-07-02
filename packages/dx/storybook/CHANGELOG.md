@@ -1,5 +1,12 @@
 # @praxisjs/storybook
 
+## 0.1.12
+
+### Patch Changes
+
+- @praxisjs/runtime@0.5.4
+- @praxisjs/vite-plugin@1.0.7
+
 ## 0.1.11
 
 ### Patch Changes

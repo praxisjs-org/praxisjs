@@ -1,5 +1,11 @@
 # @praxisjs/decorators
 
+## 1.5.1
+
+### Patch Changes
+
+- f1b7ee7: `@FunctionProp()` now logs a `console.warn` in development when the received value isn't a function, instead of silently accepting it.
+
 ## 1.5.0
 
 ### Minor Changes
