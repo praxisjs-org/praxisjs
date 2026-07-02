@@ -20,6 +20,22 @@ export {
 } from "./signal";
 export { RootComponent } from "./component";
 export {
+  componentPropsType,
+  getComponentAnchor,
+  getComponentDefault,
+  getComponentDefaults,
+  getComponentProps,
+  getComponentRawProp,
+  isComponentMounted,
+  isStateDirty,
+  markStateDirty,
+  setComponentAnchor,
+  setComponentDefault,
+  setComponentMounted,
+  setComponentProps,
+  setStateDirty,
+} from "./component/internals";
+export {
   resource,
   createResource,
   type ResourceStatus,

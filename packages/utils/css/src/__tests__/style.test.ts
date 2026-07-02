@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { StatefulComponent } from "@praxisjs/core";
+import { setComponentAnchor } from "@praxisjs/core/internal";
 import { Style } from "../decorators/style";
 
 let container: HTMLDivElement;
@@ -22,14 +24,22 @@ function makeAnchor(parent: HTMLElement): Comment {
 
 type WithLifecycle = { onMount?(): void; onUnmount?(): void };
 
+abstract class AnchoredComponent extends StatefulComponent {
+  constructor(anchor?: Comment) {
+    super();
+    setComponentAnchor(this, anchor);
+  }
+}
+
 describe("@Style field decorator", () => {
   it("sets a CSS custom property on the container element after onMount", () => {
     const anchor = makeAnchor(container);
 
-    class Comp {
-      _anchor = anchor;
+    class Comp extends AnchoredComponent {
+      constructor() { super(anchor); }
       @Style("--accent")
       accent = "#3b82f6";
+      render() { return null; }
     }
 
     const inst = new Comp() as WithLifecycle;
@@ -41,10 +51,11 @@ describe("@Style field decorator", () => {
   it("updates CSS custom property reactively when field value changes", () => {
     const anchor = makeAnchor(container);
 
-    class Comp {
-      _anchor = anchor;
+    class Comp extends AnchoredComponent {
+      constructor() { super(anchor); }
       @Style("--color")
       color = "red";
+      render() { return null; }
     }
 
     const inst = new Comp() as WithLifecycle & { color: string };
@@ -58,10 +69,11 @@ describe("@Style field decorator", () => {
   it("removes the CSS custom property on unmount", () => {
     const anchor = makeAnchor(container);
 
-    class Comp {
-      _anchor = anchor;
+    class Comp extends AnchoredComponent {
+      constructor() { super(anchor); }
       @Style("--accent")
       accent = "red";
+      render() { return null; }
     }
 
     const inst = new Comp() as WithLifecycle;
@@ -72,13 +84,14 @@ describe("@Style field decorator", () => {
     expect(container.style.getPropertyValue("--accent")).toBe("");
   });
 
-  it("does not throw when _anchor has no parentElement", () => {
+  it("does not throw when anchor has no parentElement", () => {
     const anchor = document.createComment("[/Comp]");
 
-    class Comp {
-      _anchor = anchor;
+    class Comp extends AnchoredComponent {
+      constructor() { super(anchor); }
       @Style("--color")
       color = "red";
+      render() { return null; }
     }
 
     const inst = new Comp() as WithLifecycle;
@@ -89,10 +102,11 @@ describe("@Style field decorator", () => {
   it("stops the reactive effect after onUnmount — further changes are silent", () => {
     const anchor = makeAnchor(container);
 
-    class Comp {
-      _anchor = anchor;
+    class Comp extends AnchoredComponent {
+      constructor() { super(anchor); }
       @Style("--val")
       val = "a";
+      render() { return null; }
     }
 
     const inst = new Comp() as WithLifecycle & { val: string };
@@ -107,10 +121,11 @@ describe("@Style field decorator", () => {
   it("supports numeric values (converted to string)", () => {
     const anchor = makeAnchor(container);
 
-    class Comp {
-      _anchor = anchor;
+    class Comp extends AnchoredComponent {
+      constructor() { super(anchor); }
       @Style("--size")
       size = 16;
+      render() { return null; }
     }
 
     const inst = new Comp() as WithLifecycle;
@@ -121,10 +136,11 @@ describe("@Style field decorator", () => {
   it("getter returns the current signal value", () => {
     const anchor = makeAnchor(container);
 
-    class Comp {
-      _anchor = anchor;
+    class Comp extends AnchoredComponent {
+      constructor() { super(anchor); }
       @Style("--size")
       size = "16px";
+      render() { return null; }
     }
 
     const inst = new Comp() as WithLifecycle & { size: string | number };
@@ -140,10 +156,11 @@ describe("@Style field decorator", () => {
   it("supports multi-word custom property names", () => {
     const anchor = makeAnchor(container);
 
-    class Comp {
-      _anchor = anchor;
+    class Comp extends AnchoredComponent {
+      constructor() { super(anchor); }
       @Style("--card-border-radius")
       radius = "12px";
+      render() { return null; }
     }
 
     const inst = new Comp() as WithLifecycle;

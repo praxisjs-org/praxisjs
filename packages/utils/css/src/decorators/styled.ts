@@ -1,5 +1,5 @@
 import type { StatefulComponent } from "@praxisjs/core";
-import { effect, signal, type RootComponent } from "@praxisjs/core/internal";
+import { effect, getComponentAnchor, signal } from "@praxisjs/core/internal";
 import { createFieldDecorator } from "@praxisjs/decorators";
 
 import { getParamNames } from "./param.js";
@@ -136,7 +136,7 @@ export function Styled<T extends Stylesheet>(
           if (data.rawCSS) injectStyle(data.registryKey, data.rawCSS);
 
           if (hasParams) {
-            const el = (instance as unknown as RootComponent)._anchor?.parentElement;
+            const el = getComponentAnchor(instance)?.parentElement;
             if (el) {
               for (const [paramName, sig] of Object.entries(paramSignals)) {
                 stopFns.push(effect(() => {
@@ -153,7 +153,7 @@ export function Styled<T extends Stylesheet>(
           stopFns = [];
 
           if (hasParams) {
-            const el = (instance as unknown as RootComponent)._anchor?.parentElement;
+            const el = getComponentAnchor(instance)?.parentElement;
             if (el) {
               for (const paramName of Object.keys(paramSignals)) {
                 el.style.removeProperty(`--${paramName}`);

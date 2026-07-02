@@ -412,6 +412,9 @@ importers:
 
   packages/foundation/jsx:
     dependencies:
+      '@praxisjs/core':
+        specifier: workspace:*
+        version: link:../core
       '@praxisjs/runtime':
         specifier: workspace:*
         version: link:../runtime

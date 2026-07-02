@@ -1,44 +1,10 @@
+import { componentPropsType, initComponentInternals } from "./internals";
+
 export abstract class RootComponent<T extends object = Record<string, never>> {
-  /**
-   * Props passed by the parent — filled by the renderer when instantiating/updating.
-   * @internal
-   */
-  readonly _rawProps: T = {} as T;
-
-  /**
-   * Becomes `true` after `onMount` fires.
-   * @internal
-   */
-  _mounted = false;
-
-  /**
-   * End comment anchor set by the runtime; used by decorators to locate the parent element.
-   * @internal
-   */
-  _anchor?: Comment;
+  declare readonly [componentPropsType]: T;
 
   constructor(props: T = {} as T) {
-    Object.assign(this._rawProps, props);
-  }
-
-  /**
-   * Replaces the current props with a new set; called by the renderer on every parent re-render.
-   * @internal
-   */
-  _setProps(props: Record<string, unknown>) {
-    Object.keys(this._rawProps).forEach((k) => {
-      Reflect.deleteProperty(this._rawProps, k);
-    });
-    Object.assign(this._rawProps, props);
-  }
-
-  /**
-   * Raw props, typed. `StatelessComponent` re-exposes this as its public
-   * props API; on `StatefulComponent` it's internal — use `@Prop()` instead.
-   * @internal
-   */
-  get props(): T {
-    return this._rawProps;
+    initComponentInternals(this, props);
   }
 
   onBeforeMount?(): void;

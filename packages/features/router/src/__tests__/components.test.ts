@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+import { StatefulComponent, StatelessComponent } from "@praxisjs/core";
 import { render, Scope, mountComponent, runInScope } from "@praxisjs/runtime";
 
 import { createRouter } from "../router";
@@ -8,25 +9,15 @@ import { RouterView } from "../components/router-view";
 import { RouterOutlet } from "../components/router-outlet";
 import { Link } from "../components/link";
 
-class HomePage {
-  __isComponent = true;
+class HomePage extends StatefulComponent {
   static __isComponent = true;
   static __isStateless = false;
-  _mounted = false;
-  _anchor?: Comment;
-  _rawProps = {};
-  _setProps() {}
   render() { return document.createTextNode("Home"); }
 }
 
-class AboutPage {
-  __isComponent = true;
+class AboutPage extends StatefulComponent {
   static __isComponent = true;
   static __isStateless = false;
-  _mounted = false;
-  _anchor?: Comment;
-  _rawProps = {};
-  _setProps() {}
   render() { return document.createTextNode("About"); }
 }
 
@@ -85,22 +76,11 @@ describe("RouterView", () => {
 
   it("renders layout wrapping the route component when route has a layout", async () => {
     // This layout renders its children (the RouteComponent), exercising line 18's inner arrow.
-    class LayoutComp {
-      __isComponent = true;
+    class LayoutComp extends StatelessComponent {
       static __isComponent = true;
-      static __isStateless = false;
-      _mounted = false;
-      _anchor?: Comment;
-      _rawProps: Record<string, unknown> = {};
-      constructor(props: Record<string, unknown> = {}) {
-        Object.assign(this._rawProps, props);
-      }
-      _setProps(props: Record<string, unknown>) {
-        Object.keys(this._rawProps).forEach((k) => { delete this._rawProps[k]; });
-        Object.assign(this._rawProps, props);
-      }
+      static __isStateless = true;
       render() {
-        const ch = this._rawProps.children;
+        const ch = this.props.children;
         if (typeof ch === "function") return (ch as () => Node | null)();
         return document.createTextNode("LAYOUT");
       }

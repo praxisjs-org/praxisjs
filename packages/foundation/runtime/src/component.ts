@@ -1,4 +1,8 @@
-import { untrack } from "@praxisjs/core/internal";
+import {
+  setComponentAnchor,
+  setComponentMounted,
+  untrack,
+} from "@praxisjs/core/internal";
 import { initSlots } from "@praxisjs/decorators";
 import { isComponent, type ComponentConstructor  } from "@praxisjs/shared/internal";
 
@@ -32,8 +36,7 @@ export function mountComponent(
     const end = document.createComment(`[/${ctor.name}]`);
     let disposed = false;
 
-    // Expose anchor so decorators like @Virtual can find the parent element
-    instance._anchor = end;
+    setComponentAnchor(instance, end);
 
     instance.onBeforeMount?.();
 
@@ -55,7 +58,7 @@ export function mountComponent(
 
     queueMicrotask(() => {
       if (disposed) return;
-      instance._mounted = true;
+      setComponentMounted(instance, true);
       instance.onMount?.();
       ref?.(instance);
     });
@@ -63,7 +66,7 @@ export function mountComponent(
     scope.add(() => {
       disposed = true;
       instance.onUnmount?.();
-      instance._mounted = false;
+      setComponentMounted(instance, false);
       ref?.(null);
     });
 

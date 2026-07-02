@@ -1,7 +1,7 @@
 import { EmptyState } from "@shared/empty-state";
 
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, State } from "@praxisjs/decorators";
+import { Component, Prop, State } from "@praxisjs/decorators";
 
 
 import { TimelineRow } from "./components/timeline-row";
@@ -15,12 +15,9 @@ export class TimelineTab extends StatefulComponent {
   @State() entries: TimelineEntry[] = [];
   @State() filter: Filter = "all";
   @State() paused = false;
+  @Prop() registry!: Registry;
 
   private _handlers: Array<() => void> = [];
-
-  private get registry() {
-    return this.props.registry as Registry;
-  }
 
   onMount() {
     this.entries = this.registry.getTimeline();

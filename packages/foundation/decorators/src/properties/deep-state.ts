@@ -1,4 +1,4 @@
-import { signal } from "@praxisjs/core/internal";
+import { markStateDirty, signal } from "@praxisjs/core/internal";
 
 import { createFieldDecorator } from "../create-field-decorator";
 
@@ -37,7 +37,7 @@ export function DeepState() {
           : current;
 
       function notify() {
-        instance._stateDirty = true;
+        markStateDirty(instance);
         version.update((v) => v + 1);
       }
 

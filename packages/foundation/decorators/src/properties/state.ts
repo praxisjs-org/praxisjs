@@ -1,4 +1,4 @@
-import { signal } from "@praxisjs/core/internal";
+import { markStateDirty, signal } from "@praxisjs/core/internal";
 
 import { createFieldDecorator } from "../create-field-decorator";
 
@@ -12,7 +12,7 @@ export function State() {
         descriptor: {
           get: () => sig(),
           set: (value: unknown) => {
-            instance._stateDirty = true;
+            markStateDirty(instance);
             sig.set(value);
           },
         },

@@ -1,7 +1,7 @@
 import {
   createFieldDecorator,
+  reactiveHostType,
   type FieldBinding,
-  type ReactiveHost,
 } from "@praxisjs/decorators";
 
 import { applyPluginsToStore } from "./apply-plugins.js";
@@ -16,8 +16,8 @@ const storePluginsMap = new WeakMap<
 >();
 
 /** Base class for store classes. Extend this to enable `@State` and `@DeepState` on store fields. */
-export class ReactiveStore implements ReactiveHost {
-  _stateDirty = false;
+export class ReactiveStore {
+  declare readonly [reactiveHostType]: true;
 }
 
 export interface StorableOptions {

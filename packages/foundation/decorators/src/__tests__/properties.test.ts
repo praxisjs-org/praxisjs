@@ -1,7 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 
 import { StatefulComponent } from "@praxisjs/core";
-import { signal, computed } from "@praxisjs/core/internal";
+import {
+  computed,
+  isStateDirty,
+  setStateDirty,
+  signal,
+} from "@praxisjs/core/internal";
 
 import { createFieldDecorator } from "../create-field-decorator";
 import { createGetterDecorator } from "../create-getter-decorator";
@@ -68,7 +73,7 @@ describe("State decorator", () => {
     expect((instance as unknown as Record<string, unknown>).count).toBe(20);
   });
 
-  it("sets _stateDirty on write", () => {
+  it("sets state dirty on write", () => {
     const { ctx, run } = fieldCtx("value");
     State()(undefined, ctx);
 
@@ -76,9 +81,9 @@ describe("State decorator", () => {
     (instance as unknown as Record<string, unknown>).value = "hello";
     run(instance);
 
-    instance._stateDirty = false;
+    setStateDirty(instance, false);
     (instance as unknown as Record<string, unknown>).value = "world";
-    expect(instance._stateDirty).toBe(true);
+    expect(isStateDirty(instance)).toBe(true);
   });
 
   it("accepts null as initial value", () => {
@@ -115,7 +120,7 @@ describe("State decorator", () => {
 // ── Prop ──────────────────────────────────────────────────────────────────────
 
 describe("Prop decorator", () => {
-  it("reads from _rawProps when set by parent", () => {
+  it("reads from raw props when set by parent", () => {
     const { ctx, run } = fieldCtx("label");
     Prop()(undefined, ctx);
 
@@ -125,7 +130,7 @@ describe("Prop decorator", () => {
     expect((instance as unknown as Record<string, unknown>).label).toBe("hello");
   });
 
-  it("falls back to default value when not in _rawProps", () => {
+  it("falls back to default value when not in raw props", () => {
     const { ctx, run } = fieldCtx("size");
     Prop()(undefined, ctx);
 
@@ -832,7 +837,7 @@ describe("When decorator", () => {
 // ── Prop (additional branches) ────────────────────────────────────────────────
 
 describe("Prop decorator — additional branches", () => {
-  it("set() updates the default value (used when no _rawProps entry)", () => {
+  it("set() updates the default value (used when no raw props entry)", () => {
     const { ctx, run } = fieldCtx("size");
     Prop()(undefined, ctx);
 
@@ -840,7 +845,7 @@ describe("Prop decorator — additional branches", () => {
     (instance as unknown as Record<string, unknown>).size = "sm";
     run(instance);
 
-    // Setter path: updates _defaults
+    // Setter path: updates defaults.
     (instance as unknown as Record<string, unknown>).size = "lg";
     expect((instance as unknown as Record<string, unknown>).size).toBe("lg");
   });

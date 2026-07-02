@@ -1,10 +1,14 @@
-import type { StatefulComponent } from "@praxisjs/core";
+import {
+  getComponentDefault,
+  getComponentRawProp,
+  type RootComponent,
+} from "@praxisjs/core/internal";
 
 export function readProp(
-  instance: StatefulComponent,
+  instance: RootComponent<Record<string, unknown>>,
   propName: string,
 ): unknown {
-  const fromParent = instance._rawProps[propName];
+  const fromParent = getComponentRawProp(instance, propName);
   if (fromParent !== undefined) return fromParent;
-  return instance._defaults[propName];
+  return getComponentDefault(instance, propName);
 }

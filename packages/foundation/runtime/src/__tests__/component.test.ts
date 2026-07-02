@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 
+import { StatefulComponent } from "@praxisjs/core";
+import { getComponentProps } from "@praxisjs/core/internal";
+
 import { mountComponent } from "../component";
 import { Scope } from "../scope";
-import { StatefulComponent } from "@praxisjs/core";
 
 class SimpleComp extends StatefulComponent {
   static __isComponent = true as const;
@@ -147,7 +149,7 @@ describe("mountComponent", () => {
       static __isComponent = true as const;
       static __isStateless = false;
       render() {
-        receivedProp = this.props.msg;
+        receivedProp = (getComponentProps(this) as Record<string, unknown>).msg;
         return null;
       }
     }
@@ -267,7 +269,7 @@ describe("mountComponent", () => {
       static __isComponent = true as const;
       static __isStateless = false;
       render() {
-        seenRef = (this.props as Record<string, unknown>).ref;
+        seenRef = (getComponentProps(this) as Record<string, unknown>).ref;
         return null;
       }
     }

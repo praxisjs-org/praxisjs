@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StatefulComponent } from "@praxisjs/core";
+import { setComponentAnchor } from "@praxisjs/core/internal";
 import { Component } from "@praxisjs/decorators";
 import { Param } from "../decorators/param";
 import { ReactiveStylesheet, Stylesheet } from "../base/stylesheet";
@@ -243,7 +244,10 @@ describe("@Param — reactive CSS custom properties", () => {
     }
 
     class Comp extends StatefulComponent {
-      _anchor = makeAnchor(container);
+      constructor() {
+        super();
+        setComponentAnchor(this, makeAnchor(container));
+      }
       @Styled(S) $s!: S;
       render() { return document.createElement("div"); }
     }
@@ -265,7 +269,10 @@ describe("@Param — reactive CSS custom properties", () => {
     }
 
     class Comp extends StatefulComponent {
-      _anchor = makeAnchor(container);
+      constructor() {
+        super();
+        setComponentAnchor(this, makeAnchor(container));
+      }
       @Styled(S) $s!: S;
       render() { return document.createElement("div"); }
     }
@@ -290,7 +297,10 @@ describe("@Param — reactive CSS custom properties", () => {
     }
 
     class Comp extends StatefulComponent {
-      _anchor = makeAnchor(container);
+      constructor() {
+        super();
+        setComponentAnchor(this, makeAnchor(container));
+      }
       @Styled(S) $s!: S;
       render() { return document.createElement("div"); }
     }
@@ -316,7 +326,10 @@ describe("@Param — reactive CSS custom properties", () => {
     }
 
     class Comp extends StatefulComponent {
-      constructor(anchor: Comment) { super({}); this._anchor = anchor; }
+      constructor(anchor: Comment) {
+        super();
+        setComponentAnchor(this, anchor);
+      }
       @Styled(S) $s!: S;
       render() { return document.createElement("div"); }
     }
@@ -401,7 +414,10 @@ describe("@Param — reactive CSS custom properties", () => {
       $root = `color: var(--color);`;
     }
     class Comp extends StatefulComponent {
-      _anchor = makeAnchor(container);
+      constructor() {
+        super();
+        setComponentAnchor(this, makeAnchor(container));
+      }
       @Styled(S) $s!: S;
       render() { return document.createElement("div"); }
     }

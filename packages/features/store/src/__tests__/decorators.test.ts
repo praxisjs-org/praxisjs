@@ -22,6 +22,13 @@ describe("@Storable decorator", () => {
     expect(() => new MyStore()).not.toThrow();
     expect(new MyStore().value).toBe(42);
   });
+
+  it("does not expose dirty-state internals on store instances", () => {
+    class MyStore extends ReactiveStore {}
+
+    expect(Object.prototype.hasOwnProperty.call(new MyStore(), "_stateDirty"))
+      .toBe(false);
+  });
 });
 
 function makeFieldCtx(name: string) {

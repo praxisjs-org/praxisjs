@@ -39,7 +39,7 @@ export {
   type FieldBehavior,
   type FieldBinding,
 } from "./create-field-decorator";
-export { type ReactiveHost } from "./reactive-host";
+export { reactiveHostType, type ReactiveHost } from "./reactive-host";
 export {
   createClassDecorator,
   ClassBehavior,

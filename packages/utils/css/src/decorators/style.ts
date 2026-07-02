@@ -1,4 +1,4 @@
-import { effect, signal, type RootComponent } from "@praxisjs/core/internal";
+import { effect, getComponentAnchor, signal } from "@praxisjs/core/internal";
 import { createFieldDecorator } from "@praxisjs/decorators";
 
 /**
@@ -31,10 +31,7 @@ export function Style(property: `--${string}`) {
         },
 
         onMount() {
-          // _anchor is the "[/ComponentName]" comment node inserted by the runtime.
-          // Its parentElement is the container where the component lives.
-          const el = (instance as unknown as RootComponent)._anchor
-            ?.parentElement as HTMLElement | null;
+          const el = getComponentAnchor(instance)?.parentElement ?? null;
           if (!el) return;
 
           stopEffect = effect(() => {
@@ -45,8 +42,7 @@ export function Style(property: `--${string}`) {
         onUnmount() {
           stopEffect?.();
           stopEffect = null;
-          const el = (instance as unknown as RootComponent)._anchor
-            ?.parentElement as HTMLElement | null;
+          const el = getComponentAnchor(instance)?.parentElement ?? null;
           if (el) el.style.removeProperty(property);
         },
       };

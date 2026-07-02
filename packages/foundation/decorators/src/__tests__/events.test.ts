@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 import { StatefulComponent } from "@praxisjs/core";
+import { setComponentDefault } from "@praxisjs/core/internal";
 
 import { createCommand } from "../events/command";
 import { Emit } from "../events/emit";
@@ -65,14 +66,14 @@ describe("createCommand", () => {
 // ── readProp ──────────────────────────────────────────────────────────────────
 
 describe("readProp", () => {
-  it("returns value from _rawProps when defined", () => {
+  it("returns value from raw props when defined", () => {
     const instance = new TestComponent({ myProp: "fromParent" });
     expect(readProp(instance, "myProp")).toBe("fromParent");
   });
 
-  it("falls back to _defaults when _rawProps does not define the prop", () => {
+  it("falls back to defaults when raw props do not define the prop", () => {
     const instance = new TestComponent();
-    instance._defaults.myProp = "default";
+    setComponentDefault(instance, "myProp", "default");
     expect(readProp(instance, "myProp")).toBe("default");
   });
 

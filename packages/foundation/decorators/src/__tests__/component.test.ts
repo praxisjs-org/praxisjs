@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { StatefulComponent, StatelessComponent } from "@praxisjs/core";
+import { getComponentProps } from "@praxisjs/core/internal";
 
 import { Component } from "../component/component";
 
@@ -65,7 +66,7 @@ describe("Component decorator", () => {
     }
     const Enhanced = Component()(WithProps, {} as ClassDecoratorContext);
     const instance = new Enhanced({ greeting: "hello" });
-    expect(instance.props.greeting).toBe("hello");
+    expect((getComponentProps(instance) as { greeting: string }).greeting).toBe("hello");
   });
 
   it("instance methods from the original class remain accessible", () => {

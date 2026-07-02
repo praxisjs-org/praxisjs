@@ -1,7 +1,7 @@
 import { EmptyState } from "@shared/empty-state";
 
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, State } from "@praxisjs/decorators";
+import { Component, Prop, State } from "@praxisjs/decorators";
 
 
 import { ComponentDetail } from "./components/component-detail";
@@ -14,12 +14,9 @@ import type { ComponentEntry } from "@core/types";
 export class ComponentsTab extends StatefulComponent {
   @State() components: ComponentEntry[] = [];
   @State() selectedId: string | null = null;
+  @Prop() registry!: Registry;
 
   private _handlers: Array<() => void> = [];
-
-  private get registry() {
-    return this.props.registry as Registry;
-  }
 
   onMount() {
     this.components = this.registry.getComponents();

@@ -1,3 +1,4 @@
+import type { componentPropsType } from "@praxisjs/core/internal";
 import {
   mountElement,
   mountComponent,
@@ -133,13 +134,13 @@ export namespace JSX {
     | "onUpdate";
 
   // Infer typed props:
-  // - StatelessComponent<T> with an explicit T → use _rawProps keys directly.
+  // - StatelessComponent<T> with an explicit T → use the component props marker.
   // - StatefulComponent (wide record) → walk instance properties, strip framework
   //   internals via FrameworkKeys and method filter, leaving @Prop/@State fields.
   type InstancePropsOf<C> = C extends { prototype: infer I }
     ? IsAny<I> extends true
       ? never // raw construct-type alias — prototype resolves to `any`
-      : I extends { _rawProps: infer RawProps extends object }
+      : I extends { readonly [componentPropsType]: infer RawProps extends object }
         ? [string] extends [keyof RawProps]
           ? {
               [K in keyof I as K extends FrameworkKeys

@@ -2,7 +2,7 @@ import { EmptyState } from "@shared/empty-state";
 import { SearchInput } from "@shared/search-input";
 
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, State } from "@praxisjs/decorators";
+import { Component, Prop, State } from "@praxisjs/decorators";
 
 
 import { SignalDetail } from "./components/signal-detail";
@@ -16,12 +16,9 @@ export class SignalsTab extends StatefulComponent {
   @State() signals: SignalEntry[] = [];
   @State() search = "";
   @State() selectedId: string | null = null;
+  @Prop() registry!: Registry;
 
   private _handlers: Array<() => void> = [];
-
-  private get registry() {
-    return this.props.registry as Registry;
-  }
 
   onMount() {
     this.signals = this.registry.getSignals();

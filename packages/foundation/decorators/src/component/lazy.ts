@@ -1,4 +1,8 @@
-import { type RootComponent, signal } from "@praxisjs/core/internal";
+import {
+  getComponentAnchor,
+  type RootComponent,
+  signal,
+} from "@praxisjs/core/internal";
 
 import { ClassBehavior, createClassDecorator, type ClassEnhancement } from "../create-class-decorator";
 
@@ -27,8 +31,7 @@ class LazyBehavior extends ClassBehavior {
 
     return {
       onMount() {
-        const el =
-          (instance as { _anchor?: Comment })._anchor?.parentElement ?? null;
+        const el = getComponentAnchor(instance)?.parentElement ?? null;
         if (!el) return;
 
         if (!("IntersectionObserver" in window)) {

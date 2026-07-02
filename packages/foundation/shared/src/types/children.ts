@@ -36,10 +36,6 @@ export interface ComponentConstructor<P = Record<string, unknown>> {
 export type ComponentElement = new (...args: any[]) => ComponentInstance;
 
 export interface ComponentInstance {
-  _mounted: boolean;
-  _anchor?: Comment;
-  _stateDirty?: boolean;
-  _setProps(p: Record<string, unknown>): void;
   render(): Node | Node[] | null;
   onBeforeMount?(): void;
   onMount?(): void;

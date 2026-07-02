@@ -1,6 +1,21 @@
 import { describe, it, expect } from "vitest";
 
 import { RootComponent } from "../component/base";
+import {
+  getComponentAnchor,
+  getComponentDefault,
+  getComponentDefaults,
+  getComponentProps,
+  getComponentRawProp,
+  isComponentMounted,
+  isStateDirty,
+  markStateDirty,
+  setComponentAnchor,
+  setComponentDefault,
+  setComponentMounted,
+  setComponentProps,
+  setStateDirty,
+} from "../component/internals";
 import { StatefulComponent } from "../component/stateful";
 import { StatelessComponent } from "../component/stateless";
 
@@ -17,48 +32,90 @@ class ConcreteStateful extends StatefulComponent {
 }
 
 describe("RootComponent", () => {
-  it("stores props on _rawProps", () => {
+  it("stores props in component internals", () => {
     const c = new ConcreteRoot({ name: "Alice" });
-    expect(c._rawProps.name).toBe("Alice");
+    expect((getComponentProps(c) as { name: string }).name).toBe("Alice");
   });
 
-  it("exposes props via .props getter", () => {
-    const c = new ConcreteRoot({ name: "Bob" });
-    expect(c.props.name).toBe("Bob");
+  it("does not expose old underscore internals as own properties", () => {
+    const c = new ConcreteRoot({ name: "Alice" });
+    expect(Object.prototype.hasOwnProperty.call(c, "_rawProps")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(c, "_mounted")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(c, "_anchor")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(c, "_setProps")).toBe(false);
   });
 
-  it("_mounted starts as false", () => {
+  it("mounted starts as false", () => {
     const c = new ConcreteRoot({ name: "" });
-    expect(c._mounted).toBe(false);
+    expect(isComponentMounted(c)).toBe(false);
   });
 
-  it("_anchor starts as undefined", () => {
+  it("anchor starts as undefined", () => {
     const c = new ConcreteRoot({ name: "" });
-    expect(c._anchor).toBeUndefined();
+    expect(getComponentAnchor(c)).toBeUndefined();
   });
 
   it("defaults to empty object when no props given", () => {
     const c = new ConcreteRoot();
-    expect(c._rawProps).toEqual({});
+    expect(getComponentProps(c)).toEqual({});
   });
 });
 
 describe("StatefulComponent", () => {
-  it("_defaults starts as empty object", () => {
+  it("defaults start as empty object", () => {
     const c = new ConcreteStateful();
-    expect(c._defaults).toEqual({});
+    expect(getComponentDefaults(c)).toEqual({});
   });
 
-  it("_stateDirty starts as false", () => {
+  it("stateDirty starts as false", () => {
     const c = new ConcreteStateful();
-    expect(c._stateDirty).toBe(false);
+    expect(isStateDirty(c)).toBe(false);
   });
 
-  it("_setProps replaces _rawProps contents", () => {
+  it("setComponentProps replaces raw props contents", () => {
     const c = new ConcreteStateful({ x: 1 });
-    c._setProps({ y: 2 });
-    expect(c._rawProps.x).toBeUndefined();
-    expect(c._rawProps.y).toBe(2);
+    setComponentProps(c, { y: 2 });
+    const props = getComponentProps(c) as Record<string, unknown>;
+    expect(props.x).toBeUndefined();
+    expect(props.y).toBe(2);
+  });
+
+  it("updates anchor, mounted, defaults, and dirty state through helpers", () => {
+    const c = new ConcreteStateful();
+    const anchor = {} as Comment;
+
+    setComponentAnchor(c, anchor);
+    setComponentMounted(c, true);
+    setComponentDefault(c, "label", "Save");
+    setStateDirty(c, true);
+
+    expect(getComponentAnchor(c)).toBe(anchor);
+    expect(isComponentMounted(c)).toBe(true);
+    expect(getComponentDefaults(c).label).toBe("Save");
+    expect(isStateDirty(c)).toBe(true);
+  });
+
+  it("reads raw props and defaults through single-value helpers", () => {
+    const c = new ConcreteStateful({ label: "From parent" });
+    setComponentDefault(c, "label", "Default");
+
+    expect(getComponentRawProp(c, "label")).toBe("From parent");
+    expect(getComponentDefault(c, "label")).toBe("Default");
+  });
+
+  it("throws when component internals are read from a non-component", () => {
+    expect(() => getComponentProps({})).toThrow(TypeError);
+    expect(() => getComponentProps({})).toThrow(
+      "Expected a PraxisJS component instance.",
+    );
+  });
+
+  it("ignores dirty-state writes on non-component hosts", () => {
+    const host = {};
+
+    expect(() => markStateDirty(host)).not.toThrow();
+    expect(() => setStateDirty(host, true)).not.toThrow();
+    expect(isStateDirty(host)).toBe(false);
   });
 });
 
@@ -69,21 +126,21 @@ class ConcreteStateless extends StatelessComponent<{ name: string }> {
 }
 
 describe("StatelessComponent", () => {
-  it("stores props on _rawProps", () => {
+  it("stores props in component internals", () => {
     const c = new ConcreteStateless({ name: "Alice" });
-    expect(c._rawProps.name).toBe("Alice");
+    expect((getComponentProps(c) as { name: string }).name).toBe("Alice");
   });
 
-  it("_setProps replaces _rawProps contents", () => {
+  it("setComponentProps replaces raw props contents", () => {
     const c = new ConcreteStateless({ name: "Alice" });
-    c._setProps({ name: "Bob" });
-    expect(c._rawProps.name).toBe("Bob");
+    setComponentProps(c, { name: "Bob" });
+    expect((getComponentProps(c) as { name: string }).name).toBe("Bob");
   });
 
-  it("_setProps removes old keys", () => {
+  it("setComponentProps removes old keys", () => {
     const c = new ConcreteStateless({ name: "Alice" });
-    c._setProps({});
-    expect((c._rawProps as Record<string, unknown>).name).toBeUndefined();
+    setComponentProps(c, {});
+    expect((getComponentProps(c) as Record<string, unknown>).name).toBeUndefined();
   });
 
   it("accepts and exposes children via props.children", () => {

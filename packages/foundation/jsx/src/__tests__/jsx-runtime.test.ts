@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 
+import { StatefulComponent } from "@praxisjs/core";
 import { Scope, runInScope  } from "@praxisjs/runtime";
 
 import { jsx, jsxs, jsxDEV, Fragment } from "../jsx-runtime";
@@ -91,12 +92,10 @@ describe("jsx — string tag", () => {
 describe("jsx — component", () => {
   it("mounts a component via isComponent check and returns its nodes", () => {
     // A minimal class that satisfies isComponent (has __isComponent) and mountComponent
-    class MyComp {
+    class MyComp extends StatefulComponent {
       static __isComponent = true as const;
       static __isStateless = false as const;
       static __name = "MyComp";
-      _anchor?: Comment;
-      constructor(_props?: Record<string, unknown>) {}
       render() { return document.createTextNode("hi"); }
     }
 

@@ -2,6 +2,7 @@
 import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 
 import { StatefulComponent } from "@praxisjs/core";
+import { setComponentAnchor } from "@praxisjs/core/internal";
 import { Lazy } from "../component/lazy";
 import type { LazyOptions } from "../component/lazy";
 
@@ -55,7 +56,7 @@ describe("Lazy decorator", () => {
     expect(resolveRender(instance)).toBeNull();
   });
 
-  it("sets _lazyVisible to true when IntersectionObserver is not supported", () => {
+  it("sets lazy visibility to true when IntersectionObserver is not supported", () => {
     // Remove IntersectionObserver to simulate unsupported environment
     // @ts-expect-error – removing test stub
     delete globalThis.IntersectionObserver;
@@ -68,7 +69,7 @@ describe("Lazy decorator", () => {
     document.body.appendChild(parent);
     const anchor = document.createComment("end");
     parent.appendChild(anchor);
-    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+    setComponentAnchor(instance, anchor);
 
     instance.onMount?.();
     // Without IntersectionObserver, component should immediately become visible
@@ -84,7 +85,7 @@ describe("Lazy decorator", () => {
     document.body.appendChild(parent);
     const anchor = document.createComment("end");
     parent.appendChild(anchor);
-    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+    setComponentAnchor(instance, anchor);
 
     instance.onMount?.();
     expect(parent.style.minHeight).toBe("300px");
@@ -99,7 +100,7 @@ describe("Lazy decorator", () => {
     document.body.appendChild(parent);
     const anchor = document.createComment("end");
     parent.appendChild(anchor);
-    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+    setComponentAnchor(instance, anchor);
 
     instance.onMount?.();
     expect(resolveRender(instance)).toBeNull();
@@ -115,12 +116,12 @@ describe("Lazy decorator", () => {
     document.body.removeChild(parent);
   });
 
-  it("does nothing when _anchor has no parent", () => {
+  it("does nothing when the anchor has no parent", () => {
     const Wrapped = applyLazy(BaseComp as AnyConstructor);
     const instance = new Wrapped();
 
     const anchor = document.createComment("end");
-    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+    setComponentAnchor(instance, anchor);
 
     // Should not throw even though anchor has no parent
     expect(() => instance.onMount?.()).not.toThrow();
@@ -134,7 +135,7 @@ describe("Lazy decorator", () => {
     document.body.appendChild(parent);
     const anchor = document.createComment("end");
     parent.appendChild(anchor);
-    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+    setComponentAnchor(instance, anchor);
 
     instance.onMount?.();
     instance.onUnmount?.();
@@ -142,10 +143,9 @@ describe("Lazy decorator", () => {
     document.body.removeChild(parent);
   });
 
-  it("onMount does nothing when _anchor is undefined", () => {
+  it("onMount does nothing when anchor is undefined", () => {
     const Wrapped = applyLazy(BaseComp as AnyConstructor);
     const instance = new Wrapped();
-    // _anchor is undefined by default
     expect(() => instance.onMount?.()).not.toThrow();
   });
 
@@ -157,7 +157,7 @@ describe("Lazy decorator", () => {
     document.body.appendChild(parent);
     const anchor = document.createComment("end");
     parent.appendChild(anchor);
-    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+    setComponentAnchor(instance, anchor);
 
     instance.onMount?.();
     expect(resolveRender(instance)).toBeNull(); // not yet visible
@@ -181,7 +181,7 @@ describe("Lazy decorator", () => {
     document.body.appendChild(parent);
     const anchor = document.createComment("end");
     parent.appendChild(anchor);
-    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+    setComponentAnchor(instance, anchor);
 
     instance.onMount?.();
 
@@ -205,7 +205,7 @@ describe("Lazy decorator", () => {
     document.body.appendChild(parent);
     const anchor = document.createComment("end");
     parent.appendChild(anchor);
-    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+    setComponentAnchor(instance, anchor);
 
     instance.onMount?.();
     expect(parent.style.minHeight).toBe("150px");
@@ -233,7 +233,7 @@ describe("Lazy decorator", () => {
     document.body.appendChild(parent);
     const anchor = document.createComment("end");
     parent.appendChild(anchor);
-    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+    setComponentAnchor(instance, anchor);
 
     instance.onMount?.();
     expect(capturedInit?.root).toBe(rootEl);
@@ -260,7 +260,7 @@ describe("Lazy decorator", () => {
     document.body.appendChild(parent);
     const anchor = document.createComment("end");
     parent.appendChild(anchor);
-    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+    setComponentAnchor(instance, anchor);
 
     instance.onMount?.();
     expect(capturedInit?.root).toBeNull();
@@ -276,7 +276,7 @@ describe("Lazy decorator", () => {
     document.body.appendChild(parent);
     const anchor = document.createComment("end");
     parent.appendChild(anchor);
-    (instance as unknown as { _anchor: Comment })._anchor = anchor;
+    setComponentAnchor(instance, anchor);
 
     // First mount — become visible
     instance.onMount?.();
@@ -286,10 +286,10 @@ describe("Lazy decorator", () => {
     );
     instance.onUnmount?.();
 
-    // Second mount — _lazyVisible is already true
+    // Second mount — lazy visibility is already true
     instance.onMount?.();
 
-    // minHeight must NOT be re-applied because _lazyVisible() is true
+    // minHeight must NOT be re-applied because lazy visibility is true
     expect(parent.style.minHeight).toBe("");
     document.body.removeChild(parent);
   });

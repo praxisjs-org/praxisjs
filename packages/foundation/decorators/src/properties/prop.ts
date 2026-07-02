@@ -1,22 +1,28 @@
+import {
+  getComponentDefault,
+  getComponentRawProp,
+  setComponentDefault,
+} from "@praxisjs/core/internal";
+
 import { createFieldDecorator } from "../create-field-decorator";
 
 export function Prop() {
   return createFieldDecorator({
     bind(instance, name, initialValue) {
-      instance._defaults[name] = initialValue;
+      setComponentDefault(instance, name, initialValue);
       return {
         descriptor: {
           get() {
-            const fromParent = (instance._rawProps)[name];
+            const fromParent = getComponentRawProp(instance, name);
             if (fromParent !== undefined) {
               return typeof fromParent === "function"
                 ? (fromParent as () => unknown)()
                 : fromParent;
             }
-            return instance._defaults[name];
+            return getComponentDefault(instance, name);
           },
           set(value: unknown) {
-            instance._defaults[name] = value;
+            setComponentDefault(instance, name, value);
           },
         },
       };
