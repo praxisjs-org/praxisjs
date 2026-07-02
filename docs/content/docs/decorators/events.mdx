@@ -19,7 +19,7 @@ Binds a method and calls the named prop callback with its return value when the 
 ```tsx
 @Component()
 class SearchInput extends StatefulComponent {
-  @Prop() onSearch?: (query: string) => void
+  @FunctionProp() onSearch?: (query: string) => void
   @State() value = ''
 
   @Emit('onSearch')
@@ -44,9 +44,9 @@ class SearchInput extends StatefulComponent {
 <SearchInput onSearch={(q) => console.log('searching:', q)} />
 ```
 
-### Without `@Prop`
+### Without `@FunctionProp`
 
-If you don't declare the callback with `@Prop`, use `declare` to make the prop appear in JSX types:
+If you don't declare the callback with `@FunctionProp`, use `declare` to make the prop appear in JSX types:
 
 ```tsx
 @Component()

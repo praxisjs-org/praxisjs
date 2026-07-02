@@ -16,6 +16,7 @@ import { When } from "../functions/when";
 import { Compose } from "../properties/compose";
 import { Computed } from "../properties/computed";
 import { History } from "../properties/history";
+import { FunctionProp } from "../properties/function-prop";
 import { Prop } from "../properties/prop";
 import { State } from "../properties/state";
 
@@ -152,6 +153,53 @@ describe("Prop decorator", () => {
     expect((instance as unknown as Record<string, unknown>).text).toBe("reactive");
     s.set("updated");
     expect((instance as unknown as Record<string, unknown>).text).toBe("updated");
+  });
+});
+
+// ── FunctionProp ──────────────────────────────────────────────────────────────
+
+describe("FunctionProp decorator", () => {
+  it("reads function values from raw props without invoking them", () => {
+    const { ctx, run } = fieldCtx("filter");
+    FunctionProp()(undefined, ctx);
+
+    const filter = vi.fn((value: number) => value > 1);
+    const instance = new TestComponent({ filter });
+    run(instance);
+
+    const received = (instance as unknown as Record<string, unknown>).filter;
+    expect(received).toBe(filter);
+    expect(filter).not.toHaveBeenCalled();
+    expect((received as (value: number) => boolean)(2)).toBe(true);
+    expect(filter).toHaveBeenCalledWith(2);
+  });
+
+  it("falls back to the default function when not in raw props", () => {
+    const { ctx, run } = fieldCtx("filter");
+    FunctionProp()(undefined, ctx);
+
+    const defaultFilter = vi.fn((value: number) => value % 2 === 0);
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>).filter = defaultFilter;
+    run(instance);
+
+    const received = (instance as unknown as Record<string, unknown>).filter;
+    expect(received).toBe(defaultFilter);
+    expect((received as (value: number) => boolean)(4)).toBe(true);
+    expect(defaultFilter).toHaveBeenCalledWith(4);
+  });
+
+  it("set() updates the default function used without a raw prop", () => {
+    const { ctx, run } = fieldCtx("filter");
+    FunctionProp()(undefined, ctx);
+
+    const instance = new TestComponent();
+    run(instance);
+
+    const nextFilter = (value: number) => value < 10;
+    (instance as unknown as Record<string, unknown>).filter = nextFilter;
+
+    expect((instance as unknown as Record<string, unknown>).filter).toBe(nextFilter);
   });
 });
 

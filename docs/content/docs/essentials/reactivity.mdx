@@ -155,6 +155,15 @@ class Label extends StatefulComponent {
 }
 ```
 
+If the prop value is meant to be the function itself, use `@FunctionProp()` instead:
+
+```tsx
+@Component()
+class ProductList extends StatefulComponent {
+  @FunctionProp() filter: (product: Product) => boolean = () => true
+}
+```
+
 ### Using raw `this.props` (StatelessComponent)
 
 `this.props.text` returns whatever the parent passed — if the parent passed a getter function, the renderer detects it and makes it reactive automatically:

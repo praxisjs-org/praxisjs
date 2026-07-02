@@ -15,6 +15,7 @@ export {
 } from "./functions";
 export {
   Prop,
+  FunctionProp,
   State,
   Computed,
   Persisted,

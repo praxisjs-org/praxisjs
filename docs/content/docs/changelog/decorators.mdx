@@ -6,9 +6,11 @@ icon: Tag
 
 # @praxisjs/decorators
 
-## 1.4.1
+## 1.5.0
 
-**Internal: decorators use private component runtime helpers.**
+**`@FunctionProp()` for function-valued props and private runtime helpers.**
+
+Use `@FunctionProp()` when a parent passes a callback, predicate, formatter, or filtering function that should be received as the function value itself. `@Prop()` keeps its existing reactive getter behavior.
 
 `@Prop`, `@State`, `@DeepState`, `@Emit`, `@OnCommand`, and `@Lazy` now read or update framework state through `@praxisjs/core/internal` helpers instead of component underscore fields. No application-code behavior changes.
 

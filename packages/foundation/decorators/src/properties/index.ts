@@ -1,4 +1,5 @@
 export { Prop } from "./prop";
+export { FunctionProp } from "./function-prop";
 export { State } from "./state";
 export { Computed } from "./computed";
 export { Persisted } from "./persisted";

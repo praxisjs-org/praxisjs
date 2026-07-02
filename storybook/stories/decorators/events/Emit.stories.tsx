@@ -1,11 +1,11 @@
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, State, Prop, Emit } from "@praxisjs/decorators";
+import { Component, State, Prop, Emit, FunctionProp } from "@praxisjs/decorators";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
 @Component()
 class SearchInput extends StatefulComponent {
   @Prop() placeholder = "Search…";
-  @Prop() onSearch?: (query: string) => void;
+  @FunctionProp() onSearch?: (query: string) => void;
 
   @State() value = "";
 

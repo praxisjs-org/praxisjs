@@ -24,6 +24,7 @@ Reactive state on class fields. [→ Full page](/docs/decorators/state)
 |---|---|
 | `@State()` | Field backed by a signal. Reading inside `{() => ...}` subscribes to updates. |
 | `@Prop()` | External prop received from the parent. Initialized value is the default. |
+| `@FunctionProp()` | External function prop received from the parent without invoking it as a reactive getter. |
 | `@Computed()` | Read-only derived getter, cached as a `computed()`. Recomputes only when its signal dependencies change. |
 | `@Persisted(key?)` | Like `@State` but persisted to `localStorage` with optional cross-tab sync. |
 | `@History(field, limit?)` | Adds `.undo()`, `.redo()`, `.canUndo()`, `.canRedo()` to a `@State` field. |

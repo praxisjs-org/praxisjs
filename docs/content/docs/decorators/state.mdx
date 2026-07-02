@@ -1,6 +1,6 @@
 ---
 title: State & Props
-description: Decorators for managing reactive state and external props — @State, @Prop, @Computed, @Persisted, @History, @Resource, @Synced, and @DeepState.
+description: Decorators for managing reactive state and external props — @State, @Prop, @FunctionProp, @Computed, @Persisted, @History, @Resource, @Synced, and @DeepState.
 icon: Database
 ---
 
@@ -73,6 +73,43 @@ class Button extends StatefulComponent {
 ```
 
 <StorybookLink story="decorators-state-props-prop--prop-defaults" label="Live demo — @Prop" />
+
+---
+
+## `@FunctionProp()`
+
+Declares an external prop whose value is a function. Use it when the parent passes a callback, predicate, formatter, or filtering function and the component should receive that function itself.
+
+`@Prop()` treats a function prop as a reactive getter and calls it when the field is read. `@FunctionProp()` keeps the function intact.
+
+```tsx
+type Product = { name: string; price: number }
+type ProductFilter = (product: Product) => boolean
+
+@Component()
+class ProductList extends StatefulComponent {
+  @Prop() items: Product[] = []
+  @FunctionProp() filter: ProductFilter = () => true
+
+  render() {
+    return (
+      <ul>
+        {() => this.items
+          .filter((item) => this.filter(item))
+          .map((item) => <li>{item.name}</li>)}
+      </ul>
+    )
+  }
+}
+
+// Usage:
+<ProductList
+  items={products}
+  filter={(product) => product.price < 100}
+/>
+```
+
+<StorybookLink story="decorators-state-props-functionprop--function-filter" label="Live demo — @FunctionProp" />
 
 ---
 
