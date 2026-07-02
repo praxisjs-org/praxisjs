@@ -6,6 +6,14 @@ icon: Tag
 
 # @praxisjs/decorators
 
+## 1.4.1
+
+**Internal: decorators use private component runtime helpers.**
+
+`@Prop`, `@State`, `@DeepState`, `@Emit`, `@OnCommand`, and `@Lazy` now read or update framework state through `@praxisjs/core/internal` helpers instead of component underscore fields. No application-code behavior changes.
+
+`ReactiveHost` now uses type-only markers for components and stores instead of requiring a runtime `_stateDirty` field on non-component hosts.
+
 ## 1.4.0
 
 **`@Ref<T>()` — DOM element ref decorator.**

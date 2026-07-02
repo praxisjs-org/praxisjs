@@ -136,6 +136,49 @@ Use `peek(signal)` or `untrack(fn)` (exported from `@praxisjs/core`) when you ne
 
 ---
 
+## Component internals
+
+Component runtime state is private. `RootComponent`/`StatefulComponent` instances must not expose or read underscore fields such as `_rawProps`, `_mounted`, `_anchor`, `_setProps`, `_defaults`, or `_stateDirty`.
+
+Framework primitives that need this state must import helpers from `@praxisjs/core/internal`:
+
+```ts
+import {
+  getComponentAnchor,
+  getComponentDefault,
+  getComponentProps,
+  getComponentRawProp,
+  markStateDirty,
+  setComponentAnchor,
+  setComponentDefault,
+  setComponentMounted,
+  setComponentProps,
+} from '@praxisjs/core/internal'
+```
+
+Typical uses:
+
+- **Runtime mounting** — `setComponentAnchor(instance, endComment)`, `setComponentMounted(instance, true | false)`
+- **Parent prop updates** — `setComponentProps(instance, nextProps)`
+- **Decorators reading props/defaults** — `getComponentRawProp(instance, name)`, `getComponentDefault(instance, name)`, `setComponentDefault(instance, name, value)`
+- **State decorators on components** — `markStateDirty(instance)` rather than assigning `_stateDirty`
+- **Anchor-dependent decorators/utilities** — `getComponentAnchor(instance)?.parentElement`
+
+Stores use `ReactiveStore`'s type-only reactive-host marker to satisfy `@State()` / `@DeepState()`; they must not create `_stateDirty` fields.
+
+In `StatefulComponent` subclasses, read parent-provided values through decorated fields:
+
+```ts
+class Panel extends StatefulComponent {
+  @Prop() registry!: Registry
+  @State() activeTab = ''
+}
+```
+
+Do not read `this.props` from `StatefulComponent`; it is intentionally not public. `StatelessComponent<T>` still exposes `this.props` as its public props API.
+
+---
+
 ## Decorator ordering
 
 Field decorators run **inner-first**. Always put `@State()` / `@Prop()` closer to the field than observing decorators:
@@ -231,11 +274,15 @@ export function MyDecorator() {
 `@praxisjs/core` and `@praxisjs/shared` each expose a `/internal` sub-path for types and utilities that are meant for other framework packages but not for end users:
 
 ```ts
-import type { RootComponent } from '@praxisjs/core/internal'   // framework-internal base class
+import {
+  type RootComponent,
+  getComponentAnchor,
+  markStateDirty,
+} from '@praxisjs/core/internal'
 import type { ComponentConstructor } from '@praxisjs/shared/internal'
 ```
 
-Use the public path (`@praxisjs/core`) in application code and in packages that ship to users. Use `/internal` only inside `packages/foundation/**` or `packages/features/**` when implementing framework primitives that need access to the base class or internal types.
+Use the public path (`@praxisjs/core`) in application code and in packages that ship to users. Use `/internal` only inside `packages/foundation/**`, `packages/features/**`, `packages/utils/**`, or `packages/dx/**` when implementing framework primitives that need internal component helpers, the base class type, or shared internal types.
 
 ---
 

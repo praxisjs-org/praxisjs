@@ -6,6 +6,12 @@ icon: Store
 
 # @praxisjs/store
 
+## 2.0.0
+
+**Breaking: `ReactiveStore` no longer exposes `_stateDirty`.**
+
+`ReactiveStore` now uses a type-only reactive-host marker for `@State` and `@DeepState` compatibility. Store instances no longer create the `_stateDirty` field at runtime.
+
 ## 1.3.0
 
 Plugin system — `useStorePlugin`, `clearPlugins`, and the `StorePlugin` interface. Plugins hook into store lifecycle via `onInit`, `onMutation`, `onAction`, and `onActionDone`. Works with both `createStore` (functional) and class-based `@Storable` stores. See the [Plugins](/docs/ecosystem/store#plugins) section for usage and built-in plugin recipes.

@@ -125,10 +125,6 @@ Interface for the instance side of a component. Implemented by `RootComponent` f
 
 ```ts
 interface ComponentInstance {
-  _mounted: boolean
-  _anchor?: Comment
-  _stateDirty?: boolean
-  _setProps(p: Record<string, unknown>): void
   render(): Node | Node[] | null
   onBeforeMount?(): void
   onMount?(): void
@@ -136,6 +132,8 @@ interface ComponentInstance {
   onError?(e: Error): void
 }
 ```
+
+Runtime-only component state such as mounted status, anchors, and raw props lives in `@praxisjs/core/internal` helpers rather than on this public shape.
 
 ---
 

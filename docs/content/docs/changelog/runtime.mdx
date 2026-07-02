@@ -6,6 +6,12 @@ icon: Boxes
 
 # @praxisjs/runtime
 
+## 0.5.2
+
+**Internal: component mounting writes private runtime state through core helpers.**
+
+`mountComponent()` now sets the component anchor and mounted flag through `@praxisjs/core/internal` helpers instead of assigning public underscore fields. Rendering behavior is unchanged.
+
 ## 0.5.1
 
 **`VALUE_PROPS` replaced with runtime feature detection.**

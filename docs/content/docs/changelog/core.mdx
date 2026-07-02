@@ -6,6 +6,14 @@ icon: Activity
 
 # @praxisjs/core
 
+## 2.0.0
+
+**Breaking: component internals are no longer exposed as instance fields.**
+
+`RootComponent` now stores framework runtime state in private internal storage instead of public underscore fields. `_rawProps`, `_mounted`, `_anchor`, `_setProps`, `_defaults`, and `_stateDirty` are no longer part of component instances.
+
+Framework packages use helper functions from `@praxisjs/core/internal` to read props, set anchors, update mount state, and mark state as dirty. App code should continue to use `@Prop()` on `StatefulComponent` classes; `StatelessComponent<T>` keeps its public `props` getter.
+
 ## 1.8.2
 
 **Internal: `_setProps` consolidated into `RootComponent`.**

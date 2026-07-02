@@ -6,6 +6,12 @@ icon: Braces
 
 # @praxisjs/jsx
 
+## 0.7.1
+
+**Internal: component prop inference no longer depends on `_rawProps`.**
+
+JSX component prop inference now uses a type-only symbol marker from `@praxisjs/core/internal`, preserving `StatelessComponent<T>` and `@Prop()` inference without exposing `_rawProps` on component instances.
+
 ## 0.7.0
 
 **`Reactive<T>` now accepts `null`/`undefined`.**
