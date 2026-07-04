@@ -1,14 +1,10 @@
-import path from "node:path";
 import { cwd, exit } from "node:process";
-import { fileURLToPath } from "node:url";
 
 import { cancel, intro, isCancel, outro, select, spinner } from "@clack/prompts";
 import pc from "picocolors";
 
 import { PLUGINS, type PluginName } from "../constants";
 import { applyPlugin, notePlugin } from "../plugins";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export async function add(): Promise<void> {
   intro(
@@ -34,11 +30,10 @@ export async function add(): Promise<void> {
 
   const plugin = pluginResult;
   const root = cwd();
-  const pluginDir = path.resolve(__dirname, `../plugins/${plugin}`);
 
   const s = spinner();
   s.start("Adding integration...");
-  applyPlugin(plugin, root, pluginDir);
+  applyPlugin(plugin, root);
   s.stop(pc.green("Done!"));
 
   notePlugin(plugin);

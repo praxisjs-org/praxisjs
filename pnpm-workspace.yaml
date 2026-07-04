@@ -3,7 +3,7 @@ packages:
   - "packages/features/*"
   - "packages/dx/*"
   - "packages/utils/*"
-  - "packages/create-praxisjs"
+  - "packages/cli/*"
   - "playground"
   - "storybook"
   - "docs"

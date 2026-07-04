@@ -38,7 +38,7 @@ for (const dir of workspaceDirs) {
 }
 
 // Update all template _package.json files
-const templatesDir = join(root, 'packages/create-praxisjs/templates')
+const templatesDir = join(root, 'packages/cli/create-praxisjs/templates')
 
 for (const template of readdirSync(templatesDir)) {
   const templatePath = join(templatesDir, template)

@@ -1,5 +1,5 @@
 {
-  "name": "praxisjs",
+  "name": "praxisjs-monorepo",
   "private": true,
   "scripts": {
     "test": "vitest run",
@@ -18,6 +18,7 @@
     "build:features": "pnpm --filter './packages/features/**' build",
     "build:dx": "pnpm --filter './packages/dx/**' build",
     "build:utils": "pnpm --filter './packages/utils/**' build",
+    "build:cli": "pnpm --filter './packages/cli/**' build",
     "changeset": "changeset",
     "version-packages": "node scripts/ensure-create-praxisjs-changeset.mjs && changeset version && node scripts/sync-template-versions.mjs",
     "release": "changeset publish",

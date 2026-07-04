@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { note } from "@clack/prompts";
 import pc from "picocolors";
@@ -8,7 +9,11 @@ import { copy } from "./utils";
 
 import type { PluginName } from "./constants";
 
-export function applyPlugin(plugin: PluginName, root: string, pluginDir: string): void {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export function applyPlugin(plugin: PluginName, root: string): void {
+  const pluginDir = path.resolve(__dirname, "../plugins", plugin);
+
   if (plugin === "claude-skill") {
     copy(
       path.join(pluginDir, "skills", "praxisjs"),

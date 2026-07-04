@@ -15,9 +15,9 @@ import {
   text,
 } from "@clack/prompts";
 import pc from "picocolors";
+import { applyPlugin, notePlugin, PLUGINS, type PluginName } from "praxisjs";
 
-import { PLUGINS, RENAME_MAP, TEMPLATES, type PluginName, type TemplateName } from "../constants";
-import { applyPlugin, notePlugin } from "../plugins";
+import { RENAME_MAP, TEMPLATES, type TemplateName } from "../constants";
 import { copy, emptyDir, formatTargetDir, isEmpty, pkgManagerFromAgent, toValidPackageName } from "../utils";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -154,7 +154,7 @@ export async function main(): Promise<void> {
   writeFile("package.json", JSON.stringify(pkg, null, 2) + "\n");
 
   if (plugin !== "none") {
-    applyPlugin(plugin, root, path.resolve(__dirname, `../plugins/${plugin}`));
+    applyPlugin(plugin, root);
   }
 
   s.stop(pc.green("Project scaffolded!"));

@@ -43,7 +43,7 @@ afterEach(() => {
 
 describe("applyPlugin — claude-skill", () => {
   it("copies the skill directory to .claude/skills/praxisjs", () => {
-    applyPlugin("claude-skill", "/root", "/plugins/claude-skill");
+    applyPlugin("claude-skill", "/root");
 
     expect(mockCopy).toHaveBeenCalledWith(
       expect.stringContaining("skills"),
@@ -54,7 +54,7 @@ describe("applyPlugin — claude-skill", () => {
   it("creates .claude dir when it does not exist", () => {
     mockExistsSync.mockReturnValue(false);
 
-    applyPlugin("claude-skill", "/root", "/plugins/claude-skill");
+    applyPlugin("claude-skill", "/root");
 
     expect(mockMkdirSync).toHaveBeenCalledWith(
       expect.stringContaining(".claude"),
@@ -65,13 +65,13 @@ describe("applyPlugin — claude-skill", () => {
   it("skips mkdir when .claude dir already exists", () => {
     mockExistsSync.mockReturnValue(true);
 
-    applyPlugin("claude-skill", "/root", "/plugins/claude-skill");
+    applyPlugin("claude-skill", "/root");
 
     expect(mockMkdirSync).not.toHaveBeenCalled();
   });
 
   it("copies settings.json into .claude", () => {
-    applyPlugin("claude-skill", "/root", "/plugins/claude-skill");
+    applyPlugin("claude-skill", "/root");
 
     expect(mockCopy).toHaveBeenCalledWith(
       expect.stringContaining("settings.json"),
@@ -84,7 +84,7 @@ describe("applyPlugin — claude-skill", () => {
 
 describe("applyPlugin — codex-skill", () => {
   it("copies the skill directory to .agents/skills/praxisjs", () => {
-    applyPlugin("codex-skill", "/root", "/plugins/codex-skill");
+    applyPlugin("codex-skill", "/root");
 
     expect(mockCopy).toHaveBeenCalledWith(
       expect.stringContaining("dot-agents"),
@@ -95,7 +95,7 @@ describe("applyPlugin — codex-skill", () => {
   it("creates AGENTS.md when it does not exist", () => {
     mockExistsSync.mockReturnValue(false);
 
-    applyPlugin("codex-skill", "/root", "/plugins/codex-skill");
+    applyPlugin("codex-skill", "/root");
 
     expect(mockCopyFileSync).toHaveBeenCalledWith(
       expect.stringContaining("AGENTS.md"),
@@ -106,7 +106,7 @@ describe("applyPlugin — codex-skill", () => {
   it("skips AGENTS.md when it already exists", () => {
     mockExistsSync.mockReturnValue(true);
 
-    applyPlugin("codex-skill", "/root", "/plugins/codex-skill");
+    applyPlugin("codex-skill", "/root");
 
     expect(mockCopyFileSync).not.toHaveBeenCalled();
   });
@@ -116,7 +116,7 @@ describe("applyPlugin — codex-skill", () => {
 
 describe("applyPlugin — none", () => {
   it("does nothing", () => {
-    applyPlugin("none", "/root", "/plugins/none");
+    applyPlugin("none", "/root");
 
     expect(mockCopy).not.toHaveBeenCalled();
     expect(mockCopyFileSync).not.toHaveBeenCalled();

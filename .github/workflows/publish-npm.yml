@@ -39,7 +39,7 @@ jobs:
           pnpm build:utils
           pnpm build:features
           pnpm build:dx
-          pnpm --filter create-praxisjs build
+          pnpm build:cli
 
       - name: Run tests
         run: pnpm test:coverage

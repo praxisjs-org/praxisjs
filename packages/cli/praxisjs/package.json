@@ -1,0 +1,45 @@
+{
+  "name": "praxisjs",
+  "version": "0.0.0",
+  "description": "CLI for maintaining existing PraxisJS projects",
+  "type": "module",
+  "bin": {
+    "praxisjs": "./dist/index.mjs"
+  },
+  "main": "./dist/lib.mjs",
+  "types": "./dist/lib.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/lib.d.mts",
+      "default": "./dist/lib.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "plugins"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.2.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsdown": "0.20.3",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "praxisjs",
+    "cli",
+    "frontend",
+    "framework"
+  ],
+  "packageManager": "pnpm@10.30.2"
+}

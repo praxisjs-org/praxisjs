@@ -109,7 +109,7 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
-  packages/create-praxisjs:
+  packages/cli/create-praxisjs:
     dependencies:
       '@clack/prompts':
         specifier: ^1.2.0
@@ -117,37 +117,40 @@ importers:
       picocolors:
         specifier: ^1.1.1
         version: 1.1.1
+      praxisjs:
+        specifier: workspace:*
+        version: link:../praxisjs
     devDependencies:
       '@praxisjs/composables':
         specifier: workspace:*
-        version: link:../utils/composables
+        version: link:../../utils/composables
       '@praxisjs/concurrent':
         specifier: workspace:*
-        version: link:../utils/concurrent
+        version: link:../../utils/concurrent
       '@praxisjs/core':
         specifier: workspace:*
-        version: link:../foundation/core
+        version: link:../../foundation/core
       '@praxisjs/decorators':
         specifier: workspace:*
-        version: link:../foundation/decorators
+        version: link:../../foundation/decorators
       '@praxisjs/devtools':
         specifier: workspace:*
-        version: link:../dx/devtools
+        version: link:../../dx/devtools
       '@praxisjs/di':
         specifier: workspace:*
-        version: link:../features/di
+        version: link:../../features/di
       '@praxisjs/jsx':
         specifier: workspace:*
-        version: link:../foundation/jsx
+        version: link:../../foundation/jsx
       '@praxisjs/router':
         specifier: workspace:*
-        version: link:../features/router
+        version: link:../../features/router
       '@praxisjs/runtime':
         specifier: workspace:*
-        version: link:../foundation/runtime
+        version: link:../../foundation/runtime
       '@praxisjs/store':
         specifier: workspace:*
-        version: link:../features/store
+        version: link:../../features/store
       '@types/node':
         specifier: ^25.9.1
         version: 25.9.1
@@ -160,6 +163,25 @@ importers:
       vite:
         specifier: ^7.3.1
         version: 7.3.1(@types/node@25.9.1)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+
+  packages/cli/praxisjs:
+    dependencies:
+      '@clack/prompts':
+        specifier: ^1.2.0
+        version: 1.2.0
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
+    devDependencies:
+      '@types/node':
+        specifier: ^25.9.1
+        version: 25.9.1
+      tsdown:
+        specifier: 0.20.3
+        version: 0.20.3(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(oxc-resolver@11.19.1(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2))(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   packages/dx/devtools:
     dependencies:

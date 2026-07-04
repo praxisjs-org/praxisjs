@@ -1,0 +1,20 @@
+import { defineConfig } from "tsdown";
+
+export default defineConfig([
+  {
+    entry: ["src/index.ts"],
+    format: ["esm"],
+    target: "node18",
+    clean: true,
+    banner: {
+      js: "#!/usr/bin/env node",
+    },
+  },
+  {
+    entry: ["src/lib.ts"],
+    format: ["esm"],
+    target: "node18",
+    clean: false,
+    dts: true,
+  },
+]);

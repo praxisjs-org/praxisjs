@@ -96,14 +96,10 @@ afterEach(() => {
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-// The module auto-executes handler() (main or add) on import based on argv[2].
+// The module auto-executes main() on import.
 // Mock node:process with the right argv before importing.
 
 async function runMain() {
-  return import("../index").catch(() => undefined);
-}
-
-async function runAdd() {
   return import("../index").catch(() => undefined);
 }
 
@@ -762,74 +758,5 @@ describe("create-praxisjs index – error handling", () => {
     expect(mockExit).toHaveBeenCalledWith(1);
 
     consoleSpy.mockRestore();
-  });
-});
-
-describe("create-praxisjs add — existing project", () => {
-  it("runs the add flow when argv[2] is 'add'", async () => {
-    const clack = makeClack({
-      select: vi.fn().mockResolvedValueOnce("claude-skill"),
-    });
-
-    vi.doMock("picocolors", () => makePc());
-    vi.doMock("@clack/prompts", () => clack);
-    vi.doMock("node:fs", () => makeFs());
-    vi.doMock("node:process", () => ({
-      argv: ["node", "create-praxisjs", "add"],
-      cwd: () => "/fake/cwd",
-      exit: vi.fn(),
-    }));
-
-    await runAdd();
-
-    expect(clack.intro).toHaveBeenCalledOnce();
-    // only one select (plugin only, no template)
-    expect(clack.select).toHaveBeenCalledOnce();
-    expect(clack.outro).toHaveBeenCalledOnce();
-  });
-
-  it("copies skill files when claude-skill is selected via add", async () => {
-    const clack = makeClack({
-      select: vi.fn().mockResolvedValueOnce("claude-skill"),
-    });
-    const fsMock = makeFs();
-
-    vi.doMock("picocolors", () => makePc());
-    vi.doMock("@clack/prompts", () => clack);
-    vi.doMock("node:fs", () => fsMock);
-    vi.doMock("node:process", () => ({
-      argv: ["node", "create-praxisjs", "add"],
-      cwd: () => "/fake/cwd",
-      exit: vi.fn(),
-    }));
-
-    await runAdd();
-
-    expect(fsMock.default.copyFileSync).toHaveBeenCalled();
-    const noteArgs = clack.note.mock.calls[0] as [string, string];
-    expect(noteArgs[1]).toBe("Claude Code");
-  });
-
-  it("exits when add plugin select is cancelled", async () => {
-    const mockExit = vi.fn();
-    const CANCEL = Symbol("cancel");
-    const clack = makeClack({
-      select: vi.fn().mockResolvedValueOnce(CANCEL),
-      isCancel: vi.fn().mockImplementation((v) => v === CANCEL),
-    });
-
-    vi.doMock("picocolors", () => makePc());
-    vi.doMock("@clack/prompts", () => clack);
-    vi.doMock("node:fs", () => makeFs());
-    vi.doMock("node:process", () => ({
-      argv: ["node", "create-praxisjs", "add"],
-      cwd: () => "/fake/cwd",
-      exit: mockExit,
-    }));
-
-    await runAdd();
-
-    expect(clack.cancel).toHaveBeenCalledWith("Operation cancelled");
-    expect(mockExit).toHaveBeenCalledWith(0);
   });
 });
