@@ -43,7 +43,13 @@ Signal-driven TypeScript frontend framework. Monorepo managed with pnpm workspac
 | `@praxisjs/vite-plugin` | Vite plugin (`praxisjs({ hmr: true })`)                                     |
 | `@praxisjs/mcp`         | MCP server — live documentation tools for Claude Code (Model Context Protocol) |
 | `@praxisjs/storybook`   | Storybook framework adapter for PraxisJS                                    |
-| `create-praxisjs`       | CLI scaffolding tool (tsdown build)                                         |
+
+### CLI
+
+| Package           | Role                                                                  |
+| ------------------ | --------------------------------------------------------------------- |
+| `create-praxisjs`  | Scaffolds new projects (`npm create praxisjs@latest`), tsdown build   |
+| `praxisjs`         | Maintains existing projects — `praxisjs add` (AI integrations) and future maintenance commands, tsdown build |
 
 ### Private
 
@@ -62,7 +68,7 @@ packages/
   features/     router  store  motion  di  fsm  content  head
   utils/        composables  concurrent
   dx/           devtools  vite-plugin  mcp  storybook
-  create-praxisjs/
+  cli/          create-praxisjs  praxisjs
 playground/
 docs/
 ```

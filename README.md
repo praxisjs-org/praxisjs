@@ -100,10 +100,17 @@ npm install @praxisjs/core @praxisjs/decorators @praxisjs/runtime @praxisjs/jsx
 | [`@praxisjs/devtools`](packages/dx/devtools) | `0.2.19` | In-app signal inspector and component profiler |
 | [`@praxisjs/storybook`](packages/dx/storybook) | `0.1.1` | Storybook framework adapter |
 | [`@praxisjs/mcp`](packages/dx/mcp) | `0.1.0` | MCP server for AI assistant integration |
-| [`create-praxisjs`](packages/create-praxisjs) | `0.4.2` | Project scaffolding CLI |
+
+### CLI
+
+| Package | Version | Description |
+|---|---|---|
+| [`create-praxisjs`](packages/cli/create-praxisjs) | `0.4.2` | Project scaffolding CLI |
+| [`praxisjs`](packages/cli/praxisjs) | `0.1.0` | Maintenance CLI for existing projects (`praxisjs add`) |
 
 ```sh
 npm create praxisjs@latest
+npx praxisjs add
 ```
 
 ## Monorepo layout
@@ -114,7 +121,7 @@ packages/
   features/     router · store · di · motion · fsm · head · content
   utils/        composables · concurrent
   dx/           vite-plugin · devtools · storybook · mcp
-  create-praxisjs/
+  cli/          create-praxisjs · praxisjs
 playground/     manual testing app (Vite)
 docs/           documentation site (Next.js + Fumadocs)
 ```

@@ -25,6 +25,7 @@
     "vite-plugin",
     "mcp",
     "---CLI---",
-    "create-praxisjs"
+    "create-praxisjs",
+    "praxisjs"
   ]
 }

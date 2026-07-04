@@ -86,7 +86,7 @@ Other prefixes are up to your discretion. Suggested prefixes are `docs`, `chore`
 
 The scope specifies the area of the codebase affected. Use the package or module name:
 
-`core`, `decorators`, `router`, `store`, `fsm`, `motion`, `di`, `composables`, `jsx`, `runtime`, `shared`, `create-praxisjs`
+`core`, `decorators`, `router`, `store`, `fsm`, `motion`, `di`, `composables`, `jsx`, `runtime`, `shared`, `create-praxisjs`, `praxisjs`
 
 ### Subject
 

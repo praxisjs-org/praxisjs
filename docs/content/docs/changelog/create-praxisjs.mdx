@@ -6,6 +6,10 @@ icon: Rocket
 
 # create-praxisjs
 
+## 1.0.0
+
+**Breaking:** the `add` command has moved to a new `praxisjs` CLI package — run `npx praxisjs add` instead of `npx create-praxisjs add`. `create-praxisjs` now only scaffolds new projects; it depends on `praxisjs` to share the AI-integration plugin logic used during the "Add an AI integration?" scaffolding step.
+
 ## 0.4.8
 
 Fix `npx create-praxisjs add` throwing `ENOENT` when installing the Claude or Codex skill integration — the published package was missing the `plugins/` directory (`files` in `package.json` only listed `dist` and `templates`).

@@ -111,7 +111,10 @@ First-party plugins — install only what your project needs.
 
 | Package | Version | Description |
 | ------- | ------- | ----------- |
-| `create-praxisjs` | `0.4.8` | Project scaffolding CLI |
+| `create-praxisjs` | `1.0.0` | Project scaffolding CLI |
+| `praxisjs` | `0.1.0` | Maintenance CLI for existing projects — `praxisjs add` and future project commands |
+
+**Scaffold a new project**
 
 <Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
 <Tab value="npm">
@@ -132,6 +135,31 @@ yarn create praxisjs
 <Tab value="bun">
 ```sh
 bun create praxisjs
+```
+</Tab>
+</Tabs>
+
+**Maintain an existing project**
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npx praxisjs add
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm dlx praxisjs add
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn dlx praxisjs add
+```
+</Tab>
+<Tab value="bun">
+```sh
+bunx praxisjs add
 ```
 </Tab>
 </Tabs>
