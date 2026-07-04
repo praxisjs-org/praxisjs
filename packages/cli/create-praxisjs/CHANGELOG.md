@@ -1,5 +1,16 @@
 # create-praxisjs
 
+## 1.0.0
+
+### Major Changes
+
+- 38f8205: The `add` command (installs an AI integration into an existing project) has moved out of `create-praxisjs` into a new `praxisjs` CLI package. Run `npx praxisjs add` instead of `npx create-praxisjs add`. `create-praxisjs` now depends on `praxisjs` for the shared plugin logic used during initial scaffolding.
+
+### Patch Changes
+
+- Updated dependencies [38f8205]
+  - praxisjs@0.1.0
+
 ## 0.4.13
 
 ### Patch Changes
