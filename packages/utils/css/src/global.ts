@@ -7,6 +7,16 @@ import { hashCSS } from "./internal/hash.js";
 /** Factory function that receives `css` (= `createCSSBuilder`) and returns a `CSSBuilder` or raw CSS string. */
 export type GlobalStyleFactory = (css: (props: CSSProperties) => CSSBuilder) => CSSBuilder | string;
 
+export interface GlobalStyleOptions {
+  /**
+   * Wraps the CSS in a named `@layer` so it can be ordered against other
+   * layered CSS (e.g. Tailwind's `@layer utilities`) instead of always
+   * winning the cascade regardless of specificity. Omit (or pass `false`)
+   * to inject un-layered CSS (default).
+   */
+  layer?: string | false;
+}
+
 // ─── Static mode ──────────────────────────────────────────────────────────────
 
 declare const __PRAXIS_CSS_STATIC__: boolean | undefined;
@@ -38,9 +48,15 @@ const injected = new Set<string>();
  *     .on('body', { fontFamily: 'system-ui', lineHeight: 1.5 })
  *     .on('img, video', { display: 'block', maxWidth: '100%' })
  * )
+ *
+ * @example
+ * // Ordered against other layered CSS (e.g. Tailwind utilities):
+ * globalStyle(_css => `body { font-family: system-ui; }`, { layer: 'base' })
  */
-export function globalStyle(factory: GlobalStyleFactory): void {
-  const css = String(factory(createCSSBuilder));
+export function globalStyle(factory: GlobalStyleFactory, options: GlobalStyleOptions = {}): void {
+  const rawCSS = String(factory(createCSSBuilder));
+  const { layer } = options;
+  const css = layer ? `@layer ${layer} {\n${rawCSS}\n}` : rawCSS;
 
   const key = hashCSS(css);
   if (injected.has(key)) return;

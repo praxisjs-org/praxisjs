@@ -198,10 +198,5 @@ export interface PreflightOptions {
  * preflight()
  */
 export function preflight({ layer = "reset" }: PreflightOptions = {}): void {
-  if (!layer) {
-    globalStyle(_css => PREFLIGHT);
-    return;
-  }
-
-  globalStyle(_css => `@layer ${layer} {\n${PREFLIGHT}\n}`);
+  globalStyle(_css => PREFLIGHT, { layer });
 }

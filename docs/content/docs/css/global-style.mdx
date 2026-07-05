@@ -63,6 +63,21 @@ import { App } from './app'
 
 ---
 
+## Layering
+
+Pass `layer` to wrap the CSS in a named `@layer`, so it can be ordered against other layered CSS (like Tailwind's `@layer utilities`) instead of always winning the cascade regardless of specificity:
+
+```ts
+globalStyle(css =>
+  css({}).on('body', { fontFamily: 'system-ui', lineHeight: 1.5 }),
+  { layer: 'base' }
+)
+```
+
+Cascade layer priority follows the order layers first appear in the document — whichever layer is declared first ranks lowest. Call `globalStyle()` (or [`preflight()`](#preflight)) before importing CSS from another layered system so your layers rank below it.
+
+---
+
 ## Deduplication
 
 `globalStyle()` is content-hashed — calling a factory that produces the same CSS twice injects only one `<style>` element. Safe to call in modules that are imported from multiple places.
@@ -90,12 +105,17 @@ When `document` is not available (server-side rendering), `globalStyle()` is a n
 ```ts
 type GlobalStyleFactory = (css: (props: CSSProperties) => CSSBuilder) => CSSBuilder | string
 
-function globalStyle(factory: GlobalStyleFactory): void
+interface GlobalStyleOptions {
+  layer?: string | false
+}
+
+function globalStyle(factory: GlobalStyleFactory, options?: GlobalStyleOptions): void
 ```
 
 | Parameter | Type | Description |
 |---|---|---|
 | `factory` | `GlobalStyleFactory` | Receives `css` (= `createCSSBuilder`) and returns a `CSSBuilder` or raw CSS string. |
+| `options.layer` | `string \| false` | Wraps the CSS in a named `@layer`. Omit or pass `false` to inject un-layered CSS (default). |
 
 <Callout type="info">
   For component-scoped styles, use [`@Styled()`](/css/stylesheets). For scoped `@keyframes` animations, use [`keyframes()`](/css/keyframes).

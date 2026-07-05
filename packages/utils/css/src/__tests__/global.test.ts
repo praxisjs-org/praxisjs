@@ -106,6 +106,29 @@ describe("globalStyle() — factory with builder", () => {
   });
 });
 
+// ─── layer option ─────────────────────────────────────────────────────────────
+
+describe("globalStyle() — layer option", () => {
+  it("injects un-layered CSS by default", () => {
+    globalStyle(_css => unique("body { margin: 0; }"));
+    const content = document.head.querySelector("style[data-praxis-global]")?.textContent ?? "";
+    expect(content).not.toContain("@layer");
+  });
+
+  it("wraps the CSS in a named @layer when provided", () => {
+    globalStyle(_css => unique("body { margin: 0; }"), { layer: "base" });
+    const content = document.head.querySelector("style[data-praxis-global]")?.textContent ?? "";
+    expect(content).toContain("@layer base {");
+    expect(content).toContain("margin: 0;");
+  });
+
+  it("does not wrap in a layer when layer: false", () => {
+    globalStyle(_css => unique("body { margin: 0; }"), { layer: false });
+    const content = document.head.querySelector("style[data-praxis-global]")?.textContent ?? "";
+    expect(content).not.toContain("@layer");
+  });
+});
+
 // ─── STATIC_MODE ──────────────────────────────────────────────────────────────
 
 describe("globalStyle() — static mode (__PRAXIS_CSS_STATIC__)", () => {
