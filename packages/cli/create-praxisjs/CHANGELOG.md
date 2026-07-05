@@ -1,5 +1,13 @@
 # create-praxisjs
 
+## 1.0.1
+
+### Patch Changes
+
+- 4791c10: Updated dependency — `praxisjs@1.0.0`. The AI integration command referenced after scaffolding (previously `praxisjs add`) is now `praxisjs ai add`; see the [praxisjs CLI docs](https://praxisjs.org/docs/tooling/cli) for the full command reference, including the new `ai remove`, `doctor`, and `upgrade` commands.
+- Updated dependencies [7fc21f8]
+  - praxisjs@1.0.0
+
 ## 1.0.0
 
 ### Major Changes
