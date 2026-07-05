@@ -1,0 +1,125 @@
+---
+title: praxisjs CLI
+description: "praxisjs — maintenance CLI for existing PraxisJS projects. `ai add` / `ai remove` for AI integrations, `doctor` for diagnostics, `upgrade` for dependency updates."
+icon: Terminal
+---
+
+# praxisjs CLI
+
+`praxisjs` is a CLI for maintaining an **existing** PraxisJS project — as opposed to `create-praxisjs`, which only scaffolds new ones. No install required:
+
+<Tabs items={['npx', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npx">
+```sh
+npx praxisjs <command>
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm dlx praxisjs <command>
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn dlx praxisjs <command>
+```
+</Tab>
+<Tab value="bun">
+```sh
+bunx praxisjs <command>
+```
+</Tab>
+</Tabs>
+
+| Command | Purpose |
+|---|---|
+| [`ai add`](#ai-add) | Install an AI integration (Claude Code or Codex skill) |
+| [`ai remove`](#ai-remove) | Uninstall an AI integration |
+| [`doctor`](#doctor) | Diagnose common project issues |
+| [`upgrade`](#upgrade) | Update `@praxisjs/*` dependencies to their latest version |
+
+Running `praxisjs` with no arguments, an unknown command, or `ai` without a subcommand prints this usage list and exits with code `1`.
+
+---
+
+## `ai add`
+
+Installs an AI integration into the current project. Prompts for which one:
+
+```sh
+npx praxisjs ai add
+```
+
+| Integration | Installs | Also creates if missing |
+|---|---|---|
+| **Claude Code** | `.claude/skills/praxisjs/` (skill files) | `.claude/settings.json` — MCP server pre-configured (overwritten on every `ai add`) |
+| **Codex** | `.agents/skills/praxisjs/` (skill files) | `AGENTS.md` at the project root (only if it doesn't already exist) |
+
+The skill itself creates `CLAUDE.md` / `AGENTS.md` project memory and `.praxisjs-ai.json` project preferences the first time it runs in a session — see the [AI skills guide](/docs/guide/ai-skills) for what each file is for and how the skill uses them.
+
+<Callout type="info">
+  During `create-praxisjs` scaffolding, the same integration picker appears as the "Add an AI integration?" step — `ai add` is only needed for a project that already exists.
+</Callout>
+
+---
+
+## `ai remove`
+
+Uninstalls an AI integration. Prompts for which one, then asks for confirmation before deleting anything:
+
+```sh
+npx praxisjs ai remove
+```
+
+| Integration | Deletes | Leaves untouched |
+|---|---|---|
+| **Claude Code** | `.claude/skills/praxisjs/`, `.claude/settings.json` | `CLAUDE.md`, `.praxisjs-ai.json` |
+| **Codex** | `.agents/skills/praxisjs/` | `AGENTS.md`, `.praxisjs-ai.json` |
+
+The memory file and `.praxisjs-ai.json` are never deleted — they hold project context and preferences that aren't owned exclusively by the integration you're removing (and may still be read by the other one).
+
+---
+
+## `doctor`
+
+Diagnoses common problems in the current project:
+
+```sh
+npx praxisjs doctor
+```
+
+| Check | Flags an issue when |
+|---|---|
+| **`package.json`** | Missing, malformed, or has no `@praxisjs/*` dependency |
+| **`tsconfig.json`** | Missing, malformed, or `compilerOptions` doesn't have `jsx: "react-jsx"`, `jsxImportSource: "@praxisjs/jsx"`, and `useDefineForClassFields: false` — the tsconfig check only runs once `package.json` passes |
+| **Claude Code integration** | The skill directory exists but `.claude/settings.json`, `CLAUDE.md`, or `.praxisjs-ai.json` is missing |
+| **Codex integration** | The skill directory exists but `AGENTS.md` or `.praxisjs-ai.json` is missing |
+
+Each AI integration check only runs if its skill directory is present — `doctor` doesn't flag an integration that was never installed. Exits with code `1` if any check fails, `0` if everything passes.
+
+<Callout type="warn" title="useDefineForClassFields is the most common failure">
+  With `true` (TypeScript's default for ES2022+ targets), class fields compile via `Object.defineProperty`, which runs after decorator initializers and silently overwrites the signal getter/setter `@State` registers. `doctor` exists mainly to catch this before it turns into a confusing "my state doesn't update" bug report.
+</Callout>
+
+---
+
+## `upgrade`
+
+Updates every `@praxisjs/*` dependency in `package.json` to its latest published version:
+
+```sh
+npx praxisjs upgrade
+```
+
+For each `@praxisjs/*` entry in `dependencies`, `devDependencies`, and `peerDependencies`:
+
+1. Skips it if the range is `workspace:*` (monorepo-internal, not a real npm version) or doesn't parse as a semver range.
+2. Looks up the latest published version from the npm registry.
+3. Skips it if already on the latest version.
+4. Otherwise rewrites the range, preserving its prefix — `^1.0.0` becomes `^2.0.0`, `1.0.0` becomes `2.0.0`, `~1.0.0` becomes `~2.0.0`.
+
+If anything changed, `upgrade` writes `package.json` and runs the detected package manager's install command — `pnpm install`, `yarn`, `bun install`, or `npm install`, based on the lockfile present in the project root. If the install itself fails, `upgrade` reports it but doesn't crash; re-run the printed command manually.
+
+<Callout type="info">
+  `upgrade` only touches `@praxisjs/*` packages. It won't bump unrelated dependencies like `vite` or `typescript`.
+</Callout>

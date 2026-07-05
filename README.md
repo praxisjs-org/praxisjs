@@ -106,11 +106,14 @@ npm install @praxisjs/core @praxisjs/decorators @praxisjs/runtime @praxisjs/jsx
 | Package | Version | Description |
 |---|---|---|
 | [`create-praxisjs`](packages/cli/create-praxisjs) | `0.4.2` | Project scaffolding CLI |
-| [`praxisjs`](packages/cli/praxisjs) | `0.1.0` | Maintenance CLI for existing projects (`praxisjs add`) |
+| [`praxisjs`](packages/cli/praxisjs) | `1.0.0` | Maintenance CLI for existing projects (`ai add`/`ai remove`, `doctor`, `upgrade`) |
 
 ```sh
 npm create praxisjs@latest
-npx praxisjs add
+npx praxisjs ai add
+npx praxisjs ai remove
+npx praxisjs doctor
+npx praxisjs upgrade
 ```
 
 ## Monorepo layout

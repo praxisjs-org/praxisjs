@@ -49,7 +49,7 @@ Signal-driven TypeScript frontend framework. Monorepo managed with pnpm workspac
 | Package           | Role                                                                  |
 | ------------------ | --------------------------------------------------------------------- |
 | `create-praxisjs`  | Scaffolds new projects (`npm create praxisjs@latest`), tsdown build   |
-| `praxisjs`         | Maintains existing projects — `praxisjs add` (AI integrations) and future maintenance commands, tsdown build |
+| `praxisjs`         | Maintains existing projects — `ai add`/`ai remove` (AI integrations), `doctor` (diagnostics), `upgrade` (`@praxisjs/*` version bumps), tsdown build |
 
 ### Private
 

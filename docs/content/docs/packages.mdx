@@ -112,7 +112,7 @@ First-party plugins — install only what your project needs.
 | Package | Version | Description |
 | ------- | ------- | ----------- |
 | `create-praxisjs` | `1.0.0` | Project scaffolding CLI |
-| `praxisjs` | `0.1.0` | Maintenance CLI for existing projects — `praxisjs add` and future project commands |
+| `praxisjs` | `1.0.0` | Maintenance CLI for existing projects — `ai add`/`ai remove`, `doctor`, `upgrade` |
 
 **Scaffold a new project**
 
@@ -144,22 +144,36 @@ bun create praxisjs
 <Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
 <Tab value="npm">
 ```sh
-npx praxisjs add
+npx praxisjs ai add
+npx praxisjs ai remove
+npx praxisjs doctor
+npx praxisjs upgrade
 ```
 </Tab>
 <Tab value="pnpm">
 ```sh
-pnpm dlx praxisjs add
+pnpm dlx praxisjs ai add
+pnpm dlx praxisjs ai remove
+pnpm dlx praxisjs doctor
+pnpm dlx praxisjs upgrade
 ```
 </Tab>
 <Tab value="yarn">
 ```sh
-yarn dlx praxisjs add
+yarn dlx praxisjs ai add
+yarn dlx praxisjs ai remove
+yarn dlx praxisjs doctor
+yarn dlx praxisjs upgrade
 ```
 </Tab>
 <Tab value="bun">
 ```sh
-bunx praxisjs add
+bunx praxisjs ai add
+bunx praxisjs ai remove
+bunx praxisjs doctor
+bunx praxisjs upgrade
 ```
 </Tab>
 </Tabs>
+
+See the [praxisjs CLI reference](/docs/tooling/cli) for what each command checks, installs, or updates.

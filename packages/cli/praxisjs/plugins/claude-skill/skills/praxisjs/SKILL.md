@@ -1,6 +1,6 @@
 ---
 name: praxisjs
-description: PraxisJS development skill for Claude Code. Invoke whenever working on a PraxisJS project — creating components, managing state, setting up routing, using decorators, fetching async data, or debugging reactivity. Trigger on any mention of @praxisjs/ packages, @State, @Component, StatefulComponent, StatelessComponent, @Resource, @Watch, @Emit, or when the user wants to build reactive UI with TypeScript. This skill enforces three non-negotiable practices: consult praxisjs.org docs before writing code, keep CLAUDE.md updated so every future session has full project context, and follow PraxisJS conventions exactly — no workarounds.
+description: PraxisJS development skill for Claude Code. Invoke whenever working on a PraxisJS project — creating components, managing state, setting up routing, using decorators, fetching async data, styling, or debugging reactivity. Trigger on any mention of @praxisjs/ packages, @State, @Component, StatefulComponent, StatelessComponent, @Resource, @Watch, @Emit, or when the user wants to build reactive UI with TypeScript. This skill enforces three non-negotiable practices: consult praxisjs.org docs before writing code, keep CLAUDE.md updated so every future session has full project context, and follow PraxisJS conventions exactly — no workarounds.
 ---
 
 # PraxisJS Development
@@ -25,6 +25,8 @@ Before doing any work, run through this in order:
 2. **Read `CLAUDE.md`** — understand the current project state.
 3. **Fetch docs** for the task at hand.
 
+If the developer reports something feels broken (wrong TypeScript config, missing memory files, a stale integration), run `npx praxisjs doctor` — it checks `package.json`, `tsconfig.json`, and whether this Claude Code integration is fully initialized (skill, `.claude/settings.json`, `CLAUDE.md`, `.praxisjs-ai.json`).
+
 ---
 
 ## Project config (`.praxisjs-ai.json`)
@@ -45,12 +47,13 @@ these questions every session. Please answer all of them:
 2. What language should identifiers and code comments be in? (e.g. en, pt, es)
 3. What language should user-facing UI strings be in? (e.g. en, pt-BR, es)
 4. Should I set up i18n (internationalization) support? (yes / no)
-5. Which CSS approach does this project use?
-   a) Plain CSS / global stylesheet
-   b) CSS Modules
-   c) Tailwind CSS
-   d) UnoCSS
-   e) No styles from Claude (I handle CSS myself)
+5. Which styling approach does this project use?
+   a) @praxisjs/css (typed, scoped, decorator-based — @Styled, @Style, tokens)
+   b) Plain CSS / global stylesheet
+   c) CSS Modules
+   d) Tailwind CSS
+   e) UnoCSS
+   f) No styles from Claude (I handle CSS myself)
 ```
 
 After the developer answers, write `.praxisjs-ai.json` immediately, confirm the saved config in one short message, and proceed with the original task.
@@ -62,7 +65,7 @@ At the start of every session after init:
 - `codeLocale` → use this locale for identifiers, comments, and variable names
 - `uiLocale` → use this locale for all user-facing strings in templates
 - `i18n: true` → use the i18n integration pattern from `references/project-config.md`
-- `css` → follow the CSS approach when adding styles to components
+- `css` → follow the styling approach when adding styles to components
 
 ---
 
@@ -78,16 +81,17 @@ Use `references/claude-md.md` for the full template. Minimum required sections:
 # [Project name]
 
 ## Stack
-- PraxisJS [version] + packages: @praxisjs/[list]
+- PraxisJS + packages: @praxisjs/[list]
 - Build: Vite [version] + @praxisjs/vite-plugin
 - Routing: [@praxisjs/router / none]
 - State: [@praxisjs/store / none]
+- Styling: [@praxisjs/css / plain / modules / tailwind / unocss / none]
 
 ## Architecture
 [2–4 sentences: what the app does, how it's organized, main entry points]
 
 ## Conventions
-[Project-specific patterns — e.g. "all forms extend FormBase", "stores are singletons injected via @UseStore"]
+[Project-specific patterns — e.g. "all forms extend FormBase", "stores are singletons injected via @Store"]
 
 ## Known constraints
 [Anything that would surprise a developer — auth, browser targets, env vars, etc.]
@@ -97,7 +101,7 @@ Use `references/claude-md.md` for the full template. Minimum required sections:
 - Add or remove a `@praxisjs/*` package
 - Establish a new architectural pattern (base class, shared composable, store shape)
 - Make a decision that affects how future code should be written
-- Change how routing, DI, or the store is configured
+- Change how routing, DI, the store, or styling is configured
 
 CLAUDE.md is a living document, not a log. Remove stale entries when conventions change. Keep it under one page — precision beats completeness.
 
@@ -119,23 +123,31 @@ Quick slug reference:
 | JSX syntax | `essentials/jsx` |
 | Lifecycle hooks | `essentials/lifecycle` |
 | Async data | `essentials/async-data` |
+| Document head (`@Head`) | `essentials/head` |
+| Portal | `essentials/portal` |
 | State & Props | `decorators/state` |
 | Watchers | `decorators/watchers` |
 | Events & Slots | `decorators/events` |
 | Performance | `decorators/performance` |
 | Timing decorators | `decorators/timing` |
 | Utility decorators | `decorators/utilities` |
+| DevTools decorators (`@Debug`, `@Trace`) | `decorators/dx` |
 | Router | `ecosystem/router` |
 | Store | `ecosystem/store` |
 | Dependency injection | `ecosystem/di` |
 | Motion | `ecosystem/motion` |
 | State machines | `ecosystem/fsm` |
+| Content collections | `ecosystem/content` |
 | Concurrency | `ecosystem/concurrency` |
 | DOM composables | `composables/dom` |
 | Browser composables | `composables/browser` |
+| List composables (`VirtualList`) | `composables/list` |
+| CSS (`@praxisjs/css`) | `css/index` |
 | Custom decorators | `advanced/custom-decorators` |
 | Custom composables | `advanced/custom-composables` |
 | Vite plugin | `tooling/vite-plugin` |
+| DevTools panel | `tooling/devtools` |
+| MCP server | `tooling/mcp` |
 
 ---
 
@@ -145,27 +157,31 @@ When starting from scratch:
 
 ```bash
 pnpm create praxisjs@latest
-# Choose template: minimal / router / full
+# Choose template: minimal / router / full / blog
 ```
 
 Immediately after scaffolding:
 1. Create `CLAUDE.md` at the project root (use the template in `references/claude-md.md`)
-2. Add any additional packages using the CLI without specifying a version — always let the package manager resolve latest: `pnpm add @praxisjs/store @praxisjs/di`
+2. Add any additional packages using the `praxisjs_get_install_command` tool — never hand-write the install command or a version number
 3. Update `CLAUDE.md` with installed packages
 4. Run `praxisjs_get_page('tooling/vite-plugin')` to verify the Vite plugin configuration
 
-**Never write version numbers directly into `package.json`.** Always install via the CLI so the package manager resolves the latest compatible version:
+### Existing project maintenance
 
-```bash
-# correct — resolves latest
-pnpm add @praxisjs/router
-pnpm add @praxisjs/store @praxisjs/di @praxisjs/motion
+Three CLI commands cover the cases the skill itself can't fix by editing files:
 
-# wrong — hardcodes a version that may already be outdated
-pnpm add @praxisjs/router@^0.1.0
+- `npx praxisjs doctor` — diagnoses the project: missing `@praxisjs/*` dependencies, tsconfig options required by PraxisJS (`jsxImportSource`, `useDefineForClassFields`, `jsx`), and whether this AI integration is fully initialized (skill, config, memory file all present).
+- `npx praxisjs upgrade` — bumps every `@praxisjs/*` dependency in `package.json` to its latest published version and reinstalls. Prefer this over manually editing version ranges.
+- `npx praxisjs ai remove` — uninstalls an AI integration (prompts for which one). Deletes the skill directory and, for Claude Code, `.claude/settings.json`; leaves `CLAUDE.md` and `.praxisjs-ai.json` untouched.
+
+**Never write version numbers directly into `package.json`.** Always resolve the install command through the `praxisjs_get_install_command` tool (or `praxisjs upgrade` for existing dependencies) so the package manager pins the current compatible version:
+
+```
+praxisjs_get_install_command({ packages: ["@praxisjs/router"] })
+praxisjs_get_install_command({ packages: ["@praxisjs/store", "@praxisjs/di"], manager: "pnpm" })
 ```
 
-The same rule applies when scaffolding files or editing `package.json` directly — never add a `@praxisjs/*` dependency with an explicit version constraint. Run the install command and let pnpm pin it.
+The same rule applies when scaffolding files or editing `package.json` directly — never add a `@praxisjs/*` dependency with an explicit version constraint by hand.
 
 ---
 
@@ -238,8 +254,24 @@ class MyModule extends StatefulComponent {}
 | `@Persisted()` | Synced to localStorage |
 | `@Resource()` | Async data with loading/error/data |
 | `@DeepState()` | Deeply reactive objects/arrays |
+| `@Synced()` | Two-way bound field |
 
 For all options (`immediate`, `keepPreviousData`, etc.) → fetch `decorators/state`.
+
+### Ecosystem package decorators (fetch the docs page before using — options change)
+
+| Decorator | Package | Use for |
+|---|---|---|
+| `@Router(routes)` / `@Route(path)` | `@praxisjs/router` | Configure the router on the root component / annotate a page |
+| `@Storable()` / `@Store(StoreClass)` | `@praxisjs/store` | Define a singleton store / inject it into a component |
+| `@Injectable()` / `@Inject(token)` | `@praxisjs/di` | Mark a service injectable / inject it |
+| `@Tween()` / `@Spring()` | `@praxisjs/motion` | Animate a field |
+| `@StateMachine()` / `@Transition()` | `@praxisjs/fsm` | Define a finite state machine |
+| `@Collection()` / `@PagedCollection()` | `@praxisjs/content` | Markdown content collections |
+| `@Head()` | `@praxisjs/head` | Reactive document title/meta |
+| `@Styled` / `@Style()` / `@Param()` | `@praxisjs/css` | Typed, scoped CSS classes and reactive CSS custom properties |
+
+Do not assume the exact signature — fetch the matching `ecosystem/*` or `css/index` page first.
 
 ---
 
@@ -266,7 +298,7 @@ These habits make AI-assisted development significantly faster and more accurate
 ```ts
 // Public API — application code and packages shipped to users
 import { signal, computed, effect, peek, untrack, batch } from '@praxisjs/core'
-import { StatefulComponent, StatelessComponent } from '@praxisjs/runtime'
+import { StatefulComponent, StatelessComponent, Portal } from '@praxisjs/runtime'
 import { Component, State, Prop, Computed, Watch, Emit } from '@praxisjs/decorators'
 
 // Internal — only inside framework packages (foundation/**, features/**)
@@ -282,4 +314,5 @@ import type { RootComponent } from '@praxisjs/core/internal'
 - Never skip the CLAUDE.md update — the next session depends on it.
 - Never use `any` or non-null assertions (`!`) — strict TypeScript throughout.
 - Never use `@praxisjs/*/internal` in application code — internal paths are for framework packages only.
-- Never write version numbers into `package.json` — always install via `pnpm add <package>` and let the CLI resolve latest.
+- Never write version numbers into `package.json` — always resolve installs through `praxisjs_get_install_command` or `npx praxisjs upgrade`.
+- If something in the project seems misconfigured (JSX not rendering, decorators not working, integration files missing), run `npx praxisjs doctor` before guessing at a fix.

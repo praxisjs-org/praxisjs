@@ -24,7 +24,7 @@ Stores developer preferences at the project root. Created once during the init f
   // Set up i18n (internationalization) support?
   "i18n": false,
 
-  // CSS approach: "plain" | "modules" | "tailwind" | "unocss" | "none"
+  // Styling approach: "praxisjs-css" | "plain" | "modules" | "tailwind" | "unocss" | "none"
   "css": "plain"
 }
 ```
@@ -127,7 +127,7 @@ export const ptBR = {
 <button>{() => t('actions.save')}</button>
 ```
 
-Add `i18n: true` and the active locale to `CLAUDE.md` under **Known constraints** so future sessions know strings must never be hardcoded.
+Add `i18n: true` and the active locale to `AGENTS.md` under **Known constraints** so future sessions know strings must never be hardcoded.
 
 ---
 
@@ -135,6 +135,7 @@ Add `i18n: true` and the active locale to `CLAUDE.md` under **Known constraints*
 
 | Value | Behavior |
 |---|---|
+| `"praxisjs-css"` | Use `@praxisjs/css` — define a `ReactiveStylesheet` subclass per component with `@Param()` (reactive CSS custom properties) and `.css({...})` / `@Style()` for rules. Fetch `css/index` before writing any styles; the API (fluent builder, tokens, `cx()`) is easy to get subtly wrong from memory. |
 | `"plain"` | Add styles in a plain `.css` file imported at the top of the component file. Scope with a root class name matching the component. |
 | `"modules"` | Use `import styles from './ComponentName.module.css'` and reference `styles.className` in JSX. |
 | `"tailwind"` | Apply Tailwind utility classes directly in JSX. No separate CSS file unless strictly necessary. |
@@ -147,9 +148,9 @@ Add `i18n: true` and the active locale to `CLAUDE.md` under **Known constraints*
 
 If the developer wants to change a preference after init, they can:
 - Edit `.praxisjs-ai.json` manually, or
-- Ask Claude: "update my praxisjs config — enable i18n"
+- Ask Codex: "update my praxisjs config — enable i18n"
 
-When a preference changes, update `CLAUDE.md` if the change affects architecture (e.g. switching `i18n` from false to true, or changing `css` from `plain` to `modules`).
+When a preference changes, update `AGENTS.md` if the change affects architecture (e.g. switching `i18n` from false to true, or changing `css` from `plain` to `modules`).
 
 ---
 

@@ -15,8 +15,8 @@
 - Update this file whenever an architectural decision is made
 
 ## Stack
-- PraxisJS 0.x + @praxisjs/core, @praxisjs/decorators, @praxisjs/runtime, @praxisjs/jsx
-- Build: Vite 7 + @praxisjs/vite-plugin
+- PraxisJS + @praxisjs/core, @praxisjs/decorators, @praxisjs/runtime, @praxisjs/jsx
+- Build: Vite [version] + @praxisjs/vite-plugin
 - No router, no store
 
 ## Architecture
@@ -43,18 +43,18 @@ Single-page app. Entry: `src/main.ts` mounts `<App />`. Components live in `src/
 - Update this file whenever an architectural decision is made
 
 ## Stack
-- PraxisJS 0.x + @praxisjs/core, @praxisjs/decorators, @praxisjs/runtime, @praxisjs/jsx
+- PraxisJS + @praxisjs/core, @praxisjs/decorators, @praxisjs/runtime, @praxisjs/jsx
 - @praxisjs/router for client-side routing
-- Build: Vite 7 + @praxisjs/vite-plugin
+- Build: Vite [version] + @praxisjs/vite-plugin
 
 ## Architecture
-SPA. Entry: `src/main.ts`. Routes configured in `src/router.ts` with `@RouterConfig`.
+SPA. Entry: `src/main.ts`. Routes configured on the root component with `@Router([...])`.
 Pages in `src/pages/`, shared components in `src/components/`.
 
 ## Routing conventions
-- Each page is a class annotated with `@Route({ path: '...' })`
+- Each page is a class annotated with `@Route('/path')` or `@Route({ path, name, meta })`
 - Lazy-loaded routes use `@Lazy` — fetch `ecosystem/router` docs for details
-- Route params via `@Params`, query via `@Query`
+- Route params via `@Params`, query via `@Query`, current location via `@Location`
 
 ## Known constraints
 [auth guards, redirect behavior, etc.]
@@ -73,18 +73,18 @@ Pages in `src/pages/`, shared components in `src/components/`.
 - Update this file whenever an architectural decision is made
 
 ## Stack
-- PraxisJS 0.x + @praxisjs/core, @praxisjs/decorators, @praxisjs/runtime, @praxisjs/jsx
+- PraxisJS + @praxisjs/core, @praxisjs/decorators, @praxisjs/runtime, @praxisjs/jsx
 - @praxisjs/router, @praxisjs/store, @praxisjs/di
-- Build: Vite 7 + @praxisjs/vite-plugin
+- Build: Vite [version] + @praxisjs/vite-plugin
 
 ## Architecture
-SPA with centralized state. Stores in `src/stores/`, injected with `@UseStore`.
+SPA with centralized state. Stores in `src/stores/`, injected with `@Store`.
 DI container configured in `src/di.ts`. Pages in `src/pages/`, components in `src/components/`.
 
 ## Store conventions
 - One store per domain: `UserStore`, `CartStore`, `NotificationsStore`
-- Stores are class singletons decorated with `@Store`
-- Inject via `@UseStore(UserStore) user!: UserStore`
+- Stores are class singletons decorated with `@Storable()`
+- Inject via `@Store(UserStore) user!: UserStore`, or resolve imperatively with `store(UserStore)`
 
 ## DI conventions
 - Services decorated with `@Injectable`
@@ -108,10 +108,11 @@ DI container configured in `src/di.ts`. Pages in `src/pages/`, components in `sr
 - Update this file whenever an architectural decision is made
 
 ## Stack
-- PraxisJS 0.x
+- PraxisJS
 - Packages: @praxisjs/core, @praxisjs/decorators, @praxisjs/runtime, @praxisjs/jsx,
-  @praxisjs/router, @praxisjs/store, @praxisjs/di, @praxisjs/motion, @praxisjs/composables
-- Build: Vite 7 + @praxisjs/vite-plugin
+  @praxisjs/router, @praxisjs/store, @praxisjs/di, @praxisjs/motion, @praxisjs/composables,
+  @praxisjs/css
+- Build: Vite [version] + @praxisjs/vite-plugin
 
 ## Architecture
 [Describe the overall structure — feature folders, shared modules, entry points]
@@ -125,6 +126,9 @@ DI container configured in `src/di.ts`. Pages in `src/pages/`, components in `sr
 ## DI
 [Which services are injectable, scoping strategy]
 
+## Styling
+[@praxisjs/css / plain / modules / tailwind / unocss — which components use ReactiveStylesheet vs. plain classes]
+
 ## Conventions
 [Project-specific patterns beyond the defaults]
 
@@ -136,18 +140,19 @@ DI container configured in `src/di.ts`. Pages in `src/pages/`, components in `sr
 
 ## Installing packages
 
-Always install `@praxisjs/*` packages via the CLI without specifying a version:
+Always resolve `@praxisjs/*` installs through the `praxisjs_get_install_command` MCP tool — never hand-write the command or a version number:
+
+```
+praxisjs_get_install_command({ packages: ["@praxisjs/store"] })
+praxisjs_get_install_command({ packages: ["@praxisjs/router", "@praxisjs/di"], manager: "pnpm" })
+```
 
 ```bash
-# correct
-pnpm add @praxisjs/store
-pnpm add @praxisjs/router @praxisjs/di
-
 # wrong — version may already be outdated
 pnpm add @praxisjs/store@^0.1.0
 ```
 
-Never add a `@praxisjs/*` entry to `package.json` by hand with a version constraint.
+Never add a `@praxisjs/*` entry to `package.json` by hand with a version constraint. To bump existing `@praxisjs/*` dependencies, run `npx praxisjs upgrade` instead of editing ranges manually.
 
 ---
 
@@ -161,7 +166,7 @@ Update immediately after:
 | Created new store or DI service | Store/DI conventions |
 | Added new route pattern | Routing conventions |
 | Created base class components share | Conventions section |
-| Changed how auth/env/config works | Known constraints |
+| Changed how auth/env/config, or styling, works | Known constraints |
 | Renamed a major directory | Architecture section |
 
 ## What NOT to put in AGENTS.md

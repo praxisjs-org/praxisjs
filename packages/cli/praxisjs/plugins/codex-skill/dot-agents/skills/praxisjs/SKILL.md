@@ -1,6 +1,6 @@
 ---
 name: praxisjs
-description: PraxisJS development skill for Codex. Use whenever working on a PraxisJS project — creating components, managing state, setting up routing, using decorators, fetching async data, or debugging reactivity. Trigger on any mention of @praxisjs/ packages, @State, @Component, StatefulComponent, StatelessComponent, @Resource, @Watch, @Emit, or building reactive TypeScript UI. Enforces three rules: consult praxisjs.org docs before writing code, keep AGENTS.md updated so every session has full project context, and follow PraxisJS conventions exactly — no workarounds.
+description: PraxisJS development skill for Codex. Use whenever working on a PraxisJS project — creating components, managing state, setting up routing, using decorators, fetching async data, styling, or debugging reactivity. Trigger on any mention of @praxisjs/ packages, @State, @Component, StatefulComponent, StatelessComponent, @Resource, @Watch, @Emit, or building reactive TypeScript UI. Enforces three rules: consult praxisjs.org docs before writing code, keep AGENTS.md updated so every session has full project context, and follow PraxisJS conventions exactly — no workarounds.
 ---
 
 # PraxisJS Development
@@ -23,6 +23,8 @@ PraxisJS is a signal-driven TypeScript frontend framework. APIs evolve — **nev
 2. **Read `AGENTS.md`** — understand the current project state.
 3. **Fetch docs** for the task at hand via the MCP tools.
 
+If something feels broken (wrong TypeScript config, missing memory file, a stale integration), run `npx praxisjs doctor` — it checks `package.json`, `tsconfig.json`, and whether this Codex integration is fully initialized (skill, `AGENTS.md`, `.praxisjs-ai.json`).
+
 ---
 
 ## Project config (`.praxisjs-ai.json`)
@@ -43,12 +45,13 @@ these questions every session. Please answer all of them:
 2. What language should identifiers and code comments be in? (e.g. en, pt, es)
 3. What language should user-facing UI strings be in? (e.g. en, pt-BR, es)
 4. Should I set up i18n (internationalization) support? (yes / no)
-5. Which CSS approach does this project use?
-   a) Plain CSS / global stylesheet
-   b) CSS Modules
-   c) Tailwind CSS
-   d) UnoCSS
-   e) No styles from Codex (I handle CSS myself)
+5. Which styling approach does this project use?
+   a) @praxisjs/css (typed, scoped, decorator-based — @Styled, @Style, tokens)
+   b) Plain CSS / global stylesheet
+   c) CSS Modules
+   d) Tailwind CSS
+   e) UnoCSS
+   f) No styles from Codex (I handle CSS myself)
 ```
 
 After the developer answers, write `.praxisjs-ai.json` and proceed with the original task.
@@ -72,10 +75,11 @@ Use `references/agents-md.md` for the full template. Minimum required sections:
 - Update this file whenever an architectural decision is made
 
 ## Stack
-- PraxisJS [version] + packages: @praxisjs/[list]
+- PraxisJS + packages: @praxisjs/[list]
 - Build: Vite [version] + @praxisjs/vite-plugin
 - Routing: [@praxisjs/router / none]
 - State: [@praxisjs/store / none]
+- Styling: [@praxisjs/css / plain / modules / tailwind / unocss / none]
 
 ## Architecture
 [2–4 sentences describing the project structure]
@@ -91,7 +95,7 @@ Use `references/agents-md.md` for the full template. Minimum required sections:
 - Add or remove a `@praxisjs/*` package
 - Establish a new architectural pattern
 - Make a decision that affects how future code should be written
-- Change routing, DI, or store configuration
+- Change routing, DI, store, or styling configuration
 
 ---
 
@@ -111,20 +115,28 @@ Quick slug reference:
 | JSX | `essentials/jsx` |
 | Lifecycle hooks | `essentials/lifecycle` |
 | Async data | `essentials/async-data` |
+| Document head (`@Head`) | `essentials/head` |
+| Portal | `essentials/portal` |
 | State & Props | `decorators/state` |
 | Watchers | `decorators/watchers` |
 | Events & Slots | `decorators/events` |
+| DevTools decorators (`@Debug`, `@Trace`) | `decorators/dx` |
 | Router | `ecosystem/router` |
 | Store | `ecosystem/store` |
 | Dependency injection | `ecosystem/di` |
 | Motion | `ecosystem/motion` |
 | State machines | `ecosystem/fsm` |
+| Content collections | `ecosystem/content` |
 | Concurrency | `ecosystem/concurrency` |
 | DOM composables | `composables/dom` |
 | Browser composables | `composables/browser` |
+| List composables (`VirtualList`) | `composables/list` |
+| CSS (`@praxisjs/css`) | `css/index` |
 | Custom decorators | `advanced/custom-decorators` |
 | Custom composables | `advanced/custom-composables` |
 | Vite plugin | `tooling/vite-plugin` |
+| DevTools panel | `tooling/devtools` |
+| MCP server | `tooling/mcp` |
 
 ---
 
@@ -132,15 +144,21 @@ Quick slug reference:
 
 ```bash
 pnpm create praxisjs@latest
-# Choose template: minimal / router / full
+# Choose template: minimal / router / full / blog
 ```
 
 Immediately after scaffolding:
 1. Create `AGENTS.md` at the project root
-2. Install additional packages via CLI without specifying versions: `pnpm add @praxisjs/store @praxisjs/di`
+2. Add additional packages via the `praxisjs_get_install_command` tool — never hand-write the install command or a version number
 3. Update `AGENTS.md` with installed packages
 
-**Never write version numbers into `package.json`.** Always install via CLI so the package manager resolves latest.
+### Existing project maintenance
+
+- `npx praxisjs doctor` — diagnoses missing `@praxisjs/*` dependencies, required tsconfig options (`jsxImportSource`, `useDefineForClassFields`, `jsx`), and whether this AI integration is fully initialized.
+- `npx praxisjs upgrade` — bumps every `@praxisjs/*` dependency to its latest published version and reinstalls.
+- `npx praxisjs ai remove` — uninstalls an AI integration (prompts for which one). Deletes the skill directory and, for Codex, leaves `AGENTS.md` and `.praxisjs-ai.json` untouched.
+
+**Never write version numbers into `package.json`.** Resolve installs through `praxisjs_get_install_command` (or `praxisjs upgrade` for existing dependencies), never by hand.
 
 ---
 
@@ -199,6 +217,19 @@ Class decorators: **bottom-up**. `@Component()` innermost.
 class MyModule extends StatefulComponent {}
 ```
 
+### Ecosystem package decorators (fetch the docs page before using — options change)
+
+| Decorator | Package | Use for |
+|---|---|---|
+| `@Router(routes)` / `@Route(path)` | `@praxisjs/router` | Configure the router on the root component / annotate a page |
+| `@Storable()` / `@Store(StoreClass)` | `@praxisjs/store` | Define a singleton store / inject it into a component |
+| `@Injectable()` / `@Inject(token)` | `@praxisjs/di` | Mark a service injectable / inject it |
+| `@Tween()` / `@Spring()` | `@praxisjs/motion` | Animate a field |
+| `@StateMachine()` / `@Transition()` | `@praxisjs/fsm` | Define a finite state machine |
+| `@Collection()` / `@PagedCollection()` | `@praxisjs/content` | Markdown content collections |
+| `@Head()` | `@praxisjs/head` | Reactive document title/meta |
+| `@Styled` / `@Style()` / `@Param()` | `@praxisjs/css` | Typed, scoped CSS classes and reactive CSS custom properties |
+
 ---
 
 ## AI-oriented development practices
@@ -207,7 +238,7 @@ class MyModule extends StatefulComponent {}
 - **Prefer explicit over implicit** — annotate `@Prop()` fields with explicit types, name stores and composables for what they represent.
 - **Write small, focused components** — easier for AI to modify safely.
 - **Tests are the spec** — write a test for every `@State` field with side effects and every `@Watch` handler.
-- **Never write version numbers** — always install via CLI.
+- **Never write version numbers** — resolve installs through `praxisjs_get_install_command` or `praxisjs upgrade`.
 
 ---
 
@@ -218,4 +249,5 @@ class MyModule extends StatefulComponent {}
 - Never skip the AGENTS.md update — the next session depends on it.
 - Never use `any` or non-null assertions (`!`) — strict TypeScript throughout.
 - Never use `@praxisjs/*/internal` in application code.
-- Never write version numbers into `package.json` — install via CLI.
+- Never write version numbers into `package.json` — resolve installs through `praxisjs_get_install_command` or `npx praxisjs upgrade`.
+- If something in the project seems misconfigured, run `npx praxisjs doctor` before guessing at a fix.

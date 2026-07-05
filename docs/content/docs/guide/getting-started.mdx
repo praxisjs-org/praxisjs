@@ -183,32 +183,34 @@ When scaffolding with `create-praxisjs`, the "Add an AI integration?" step lets 
 
 ### Existing project
 
-Run the `add` command in the project root:
+Run the `ai add` command in the project root:
 
 <Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
 <Tab value="npm">
 ```sh
-npx praxisjs add
+npx praxisjs ai add
 ```
 </Tab>
 <Tab value="pnpm">
 ```sh
-pnpm dlx praxisjs add
+pnpm dlx praxisjs ai add
 ```
 </Tab>
 <Tab value="yarn">
 ```sh
-yarn dlx praxisjs add
+yarn dlx praxisjs ai add
 ```
 </Tab>
 <Tab value="bun">
 ```sh
-bunx praxisjs add
+bunx praxisjs ai add
 ```
 </Tab>
 </Tabs>
 
 Select the integration. For **Claude Code**, skill files are added to `.claude/skills/praxisjs/` with the MCP server pre-configured in `.claude/settings.json`. For **Codex**, skill files go to `.agents/skills/praxisjs/` and `AGENTS.md` is created at the project root (MCP is configured separately in `~/.codex/config.toml` — see the [MCP docs](/docs/tooling/mcp)).
+
+To uninstall an integration, run `praxisjs ai remove` — see the [AI skills guide](/docs/guide/ai-skills#removing-a-skill) for what it does and doesn't delete.
 
 ### MCP server only
 

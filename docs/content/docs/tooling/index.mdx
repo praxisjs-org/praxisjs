@@ -1,6 +1,6 @@
 ---
 title: Tooling
-description: Developer tools for PraxisJS — Vite plugin, in-app DevTools overlay, Storybook adapter, MCP server, and the project scaffolder.
+description: Developer tools for PraxisJS — Vite plugin, in-app DevTools overlay, Storybook adapter, MCP server, and the project scaffolder and maintenance CLIs.
 icon: Hammer
 ---
 
@@ -31,6 +31,11 @@ icon: Hammer
     title="MCP Server"
     description="Model Context Protocol server for PraxisJS. Gives any MCP-compatible AI assistant live access to documentation and install commands."
     href="/docs/tooling/mcp"
+  />
+  <Card
+    title="praxisjs CLI"
+    description="Maintenance CLI for existing projects — ai add / ai remove for AI integrations, doctor for diagnostics, upgrade for @praxisjs/* dependency updates."
+    href="/docs/tooling/cli"
   />
 </Cards>
 
@@ -100,4 +105,6 @@ Skip the manual setup entirely:
 npm create praxisjs@latest
 ```
 
-Choose from Minimal, With Router, or Full templates — all pre-configured with TypeScript, Vite, JSX, and HMR.
+Choose from Minimal, With Router, Full, or Blog templates — all pre-configured with TypeScript, Vite, JSX, and HMR.
+
+Already have a project? See the [praxisjs CLI](/docs/tooling/cli) for `doctor` (diagnostics) and `upgrade` (dependency updates).
