@@ -1,5 +1,12 @@
 # playground
 
+## 0.1.39
+
+### Patch Changes
+
+- Updated dependencies [ffc4aec]
+  - @praxisjs/css@0.2.0
+
 ## 0.1.38
 
 ### Patch Changes
