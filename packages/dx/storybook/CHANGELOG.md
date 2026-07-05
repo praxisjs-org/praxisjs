@@ -1,5 +1,11 @@
 # @praxisjs/storybook
 
+## 0.2.1
+
+### Patch Changes
+
+- f252376: Added the missing `sourceUrl` and `expanded` fields to `StorybookRefs`, matching the options documented for [Storybook Composition](https://storybook.js.org/docs/sharing/storybook-composition) refs.
+
 ## 0.2.0
 
 ### Minor Changes
