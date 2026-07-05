@@ -1,5 +1,5 @@
 export { cx, type ClassValue } from "./cx.js";
-export { preflight } from "./preflight.js";
+export { preflight, type PreflightOptions } from "./preflight.js";
 export { globalStyle, type GlobalStyleFactory } from "./global.js";
 export { type CSSBuilder, type CSSProperties } from "./builder/css-builder.js";
 export { keyframes } from "./builder/keyframes.js";

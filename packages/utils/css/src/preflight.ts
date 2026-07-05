@@ -171,6 +171,16 @@ input:where([type='button'], [type='reset'], [type='submit']),
 }
 `;
 
+export interface PreflightOptions {
+  /**
+   * Names the CSS `@layer` the reset is wrapped in, so it can be ordered
+   * against other layered CSS (e.g. Tailwind's `@layer utilities`) instead
+   * of always winning the cascade. Defaults to `"reset"`. Pass `false` to
+   * inject un-layered CSS instead.
+   */
+  layer?: string | false;
+}
+
 /**
  * Injects an opinionated browser reset into `document.head` exactly once.
  *
@@ -187,6 +197,11 @@ input:where([type='button'], [type='reset'], [type='submit']),
  * import { preflight } from '@praxisjs/css'
  * preflight()
  */
-export function preflight(): void {
-  globalStyle(_css => PREFLIGHT);
+export function preflight({ layer = "reset" }: PreflightOptions = {}): void {
+  if (!layer) {
+    globalStyle(_css => PREFLIGHT);
+    return;
+  }
+
+  globalStyle(_css => `@layer ${layer} {\n${PREFLIGHT}\n}`);
 }

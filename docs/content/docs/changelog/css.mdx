@@ -6,6 +6,12 @@ icon: Palette
 
 # @praxisjs/css
 
+## 0.2.0
+
+**`preflight()` — layered by default for Tailwind coexistence**
+
+`preflight()` now wraps its reset in `@layer reset` by default, so it can be ordered against other layered CSS (like Tailwind's `@layer utilities`) instead of always winning the cascade regardless of specificity. Pass `preflight({ layer: 'custom-name' })` to rename the layer, or `preflight({ layer: false })` to opt back into the previous un-layered behavior. See [Coexisting with Tailwind](/css/global-style#coexisting-with-tailwind-or-other-layered-css).
+
 ## 0.1.5
 
 **Internal: style decorators read component anchors through core helpers.**

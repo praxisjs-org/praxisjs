@@ -150,6 +150,37 @@ Like `globalStyle()`, `preflight()` is idempotent — calling it multiple times 
 
 ---
 
+## Coexisting with Tailwind (or other layered CSS)
+
+`preflight()` wraps its reset in `@layer reset` by default. This lets it be ordered against other layered CSS — like Tailwind utilities, which live in `@layer utilities` — instead of always winning the cascade regardless of specificity.
+
+Cascade layer priority follows the order layers first appear in the document: whichever layer is declared first ranks lowest. So if you combine PraxisJS with Tailwind (for example a Storybook instance documenting both design systems side by side), just make sure `preflight()` runs before Tailwind's CSS is evaluated — no manual layer-order declaration needed. Since static imports evaluate in source order, put the reset in its own module and import it first:
+
+```ts
+// src/reset.ts
+import { preflight } from '@praxisjs/css'
+preflight()
+```
+
+```ts
+// src/main.ts
+import './reset'          // evaluates first — registers `reset` as the lowest layer
+import './tailwind.css'   // Tailwind's own @layer declaration runs after, ranking higher
+```
+
+Pass a string to `layer` to rename it, or `layer: false` to opt back into un-layered CSS:
+
+```ts
+preflight({ layer: 'my-reset' })
+preflight({ layer: false })
+```
+
+<Callout type="warn">
+  Wrapping the reset in a layer only fixes cascade order — it does not deduplicate rules. If Tailwind's own preflight is also loaded, you'll get two resets running; disable one of them (e.g. Tailwind's `preflight` corePlugin) to avoid conflicting resets.
+</Callout>
+
+---
+
 ## With the Vite plugin
 
 `preflight()` is extracted at build time by `praxisjsCSS()` just like any other `globalStyle()` call. The reset CSS appears at the top of the static bundle, before all scoped component styles.
@@ -159,5 +190,13 @@ Like `globalStyle()`, `preflight()` is idempotent — calling it multiple times 
 ## API
 
 ```ts
-function preflight(): void
+interface PreflightOptions {
+  layer?: string | false
+}
+
+function preflight(options?: PreflightOptions): void
 ```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `options.layer` | `string \| false` | Names the CSS `@layer` the reset is wrapped in. Defaults to `"reset"`. Pass `false` to inject un-layered CSS instead. |

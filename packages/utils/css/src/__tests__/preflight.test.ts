@@ -60,4 +60,26 @@ describe("preflight()", () => {
     expect(document.head.querySelector("style[data-praxis-global]")).toBeNull();
     expect(col.getCSS()).toContain("box-sizing: border-box");
   });
+
+  it("wraps the reset in `@layer reset` by default", async () => {
+    const { preflight } = await import("../preflight.js");
+    preflight();
+    const css = document.head.querySelector("style[data-praxis-global]")?.textContent ?? "";
+    expect(css).toContain("@layer reset {");
+    expect(css).toContain("box-sizing: border-box");
+  });
+
+  it("wraps the reset in a custom named layer", async () => {
+    const { preflight } = await import("../preflight.js");
+    preflight({ layer: "tailwind-base" });
+    const css = document.head.querySelector("style[data-praxis-global]")?.textContent ?? "";
+    expect(css).toContain("@layer tailwind-base {");
+  });
+
+  it("injects un-layered CSS when layer: false", async () => {
+    const { preflight } = await import("../preflight.js");
+    preflight({ layer: false });
+    const css = document.head.querySelector("style[data-praxis-global]")?.textContent ?? "";
+    expect(css).not.toContain("@layer");
+  });
 });
