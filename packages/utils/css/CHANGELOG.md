@@ -1,5 +1,11 @@
 # @praxisjs/css
 
+## 0.3.0
+
+### Minor Changes
+
+- 6140752: `globalStyle()` now accepts a `layer` option to wrap the injected CSS in a named `@layer`, so it can be ordered against other layered CSS (e.g. Tailwind utilities) instead of always winning the cascade regardless of specificity. `preflight()` is now implemented on top of this option.
+
 ## 0.2.0
 
 ### Minor Changes
