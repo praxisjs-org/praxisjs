@@ -1,5 +1,11 @@
 # create-praxisjs
 
+## 1.0.3
+
+### Patch Changes
+
+- 55166aa: Bump template dependencies to match updated @praxisjs-org packages.
+
 ## 1.0.2
 
 ### Patch Changes
