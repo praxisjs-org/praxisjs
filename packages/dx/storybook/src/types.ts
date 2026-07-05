@@ -14,6 +14,12 @@ export type Meta<T = any> = ComponentAnnotations<PraxisRenderer, T>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type StoryObj<T = any> = StoryAnnotations<PraxisRenderer, T>;
 
+export type StorybookRefs = Record<
+  string,
+  | { title: string; url: string }
+  | { disable: boolean; expanded?: boolean }
+>;
+
 export interface StorybookConfig {
   stories: string[];
   addons?: string[];
@@ -22,4 +28,5 @@ export interface StorybookConfig {
     options?: Record<string, unknown>;
   };
   docs?: Record<string, unknown>;
+  refs?: StorybookRefs;
 }

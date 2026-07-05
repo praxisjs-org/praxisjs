@@ -84,6 +84,33 @@ export const StartAt10: Story = {
 
 ---
 
+## Composition
+
+[Storybook Composition](https://storybook.js.org/docs/sharing/storybook-composition) lets you view stories from other published Storybooks — including ones built with other frameworks — inside your PraxisJS Storybook's sidebar. Add `refs` to `.storybook/main.ts`:
+
+```ts
+import type { StorybookConfig } from '@praxisjs/storybook'
+
+const config: StorybookConfig = {
+  stories: ['../src/**/*.stories.tsx'],
+  framework: {
+    name: '@praxisjs/storybook',
+  },
+  refs: {
+    'design-system': {
+      title: 'Design System',
+      url: 'https://your-design-system.example.com',
+    },
+  },
+}
+
+export default config
+```
+
+Each key becomes an entry in the sidebar. Use `{ disable: true }` instead of `{ title, url }` to turn off a ref that a shared preset registered for you.
+
+---
+
 ## Type reference
 
 | Export | Description |
@@ -91,6 +118,7 @@ export const StartAt10: Story = {
 | `Meta` | Type for the default story export (`ComponentAnnotations`) |
 | `StoryObj` | Type for named story exports (`StoryAnnotations`) |
 | `StorybookConfig` | Type for `.storybook/main.ts` |
+| `StorybookRefs` | Type for the `refs` field — see [Composition](#composition) |
 | `PraxisRenderer` | Low-level renderer type (rarely used directly) |
 
 ---
