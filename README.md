@@ -105,7 +105,7 @@ npm install @praxisjs/core @praxisjs/decorators @praxisjs/runtime @praxisjs/jsx
 
 | Package | Version | Description |
 |---|---|---|
-| [`create-praxisjs`](packages/cli/create-praxisjs) | `0.4.2` | Project scaffolding CLI |
+| [`create-praxisjs`](packages/cli/create-praxisjs) | `1.0.1` | Project scaffolding CLI |
 | [`praxisjs`](packages/cli/praxisjs) | `1.0.0` | Maintenance CLI for existing projects (`ai add`/`ai remove`, `doctor`, `upgrade`) |
 
 ```sh

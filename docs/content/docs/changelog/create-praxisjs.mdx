@@ -6,6 +6,10 @@ icon: Rocket
 
 # create-praxisjs
 
+## 1.0.1
+
+Updated dependency — `praxisjs@1.0.0`. The AI integration command referenced after scaffolding (previously `praxisjs add`) is now `praxisjs ai add`; see the [praxisjs CLI docs](/docs/tooling/cli) for the full command reference, including the new `ai remove`, `doctor`, and `upgrade` commands.
+
 ## 1.0.0
 
 **Breaking:** the `add` command has moved to a new `praxisjs` CLI package — run `npx praxisjs ai add` instead of `npx create-praxisjs add`. `create-praxisjs` now only scaffolds new projects; it depends on `praxisjs` to share the AI-integration plugin logic used during the "Add an AI integration?" scaffolding step.
