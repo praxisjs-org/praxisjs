@@ -32,11 +32,64 @@ for (const template of readdirSync(templatesDir)) {
   }
 }
 
+// A changeset naming a package X also bumps every package that depends on X
+// via "workspace:*" — changesets does this itself (updateInternalDependencies)
+// without ever writing X's dependents into a changeset file. So detecting
+// "does a template dep change" from changeset frontmatter alone misses e.g.
+// @praxisjs/vite-plugin bumping because its @praxisjs/css dependency got a
+// changeset. Walk the workspace dependency graph to catch those too.
+const workspaceDirs = [
+  'packages/foundation',
+  'packages/features',
+  'packages/utils',
+  'packages/dx',
+  'packages/cli',
+]
+
+// dependents.get(name) = packages that depend on `name` via workspace:*
+const dependents = new Map()
+
+for (const dir of workspaceDirs) {
+  const abs = join(root, dir)
+  for (const entry of readdirSync(abs)) {
+    const pkgPath = join(abs, entry, 'package.json')
+    let pkg
+    try {
+      pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
+    } catch {
+      continue
+    }
+    if (!pkg.name) continue
+
+    for (const depField of ['dependencies', 'devDependencies', 'peerDependencies']) {
+      for (const [depName, depRange] of Object.entries(pkg[depField] ?? {})) {
+        if (!depRange.startsWith('workspace:')) continue
+        if (!dependents.has(depName)) dependents.set(depName, new Set())
+        dependents.get(depName).add(pkg.name)
+      }
+    }
+  }
+}
+
+function withTransitiveDependents(names) {
+  const result = new Set(names)
+  const queue = [...names]
+  while (queue.length) {
+    for (const dependent of dependents.get(queue.pop()) ?? []) {
+      if (!result.has(dependent)) {
+        result.add(dependent)
+        queue.push(dependent)
+      }
+    }
+  }
+  return result
+}
+
 const files = readdirSync(changesetDir).filter(
   (f) => f.endsWith('.md') && f !== 'README.md',
 )
 
-let hasWorkspaceChanges = false
+const changedPackages = new Set()
 let createPraxisAlreadyIncluded = false
 
 for (const file of files) {
@@ -54,11 +107,14 @@ for (const file of files) {
 
     if (pkg === 'create-praxisjs') {
       createPraxisAlreadyIncluded = true
-    } else if (templateDeps.has(pkg)) {
-      hasWorkspaceChanges = true
+    } else {
+      changedPackages.add(pkg)
     }
   }
 }
+
+const allChanged = withTransitiveDependents(changedPackages)
+const hasWorkspaceChanges = [...allChanged].some((name) => templateDeps.has(name))
 
 if (!hasWorkspaceChanges || createPraxisAlreadyIncluded) {
   process.exit(0)
