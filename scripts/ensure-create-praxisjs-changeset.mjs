@@ -1,18 +1,36 @@
 #!/usr/bin/env node
 /**
- * Ensures create-praxisjs always receives a patch bump whenever any
- * @praxisjs/* package is being bumped.
+ * Ensures create-praxisjs always receives a patch bump whenever a
+ * @praxisjs/* package it templates depends on is being bumped.
  *
  * Run automatically as part of `pnpm version-packages`, before `changeset version`.
  * If create-praxisjs is already included in an existing changeset, this is a no-op.
  */
 
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(fileURLToPath(import.meta.url), '../../')
 const changesetDir = join(root, '.changeset')
+
+// Only packages actually referenced by a template's _package.json warrant a
+// create-praxisjs bump — e.g. @praxisjs/storybook and @praxisjs/mcp are dev
+// tooling that scaffolded projects never depend on.
+const templatesDir = join(root, 'packages/cli/create-praxisjs/templates')
+const templateDeps = new Set()
+
+for (const template of readdirSync(templatesDir)) {
+  const pkgPath = join(templatesDir, template, '_package.json')
+  if (!statSync(pkgPath, { throwIfNoEntry: false })?.isFile()) continue
+
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
+  for (const depField of ['dependencies', 'devDependencies', 'peerDependencies']) {
+    for (const name of Object.keys(pkg[depField] ?? {})) {
+      templateDeps.add(name)
+    }
+  }
+}
 
 const files = readdirSync(changesetDir).filter(
   (f) => f.endsWith('.md') && f !== 'README.md',
@@ -36,7 +54,7 @@ for (const file of files) {
 
     if (pkg === 'create-praxisjs') {
       createPraxisAlreadyIncluded = true
-    } else if (pkg.startsWith('@praxisjs/')) {
+    } else if (templateDeps.has(pkg)) {
       hasWorkspaceChanges = true
     }
   }
