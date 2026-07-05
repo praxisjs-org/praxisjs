@@ -3,8 +3,8 @@ import { cwd, exit } from "node:process";
 import { cancel, intro, isCancel, outro, select, spinner } from "@clack/prompts";
 import pc from "picocolors";
 
-import { PLUGINS, type PluginName } from "../constants";
-import { applyPlugin, notePlugin } from "../plugins";
+import { PLUGINS, type PluginName } from "../../constants";
+import { applyPlugin, notePlugin } from "../../plugins";
 
 export async function add(): Promise<void> {
   intro(

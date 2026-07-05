@@ -7,6 +7,7 @@ const mockCopy = vi.fn();
 const mockExistsSync = vi.fn().mockReturnValue(false);
 const mockMkdirSync = vi.fn();
 const mockCopyFileSync = vi.fn();
+const mockRmSync = vi.fn();
 
 vi.mock("@clack/prompts", () => ({ note: mockNote }));
 vi.mock("picocolors", () => ({
@@ -18,12 +19,13 @@ vi.mock("node:fs", () => ({
     existsSync: mockExistsSync,
     mkdirSync: mockMkdirSync,
     copyFileSync: mockCopyFileSync,
+    rmSync: mockRmSync,
   },
 }));
 
 // ── Import after mocks ────────────────────────────────────────────────────────
 
-const { applyPlugin, notePlugin } = await import("../plugins");
+const { applyPlugin, notePlugin, removePlugin, noteRemovedPlugin } = await import("../plugins");
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -33,6 +35,7 @@ beforeEach(() => {
   mockExistsSync.mockReset().mockReturnValue(false);
   mockMkdirSync.mockClear();
   mockCopyFileSync.mockClear();
+  mockRmSync.mockClear();
 });
 
 afterEach(() => {
@@ -120,6 +123,120 @@ describe("applyPlugin — none", () => {
 
     expect(mockCopy).not.toHaveBeenCalled();
     expect(mockCopyFileSync).not.toHaveBeenCalled();
+  });
+});
+
+// ── removePlugin — claude-skill ───────────────────────────────────────────────
+
+describe("removePlugin — claude-skill", () => {
+  it("removes the skill directory", () => {
+    removePlugin("claude-skill", "/root");
+
+    expect(mockRmSync).toHaveBeenCalledWith(
+      expect.stringContaining("skills"),
+      { recursive: true, force: true },
+    );
+  });
+
+  it("removes settings.json", () => {
+    removePlugin("claude-skill", "/root");
+
+    expect(mockRmSync).toHaveBeenCalledWith(
+      expect.stringContaining("settings.json"),
+      { force: true },
+    );
+  });
+
+  it("does not touch CLAUDE.md or .praxisjs-ai.json", () => {
+    removePlugin("claude-skill", "/root");
+
+    const calledPaths = mockRmSync.mock.calls.map((c) => String(c[0]));
+    expect(calledPaths.some((p) => p.includes("CLAUDE.md"))).toBe(false);
+    expect(calledPaths.some((p) => p.includes(".praxisjs-ai.json"))).toBe(false);
+  });
+});
+
+// ── removePlugin — codex-skill ────────────────────────────────────────────────
+
+describe("removePlugin — codex-skill", () => {
+  it("removes the skill directory", () => {
+    removePlugin("codex-skill", "/root");
+
+    expect(mockRmSync).toHaveBeenCalledWith(
+      expect.stringContaining(".agents"),
+      { recursive: true, force: true },
+    );
+  });
+
+  it("does not touch AGENTS.md or .praxisjs-ai.json", () => {
+    removePlugin("codex-skill", "/root");
+
+    const calledPaths = mockRmSync.mock.calls.map((c) => String(c[0]));
+    expect(calledPaths.some((p) => p.includes("AGENTS.md"))).toBe(false);
+    expect(calledPaths.some((p) => p.includes(".praxisjs-ai.json"))).toBe(false);
+  });
+
+  it("calls rmSync exactly once (skill dir only)", () => {
+    removePlugin("codex-skill", "/root");
+
+    expect(mockRmSync).toHaveBeenCalledOnce();
+  });
+});
+
+// ── removePlugin — none ───────────────────────────────────────────────────────
+
+describe("removePlugin — none", () => {
+  it("does nothing", () => {
+    removePlugin("none", "/root");
+
+    expect(mockRmSync).not.toHaveBeenCalled();
+  });
+});
+
+// ── noteRemovedPlugin ──────────────────────────────────────────────────────────
+
+describe("noteRemovedPlugin — claude-skill", () => {
+  it("calls note with Claude Code title", () => {
+    noteRemovedPlugin("claude-skill");
+
+    expect(mockNote).toHaveBeenCalledOnce();
+    const [, title] = mockNote.mock.calls[0] as [string, string];
+    expect(title).toBe("Claude Code");
+  });
+
+  it("note body mentions what was removed and left untouched", () => {
+    noteRemovedPlugin("claude-skill");
+
+    const [body] = mockNote.mock.calls[0] as [string, string];
+    expect(body).toContain(".claude/skills/praxisjs/");
+    expect(body).toContain(".claude/settings.json");
+    expect(body).toContain("CLAUDE.md");
+  });
+});
+
+describe("noteRemovedPlugin — codex-skill", () => {
+  it("calls note with Codex title", () => {
+    noteRemovedPlugin("codex-skill");
+
+    expect(mockNote).toHaveBeenCalledOnce();
+    const [, title] = mockNote.mock.calls[0] as [string, string];
+    expect(title).toBe("Codex");
+  });
+
+  it("note body mentions what was removed and left untouched", () => {
+    noteRemovedPlugin("codex-skill");
+
+    const [body] = mockNote.mock.calls[0] as [string, string];
+    expect(body).toContain(".agents/skills/praxisjs/");
+    expect(body).toContain("AGENTS.md");
+  });
+});
+
+describe("noteRemovedPlugin — none", () => {
+  it("does not call note", () => {
+    noteRemovedPlugin("none");
+
+    expect(mockNote).not.toHaveBeenCalled();
   });
 });
 

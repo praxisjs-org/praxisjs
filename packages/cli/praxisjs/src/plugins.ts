@@ -42,6 +42,42 @@ export function applyPlugin(plugin: PluginName, root: string): void {
   }
 }
 
+export function removePlugin(plugin: PluginName, root: string): void {
+  if (plugin === "claude-skill") {
+    fs.rmSync(path.join(root, ".claude", "skills", "praxisjs"), { recursive: true, force: true });
+    fs.rmSync(path.join(root, ".claude", "settings.json"), { force: true });
+    return;
+  }
+
+  if (plugin === "codex-skill") {
+    fs.rmSync(path.join(root, ".agents", "skills", "praxisjs"), { recursive: true, force: true });
+  }
+}
+
+export function noteRemovedPlugin(plugin: PluginName): void {
+  if (plugin === "claude-skill") {
+    note(
+      [
+        pc.dim("Removed") + " .claude/skills/praxisjs/",
+        pc.dim("Removed") + " .claude/settings.json",
+        pc.dim("Left untouched:") + " CLAUDE.md, .praxisjs-ai.json",
+      ].join("\n"),
+      "Claude Code",
+    );
+    return;
+  }
+
+  if (plugin === "codex-skill") {
+    note(
+      [
+        pc.dim("Removed") + " .agents/skills/praxisjs/",
+        pc.dim("Left untouched:") + " AGENTS.md, .praxisjs-ai.json",
+      ].join("\n"),
+      "Codex",
+    );
+  }
+}
+
 export function notePlugin(plugin: PluginName): void {
   if (plugin === "claude-skill") {
     note(
