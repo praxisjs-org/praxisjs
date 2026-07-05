@@ -100,6 +100,8 @@ const config: StorybookConfig = {
     'design-system': {
       title: 'Design System',
       url: 'https://your-design-system.example.com',
+      expanded: false,
+      sourceUrl: 'https://github.com/your-org/design-system',
     },
   },
 }
@@ -107,7 +109,7 @@ const config: StorybookConfig = {
 export default config
 ```
 
-Each key becomes an entry in the sidebar. Use `{ disable: true }` instead of `{ title, url }` to turn off a ref that a shared preset registered for you.
+Each key becomes an entry in the sidebar. `expanded` controls whether the ref's stories are expanded by default (defaults to `true`), and `sourceUrl` is an optional link back to the ref's repository. Use `{ disable: true }` instead of `{ title, url }` to turn off a ref that a shared preset registered for you.
 
 ---
 

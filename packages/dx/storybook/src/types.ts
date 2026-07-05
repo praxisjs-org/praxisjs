@@ -16,7 +16,7 @@ export type StoryObj<T = any> = StoryAnnotations<PraxisRenderer, T>;
 
 export type StorybookRefs = Record<
   string,
-  | { title: string; url: string }
+  | { title: string; url: string; expanded?: boolean; sourceUrl?: string }
   | { disable: boolean; expanded?: boolean }
 >;
 
