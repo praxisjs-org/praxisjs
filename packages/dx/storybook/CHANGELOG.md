@@ -1,5 +1,11 @@
 # @praxisjs/storybook
 
+## 0.2.0
+
+### Minor Changes
+
+- 4d1e55f: Added `refs` to `StorybookConfig` to support [Storybook Composition](https://storybook.js.org/docs/sharing/storybook-composition), and exported the new `StorybookRefs` type.
+
 ## 0.1.12
 
 ### Patch Changes
