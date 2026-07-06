@@ -74,7 +74,7 @@ globalStyle(css =>
 )
 ```
 
-Cascade layer priority follows the order layers first appear in the document — whichever layer is declared first ranks lowest. Call `globalStyle()` (or [`preflight()`](#preflight)) before importing CSS from another layered system so your layers rank below it.
+Cascade layer priority follows the order layers first appear in the document — whichever layer is declared first ranks lowest. `globalStyle()` registers its layer at runtime via `document.head.appendChild`, so calling it before importing CSS from another layered system only reliably ranks below that system in dev mode, where both are JS-mediated. A production build often extracts the other system's CSS into a static `<link>` parsed before any JS runs, which can flip the order. See [Coexisting with Tailwind](#coexisting-with-tailwind-or-other-layered-css) for the robust fix — declaring the layer name up front in your own static CSS.
 
 ---
 
@@ -174,24 +174,28 @@ Like `globalStyle()`, `preflight()` is idempotent — calling it multiple times 
 
 `preflight()` wraps its reset in `@layer reset` by default. This lets it be ordered against other layered CSS — like Tailwind utilities, which live in `@layer utilities` — instead of always winning the cascade regardless of specificity.
 
-Cascade layer priority follows the order layers first appear in the document: whichever layer is declared first ranks lowest. So if you combine PraxisJS with Tailwind (for example a Storybook instance documenting both design systems side by side), just make sure `preflight()` runs before Tailwind's CSS is evaluated — no manual layer-order declaration needed. Since static imports evaluate in source order, put the reset in its own module and import it first:
+Cascade layer priority follows the order layers first appear in the document: whichever layer is declared first ranks lowest. In **dev mode**, both `preflight()` and a JS-imported Tailwind stylesheet register their layers imperatively, via `<style>` tags injected in import order — so calling `preflight()` before importing Tailwind's CSS is enough to rank `reset` below it.
 
-```ts
-// src/reset.ts
-import { preflight } from '@praxisjs/css'
-preflight()
+<Callout type="warn">
+  This breaks in a **production build**. Tailwind's CSS is typically extracted into a static `<link rel="stylesheet">` that sits in the compiled HTML `<head>` and is parsed before any JS runs — while `preflight()` still registers its `@layer reset {...}` block at runtime, via `document.head.appendChild`. That flips the effective order: Tailwind's layers (`theme, base, components, utilities`) get registered first, and `reset` — introduced for the first time only once your JS runs — is appended *after* them, ranking **above** `utilities` and silently wiping out every Tailwind utility class. Import order alone is not reliable across dev and prod — this exact failure mode has shown up as buttons rendering as unstyled plain text in a production Storybook build that worked fine in dev.
+</Callout>
+
+The robust fix is to declare the layer order **up front, in your own static CSS**, before Tailwind's `@import` runs:
+
+```css
+/* e.g. .storybook/tailwind-theme.css */
+@layer reset;
+
+@import "tailwindcss";
+@import "tw-animate-css";
 ```
 
-```ts
-// src/main.ts
-import './reset'          // evaluates first — registers `reset` as the lowest layer
-import './tailwind.css'   // Tailwind's own @layer declaration runs after, ranking higher
-```
+A bare `@layer reset;` statement (no block) doesn't inject any rules — it just registers the name. Because it's the first layer declaration in this file, `reset` is pinned as the lowest-priority layer before Tailwind's own `@layer theme, base, components, utilities;` (emitted by the `@import` below it) gets a chance to register first. This is order-independent of whichever side — Tailwind's static `<link>` or `preflight()`'s runtime `<style>` — finishes supplying its actual rules later: `reset` is already locked in below `utilities` either way.
 
-Pass a string to `layer` to rename it, or `layer: false` to opt back into un-layered CSS:
+Pass a string to `layer` to match the name you declared, or `layer: false` to opt back into un-layered CSS:
 
 ```ts
-preflight({ layer: 'my-reset' })
+preflight({ layer: 'reset' })   // matches `@layer reset;` above (also the default)
 preflight({ layer: false })
 ```
 

@@ -12,6 +12,10 @@ icon: Palette
 
 `globalStyle()` now accepts a `layer` option to wrap the injected CSS in a named `@layer`, so it can be ordered against other layered CSS (like Tailwind's `@layer utilities`) instead of always winning the cascade regardless of specificity. `preflight()` is now implemented on top of this option. See [Layering](/css/global-style#layering).
 
+**Docs correction: layer ordering across dev and production builds**
+
+The initial guidance for combining `preflight()`/`globalStyle()` with Tailwind (call it before importing Tailwind's CSS) only holds in dev, where both register their `@layer` via JS-injected `<style>` tags in import order. In production, Tailwind's CSS is typically extracted into a static `<link>` parsed before any JS runs, which flips the effective order and silently drops Tailwind utility classes. [Coexisting with Tailwind](/css/global-style#coexisting-with-tailwind-or-other-layered-css) now documents the robust fix: declaring a bare `@layer reset;` up front in your own static CSS, before Tailwind's `@import`.
+
 ## 0.2.0
 
 **`preflight()` — layered by default for Tailwind coexistence**
