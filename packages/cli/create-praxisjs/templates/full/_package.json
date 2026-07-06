@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@praxisjs/devtools": "^0.2.30",
-    "@praxisjs/vite-plugin": "^2.0.0",
+    "@praxisjs/vite-plugin": "^3.0.0",
     "eslint": "^10.1.0",
     "eslint-plugin-unicorn": "^63.0.0",
     "typescript": "^5.9.3",
