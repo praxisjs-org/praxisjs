@@ -21,7 +21,7 @@
   "devDependencies": {
     "@types/node": "^25.9.1",
     "tsdown": "0.20.3",
-    "typescript": "^5.9.3"
+    "typescript": "catalog:"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -17,7 +17,7 @@
   "packageManager": "pnpm@10.30.2",
   "devDependencies": {
     "@types/node": "^25.9.1",
-    "typescript": "^5.9.3"
+    "typescript": "catalog:"
   },
   "dependencies": {
     "@praxisjs/core": "workspace:*",

@@ -36,7 +36,7 @@
     "@storybook/builder-vite": "^10.4.0",
     "@storybook/core": "^8.6.0",
     "storybook": "^10.4.0",
-    "typescript": "^5.9.3",
+    "typescript": "catalog:",
     "vite": "^6.0.0"
   }
 }

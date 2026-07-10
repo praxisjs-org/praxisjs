@@ -13,6 +13,11 @@
  * published version at scaffold time (see src/utils.ts#resolveWorkspaceVersions),
  * so this script never needs to know or pin a version number.
  *
+ * Tooling dependencies shared via the pnpm catalog (typescript, vite) use
+ * "catalog:" in templates/*​/package.json — meaningless outside this
+ * workspace — so this script rewrites them to the concrete pinned version
+ * from pnpm-workspace.yaml before shipping.
+ *
  * Run as part of create-praxisjs's `build` script.
  */
 
@@ -34,6 +39,48 @@ const sourceDir = join(root, "templates");
 const outputDir = join(root, "packages/cli/create-praxisjs/templates");
 
 const SKIP = new Set(["node_modules", "dist", ".vite", ".turbo"]);
+const DEP_FIELDS = ["dependencies", "devDependencies", "peerDependencies"];
+
+// Minimal parser for the flat `catalog:` block in pnpm-workspace.yaml — no
+// need for a full YAML parser for a handful of "name: range" lines.
+function readCatalog() {
+  const text = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");
+  const catalog = {};
+  let inCatalog = false;
+
+  for (const line of text.split("\n")) {
+    if (/^catalog:\s*$/.test(line)) {
+      inCatalog = true;
+      continue;
+    }
+    if (!inCatalog) continue;
+    if (/^\S/.test(line)) break; // dedented past the catalog block
+
+    const match = /^\s+([^\s:]+):\s*(.+?)\s*$/.exec(line);
+    if (match) catalog[match[1]] = match[2].replace(/^["']|["']$/g, "");
+  }
+
+  return catalog;
+}
+
+function resolveCatalogRefs(pkg, catalog) {
+  for (const field of DEP_FIELDS) {
+    const deps = pkg[field];
+    if (!deps) continue;
+    for (const [name, range] of Object.entries(deps)) {
+      if (range !== "catalog:") continue;
+      const resolved = catalog[name];
+      if (!resolved) {
+        throw new Error(
+          `"${name}" in ${field} uses "catalog:" but has no entry in pnpm-workspace.yaml's catalog.`,
+        );
+      }
+      deps[name] = resolved;
+    }
+  }
+}
+
+const catalog = readCatalog();
 
 mkdirSync(outputDir, { recursive: true });
 
@@ -58,6 +105,7 @@ for (const name of readdirSync(sourceDir)) {
     const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
     delete pkg.private;
     pkg.version = "0.1.0";
+    resolveCatalogRefs(pkg, catalog);
     writeFileSync(
       join(templateOutDir, "_package.json"),
       JSON.stringify(pkg, null, 2) + "\n",
