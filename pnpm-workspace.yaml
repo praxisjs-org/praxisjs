@@ -4,6 +4,7 @@ packages:
   - "packages/dx/*"
   - "packages/utils/*"
   - "packages/cli/*"
+  - "templates/*"
   - "playground"
   - "storybook"
   - "docs"

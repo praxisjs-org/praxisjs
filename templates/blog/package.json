@@ -1,0 +1,29 @@
+{
+  "name": "template-blog",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@praxisjs/content": "workspace:*",
+    "@praxisjs/core": "workspace:*",
+    "@praxisjs/decorators": "workspace:*",
+    "@praxisjs/jsx": "workspace:*",
+    "@praxisjs/router": "workspace:*",
+    "@praxisjs/runtime": "workspace:*"
+  },
+  "devDependencies": {
+    "@praxisjs/vite-plugin": "workspace:*",
+    "eslint": "^10.1.0",
+    "eslint-plugin-unicorn": "^63.0.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1",
+    "vite": "^7.3.1"
+  }
+}

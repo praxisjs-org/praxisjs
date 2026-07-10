@@ -6,6 +6,9 @@ node_modules/
 dist/
 build/
 
+# Generated from templates/* — see scripts/generate-templates.mjs
+packages/cli/create-praxisjs/templates/
+
 # TypeScript generated
 *.tsbuildinfo
 *.d.ts.map

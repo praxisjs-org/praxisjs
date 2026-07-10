@@ -18,7 +18,15 @@ import pc from "picocolors";
 import { applyPlugin, notePlugin, PLUGINS, type PluginName } from "praxisjs";
 
 import { RENAME_MAP, TEMPLATES, type TemplateName } from "../constants";
-import { copy, emptyDir, formatTargetDir, isEmpty, pkgManagerFromAgent, toValidPackageName } from "../utils";
+import {
+  copy,
+  emptyDir,
+  formatTargetDir,
+  isEmpty,
+  pkgManagerFromAgent,
+  resolveWorkspaceVersions,
+  toValidPackageName,
+} from "../utils";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -151,6 +159,15 @@ export async function main(): Promise<void> {
     );
   }
   pkg.name = pkgName;
+
+  s.message("Resolving package versions...");
+  try {
+    await resolveWorkspaceVersions(pkg);
+  } catch (cause) {
+    s.stop("Failed.");
+    throw cause;
+  }
+
   writeFile("package.json", JSON.stringify(pkg, null, 2) + "\n");
 
   if (plugin !== "none") {

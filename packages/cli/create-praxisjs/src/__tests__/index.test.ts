@@ -33,7 +33,7 @@ function makeClack(overrides: Record<string, unknown> = {}) {
     select: vi.fn().mockResolvedValueOnce("minimal").mockResolvedValueOnce("none"),
     confirm: vi.fn().mockResolvedValue(true),
     isCancel: vi.fn().mockReturnValue(false),
-    spinner: vi.fn(() => ({ start: vi.fn(), stop: vi.fn() })),
+    spinner: vi.fn(() => ({ start: vi.fn(), stop: vi.fn(), message: vi.fn() })),
     ...overrides,
   };
 }
@@ -92,6 +92,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   delete process.env.npm_config_user_agent;
 });
 
@@ -208,6 +209,38 @@ describe("create-praxisjs index – happy path (argv target dir)", () => {
     expect(pkgCall).toBeDefined();
     const content = JSON.parse(pkgCall![1] as string) as { name: string };
     expect(content.name).toBe("my-project");
+  });
+
+  it("resolves workspace:* dependency versions before writing package.json", async () => {
+    const clack = makeClack();
+    const fsMock = makeFs();
+    fsMock.default.readFileSync = vi
+      .fn()
+      .mockReturnValue(
+        '{"name":"placeholder","version":"0.0.0","dependencies":{"@praxisjs/core":"workspace:*"}}',
+      );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "2.4.0" }) }),
+    );
+
+    vi.doMock("picocolors", () => makePc());
+    vi.doMock("@clack/prompts", () => clack);
+    vi.doMock("node:fs", () => fsMock);
+    vi.doMock("node:process", () => ({
+      argv: ["node", "create-praxisjs", "my-project"],
+      cwd: () => "/fake/cwd",
+      exit: vi.fn(),
+    }));
+
+    await runMain();
+
+    const writeCalls = fsMock.default.writeFileSync.mock.calls;
+    const pkgCall = writeCalls.find((c) => String(c[0]).endsWith("package.json"));
+    const content = JSON.parse(pkgCall![1] as string) as {
+      dependencies: Record<string, string>;
+    };
+    expect(content.dependencies["@praxisjs/core"]).toBe("^2.4.0");
   });
 
   it("copies template files (non-package.json) to root", async () => {

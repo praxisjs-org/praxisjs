@@ -19,10 +19,11 @@
     "build:dx": "pnpm --filter './packages/dx/**' build",
     "build:utils": "pnpm --filter './packages/utils/**' build",
     "build:cli": "pnpm --filter './packages/cli/**' build",
+    "build:templates": "pnpm --filter './templates/**' build",
     "changeset": "changeset",
-    "version-packages": "node scripts/ensure-create-praxisjs-changeset.mjs && changeset version && node scripts/sync-template-versions.mjs",
+    "version-packages": "changeset version",
     "release": "changeset publish",
-    "sync-templates": "node scripts/sync-template-versions.mjs"
+    "generate-templates": "node scripts/generate-templates.mjs"
   },
   "lint-staged": {
     "packages/**/*.{ts,tsx}": "eslint --fix"

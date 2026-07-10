@@ -640,6 +640,169 @@ importers:
         specifier: ^6.0.0
         version: 6.4.2(@types/node@25.9.1)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
+  templates/blog:
+    dependencies:
+      '@praxisjs/content':
+        specifier: workspace:*
+        version: link:../../packages/features/content
+      '@praxisjs/core':
+        specifier: workspace:*
+        version: link:../../packages/foundation/core
+      '@praxisjs/decorators':
+        specifier: workspace:*
+        version: link:../../packages/foundation/decorators
+      '@praxisjs/jsx':
+        specifier: workspace:*
+        version: link:../../packages/foundation/jsx
+      '@praxisjs/router':
+        specifier: workspace:*
+        version: link:../../packages/features/router
+      '@praxisjs/runtime':
+        specifier: workspace:*
+        version: link:../../packages/foundation/runtime
+    devDependencies:
+      '@praxisjs/vite-plugin':
+        specifier: workspace:*
+        version: link:../../packages/dx/vite-plugin
+      eslint:
+        specifier: ^10.1.0
+        version: 10.1.0(jiti@2.6.1)
+      eslint-plugin-unicorn:
+        specifier: ^63.0.0
+        version: 63.0.0(eslint@10.1.0(jiti@2.6.1))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.56.1
+        version: 8.58.0(eslint@10.1.0(jiti@2.6.1))(typescript@5.9.3)
+      vite:
+        specifier: ^7.3.1
+        version: 7.3.1(@types/node@25.9.1)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+
+  templates/full:
+    dependencies:
+      '@praxisjs/composables':
+        specifier: workspace:*
+        version: link:../../packages/utils/composables
+      '@praxisjs/concurrent':
+        specifier: workspace:*
+        version: link:../../packages/utils/concurrent
+      '@praxisjs/core':
+        specifier: workspace:*
+        version: link:../../packages/foundation/core
+      '@praxisjs/decorators':
+        specifier: workspace:*
+        version: link:../../packages/foundation/decorators
+      '@praxisjs/di':
+        specifier: workspace:*
+        version: link:../../packages/features/di
+      '@praxisjs/jsx':
+        specifier: workspace:*
+        version: link:../../packages/foundation/jsx
+      '@praxisjs/router':
+        specifier: workspace:*
+        version: link:../../packages/features/router
+      '@praxisjs/runtime':
+        specifier: workspace:*
+        version: link:../../packages/foundation/runtime
+      '@praxisjs/store':
+        specifier: workspace:*
+        version: link:../../packages/features/store
+    devDependencies:
+      '@praxisjs/devtools':
+        specifier: workspace:*
+        version: link:../../packages/dx/devtools
+      '@praxisjs/vite-plugin':
+        specifier: workspace:*
+        version: link:../../packages/dx/vite-plugin
+      eslint:
+        specifier: ^10.1.0
+        version: 10.1.0(jiti@2.6.1)
+      eslint-plugin-unicorn:
+        specifier: ^63.0.0
+        version: 63.0.0(eslint@10.1.0(jiti@2.6.1))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.56.1
+        version: 8.58.0(eslint@10.1.0(jiti@2.6.1))(typescript@5.9.3)
+      vite:
+        specifier: ^7.3.1
+        version: 7.3.1(@types/node@25.9.1)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+
+  templates/minimal:
+    dependencies:
+      '@praxisjs/core':
+        specifier: workspace:*
+        version: link:../../packages/foundation/core
+      '@praxisjs/decorators':
+        specifier: workspace:*
+        version: link:../../packages/foundation/decorators
+      '@praxisjs/jsx':
+        specifier: workspace:*
+        version: link:../../packages/foundation/jsx
+      '@praxisjs/runtime':
+        specifier: workspace:*
+        version: link:../../packages/foundation/runtime
+    devDependencies:
+      '@praxisjs/vite-plugin':
+        specifier: workspace:*
+        version: link:../../packages/dx/vite-plugin
+      eslint:
+        specifier: ^10.1.0
+        version: 10.1.0(jiti@2.6.1)
+      eslint-plugin-unicorn:
+        specifier: ^63.0.0
+        version: 63.0.0(eslint@10.1.0(jiti@2.6.1))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.56.1
+        version: 8.58.0(eslint@10.1.0(jiti@2.6.1))(typescript@5.9.3)
+      vite:
+        specifier: ^7.3.1
+        version: 7.3.1(@types/node@25.9.1)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+
+  templates/router:
+    dependencies:
+      '@praxisjs/core':
+        specifier: workspace:*
+        version: link:../../packages/foundation/core
+      '@praxisjs/decorators':
+        specifier: workspace:*
+        version: link:../../packages/foundation/decorators
+      '@praxisjs/jsx':
+        specifier: workspace:*
+        version: link:../../packages/foundation/jsx
+      '@praxisjs/router':
+        specifier: workspace:*
+        version: link:../../packages/features/router
+      '@praxisjs/runtime':
+        specifier: workspace:*
+        version: link:../../packages/foundation/runtime
+    devDependencies:
+      '@praxisjs/vite-plugin':
+        specifier: workspace:*
+        version: link:../../packages/dx/vite-plugin
+      eslint:
+        specifier: ^10.1.0
+        version: 10.1.0(jiti@2.6.1)
+      eslint-plugin-unicorn:
+        specifier: ^63.0.0
+        version: 63.0.0(eslint@10.1.0(jiti@2.6.1))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.56.1
+        version: 8.58.0(eslint@10.1.0(jiti@2.6.1))(typescript@5.9.3)
+      vite:
+        specifier: ^7.3.1
+        version: 7.3.1(@types/node@25.9.1)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+
 packages:
 
   '@adobe/css-tools@4.4.4':

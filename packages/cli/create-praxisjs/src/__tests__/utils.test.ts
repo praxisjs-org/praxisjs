@@ -10,6 +10,8 @@ import {
   formatTargetDir,
   isEmpty,
   pkgManagerFromAgent,
+  resolveLatestVersion,
+  resolveWorkspaceVersions,
   toValidPackageName,
 } from "../utils";
 
@@ -260,5 +262,158 @@ describe("pkgManagerFromAgent", () => {
   it("defaults to npm for unknown agents", () => {
     process.env.npm_config_user_agent = "npm/9.0.0 node/v18.0.0";
     expect(pkgManagerFromAgent()).toBe("npm");
+  });
+});
+
+// ── resolveLatestVersion ──────────────────────────────────────────────────────
+
+describe("resolveLatestVersion", () => {
+  const originalRegistry = process.env.npm_config_registry;
+
+  afterEach(() => {
+    if (originalRegistry === undefined) {
+      delete process.env.npm_config_registry;
+    } else {
+      process.env.npm_config_registry = originalRegistry;
+    }
+    vi.unstubAllGlobals();
+  });
+
+  it("fetches the latest version from the default registry", async () => {
+    delete process.env.npm_config_registry;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ version: "2.3.4" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const version = await resolveLatestVersion("@praxisjs/core");
+
+    expect(version).toBe("2.3.4");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://registry.npmjs.org/%40praxisjs%2Fcore/latest",
+    );
+  });
+
+  it("URL-encodes scoped package names", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ version: "1.0.0" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await resolveLatestVersion("@praxisjs/vite-plugin");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://registry.npmjs.org/%40praxisjs%2Fvite-plugin/latest",
+    );
+  });
+
+  it("respects npm_config_registry when set", async () => {
+    process.env.npm_config_registry = "https://registry.example.com/";
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ version: "1.2.3" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await resolveLatestVersion("eslint");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://registry.example.com/eslint/latest",
+    );
+  });
+
+  it("throws a clear error when the registry responds with a non-ok status", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 404 }),
+    );
+
+    await expect(resolveLatestVersion("@praxisjs/does-not-exist")).rejects.toThrow(
+      /Failed to resolve latest version.*HTTP 404/,
+    );
+  });
+
+  it("throws a clear error when the network request fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("ENOTFOUND")));
+
+    await expect(resolveLatestVersion("@praxisjs/core")).rejects.toThrow(
+      /Failed to reach registry/,
+    );
+  });
+
+  it("throws a clear error when the response has no version field", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) }),
+    );
+
+    await expect(resolveLatestVersion("@praxisjs/core")).rejects.toThrow(
+      /did not include a version/,
+    );
+  });
+});
+
+// ── resolveWorkspaceVersions ──────────────────────────────────────────────────
+
+describe("resolveWorkspaceVersions", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("resolves every workspace:* dependency across all dependency fields", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      const version = url.includes("core") ? "2.0.1" : "3.0.5";
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ version }) });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const pkg: Record<string, unknown> = {
+      name: "my-app",
+      dependencies: { "@praxisjs/core": "workspace:*" },
+      devDependencies: { "@praxisjs/vite-plugin": "workspace:*", typescript: "^5.9.3" },
+    };
+
+    await resolveWorkspaceVersions(pkg);
+
+    expect(pkg.dependencies).toEqual({ "@praxisjs/core": "^2.0.1" });
+    expect(pkg.devDependencies).toEqual({
+      "@praxisjs/vite-plugin": "^3.0.5",
+      typescript: "^5.9.3",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves already-pinned dependencies untouched", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const pkg: Record<string, unknown> = {
+      dependencies: { eslint: "^10.1.0" },
+    };
+
+    await resolveWorkspaceVersions(pkg);
+
+    expect(pkg.dependencies).toEqual({ eslint: "^10.1.0" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when the package has no dependency fields", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(resolveWorkspaceVersions({ name: "my-app" })).resolves.toBeUndefined();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("propagates the resolution error for an unresolvable dependency", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+
+    const pkg: Record<string, unknown> = {
+      dependencies: { "@praxisjs/core": "workspace:*" },
+    };
+
+    await expect(resolveWorkspaceVersions(pkg)).rejects.toThrow(/HTTP 500/);
   });
 });

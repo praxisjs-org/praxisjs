@@ -64,3 +64,76 @@ export function pkgManagerFromAgent(): string {
   if (agent.startsWith("bun")) return "bun";
   return "npm";
 }
+
+const WORKSPACE_VERSION_RANGE = "workspace:*";
+const DEFAULT_REGISTRY = "https://registry.npmjs.org";
+const DEP_FIELDS = ["dependencies", "devDependencies", "peerDependencies"] as const;
+
+function registryUrl(): string {
+  return (process.env.npm_config_registry ?? DEFAULT_REGISTRY).replace(/\/+$/, "");
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return typeof value === "object" && value !== null;
+}
+
+/** Fetches the latest published version of `name` from the configured npm registry. */
+export async function resolveLatestVersion(name: string): Promise<string> {
+  const registry = registryUrl();
+  const url = `${registry}/${encodeURIComponent(name)}/latest`;
+
+  let response: Response;
+  try {
+    response = await fetch(url);
+  } catch (cause) {
+    throw new Error(
+      `Failed to reach registry "${registry}" while resolving "${name}". Check your network connection.`,
+      { cause },
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to resolve latest version of "${name}" from "${registry}" (HTTP ${String(response.status)}).`,
+    );
+  }
+
+  const data = (await response.json()) as { version?: unknown };
+  if (typeof data.version !== "string") {
+    throw new Error(`Registry response for "${name}" did not include a version.`);
+  }
+
+  return data.version;
+}
+
+/**
+ * Templates pin every @praxisjs/* dependency to "workspace:*" — the same
+ * sentinel pnpm uses — instead of a real version. This resolves each one to
+ * the latest published version at scaffold time, so create-praxisjs never
+ * needs to be republished just because a @praxisjs/* package released a new
+ * version.
+ */
+export async function resolveWorkspaceVersions(
+  pkg: Record<string, unknown>,
+): Promise<void> {
+  const pending: Array<{ field: (typeof DEP_FIELDS)[number]; name: string }> = [];
+
+  for (const field of DEP_FIELDS) {
+    const deps = pkg[field];
+    if (!isStringRecord(deps)) continue;
+    for (const [name, range] of Object.entries(deps)) {
+      if (range === WORKSPACE_VERSION_RANGE) pending.push({ field, name });
+    }
+  }
+
+  if (pending.length === 0) return;
+
+  const versions = await Promise.all(
+    pending.map(({ name }) => resolveLatestVersion(name)),
+  );
+
+  pending.forEach(({ field, name }, i) => {
+    const deps = pkg[field];
+    if (isStringRecord(deps)) deps[name] = `^${versions[i]}`;
+  });
+}

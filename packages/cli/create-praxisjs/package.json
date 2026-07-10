@@ -11,7 +11,7 @@
     "templates"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "node ../../../scripts/generate-templates.mjs && tsdown",
     "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit"
   },
