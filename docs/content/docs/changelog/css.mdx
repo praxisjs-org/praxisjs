@@ -6,6 +6,10 @@ icon: Palette
 
 # @praxisjs/css
 
+## 0.3.1
+
+Fixed build-time static extraction (`praxisjsCSS()`) silently dropping **all** CSS for any `Stylesheet` that read values through `tokenVars()`. The extraction sandbox stubbed `TokenSheet` as a plain empty class instead of the real Proxy-based implementation, so static property access on a token subclass (e.g. `t.colorPrimary`) resolved to `undefined` instead of `'var(--color-primary)'` — and since that `undefined` was often used inside a template literal or property value, the sheet's constructor could throw and get silently skipped by extraction's error handling, leaving the component completely unstyled in production builds. `TokenSheet` and `tokenVars` are now the real implementations during extraction, same as `Stylesheet`.
+
 ## 0.3.0
 
 **`globalStyle()` — `layer` option**

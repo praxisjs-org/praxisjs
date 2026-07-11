@@ -1,6 +1,7 @@
 import { Stylesheet, ReactiveStylesheet } from "./base/stylesheet.js";
 import { isCSSBuilder, createCSSBuilder, type CSSProperties } from "./builder/css-builder.js";
 import { hashCSS } from "./internal/hash.js";
+import { TokenSheet, tokenVars } from "./tokens/token-sheet.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -86,10 +87,12 @@ export function extractionModule(emit: EmitFn): Record<string, unknown> {
     ReactiveStylesheet,
     createCSSBuilder,
 
-    // Token system — extraction stubs
-    // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-    TokenSheet: class TokenSheet {},
-    tokenVars: (cls: unknown) => cls,
+    // Token system — real implementations. `TokenSheet` is a Proxy that
+    // resolves any static property access (even through subclass prototype
+    // chains) to `var(--kebab-case)`, so token-derived CSS values resolve
+    // correctly during build-time extraction without needing an instance.
+    TokenSheet,
+    tokenVars,
     ThemeInstance: ExtractionThemeInstance,
     // eslint-disable-next-line @typescript-eslint/no-extraneous-class
     theme: () => new ExtractionThemeInstance(class {}),

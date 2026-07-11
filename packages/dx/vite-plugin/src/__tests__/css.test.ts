@@ -297,6 +297,68 @@ describe("praxisjsCSS() — buildStart() integration", () => {
     expect(hooks(p).load("\0virtual:praxisjs/styles.css")).toContain("no static styles found");
   });
 
+  it("resolves tsconfig path aliases (e.g. `@/*`) instead of externalizing them", async () => {
+    const aliasDir = mkdtempSync(path.join(tmpdir(), "praxis-css-alias-"));
+    try {
+      writeFileSync(
+        path.join(aliasDir, "tsconfig.json"),
+        JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "@/*": ["src/*"] } } }),
+      );
+      mkdirSync(path.join(aliasDir, "src"));
+      writeFileSync(
+        path.join(aliasDir, "src", "tokens.ts"),
+        `export const radius = "42px";`,
+      );
+      writeFileSync(
+        path.join(aliasDir, "button.ts"),
+        `
+import { Stylesheet, Styled } from "@praxisjs/css";
+import { radius } from "@/tokens";
+class ButtonStyles extends Stylesheet {
+  $root = this.css({ borderRadius: radius });
+}
+Styled(ButtonStyles);
+`,
+      );
+
+      const p = buildPlugin(aliasDir);
+      await hooks(p).buildStart.call({ info: vi.fn() });
+      const css = hooks(p).load("\0virtual:praxisjs/styles.css") as string;
+      // Without the fix, `@/tokens` resolves to `{}` in the sandbox, `radius` is
+      // `undefined`, the Stylesheet field initializer throws, and the whole
+      // sheet is silently dropped — this asserts the real value made it through.
+      expect(css).toContain("border-radius: 42px");
+    } finally {
+      rmSync(aliasDir, { recursive: true, force: true });
+    }
+  });
+
+  it("still externalizes real npm packages that happen to look alias-like (scoped packages)", async () => {
+    const aliasDir = mkdtempSync(path.join(tmpdir(), "praxis-css-alias-scoped-"));
+    try {
+      writeFileSync(
+        path.join(aliasDir, "tsconfig.json"),
+        JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "@/*": ["src/*"] } } }),
+      );
+      writeFileSync(
+        path.join(aliasDir, "button.ts"),
+        `
+import { globalStyle } from "@praxisjs/css";
+import { format } from "date-fns";
+globalStyle(_css => "body { color: black; }");
+void format;
+`,
+      );
+
+      const p = buildPlugin(aliasDir);
+      await hooks(p).buildStart.call({ info: vi.fn() });
+      const css = hooks(p).load("\0virtual:praxisjs/styles.css") as string;
+      expect(css).toContain("body { color: black; }");
+    } finally {
+      rmSync(aliasDir, { recursive: true, force: true });
+    }
+  });
+
   it("handles vm execution error gracefully (returns empty CSS)", async () => {
     const spy = vi.spyOn(vm, "runInNewContext").mockImplementationOnce(() => { throw new Error("vm crash"); });
     try {

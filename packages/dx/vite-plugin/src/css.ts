@@ -3,6 +3,7 @@ import path from "node:path";
 import vm from "node:vm";
 
 import { build as esbuildBuild } from "esbuild";
+import ts from "typescript";
 
 import { extractionModule } from "@praxisjs/css/extract";
 
@@ -45,6 +46,23 @@ function findTsConfig(root: string): string | undefined {
   return existsSync(p) ? p : undefined;
 }
 
+// `compilerOptions.paths` entries (e.g. `@/*`) name local project files, not npm
+// packages. Without this, esbuild's own tsconfig-aware resolver never runs for
+// them because the onResolve rule below already claimed the specifier and marked
+// it external — so an aliased import silently resolves to `{}` in the sandbox.
+function readPathAliasPrefixes(tsconfigPath: string | undefined): string[] {
+  if (!tsconfigPath) return [];
+  try {
+    const configFile = ts.readConfigFile(tsconfigPath, (p) => ts.sys.readFile(p));
+    const parsed = ts.parseJsonConfigFileContent(configFile.config ?? {}, ts.sys, path.dirname(tsconfigPath));
+    const paths = parsed.options.paths;
+    if (!paths) return [];
+    return Object.keys(paths).map((key) => key.replace(/\*$/, ""));
+  } catch {
+    return [];
+  }
+}
+
 // ─── Noop stub for @praxisjs/* packages (except @praxisjs/css) ───────────────
 
 // Regular function (not arrow) so it can be used as a base class via `extends`.
@@ -70,6 +88,9 @@ async function extractStaticCSS(root: string): Promise<string> {
     .map((f) => `try { require(${JSON.stringify(f)}); } catch {}`)
     .join("\n");
 
+  const tsconfigPath = findTsConfig(root);
+  const aliasPrefixes = readPathAliasPrefixes(tsconfigPath);
+
   let bundleCode: string;
   try {
     const result = await esbuildBuild({
@@ -79,7 +100,7 @@ async function extractStaticCSS(root: string): Promise<string> {
       format: "cjs",
       platform: "node",
       target: "node20",
-      tsconfig: findTsConfig(root),
+      tsconfig: tsconfigPath,
       plugins: [
         {
           name: "praxisjs-css-extract",
@@ -88,7 +109,13 @@ async function extractStaticCSS(root: string): Promise<string> {
             // Keep all @praxisjs/* external so esbuild emits plain require()
             // calls — no __toESM wrapping that would break Proxy property access.
             build.onResolve({ filter: /^@praxisjs\// }, () => ({ external: true }));
-            build.onResolve({ filter: /^[^./]/ }, () => ({ external: true }));
+            build.onResolve({ filter: /^[^./]/ }, (args) => {
+              // Leave tsconfig path aliases (e.g. `@/*`) to esbuild's own
+              // resolver so it bundles the real local file instead of an
+              // empty stub — these are project files, not npm packages.
+              if (aliasPrefixes.some((prefix) => args.path.startsWith(prefix))) return;
+              return { external: true };
+            });
           },
         },
       ],

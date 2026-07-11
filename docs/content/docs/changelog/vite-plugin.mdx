@@ -6,6 +6,10 @@ icon: Hammer
 
 # @praxisjs/vite-plugin
 
+## 4.0.2
+
+Fixed `praxisjsCSS()` build-time extraction treating tsconfig path aliases (e.g. `@/components/...`, mapped via `compilerOptions.paths`) as external npm packages. The extraction sandbox resolved these to an empty stub instead of the real local file, so any `Stylesheet` that imported values through an alias — most commonly a shared design-token module — could end up with `undefined` values or a throwing constructor, silently dropping that component's CSS from the production build. Aliased imports are now resolved through esbuild's own tsconfig-aware resolver instead of being externalized.
+
 ## 4.0.1
 
 Fixed `Cannot find package 'esbuild'` errors in scaffolded projects (`create-praxisjs`) and other consumers. `esbuild` moved from `devDependencies` to `dependencies` — it's imported at runtime by the CSS static-extraction step, so it needs to be installed alongside the plugin itself, not just present in this monorepo's workspace.

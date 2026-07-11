@@ -76,6 +76,25 @@ describe("extractionModule() — API shape", () => {
     const TS = mod.TokenSheet as new () => unknown;
     expect(new TS()).toBeDefined();
   });
+
+  it("TokenSheet is the real Proxy — static access on a subclass resolves to var(--kebab-case)", () => {
+    const { mod } = makeCollector();
+    const TS = mod.TokenSheet as new () => unknown;
+    class AppTokens extends TS {
+      colorPrimary!: string;
+    }
+    expect((AppTokens as unknown as Record<string, string>).colorPrimary).toBe("var(--color-primary)");
+  });
+
+  it("tokenVars() combined with a TokenSheet subclass resolves real CSS var references", () => {
+    const { mod } = makeCollector();
+    const TS = mod.TokenSheet as new () => unknown;
+    class AppTokens extends TS {
+      radius!: string;
+    }
+    const t = (mod.tokenVars as (c: unknown) => Record<string, string>)(AppTokens);
+    expect(t.radius).toBe("var(--radius)");
+  });
 });
 
 // ─── Styled() ─────────────────────────────────────────────────────────────────
@@ -162,6 +181,28 @@ describe("extractionModule() — Styled()", () => {
     class EmptyStyles extends S {}
     Styled(EmptyStyles);
     expect(emitted).toHaveLength(0);
+  });
+
+  it("collects CSS for a sheet whose values are derived from tokenVars()", () => {
+    const { mod, emitted } = makeCollector();
+    const S = (mod as Mod & { Stylesheet: typeof Stylesheet }).Stylesheet;
+    const TS = mod.TokenSheet as new () => unknown;
+    const Styled = mod.Styled as (cls: new () => unknown) => unknown;
+
+    class AppTokens extends TS {
+      radius!: string;
+      primary!: string;
+    }
+    const t = (mod.tokenVars as (c: unknown) => Record<string, string>)(AppTokens);
+
+    class ButtonStyles extends S {
+      $root = this.css({ borderRadius: `calc(${t.radius} - 2px)`, backgroundColor: t.primary });
+    }
+    Styled(ButtonStyles);
+
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0].css).toContain("calc(var(--radius) - 2px)");
+    expect(emitted[0].css).toContain("background-color: var(--primary)");
   });
 
   it("silently skips sheets whose constructor throws", () => {
