@@ -79,7 +79,7 @@ describe("extractionModule() — API shape", () => {
 
   it("TokenSheet is the real Proxy — static access on a subclass resolves to var(--kebab-case)", () => {
     const { mod } = makeCollector();
-    const TS = mod.TokenSheet as new () => unknown;
+    const TS = mod.TokenSheet as new () => object;
     class AppTokens extends TS {
       colorPrimary!: string;
     }
@@ -88,7 +88,7 @@ describe("extractionModule() — API shape", () => {
 
   it("tokenVars() combined with a TokenSheet subclass resolves real CSS var references", () => {
     const { mod } = makeCollector();
-    const TS = mod.TokenSheet as new () => unknown;
+    const TS = mod.TokenSheet as new () => object;
     class AppTokens extends TS {
       radius!: string;
     }
@@ -186,7 +186,7 @@ describe("extractionModule() — Styled()", () => {
   it("collects CSS for a sheet whose values are derived from tokenVars()", () => {
     const { mod, emitted } = makeCollector();
     const S = (mod as Mod & { Stylesheet: typeof Stylesheet }).Stylesheet;
-    const TS = mod.TokenSheet as new () => unknown;
+    const TS = mod.TokenSheet as new () => object;
     const Styled = mod.Styled as (cls: new () => unknown) => unknown;
 
     class AppTokens extends TS {
