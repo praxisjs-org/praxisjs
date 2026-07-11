@@ -116,13 +116,13 @@ export async function resolveLatestVersion(name: string): Promise<string> {
 export async function resolveWorkspaceVersions(
   pkg: Record<string, unknown>,
 ): Promise<void> {
-  const pending: Array<{ field: (typeof DEP_FIELDS)[number]; name: string }> = [];
+  const pending: Array<{ deps: Record<string, string>; name: string }> = [];
 
   for (const field of DEP_FIELDS) {
     const deps = pkg[field];
     if (!isStringRecord(deps)) continue;
     for (const [name, range] of Object.entries(deps)) {
-      if (range === WORKSPACE_VERSION_RANGE) pending.push({ field, name });
+      if (range === WORKSPACE_VERSION_RANGE) pending.push({ deps, name });
     }
   }
 
@@ -132,8 +132,7 @@ export async function resolveWorkspaceVersions(
     pending.map(({ name }) => resolveLatestVersion(name)),
   );
 
-  pending.forEach(({ field, name }, i) => {
-    const deps = pkg[field];
-    if (isStringRecord(deps)) deps[name] = `^${versions[i]}`;
+  pending.forEach(({ deps, name }, i) => {
+    deps[name] = `^${versions[i]}`;
   });
 }

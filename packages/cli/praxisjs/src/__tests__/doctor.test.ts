@@ -36,7 +36,7 @@ const VALID_TSCONFIG = JSON.stringify({
   compilerOptions: {
     jsx: "react-jsx",
     jsxImportSource: "@praxisjs/jsx",
-    useDefineForClassFields: false,
+    useDefineForClassFields: true,
   },
 });
 
@@ -151,7 +151,7 @@ describe("doctor — tsconfig.json", () => {
     stubExistsSync(["package.json", "tsconfig.json"]);
     stubReadFileSync({
       "tsconfig.json": JSON.stringify({
-        compilerOptions: { jsx: "react-jsx", jsxImportSource: "react", useDefineForClassFields: false },
+        compilerOptions: { jsx: "react-jsx", jsxImportSource: "react", useDefineForClassFields: true },
       }),
     });
 
@@ -162,7 +162,7 @@ describe("doctor — tsconfig.json", () => {
     expect(mockExit).toHaveBeenCalledWith(1);
   });
 
-  it("flags useDefineForClassFields not set to false", async () => {
+  it("flags useDefineForClassFields not set to true", async () => {
     stubExistsSync(["package.json", "tsconfig.json"]);
     stubReadFileSync({
       "tsconfig.json": JSON.stringify({
@@ -173,7 +173,7 @@ describe("doctor — tsconfig.json", () => {
     await doctor();
 
     const [body] = mockNote.mock.calls[0] as [string];
-    expect(body).toContain('"useDefineForClassFields" must be false');
+    expect(body).toContain('"useDefineForClassFields" must be true');
     expect(mockExit).toHaveBeenCalledWith(1);
   });
 
@@ -181,7 +181,7 @@ describe("doctor — tsconfig.json", () => {
     stubExistsSync(["package.json", "tsconfig.json"]);
     stubReadFileSync({
       "tsconfig.json": JSON.stringify({
-        compilerOptions: { jsx: "preserve", jsxImportSource: "@praxisjs/jsx", useDefineForClassFields: false },
+        compilerOptions: { jsx: "preserve", jsxImportSource: "@praxisjs/jsx", useDefineForClassFields: true },
       }),
     });
 

@@ -4,8 +4,10 @@ import { contentPlugin } from "@praxisjs/content/vite";
 
 export default defineConfig({
   plugins: [praxisjs(), contentPlugin()],
-  esbuild: {
-    jsxImportSource: "@praxisjs/jsx",
+  oxc: {
+    jsx: {
+      importSource: "@praxisjs/jsx",
+    },
     target: "es2022",
   },
 });

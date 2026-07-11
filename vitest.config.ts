@@ -2,7 +2,14 @@ import { resolve } from "path";
 
 import { defineConfig } from "vitest/config";
 
+import { decoratorLoweringPlugin } from "./packages/dx/vite-plugin/src/decorators";
+
+// oxc doesn't lower TC39 (non-legacy) decorators yet — see the same note in
+// packages/dx/vite-plugin/src/decorators.ts — so test files that declare
+// decorated classes need this to make them runnable under Node.
+// https://github.com/oxc-project/oxc/issues/9170
 export default defineConfig({
+  plugins: [decoratorLoweringPlugin()],
   resolve: {
     alias: {
       "@praxisjs/shared/internal": resolve(

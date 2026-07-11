@@ -1,24 +1,27 @@
 import { praxisjsCSS } from "./css.js";
+import { decoratorLoweringPlugin } from "./decorators.js";
 
-import type { Plugin, ViteDevServer } from "vite";
+import type { PluginOption, ViteDevServer } from "vite";
 
 export { praxisjsCSS };
+export { decoratorLoweringPlugin };
 
 export interface PraxisJSVitePluginOptions {
   hmr?: boolean;
   autoImport?: boolean;
 }
 
-export function praxisjs(options: PraxisJSVitePluginOptions = {}): Plugin[] {
+export function praxisjs(options: PraxisJSVitePluginOptions = {}): PluginOption[] {
   const { hmr = true, autoImport = true } = options;
 
   return [
+    decoratorLoweringPlugin(),
     {
       name: "praxisjs:core",
       enforce: "pre",
       config() {
         return {
-          esbuild: {
+          oxc: {
             target: "es2022",
           },
         };

@@ -107,16 +107,12 @@ export default defineConfig({
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "jsxImportSource": "@praxisjs/jsx",
-    "useDefineForClassFields": false,
+    "useDefineForClassFields": true,
     "strict": true,
     "noEmit": true
   }
 }
 ```
-
-<Callout type="warn" title="`useDefineForClassFields: false` is required">
-  This is the most common setup mistake. With `true` (the TypeScript ES2022+ default), class fields compile as `Object.defineProperty`, which runs **after** decorator initializers and overwrites the signal getter/setter they registered. Setting it to `false` compiles fields as constructor assignments (`this.x = value`), keeping decorator wiring intact.
-</Callout>
 
 ---
 

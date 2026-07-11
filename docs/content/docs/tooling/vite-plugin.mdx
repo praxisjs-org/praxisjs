@@ -44,15 +44,36 @@ praxisjs({
 
 ## What the plugin does
 
-- **Decorator support** — sets esbuild target to `ES2022` to enable native TypeScript decorators without Babel transforms
+- **Decorator support** — sets Vite's oxc transform target to `ES2022`, and lowers TC39 decorators with the TypeScript compiler since [oxc doesn't support that natively yet](https://github.com/oxc-project/oxc/issues/9170)
 - **JSX transform** — configures Vite to use `@praxisjs/jsx` as the JSX import source (equivalent to `jsxImportSource` in tsconfig)
 - **HMR** — when enabled, patches component classes on save so the instance re-mounts with new logic while preserving existing state where possible
 
 ---
 
+## Using decorators in Vitest
+
+Vitest runs test files through Node directly — it doesn't go through Vite's dev/build pipeline unless you wire a plugin into `vitest.config.ts`. Since decorated classes need the same TC39-to-runtime lowering `praxisjs()` applies in the browser, import the standalone `decoratorLoweringPlugin()` export and register it as a Vitest plugin:
+
+```ts
+// vitest.config.ts
+import { defineConfig } from 'vitest/config'
+import { decoratorLoweringPlugin } from '@praxisjs/vite-plugin'
+
+export default defineConfig({
+  plugins: [decoratorLoweringPlugin()],
+  test: {
+    environment: 'node', // or 'jsdom' for tests touching the DOM
+  },
+})
+```
+
+This is the same plugin `praxisjs()` includes internally — it only lowers files that contain real decorator syntax, so it's safe to add without also pulling in the JSX transform or HMR pieces, which test files don't need.
+
+---
+
 ## TypeScript configuration
 
-The plugin handles the Vite/esbuild side, but TypeScript still needs its own configuration:
+The plugin handles the Vite/oxc side, but TypeScript still needs its own configuration:
 
 ```json
 // tsconfig.json
@@ -63,13 +84,9 @@ The plugin handles the Vite/esbuild side, but TypeScript still needs its own con
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "jsxImportSource": "@praxisjs/jsx",
-    "useDefineForClassFields": false,
+    "useDefineForClassFields": true,
     "strict": true,
     "noEmit": true
   }
 }
 ```
-
-<Callout type="warn" title="`useDefineForClassFields: false` is required">
-  With `true` (the default for ES2022+ targets), TypeScript compiles class fields via `Object.defineProperty`, which runs after decorator initializers and overwrites the signal getter/setter they set up. Setting it to `false` compiles fields as constructor assignments so the decorator wiring stays intact.
-</Callout>

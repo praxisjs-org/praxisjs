@@ -91,15 +91,11 @@ npx praxisjs doctor
 | Check | Flags an issue when |
 |---|---|
 | **`package.json`** | Missing, malformed, or has no `@praxisjs/*` dependency |
-| **`tsconfig.json`** | Missing, malformed, or `compilerOptions` doesn't have `jsx: "react-jsx"`, `jsxImportSource: "@praxisjs/jsx"`, and `useDefineForClassFields: false` — the tsconfig check only runs once `package.json` passes |
+| **`tsconfig.json`** | Missing, malformed, or `compilerOptions` doesn't have `jsx: "react-jsx"`, `jsxImportSource: "@praxisjs/jsx"`, and `useDefineForClassFields: true` — the tsconfig check only runs once `package.json` passes |
 | **Claude Code integration** | The skill directory exists but `.claude/settings.json`, `CLAUDE.md`, or `.praxisjs-ai.json` is missing |
 | **Codex integration** | The skill directory exists but `AGENTS.md` or `.praxisjs-ai.json` is missing |
 
 Each AI integration check only runs if its skill directory is present — `doctor` doesn't flag an integration that was never installed. Exits with code `1` if any check fails, `0` if everything passes.
-
-<Callout type="warn" title="useDefineForClassFields is the most common failure">
-  With `true` (TypeScript's default for ES2022+ targets), class fields compile via `Object.defineProperty`, which runs after decorator initializers and silently overwrites the signal getter/setter `@State` registers. `doctor` exists mainly to catch this before it turns into a confusing "my state doesn't update" bug report.
-</Callout>
 
 ---
 

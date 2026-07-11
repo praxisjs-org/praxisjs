@@ -677,6 +677,41 @@ describe("create-praxisjs index – malformed _package.json", () => {
   });
 });
 
+describe("create-praxisjs index – version resolution failure", () => {
+  it("stops the spinner and rethrows when resolving workspace versions fails", async () => {
+    const mockExit = vi.fn();
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const spinnerHandle = { start: vi.fn(), stop: vi.fn(), message: vi.fn() };
+    const clack = makeClack({ spinner: vi.fn(() => spinnerHandle) });
+    const fsMock = makeFs();
+    fsMock.default.readFileSync = vi
+      .fn()
+      .mockReturnValue(
+        '{"name":"placeholder","version":"0.0.0","dependencies":{"@praxisjs/core":"workspace:*"}}',
+      );
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
+
+    vi.doMock("picocolors", () => makePc());
+    vi.doMock("@clack/prompts", () => clack);
+    vi.doMock("node:fs", () => fsMock);
+    vi.doMock("node:process", () => ({
+      argv: ["node", "create-praxisjs", "my-app"],
+      cwd: () => "/fake/cwd",
+      exit: mockExit,
+    }));
+
+    await runMain();
+
+    expect(spinnerHandle.stop).toHaveBeenCalledWith("Failed.");
+    expect(consoleSpy).toHaveBeenCalled();
+    const errorArg = consoleSpy.mock.calls[0]?.[0];
+    expect(String(errorArg)).toContain("Failed to reach registry");
+    expect(mockExit).toHaveBeenCalledWith(1);
+
+    consoleSpy.mockRestore();
+  });
+});
+
 describe("create-praxisjs index – plugin select", () => {
   it("shows the plugin select after template select", async () => {
     const clack = makeClack();

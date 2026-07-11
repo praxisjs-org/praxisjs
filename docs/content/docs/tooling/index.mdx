@@ -73,16 +73,12 @@ Every PraxisJS project needs these two files configured correctly:
         "moduleResolution": "bundler",
         "jsx": "react-jsx",
         "jsxImportSource": "@praxisjs/jsx",
-        "useDefineForClassFields": false,
+        "useDefineForClassFields": true,
         "strict": true,
         "noEmit": true
       }
     }
     ```
-
-    <Callout type="warn" title="`useDefineForClassFields: false` is required">
-      With `true`, TypeScript compiles class fields via `Object.defineProperty`, which runs after decorator initializers and overwrites the signal wiring they set up. Set it to `false` so field assignments are treated as constructor assignments and decorators work correctly.
-    </Callout>
   </Step>
   <Step>
     ### Mount your app

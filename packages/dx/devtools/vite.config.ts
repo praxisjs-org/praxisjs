@@ -6,9 +6,11 @@ import dts from "vite-plugin-dts";
 
 export default defineConfig({
   plugins: [...UnoCSS(), dts({ rollupTypes: true })] as PluginOption[],
-  esbuild: {
-    jsxImportSource: "@praxisjs/jsx",
-    jsx: "automatic",
+  oxc: {
+    jsx: {
+      runtime: "automatic",
+      importSource: "@praxisjs/jsx",
+    },
   },
   build: {
     lib: {

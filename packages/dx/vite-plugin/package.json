@@ -15,14 +15,17 @@
     "dev": "tsc --watch"
   },
   "peerDependencies": {
-    "@praxisjs/css": "workspace:*"
+    "@praxisjs/css": "workspace:*",
+    "vite": ">=8.0.0"
   },
   "packageManager": "pnpm@10.30.2",
+  "dependencies": {
+    "typescript": "catalog:"
+  },
   "devDependencies": {
     "@praxisjs/css": "workspace:*",
     "@types/node": "^25.9.1",
-    "esbuild": "^0.25.12",
-    "typescript": "catalog:",
+    "esbuild": "^0.28.1",
     "vite": "catalog:"
   }
 }

@@ -1,6 +1,6 @@
 import { render as praxisRender } from "@praxisjs/runtime";
 
-import type { RenderContext } from "@storybook/core/types";
+import type { RenderContext } from "storybook/internal/types";
 
 
 let cleanup: (() => void) | undefined;

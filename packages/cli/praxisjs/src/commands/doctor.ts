@@ -56,8 +56,8 @@ function checkTsconfig(root: string): Check {
   if (compilerOptions.jsx !== "react-jsx") {
     issues.push('"jsx" must be "react-jsx"');
   }
-  if (compilerOptions.useDefineForClassFields !== false) {
-    issues.push('"useDefineForClassFields" must be false — otherwise decorator-based state breaks');
+  if (compilerOptions.useDefineForClassFields !== true) {
+    issues.push('"useDefineForClassFields" must be true — otherwise the Vite plugin\'s oxc transform drops decorators');
   }
 
   return issues.length === 0

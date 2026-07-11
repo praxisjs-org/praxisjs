@@ -6,6 +6,10 @@ icon: BookMarked
 
 # @praxisjs/storybook
 
+## 0.2.4
+
+Removed the `@storybook/core` dependency and peer dependency — it never published a Storybook 9/10 release, so it dragged in a stale `@storybook/theming@8.6.18` that conflicted with `storybook@10.4.0` and pinned `esbuild` below what `vite@8.1.4` requires. Internal imports moved from `@storybook/core/csf` and `@storybook/core/types` to `storybook/internal/csf` and `storybook/internal/types` — no change to `Meta`, `StoryObj`, or any other public export.
+
 ## 0.2.1
 
 Added the missing `sourceUrl` and `expanded` fields to `StorybookRefs`, matching the options documented for [Storybook Composition](https://storybook.js.org/docs/sharing/storybook-composition) refs.

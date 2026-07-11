@@ -29,14 +29,12 @@
   },
   "peerDependencies": {
     "@storybook/builder-vite": ">=8.0.0",
-    "@storybook/core": ">=8.0.0",
     "storybook": ">=8.0.0"
   },
   "devDependencies": {
     "@storybook/builder-vite": "^10.4.0",
-    "@storybook/core": "^8.6.0",
     "storybook": "^10.4.0",
     "typescript": "catalog:",
-    "vite": "^6.0.0"
+    "vite": "catalog:"
   }
 }

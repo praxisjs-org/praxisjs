@@ -243,17 +243,15 @@ describe("_resetHead — DOM cleanup", () => {
 
 @Head({ title: "Static Title", description: "Static desc" })
 class StaticComp extends StatefulComponent {
-  static __isComponent = true as const;
-  static __isStateless = false;
   render() { return null; }
 }
+Object.assign(StaticComp, { __isComponent: true as const, __isStateless: false });
 
 @Head({ title: "Before" })
 class BeforeComp extends StatefulComponent {
-  static __isComponent = true as const;
-  static __isStateless = false;
   render() { return null; }
 }
+Object.assign(BeforeComp, { __isComponent: true as const, __isStateless: false });
 
 describe("@Head decorator — static config", () => {
   it("applies head config on onMount", () => {
@@ -279,11 +277,10 @@ describe("@Head decorator — reactive config", () => {
 
     @Head((self: ReactiveComp) => ({ title: `Count: ${self.n()}` }))
     class ReactiveComp extends StatefulComponent {
-      static __isComponent = true as const;
-      static __isStateless = false;
       n = count;
       render() { return null; }
     }
+    Object.assign(ReactiveComp, { __isComponent: true as const, __isStateless: false });
 
     const inst = new ReactiveComp({});
     inst.onMount?.();
@@ -299,11 +296,10 @@ describe("@Head decorator — reactive config", () => {
 
     @Head((self: StopComp) => ({ title: self.v() }))
     class StopComp extends StatefulComponent {
-      static __isComponent = true as const;
-      static __isStateless = false;
       v = val;
       render() { return null; }
     }
+    Object.assign(StopComp, { __isComponent: true as const, __isStateless: false });
 
     const inst = new StopComp({});
     inst.onMount?.();
@@ -319,19 +315,17 @@ describe("@Head decorator — reactive config", () => {
 
     @Head((self: CompA) => ({ title: self.t() }))
     class CompA extends StatefulComponent {
-      static __isComponent = true as const;
-      static __isStateless = false;
       t = t1;
       render() { return null; }
     }
+    Object.assign(CompA, { __isComponent: true as const, __isStateless: false });
 
     @Head((self: CompB) => ({ title: self.t() }))
     class CompB extends StatefulComponent {
-      static __isComponent = true as const;
-      static __isStateless = false;
       t = t2;
       render() { return null; }
     }
+    Object.assign(CompB, { __isComponent: true as const, __isStateless: false });
 
     const a = new CompA({});
     const b = new CompB({});
@@ -351,11 +345,10 @@ describe("@Head decorator — reactive config", () => {
       og: { title: `Post: ${self.s()}`, url: `https://site.com/${self.s()}` },
     }))
     class OGComp extends StatefulComponent {
-      static __isComponent = true as const;
-      static __isStateless = false;
       s = slug;
       render() { return null; }
     }
+    Object.assign(OGComp, { __isComponent: true as const, __isStateless: false });
 
     const inst = new OGComp({});
     inst.onMount?.();
@@ -372,11 +365,10 @@ describe("@Head decorator — reactive config", () => {
 
     @Head(getter)
     class SpyComp extends StatefulComponent {
-      static __isComponent = true as const;
-      static __isStateless = false;
       n = name;
       render() { return null; }
     }
+    Object.assign(SpyComp, { __isComponent: true as const, __isStateless: false });
 
     const inst = new SpyComp({});
     inst.onMount?.();

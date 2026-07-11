@@ -1,5 +1,5 @@
-import type { ComponentAnnotations, StoryAnnotations } from "@storybook/core/csf";
-import type { WebRenderer } from "@storybook/core/types";
+import type { ComponentAnnotations, StoryAnnotations } from "storybook/internal/csf";
+import type { WebRenderer } from "storybook/internal/types";
 
 export interface PraxisRenderer extends WebRenderer {
   canvasElement: HTMLElement;
