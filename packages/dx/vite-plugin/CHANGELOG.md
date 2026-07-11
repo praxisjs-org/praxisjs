@@ -1,5 +1,13 @@
 # @praxisjs/vite-plugin
 
+## 4.0.2
+
+### Patch Changes
+
+- e65617f: Fix `praxisjsCSS()` build-time extraction treating tsconfig path aliases (e.g. `@/lib/tokens`, mapped via `compilerOptions.paths`) as external npm packages. The extraction sandbox resolved these to an empty stub instead of the real local file, silently dropping the CSS of any `Stylesheet` that imported values (most commonly design tokens) through an alias. Aliased imports are now resolved through esbuild's own tsconfig-aware resolver instead of being externalized.
+- Updated dependencies [e65617f]
+  - @praxisjs/css@0.3.1
+
 ## 4.0.1
 
 ### Patch Changes
