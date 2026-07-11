@@ -6,6 +6,10 @@ icon: Hammer
 
 # @praxisjs/vite-plugin
 
+## 4.0.1
+
+Fixed `Cannot find package 'esbuild'` errors in scaffolded projects (`create-praxisjs`) and other consumers. `esbuild` moved from `devDependencies` to `dependencies` — it's imported at runtime by the CSS static-extraction step, so it needs to be installed alongside the plugin itself, not just present in this monorepo's workspace.
+
 ## 4.0.0
 
 Upgraded to Vite 8 (rolldown-vite). Vite 8's oxc-based transform doesn't lower TC39 (non-legacy) decorators yet ([oxc-project/oxc#9170](https://github.com/oxc-project/oxc/issues/9170)), so `praxisjs()` now uses the TypeScript compiler (`ts.transpileModule`) to lower decorator syntax into runtime-executable code, leaving JSX untouched for oxc's own JSX pipeline. No third-party decorator transform is bundled — TypeScript's decorator lowering keeps class fields as native ES2022 fields, so a decorated field's `addInitializer` callback already runs after `super()` in a derived class's explicit constructor without any extra fix-up pass.
