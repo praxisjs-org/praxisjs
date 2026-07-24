@@ -147,6 +147,14 @@ const FOOTER_LINKS = [
       { label: "Vite plugin", href: "/docs/tooling/vite-plugin" },
     ],
   },
+  {
+    group: "UI Libraries",
+    links: [
+      { label: "Morphos", href: "https://morphos.praxisjs.org", external: true },
+      { label: "Kosmesis", href: "https://kosmesis.praxisjs.org", external: true },
+      { label: "Overview", href: "/docs/ecosystem/ui" },
+    ],
+  },
 ];
 
 export default function HomePage() {
@@ -510,7 +518,7 @@ export default function HomePage() {
       {/* ── Footer ── */}
       <footer className="relative z-10 border-t border-fd-border bg-fd-background px-6 py-16">
         <div className="mx-auto max-w-6xl">
-          <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto]">
+          <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto]">
             {/* Brand */}
             <div>
               <div className="mb-4 flex items-center gap-3">
@@ -564,10 +572,12 @@ export default function HomePage() {
                   {group}
                 </p>
                 <ul className="space-y-2.5">
-                  {links.map(({ label, href }) => (
+                  {links.map(({ label, href, external }) => (
                     <li key={label}>
                       <Link
                         href={href}
+                        target={external ? "_blank" : undefined}
+                        rel={external ? "noopener noreferrer" : undefined}
                         className="text-[13px] text-fd-muted-foreground transition-colors hover:text-violet-600 dark:hover:text-violet-400"
                       >
                         {label}

@@ -8,6 +8,7 @@
     "di",
     "motion",
     "fsm",
-    "concurrency"
+    "concurrency",
+    "ui"
   ]
 }
