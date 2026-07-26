@@ -92,6 +92,17 @@ describe("decoratorLoweringPlugin() standalone export", () => {
     expect(plugin.name).toBe("praxisjs:decorators");
   });
 
+  it("enforces 'pre' so it runs before Vite's built-in esbuild TS transform", () => {
+    // Regression test: without `enforce: "pre"` this plugin runs in the
+    // "normal" tier, after esbuild has already parsed the file. esbuild's
+    // TC39 decorator support silently drops class fields that carry a
+    // decorator but have no initializer (e.g. `@Styled(X) $s!: X;`) instead
+    // of lowering them, so `ts.transpileModule` below never even sees the
+    // field — it just ends up `undefined` at runtime with no build error.
+    const plugin = decoratorLoweringPlugin() as NamedPlugin;
+    expect(plugin.enforce).toBe("pre");
+  });
+
   it("lowers decorators the same way whether reused standalone or via praxisjs()", () => {
     const code = `
       function Dec() { return function (v, ctx) {}; }

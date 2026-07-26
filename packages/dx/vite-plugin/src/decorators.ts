@@ -68,6 +68,14 @@ function formatDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
 export function decoratorLoweringPlugin(): Plugin {
   return {
     name: "praxisjs:decorators",
+    // Must run before Vite's built-in esbuild TS transform: esbuild's TC39
+    // decorator support silently drops class fields that carry a decorator
+    // but have no initializer (e.g. `@Styled(X) $s!: X;`), instead of lowering
+    // them. Without `enforce: "pre"` this plugin runs in the "normal" tier,
+    // after esbuild has already stripped the field — so `ts.transpileModule`
+    // below never even sees it, and the field silently ends up `undefined` at
+    // runtime with no build-time error.
+    enforce: "pre",
     transform(code, id) {
       if (!JS_LIKE_FILE.test(id) || !code.includes("@")) return null;
       const fileName = cleanFileName(id);
