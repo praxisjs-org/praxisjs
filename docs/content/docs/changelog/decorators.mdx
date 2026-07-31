@@ -6,6 +6,25 @@ icon: Tag
 
 # @praxisjs/decorators
 
+## 1.6.0
+
+**`@Command<T>()` — field decorator syntax for `createCommand()`.**
+
+Wraps `createCommand()` as a field decorator, matching the `@Ref<T>()` pattern. Each decorated field gets its own `Command` instance, created once per component instance:
+
+```tsx
+import { Command } from '@praxisjs/decorators'
+
+@Component()
+class Player extends StatefulComponent {
+  @Command() play!: Command
+  @Command() pause!: Command
+  @Command<number>() seek!: Command<number>
+}
+```
+
+Calling `createCommand()` directly as a field initializer still works and is unaffected.
+
 ## 1.5.1
 
 `@FunctionProp()` now logs a `console.warn` in development when the received value isn't a function, instead of silently accepting it.

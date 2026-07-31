@@ -34,7 +34,7 @@ export {
   Ref,
   createRef,
 } from "./properties";
-export { type Command, createCommand, Emit, OnCommand } from "./events";
+export { Command, createCommand, Emit, OnCommand } from "./events";
 export {
   createFieldDecorator,
   type FieldBehavior,

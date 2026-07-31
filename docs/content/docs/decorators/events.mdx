@@ -153,4 +153,33 @@ seek.trigger(45.2)  // seek to 45.2 seconds
 seek.subscribe((time) => console.log('seek to', time))
 ```
 
+### `@Command<T>()` — field decorator syntax
+
+`Command<T>` is both the decorator function and the type annotation — one import, used in both positions, same as [`@Ref<T>()`](/docs/decorators/state#reft). Use it on the parent that owns the commands instead of calling `createCommand()` by hand:
+
+```tsx
+import { Command } from '@praxisjs/decorators'
+
+@Component()
+class Player extends StatefulComponent {
+  @Command() play!: Command
+  @Command() pause!: Command
+  @Command<number>() seek!: Command<number>
+
+  render() {
+    return (
+      <VideoPlayer play={this.play} pause={this.pause} seek={this.seek} />
+    )
+  }
+
+  handleSeekClick(time: number) {
+    this.seek.trigger(time)
+  }
+}
+```
+
+Each decorated field gets its own `Command` instance, created once per component instance — equivalent to writing `play = createCommand()` as a plain field initializer, but consistent with the rest of the field-decorator API.
+
+<StorybookLink story="decorators-events-command--command-story" label="Live demo — @Command()" />
+
 <StorybookLink story="decorators-events-oncommand--on-command-story" label="Live demo — @OnCommand" />

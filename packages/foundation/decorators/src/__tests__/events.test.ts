@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { StatefulComponent } from "@praxisjs/core";
 import { setComponentDefault } from "@praxisjs/core/internal";
 
-import { createCommand } from "../events/command";
+import { Command, createCommand } from "../events/command";
 import { Emit } from "../events/emit";
 import { readProp } from "../events/helper";
 import { OnCommand } from "../events/on-command";
@@ -22,6 +22,18 @@ function methodCtx(name: string) {
       kind: "method" as const,
       addInitializer(fn: (this: unknown) => void) { initializers.push(fn); },
     } as ClassMethodDecoratorContext,
+    run(instance: unknown) { initializers.forEach((fn) => { fn.call(instance); }); },
+  };
+}
+
+function fieldCtx(name: string) {
+  const initializers: Array<(this: unknown) => void> = [];
+  return {
+    ctx: {
+      name,
+      kind: "field" as const,
+      addInitializer(fn: (this: unknown) => void) { initializers.push(fn); },
+    } as ClassFieldDecoratorContext,
     run(instance: unknown) { initializers.forEach((fn) => { fn.call(instance); }); },
   };
 }
@@ -59,6 +71,91 @@ describe("createCommand", () => {
     const handler = vi.fn();
     cmd.subscribe(handler);
     cmd.trigger(undefined as unknown as void);
+    expect(handler).toHaveBeenCalledOnce();
+  });
+});
+
+// ── Command ──────────────────────────────────────────────────────────────────
+
+describe("Command decorator", () => {
+  it("exposes a triggerable, subscribable Command on the field", () => {
+    const { ctx, run } = fieldCtx("play");
+    Command()(undefined, ctx);
+
+    const instance = new TestComponent();
+    run(instance);
+
+    const cmd = (instance as unknown as Record<string, unknown>).play as Command<void>;
+    const handler = vi.fn();
+    cmd.subscribe(handler);
+    cmd.trigger();
+    expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it("passes the trigger argument through for typed commands", () => {
+    const { ctx, run } = fieldCtx("seek");
+    Command<number>()(undefined, ctx);
+
+    const instance = new TestComponent();
+    run(instance);
+
+    const cmd = (instance as unknown as Record<string, unknown>).seek as Command<number>;
+    const handler = vi.fn();
+    cmd.subscribe(handler);
+    cmd.trigger(12);
+    expect(handler).toHaveBeenCalledWith(12);
+  });
+
+  it("returns the same command object on every access", () => {
+    const { ctx, run } = fieldCtx("play");
+    Command()(undefined, ctx);
+
+    const instance = new TestComponent();
+    run(instance);
+
+    const inst = instance as unknown as Record<string, unknown>;
+    expect(inst.play).toBe(inst.play);
+  });
+
+  it("each instance gets its own independent command", () => {
+    const { ctx: ctx1, run: run1 } = fieldCtx("play");
+    const { ctx: ctx2, run: run2 } = fieldCtx("play");
+    Command()(undefined, ctx1);
+    Command()(undefined, ctx2);
+
+    const a = new TestComponent();
+    const b = new TestComponent();
+    run1(a);
+    run2(b);
+
+    const cmdA = (a as unknown as Record<string, unknown>).play as Command<void>;
+    const cmdB = (b as unknown as Record<string, unknown>).play as Command<void>;
+
+    const handlerA = vi.fn();
+    const handlerB = vi.fn();
+    cmdA.subscribe(handlerA);
+    cmdB.subscribe(handlerB);
+    cmdA.trigger();
+
+    expect(handlerA).toHaveBeenCalledOnce();
+    expect(handlerB).not.toHaveBeenCalled();
+  });
+
+  it("works as a Command prop consumed by OnCommand in a parent/child pair", () => {
+    const { ctx: fieldContext, run: runField } = fieldCtx("play");
+    Command()(undefined, fieldContext);
+    const parent = new TestComponent();
+    runField(parent);
+    const play = (parent as unknown as Record<string, unknown>).play as Command<void>;
+
+    const { ctx: methodContext, run: runMethod } = methodCtx("handlePlay");
+    const handler = vi.fn();
+    OnCommand("play")(handler as never, methodContext as unknown as ClassMethodDecoratorContext<StatefulComponent>);
+    const child = new TestComponent({ play });
+    runMethod(child);
+
+    child.onMount?.();
+    play.trigger();
     expect(handler).toHaveBeenCalledOnce();
   });
 });
