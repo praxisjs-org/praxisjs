@@ -1,5 +1,12 @@
 # @praxisjs/store
 
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [b24f603]
+  - @praxisjs/decorators@1.6.0
+
 ## 2.0.1
 
 ### Patch Changes
