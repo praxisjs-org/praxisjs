@@ -1,5 +1,12 @@
 # @praxisjs/head
 
+## 0.2.6
+
+### Patch Changes
+
+- Updated dependencies [b24f603]
+  - @praxisjs/decorators@1.6.0
+
 ## 0.2.5
 
 ### Patch Changes
