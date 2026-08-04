@@ -1,15 +1,16 @@
 import { StatefulComponent } from "@praxisjs/core";
 import { Component } from "@praxisjs/decorators";
-import { Router, RouterView, Link, Lazy } from "@praxisjs/router";
+import { Router, RouterView, Link } from "@praxisjs/router";
 import { Stylesheet, Styled, Themed } from "@praxisjs/css";
 
 import { AppTokens, LightTheme } from "./tokens";
-import { Home } from "./pages/home";
-import About from "./pages/about";
-import SyncedPage from "./pages/synced";
-import DeepStatePage from "./pages/deep-state";
-import PerformancePage from "./pages/performance";
-import ComputedPage from "./pages/computed";
+import { routes } from "./routes";
+
+// Re-exported so `ssgPlugin({ root: './src/app.tsx' })` can load the route
+// table (including each dynamic route's own `getStaticPaths`) via the same
+// SSR module load as the default export, without vite.config.ts ever
+// importing this (JSX-containing) module tree itself.
+export { routes };
 
 // ─── App shell styles ─────────────────────────────────────────────────────────
 
@@ -67,16 +68,7 @@ class AppStyles extends Stylesheet {
 // ─── App component ────────────────────────────────────────────────────────────
 
 @Themed(AppTokens, LightTheme)
-@Router([
-  Home,
-  About,
-  SyncedPage,
-  DeepStatePage,
-  PerformancePage,
-  ComputedPage,
-  { path: "/blog",       component: Lazy(() => import("./pages/blog")) },
-  { path: "/blog/:slug", component: Lazy(() => import("./pages/post")) },
-])
+@Router(routes)
 @Component()
 export class App extends StatefulComponent {
   @Styled(AppStyles) $s!: AppStyles;
@@ -106,3 +98,7 @@ export class App extends StatefulComponent {
     );
   }
 }
+
+// Default export — required by `ssgPlugin({ root: './src/app.tsx' })`, which
+// loads the root component via a dynamic import.
+export default App;

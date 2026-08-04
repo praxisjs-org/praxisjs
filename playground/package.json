@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@praxisjs/devtools": "workspace:*",
+    "@praxisjs/ssg": "workspace:*",
     "@praxisjs/vite-plugin": "workspace:*",
     "typescript": "catalog:",
     "vite": "catalog:",
