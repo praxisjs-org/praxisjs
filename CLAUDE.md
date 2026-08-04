@@ -389,7 +389,14 @@ Linting runs on staged `packages/**/*.{ts,tsx}` files via Husky pre-commit hook.
 
 ## Comments
 
-Default to no comments — well-named identifiers already say what the code does. Only add one when the *why* isn't obvious from reading it: a hidden constraint, a workaround for a specific bug, an invariant a future edit could silently break. If removing the comment wouldn't confuse a future reader, don't write it.
+**Hard rule: only comments that explain a non-obvious *why*.** Default to no comments — well-named identifiers already say what the code does. Only add one when the *why* isn't obvious from reading it: a hidden constraint, a workaround for a specific bug, an invariant a future edit could silently break. If removing the comment wouldn't confuse a future reader, don't write it.
+
+This is enforced, not a style preference. Before finishing any change, review every comment you added or touched and remove the ones that fail the test:
+
+- **Restates the next line** — narrates what the code below it already says (`// loop over items` above a `for` loop, `// return the result` above a `return`). Delete it.
+- **Redundant with the test/function name** — in tests, if the `it("...")` description or a well-named variable already conveys what an assertion checks, an inline comment repeating it adds nothing. Delete it.
+- **References ephemeral, out-of-repo context** — a plan file, a chat conversation, a task/ticket number, "as discussed." None of that is reachable by a future reader. Either make the comment self-contained or delete it.
+- **Keep** comments that explain a hidden constraint, a specific bug workaround, why a defensive/edge-case branch exists, or an invariant that isn't visible from the code itself — these are exactly what this rule protects, not what it targets.
 
 ---
 
