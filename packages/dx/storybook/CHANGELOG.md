@@ -1,5 +1,13 @@
 # @praxisjs/storybook
 
+## 0.2.9
+
+### Patch Changes
+
+- Updated dependencies [728c90e]
+  - @praxisjs/runtime@0.6.0
+  - @praxisjs/vite-plugin@4.0.5
+
 ## 0.2.8
 
 ### Patch Changes

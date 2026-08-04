@@ -1,0 +1,22 @@
+# @praxisjs/ssg
+
+## 0.1.0
+
+### Minor Changes
+
+- dab1c4f: Add `@praxisjs/ssg` — static site generation for PraxisJS.
+
+  `ssgPlugin({ root, routerOptions?, hydrate? })` plugs into `vite.config.ts` alongside `praxisjs()`. `root` exports the app's root component (default export) and route table (named `routes`). A dynamic route like `/blog/:slug` expands into concrete paths via its own `getStaticPaths: (fullPath) => Promise<string[]>` declared directly on the route object — colocated, no path matching needed, and the route's own full path is passed in for helpers like `@praxisjs/content`'s `collectionStaticPaths()` — with a top-level `getStaticPaths` named export on `root` available as a fallback for routes that don't declare their own. After `vite build`, it prerenders every route into its own `index.html`, waiting for `resource()`/`@Collection` data — and any `Lazy(...)`-wrapped route/layout component — to settle before serializing. The lower-level `prerender()` function does the same work without the Vite integration, for custom build pipelines.
+
+  By default the output is marked for client-side hydration (`@praxisjs/runtime`'s `render()` reconciles the real DOM instead of discarding it); pass `hydrate: false` to fall back to a plain client remount instead.
+
+### Patch Changes
+
+- Updated dependencies [1ec5b2f]
+- Updated dependencies [ef46e56]
+- Updated dependencies [9ceee18]
+- Updated dependencies [728c90e]
+  - @praxisjs/core@2.1.0
+  - @praxisjs/head@0.3.0
+  - @praxisjs/router@2.2.0
+  - @praxisjs/runtime@0.6.0

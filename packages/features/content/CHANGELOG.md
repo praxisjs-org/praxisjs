@@ -1,5 +1,17 @@
 # @praxisjs/content
 
+## 0.2.0
+
+### Minor Changes
+
+- a4963a0: Add `collectionStaticPaths(Schema)` — builds a `@praxisjs/ssg`-compatible per-route `getStaticPaths` directly from a collection, substituting each entry's `slug` into the route's one dynamic segment. Removes the need to hand-write a `getCollection(...).map(...)` for the common case of a dynamic route backed 1:1 by a content collection.
+
+### Patch Changes
+
+- Updated dependencies [1ec5b2f]
+  - @praxisjs/core@2.1.0
+  - @praxisjs/decorators@1.6.1
+
 ## 0.1.11
 
 ### Patch Changes
