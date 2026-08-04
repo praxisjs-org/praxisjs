@@ -4,11 +4,11 @@ import { signal } from "@praxisjs/core/internal";
 import { StatefulComponent } from "@praxisjs/core";
 
 import { Head } from "../index";
-import { pushHead, removeHead, _resetHead, headVersion } from "../head-stack";
+import { pushHead, removeHead, resetHeadState, headVersion } from "../head-stack";
 
 beforeEach(() => {
   document.head.innerHTML = "";
-  _resetHead();
+  resetHeadState();
   document.title = "initial";
 });
 
@@ -94,17 +94,16 @@ describe("pushHead / removeHead", () => {
 
   it("removeHead with a non-existent id is a no-op (idx < 0 branch)", () => {
     const id = Symbol("never-pushed");
-    // _apply() still runs but the stack stays empty
     expect(() => removeHead(id)).not.toThrow();
     expect(document.querySelectorAll("[data-praxis-head]").length).toBe(0);
   });
 
   it("_apply restores title to '' when _initialTitle is undefined and stack is empty", () => {
-    // _resetHead leaves _initialTitle = undefined; calling removeHead on a missing id
+    // resetHeadState leaves _initialTitle = undefined; calling removeHead on a missing id
     // triggers _apply with an empty stack and undefined _initialTitle → title = "" fallback.
     const id = Symbol("missing");
     document.title = "should-be-cleared";
-    removeHead(id); // idx < 0 → no splice; _apply runs → empty stack, _initialTitle = undefined
+    removeHead(id);
     expect(document.title).toBe("");
   });
 
@@ -180,7 +179,6 @@ describe("pushHead / removeHead", () => {
   it("meta tag with neither name nor property is silently skipped", () => {
     const id = Symbol();
     pushHead(id, { meta: [{ content: "orphan-content" }] });
-    // Neither _metaName nor _metaProp should be called
     const all = document.querySelectorAll("[data-praxis-head]");
     const hasOrphan = Array.from(all).some((el) =>
       el.getAttribute("content") === "orphan-content",
@@ -219,20 +217,20 @@ describe("SSR guards — no DOM operations when document is undefined", () => {
     expect(() => removeHead(id)).not.toThrow();
   });
 
-  it("_resetHead skips DOM cleanup when document is undefined", () => {
+  it("resetHeadState skips DOM cleanup when document is undefined", () => {
     vi.stubGlobal("document", undefined);
-    expect(() => _resetHead()).not.toThrow();
+    expect(() => resetHeadState()).not.toThrow();
   });
 });
 
-describe("_resetHead — DOM cleanup", () => {
+describe("resetHeadState — DOM cleanup", () => {
   it("removes managed elements from document.head when called with elements present", () => {
     const id = Symbol();
     pushHead(id, { title: "Before Reset", description: "desc" });
     expect(document.querySelectorAll("[data-praxis-head]").length).toBeGreaterThan(0);
 
-    // Call _resetHead WITHOUT clearing head.innerHTML first — exercises the forEach
-    _resetHead();
+    // Call resetHeadState WITHOUT clearing head.innerHTML first — exercises the forEach
+    resetHeadState();
     expect(document.querySelectorAll("[data-praxis-head]").length).toBe(0);
   });
 });

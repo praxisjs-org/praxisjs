@@ -174,8 +174,13 @@ function _linkPrefetch(link: LinkPrefetch): void {
   document.head.appendChild(el);
 }
 
-/** Resets all head state. For use in tests only. */
-export function _resetHead(): void {
+/**
+ * Resets all head state — the tag stack and the remembered initial `<title>`.
+ * Used between pages in an `@praxisjs/ssg` prerender run (same Node process,
+ * many `render()` calls) so one route's `<head>` never leaks into the next;
+ * also used by this package's own tests.
+ */
+export function resetHeadState(): void {
   _stack.length = 0;
   _initialTitle = undefined;
   if (typeof document !== "undefined") {
