@@ -1,4 +1,5 @@
 import { StatelessComponent } from "@praxisjs/core";
+import { isServerRenderPass } from "@praxisjs/core/internal";
 
 import { mountChildren } from "./children";
 import { getCurrentScope } from "./context";
@@ -12,6 +13,13 @@ export class Portal extends StatelessComponent<PortalProps> {
   static readonly __isStateless = true;
 
   render() {
+    // Portals escape to an arbitrary external target (default document.body),
+    // which would need a hydration cursor shared across every portal mounted at
+    // that same target — out of scope for v1. Skip during the server render pass
+    // (target content isn't part of the static HTML); the client mounts normally,
+    // create-mode, right after hydration completes — no duplication.
+    if (isServerRenderPass()) return null;
+
     const scope = getCurrentScope();
     const target = resolvePortalTarget(this.props.to);
     if (!target) return null;

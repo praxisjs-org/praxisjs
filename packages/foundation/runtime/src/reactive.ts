@@ -1,4 +1,5 @@
 import { runInScope } from "./context";
+import { isRecording, registerReactiveNode } from "./hydration-context";
 import { Scope } from "./scope";
 
 function collectNodes(value: unknown, out: Node[]): void {
@@ -36,6 +37,15 @@ export function mountReactive(
     const result = runInScope(childScope, fn);
     const newNodes: Node[] = [];
     collectNodes(result, newNodes);
+
+    // During a hydration build pass, remember that each of these fresh nodes
+    // belongs to *this* array — reconcile() mutates `newNodes` in place (by
+    // reference, same array `currentNodes` ends up pointing at) if it decides
+    // to keep a real element instead of one of them, so future diffs here
+    // stay correct.
+    if (isRecording()) {
+      for (const n of newNodes) registerReactiveNode(n, newNodes);
+    }
 
     const anchor = end.parentNode ?? parent;
 
