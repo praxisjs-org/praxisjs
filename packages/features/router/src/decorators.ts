@@ -62,7 +62,7 @@ export function Route(options: string | RouteOptions) {
 // ── @Router ───────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function normalizeRoute(entry: RouteDefinition | (new (...args: any[]) => any)): RouteDefinition {
+export function normalizeRoute(entry: RouteDefinition | (new (...args: any[]) => any)): RouteDefinition {
   if (typeof entry === "function" && "__routePath" in entry) {
     const e = entry as {
       __routePath: string;

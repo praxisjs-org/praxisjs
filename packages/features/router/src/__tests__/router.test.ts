@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+import { flushPendingResources, setServerRenderPass } from "@praxisjs/core/internal";
+
 import { RouterInstance, createRouter, useRouter, useParams, useQuery, useLocation, lazy } from "../router";
 import { Router, Lazy, Params, Query, Location, Route, InjectLayout } from "../decorators";
 import { RouterInstance as RouterInstanceFromIndex } from "../index";
@@ -11,7 +13,6 @@ class AboutPage { render() { return null; } }
 class UserPage { render() { return null; } }
 
 function makeRouter() {
-  // Reset module-level singleton between tests
   return new RouterInstance([
     { path: "/", component: HomePage },
     { path: "/about", component: AboutPage },
@@ -304,7 +305,7 @@ describe("Router lazy component", () => {
 
     // Second navigation should use the cache
     await r.push("/lazy");
-    expect(loaderFn).toHaveBeenCalledOnce(); // still only once
+    expect(loaderFn).toHaveBeenCalledOnce();
   });
 
   it("sets loading true while resolving lazy component", async () => {
@@ -316,7 +317,6 @@ describe("Router lazy component", () => {
     const r = new RouterInstance([{ path: "/lazy2", component: lazyComp }]);
 
     const pushPromise = r.push("/lazy2");
-    // loading should be true while we wait
     expect(r.loading()).toBe(true);
     resolveLoader({ default: AboutPage });
     await pushPromise;
@@ -352,11 +352,29 @@ describe("Router lazy component", () => {
     const lazyComp = lazy(loaderFn);
     const r = new RouterInstance([{ path: "/bad-lazy", component: lazyComp }]);
 
-    // push() propagates the rejection
     await expect(r.push("/bad-lazy")).rejects.toThrow("load failed");
-    // component was never set
     expect(r.currentComponent()).toBeNull();
     expect(r.loading()).toBe(false); // loading reset in finally
+  });
+
+  it("tracks the initial navigation's lazy component resolution as a pending resource during a server render pass", async () => {
+    window.history.pushState(null, "", "/lazy-initial");
+    const loaderFn = vi.fn().mockResolvedValue({ default: AboutPage });
+    const lazyComp = lazy(loaderFn);
+
+    setServerRenderPass(true);
+    try {
+      const r = new RouterInstance([{ path: "/lazy-initial", component: lazyComp }]);
+      // The constructor kicks this off unawaited (a fresh navigation, not
+      // push()/replace()) — without tracking it as a pending resource, an SSG
+      // prerender pass's flushPendingResources() would resolve immediately,
+      // serializing the page before this settles.
+      expect(r.currentComponent()).toBeNull();
+      await flushPendingResources();
+      expect(r.currentComponent()).toBe(AboutPage);
+    } finally {
+      setServerRenderPass(false);
+    }
   });
 
   it("beforeEnter that throws blocks navigation and re-throws", async () => {
@@ -370,7 +388,6 @@ describe("Router lazy component", () => {
     ]);
 
     await expect(r.push("/boom")).rejects.toThrow("guard boom");
-    // Location stays at "/"
     expect(r.location().path).toBe("/");
   });
 });
@@ -482,20 +499,12 @@ describe("Router navigation sequence", () => {
       { path: "/fast", component: HomePage },
     ]);
 
-    // Start a slow navigation to /slow (lazy, not yet resolved)
     const slowPush = r.push("/slow");
-
-    // Immediately push to /fast (eager, resolves first)
     await r.push("/fast");
-
-    // /fast has resolved — component should be HomePage
     expect(r.currentComponent()).toBe(HomePage);
 
-    // Now resolve the slow loader — its result should be discarded
     resolveSlowLoader({ default: AboutPage });
     await slowPush;
-
-    // Component must remain HomePage, not be overwritten by the stale slow result
     expect(r.currentComponent()).toBe(HomePage);
   });
 
@@ -514,16 +523,12 @@ describe("Router navigation sequence", () => {
       { path: "/b", component: HomePage,  layout: LayoutB },
     ]);
 
-    // Start slow push to /a — blocks on component resolution, never reaches layout
     const slowPush = r.push("/a");
-
-    // Push /b immediately — resolves fast and sets LayoutB
     await r.push("/b");
 
     expect(r.currentLayout()).toBe(LayoutB);
     expect(r.currentComponent()).toBe(HomePage);
 
-    // Resolving the slow component now — seq check must discard the stale result
     resolveSlowComp({ default: AboutPage });
     await slowPush;
 
@@ -601,16 +606,12 @@ describe("@Router", () => {
     // After both decorations, _router belongs to AppB
     expect(useRouter()).toBeInstanceOf(RouterInstance);
 
-    // Instantiating AppA's Wrapped subclass must re-activate AppA's router
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     new (AppA as any)();
     const routerA = useRouter();
     expect(routerA).toBeInstanceOf(RouterInstance);
-
-    // AppA's router has /a but not /b
     expect(routerA.params).toBeDefined();
 
-    // Instantiating AppB re-activates AppB's router
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     new (AppB as any)();
     const routerB = useRouter();
@@ -697,7 +698,6 @@ describe("@Route", () => {
     class Page { render() { return null; } }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const Enhanced = Route("/page")(Page as any, {} as ClassDecoratorContext);
-    // Creating an instance invokes RouteBehavior.create() internally
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(() => new (Enhanced as any)()).not.toThrow();
   });

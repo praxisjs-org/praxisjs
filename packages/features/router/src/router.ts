@@ -1,4 +1,4 @@
-import { computed, signal } from "@praxisjs/core/internal";
+import { computed, signal, trackPendingResource } from "@praxisjs/core/internal";
 import type { Signal, Computed } from "@praxisjs/shared";
 
 import { compilePath, parseQuery } from "./utils";
@@ -72,7 +72,13 @@ export class RouterInstance {
     this.query = computed(() => this._location().query);
     this.meta = computed(() => this._location().meta);
 
-    void this.resolveAndSetComponent(initial.path);
+    // Tracked as a pending resource so an SSG prerender pass's
+    // flushPendingResources() waits for lazy route/layout components to
+    // resolve before serializing — otherwise the nested Vite server can
+    // close (or move on to the next page) while this is still awaiting a
+    // dynamic import, turning a routine navigation into an unhandled
+    // rejection against an already-closed module runner. No-op on the client.
+    trackPendingResource(this.resolveAndSetComponent(initial.path));
 
     window.addEventListener("popstate", () => {
       void this.syncFromBrowser();
