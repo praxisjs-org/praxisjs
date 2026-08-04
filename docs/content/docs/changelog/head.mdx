@@ -6,6 +6,10 @@ icon: Globe
 
 # @praxisjs/head
 
+## 0.3.0
+
+Added a `@praxisjs/head/internal` entry point exporting `resetHeadState()`, so `@praxisjs/ssg`'s prerender runner can clear `<head>` tag state between routes rendered in the same Node process.
+
 ## 0.2.0
 
 Added `preload` and `prefetch` link support to `HeadConfig`.

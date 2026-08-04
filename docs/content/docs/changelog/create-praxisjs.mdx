@@ -6,6 +6,10 @@ icon: Rocket
 
 # create-praxisjs
 
+## 1.0.6
+
+Fixed the **blog** template's `vite.config.ts` plugin order — `contentPlugin()` now runs before `praxisjs()`. With `praxisjs()` first, its decorator lowering stripped `@Collection('./path/*.md')` down to a plain call before `contentPlugin()`'s regex transform ever saw the `@`, so the glob string reached `@praxisjs/content` unexpanded and `getCollection()` produced one broken entry per character of that string instead of the real posts.
+
 ## 1.0.5
 
 Scaffolded projects now resolve `@praxisjs/*` dependency versions from the npm registry at scaffold time instead of shipping them pinned in the published package — `create-praxisjs` no longer needs a new release just because a `@praxisjs/*` package published a new version.

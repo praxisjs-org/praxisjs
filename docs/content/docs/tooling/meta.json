@@ -3,6 +3,7 @@
   "icon": "Hammer",
   "pages": [
     "vite-plugin",
+    "ssg",
     "devtools",
     "devtools-plugins",
     "storybook",

@@ -71,6 +71,24 @@ This is the same plugin `praxisjs()` includes internally — it only lowers file
 
 ---
 
+## Static site generation
+
+For prerendering routes to static HTML at build time (with real client-side hydration), add [`ssgPlugin()`](/docs/tooling/ssg) from `@praxisjs/ssg` alongside `praxisjs()`:
+
+```ts
+// vite.config.ts
+import { praxisjs } from '@praxisjs/vite-plugin'
+import { ssgPlugin } from '@praxisjs/ssg'
+
+export default defineConfig({
+  plugins: [praxisjs(), ssgPlugin({ root: './src/app.tsx' })],
+})
+```
+
+See the [SSG guide](/docs/tooling/ssg) for route enumeration, dynamic routes, and how hydration works.
+
+---
+
 ## TypeScript configuration
 
 The plugin handles the Vite/oxc side, but TypeScript still needs its own configuration:

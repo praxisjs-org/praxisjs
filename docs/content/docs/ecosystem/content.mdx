@@ -22,9 +22,13 @@ import { praxisjs }      from '@praxisjs/vite-plugin'
 import { contentPlugin } from '@praxisjs/content/vite'
 
 export default {
-  plugins: [praxisjs(), contentPlugin()],
+  plugins: [contentPlugin(), praxisjs()],
 }
 ```
+
+<Callout type="warn" title="contentPlugin() must come before praxisjs()">
+  Both plugins run with `enforce: "pre"`, and Vite preserves relative order within that tier — so whichever one appears first in the array runs first. `praxisjs()` includes decorator lowering, which strips `@Collection('./path/*.md')` down to a plain `Collection('./path/*.md')` call. If that runs before `contentPlugin()`'s regex transform sees the `@`, the glob string reaches `@praxisjs/content` unexpanded — `getCollection()` then iterates the string's individual characters as if they were file paths, producing one broken "entry" per character instead of your actual files.
+</Callout>
 
 ---
 
@@ -147,6 +151,30 @@ const page  = await getPage(Blog, { page: 2, pageSize: 10 })    // Promise<Entry
 ```
 
 `getTotal` is synchronous and reads zero files — it only counts the keys already present in the glob record. `getPage` loads only the files for the requested slice, all in parallel.
+
+---
+
+## Static paths for `@praxisjs/ssg`
+
+`collectionStaticPaths(Schema)` builds a per-route `getStaticPaths` for `@praxisjs/ssg` directly from a collection — every entry's `slug` is substituted into the route's dynamic segment, so there's no manual `getCollection` + `.map()` glue to write:
+
+```ts
+// src/routes.ts
+import { collectionStaticPaths } from '@praxisjs/content'
+import type { RouteEntry } from '@praxisjs/ssg'
+import { Blog } from './content/blog'
+
+export const routes: RouteEntry[] = [
+  // ...other routes
+  {
+    path: '/blog/:slug',
+    component: BlogPost,
+    getStaticPaths: collectionStaticPaths(Blog),
+  },
+]
+```
+
+The route's own full path (`/blog/:slug`) is passed in automatically by `@praxisjs/ssg` — it must contain exactly one dynamic segment. Routes with zero or multiple params aren't a single-field substitution; write a plain `getStaticPaths` function for those instead. See the [SSG guide](/docs/tooling/ssg#dynamic-routes) for the full picture.
 
 ---
 

@@ -1,0 +1,173 @@
+---
+title: SSG
+description: "@praxisjs/ssg — static site generation with real client-side hydration: prerender every route to HTML at build time, then reconcile it into the live DOM on the client instead of discarding it."
+icon: FileStack
+---
+
+# SSG
+
+<Callout type="warn" title="Experimental">
+  `@praxisjs/ssg` is new and still evolving — expect rougher edges and possible breaking changes in minor versions until it stabilizes. See [Project Status](/docs/guide/project-status) for the package stability matrix.
+</Callout>
+
+Prerenders your app's routes to static HTML at build time — good for SEO and first paint — and hydrates that HTML on the client instead of throwing it away and mounting fresh. Matching elements keep their real DOM node (props and listeners are reapplied to it); only text/comment nodes and any local mismatch are recreated.
+
+<PackageInstall pkg="@praxisjs/ssg" dev />
+
+---
+
+## Setup
+
+Add `ssgPlugin()` alongside `praxisjs()`. It runs after `vite build` finishes, loading `root` through Vite's own SSR module graph to read the route table:
+
+```ts
+// vite.config.ts
+import { praxisjs } from '@praxisjs/vite-plugin'
+import { ssgPlugin } from '@praxisjs/ssg'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  plugins: [
+    praxisjs(),
+    ssgPlugin({
+      root: './src/app.tsx', // exports the root component (default), routes, and optionally getStaticPaths
+    }),
+  ],
+})
+```
+
+`root` must export the root component as its **default export** and the same route table passed to `@Router([...])` as a named **`routes`** export — the plugin needs that table to enumerate pages, but can't read it back out of a decorated class at build time.
+
+```ts
+// src/routes.ts
+import type { RouteDefinition } from '@praxisjs/router'
+import { Home, About, BlogPost } from './pages'
+
+export const routes: RouteDefinition[] = [
+  { path: '/', component: Home },
+  { path: '/about', component: About },
+  { path: '/blog/:slug', component: BlogPost },
+]
+```
+
+```tsx
+// src/app.tsx
+import { Router } from '@praxisjs/router'
+import { routes } from './routes'
+
+export { routes }
+
+@Router(routes)
+export default class App extends StatefulComponent {
+  render() {
+    return <RouterView />
+  }
+}
+```
+
+<Callout type="warn" title="routes and getStaticPaths can't be plugin options">
+  `vite.config.ts` is loaded by Vite's own minimal config bundler, which inlines relative imports without lowering decorator syntax — a `routes`/`getStaticPaths` value passed directly to `ssgPlugin({ ... })` that reaches a decorated class (e.g. a `@Collection`-decorated schema) through a relative import would bundle raw decorator syntax straight into the config, which Node can't execute. Exporting both from `root` instead avoids this: they only ever load through `ssrLoadModule()`, which runs the app's real Vite pipeline, decorator lowering included.
+</Callout>
+
+No other change is needed — `main.tsx` keeps calling `render(() => <App />, document.getElementById('app'))` exactly as it does today. `render()` decides on its own whether to hydrate, based on a marker the prerendered HTML carries.
+
+---
+
+## Options
+
+```ts
+ssgPlugin({
+  root: './src/app.tsx',
+  routerOptions: {},
+  containerSelector: '#app',
+  hydrate: true,
+})
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `root` | `string` | — | Module specifier exporting the root component (default), the route table (named `routes`), and optionally `getStaticPaths` (named). |
+| `routerOptions` | `RouterOptions` | — | Same options object passed to `@Router([...], options)` / `createRouter()`. |
+| `containerSelector` | `string` | `"#app"` | CSS selector for the mount container inside `index.html`. |
+| `hydrate` | `boolean` | `true` | Marks output HTML for client-side hydration. Set `false` to fall back to a plain client remount — see [Turning hydration off](#turning-hydration-off). |
+
+### Dynamic routes
+
+A route like `/blog/:slug` has no fixed set of pages — give it its own `getStaticPaths` right on the route definition to supply the concrete paths to prerender. `@praxisjs/content` users don't need to write this by hand: `collectionStaticPaths(Schema)` builds it directly from a collection, substituting each entry's `slug` into the route's dynamic segment:
+
+```ts
+// src/routes.ts
+import { collectionStaticPaths } from '@praxisjs/content'
+import type { RouteEntry } from '@praxisjs/ssg'
+import { Blog } from './content/blog'
+
+export const routes: RouteEntry[] = [
+  // ...other routes
+  {
+    path: '/blog/:slug',
+    component: BlogPost,
+    getStaticPaths: collectionStaticPaths(Blog),
+  },
+]
+```
+
+Not using `@praxisjs/content`, or need custom logic? Write `getStaticPaths` directly — it receives the route's own full path (useful for helpers like `collectionStaticPaths` that don't want it repeated) and returns the concrete paths:
+
+```ts
+{
+  path: '/blog/:slug',
+  component: BlogPost,
+  getStaticPaths: async (fullPath) => ['/blog/hello-world', '/blog/second-post'],
+}
+```
+
+Either way, no path matching is needed — `getStaticPaths` here only ever runs for the exact route it's declared on. With several dynamic routes, each just gets its own, instead of one function dispatching on `fullPath`.
+
+<Callout type="info" title="Global fallback still available">
+  `root` can also export a top-level `getStaticPaths: GetStaticPaths` (receiving `(route, fullPath)`) as a fallback for routes that don't declare their own — a route's own `getStaticPaths` always takes precedence when both apply.
+</Callout>
+
+### Output
+
+`/` writes `index.html`; every other path writes `<path>/index.html` (`/about` → `about/index.html`, `/blog/hello-world` → `blog/hello-world/index.html`) — the trailing-slash convention most static hosts (Netlify, Vercel, GitHub Pages) expect.
+
+---
+
+## How hydration works
+
+1. The prerender pass mounts each route into a headless DOM (build time, Node), waiting for `resource()`/`@Collection` data — and any `Lazy(...)`-wrapped route/layout component — to settle first, then serializes the result.
+2. On the client, `render()` sees the hydration marker on the container and builds the component tree normally — same code as any client-only app — but into a detached node instead of the page.
+3. That fresh tree is then reconciled against the container's real DOM: matching elements **keep the real node** (props and event listeners are reapplied to it, not recreated), text and comment nodes are always taken from the fresh tree, and anything that doesn't line up locally falls back to being recreated at that one spot.
+
+<Callout type="info" title="No app changes required">
+  `render()` detects the hydration marker on its own — nothing about how a component is written or mounted needs to change to become hydratable.
+</Callout>
+
+### Turning hydration off
+
+Pass `hydrate: false` to skip all of this — the output HTML carries no marker, and `render()` falls back to its normal create-mode mount (clears the container, mounts fresh) on the client, exactly as it would for a page with no server-rendered HTML at all. Useful if a page's DOM is unlikely to match closely enough for reconciliation to be worth it (e.g. heavy client-only randomization).
+
+### Limitations
+
+- **`<Portal>` isn't part of the prerendered HTML.** Portals mount outside the normal tree (`document.body` by default), so the server render skips them entirely — they mount normally on the client, right after hydration completes. Fine for modals/tooltips, which rarely need to exist in the initial HTML anyway.
+- **`resource()`/`@Collection` data is re-fetched on the client, not transferred.** For build-time-static data this reproduces the exact same result, so it doesn't cause a visible mismatch — just some redundant work compared to serializing the data alongside the HTML.
+- **Reconciliation is positional, not keyed.** Dynamic lists are matched by position, not by a stable key. This is expected to be a non-issue for deterministic, build-time data (the same data produces the same order on both sides) but means a genuine reorder between build and first client render is treated as a set of local mismatches rather than detected as a reorder.
+
+---
+
+## Lower-level API
+
+`prerender()` does the actual rendering work without any Vite integration, for custom build pipelines:
+
+```ts
+import { prerender } from '@praxisjs/ssg'
+import App from './src/app'
+import { routes } from './src/routes'
+
+const pages = await prerender({
+  root: App,
+  routes,
+  template: await readFile('dist/index.html', 'utf-8'),
+})
+// pages: Array<{ path: string; file: string; html: string }>
+```

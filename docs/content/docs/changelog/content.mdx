@@ -6,6 +6,10 @@ icon: File
 
 # @praxisjs/content
 
+## 0.2.0
+
+Add `collectionStaticPaths(Schema)` — builds a `@praxisjs/ssg`-compatible per-route `getStaticPaths` directly from a collection, substituting each entry's `slug` into the route's one dynamic segment. Removes the need to hand-write a `getCollection(...).map(...)` for the common case of a dynamic route backed 1:1 by a content collection; throws a clear error if the route path has zero or more than one dynamic segment.
+
 ## 0.1.10
 
 `peerDependencies.vite` raised from `>=7.0.0` to `>=8.0.0`, matching the Vite 8 requirement the rest of the ecosystem (`@praxisjs/vite-plugin`) already enforces. `contentPlugin()` itself has no Vite-version-specific behavior — this only corrects the declared range.

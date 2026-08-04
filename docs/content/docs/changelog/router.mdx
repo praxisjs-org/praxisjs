@@ -6,6 +6,12 @@ icon: Route
 
 # @praxisjs/router
 
+## 2.2.0
+
+Exposed `createRouter` from `@praxisjs/router/internal`. `@praxisjs/ssg`'s prerender runner needs to rebind the router to a fresh `window.location` before rendering each route — the `@Router([...])` class decorator only calls `createRouter` once, at the first time the app module is imported.
+
+**Bug fix:** the router's initial navigation is now tracked against `@praxisjs/core`'s server-render resource barrier. Previously, prerendering a `Lazy(...)`-wrapped route with `@praxisjs/ssg` could serialize the page — and close the underlying Vite SSR module runner — before that route's dynamic import had resolved, producing pages with missing content and an unhandled rejection that crashed the build once the import finally settled. Client-side navigation is unaffected.
+
 ## 2.1.0
 
 **Named routes** — give routes a `name` and navigate by name instead of hardcoding paths.

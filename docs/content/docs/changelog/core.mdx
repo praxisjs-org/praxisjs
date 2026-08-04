@@ -6,6 +6,14 @@ icon: Activity
 
 # @praxisjs/core
 
+## 2.1.0
+
+Added a resource settle barrier and a server-render-pass flag for `@praxisjs/ssg`.
+
+`flushPendingResources()` (from `@praxisjs/core/internal`) awaits every `resource()` fetch — keyed or not — started while a server render pass is active, including ones triggered by resources that themselves settle while waiting. `setServerRenderPass()` / `isServerRenderPass()` mark that pass; both are no-ops outside of it, so client-only apps are unaffected.
+
+Also exposed `trackPendingResource()` from `@praxisjs/core/internal`, letting other framework packages register their own in-flight async work against the same barrier — `@praxisjs/router` uses it to track lazy route/layout resolution during a server render pass.
+
 ## 2.0.0
 
 **Breaking: component internals are no longer exposed as instance fields.**
