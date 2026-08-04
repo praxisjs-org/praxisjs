@@ -1,5 +1,17 @@
 # @praxisjs/head
 
+## 0.3.0
+
+### Minor Changes
+
+- ef46e56: Add a `@praxisjs/head/internal` entry point exporting `resetHeadState()`, so `@praxisjs/ssg`'s prerender runner can clear `<head>` tag state between routes rendered in the same Node process.
+
+### Patch Changes
+
+- Updated dependencies [1ec5b2f]
+  - @praxisjs/core@2.1.0
+  - @praxisjs/decorators@1.6.1
+
 ## 0.2.6
 
 ### Patch Changes
