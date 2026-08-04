@@ -110,6 +110,33 @@ export function pathToSlug(path: string): string {
     .replace(/\.mdx?$/, "");
 }
 
+const DYNAMIC_SEGMENT = /:[^/]+/g;
+
+/**
+ * Builds a `@praxisjs/ssg`-compatible per-route `getStaticPaths` from a
+ * collection: every entry's `slug` is substituted into the route's one
+ * dynamic segment. Every `@Collection` entry has a `slug`, so this needs
+ * nothing beyond the schema class itself — no manual mapping/glue code.
+ *
+ * `fullPath` must contain exactly one dynamic segment (e.g. `/blog/:slug`);
+ * routes with more than one param aren't a single-field substitution and
+ * need a hand-written `getStaticPaths` instead.
+ */
+export function collectionStaticPaths(
+  SchemaClass: new () => ContentSchema,
+): (fullPath: string) => Promise<string[]> {
+  return async (fullPath: string) => {
+    const segments = fullPath.match(DYNAMIC_SEGMENT) ?? [];
+    if (segments.length !== 1) {
+      throw new Error(
+        `[content] collectionStaticPaths(${SchemaClass.name}) expects exactly one dynamic segment in the route path, got "${fullPath}" (${String(segments.length)} found). Write a custom getStaticPaths for routes with zero or multiple params.`,
+      );
+    }
+    const entries = await getCollection(SchemaClass);
+    return entries.map((entry) => fullPath.replace(DYNAMIC_SEGMENT, entry.slug));
+  };
+}
+
 async function loadRaw(loader: GlobImport[string]): Promise<string> {
   if (typeof loader === "string") return loader;
   return loader();

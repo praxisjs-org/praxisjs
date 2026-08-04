@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getCollection, getEntry, getTotal, getPage, pathToSlug, registerCollection } from "../collection";
+import { getCollection, getEntry, getTotal, getPage, pathToSlug, registerCollection, collectionStaticPaths } from "../collection";
 import { ContentSchema } from "../types";
 
 class Blog extends ContentSchema {
@@ -180,5 +180,33 @@ describe("getEntry", () => {
     await getEntry(SingleLoad, "b");
     expect(aLoaded).toBe(false);
     expect(bLoaded).toBe(true);
+  });
+});
+
+describe("collectionStaticPaths", () => {
+  it("substitutes each entry's slug into the route's dynamic segment", async () => {
+    setupBlog();
+    const paths = await collectionStaticPaths(Blog)("/blog/:slug");
+    expect(paths.sort()).toEqual(["/blog/hello-world", "/blog/second-post"]);
+  });
+
+  it("substitutes an optional :param? segment the same way", async () => {
+    setupBlog();
+    const paths = await collectionStaticPaths(Blog)("/blog/:slug?");
+    expect(paths.sort()).toEqual(["/blog/hello-world", "/blog/second-post"]);
+  });
+
+  it("throws when the route path has no dynamic segment", async () => {
+    setupBlog();
+    await expect(collectionStaticPaths(Blog)("/blog")).rejects.toThrow(
+      "expects exactly one dynamic segment",
+    );
+  });
+
+  it("throws when the route path has more than one dynamic segment", async () => {
+    setupBlog();
+    await expect(collectionStaticPaths(Blog)("/blog/:year/:slug")).rejects.toThrow(
+      "expects exactly one dynamic segment",
+    );
   });
 });
