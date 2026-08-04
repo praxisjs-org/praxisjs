@@ -38,8 +38,10 @@ export {
 export {
   resource,
   createResource,
+  flushPendingResources,
   type ResourceStatus,
   type Resource,
   type ResourceOptions,
 } from "./async/resource";
-export { invalidateResource, _clearCache } from "./async/resource-cache";
+export { invalidateResource, trackPendingResource, _clearCache } from "./async/resource-cache";
+export { setServerRenderPass, isServerRenderPass } from "./async/server-mode";

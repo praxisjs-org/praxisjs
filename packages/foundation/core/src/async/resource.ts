@@ -9,6 +9,8 @@ import {
   setInflight,
   registerResource,
   unregisterResource,
+  trackPendingResource,
+  getPendingResources,
 } from "./resource-cache";
 import { effect, untrack } from "../signal/effect";
 
@@ -58,6 +60,7 @@ export function resource<T>(
   let _runId = 0;
 
   function _execute(fn: Promise<T>): void {
+    trackPendingResource(fn);
     const currentRunId = ++_runId;
 
     function clearInflight(): void {
@@ -193,4 +196,18 @@ export function createResource<P, T>(
   options: ResourceOptions<T> = {},
 ): Resource<T> {
   return resource(() => fetcher(param()), options);
+}
+
+/**
+ * Awaits every resource fetch tracked during a server render pass (see
+ * `setServerRenderPass`), including ones triggered by resources that themselves
+ * settle while waiting (fixed-point loop). No-op — resolves immediately — when
+ * nothing is pending or tracking isn't active.
+ */
+export async function flushPendingResources(): Promise<void> {
+  for (;;) {
+    const pending = Array.from(getPendingResources());
+    if (pending.length === 0) return;
+    await Promise.allSettled(pending);
+  }
 }

@@ -1,3 +1,5 @@
+import { isServerRenderPass } from "./server-mode";
+
 interface CacheEntry {
   data: unknown;
   timestamp: number;
@@ -6,6 +8,7 @@ interface CacheEntry {
 const _cache = new Map<string, CacheEntry>();
 const _inflight = new Map<string, Promise<unknown>>();
 const _registry = new Map<string, Set<() => void>>();
+const _pendingResources = new Set<Promise<unknown>>();
 
 export function getCacheEntry(key: string): CacheEntry | undefined {
   return _cache.get(key);
@@ -54,9 +57,26 @@ export function invalidateResource(key: string): void {
   _registry.get(key)?.forEach((fn) => { fn(); });
 }
 
+/**
+ * Registers `promise` as pending while a server render pass is active (no-op otherwise,
+ * so client-side resource() calls never pay this cost). Self-removes on settle.
+ */
+export function trackPendingResource(promise: Promise<unknown>): void {
+  if (!isServerRenderPass()) return;
+  _pendingResources.add(promise);
+  const cleanup = (): void => { _pendingResources.delete(promise); };
+  promise.then(cleanup, cleanup);
+}
+
+/** Snapshot of currently in-flight resource promises tracked during a server render pass. */
+export function getPendingResources(): ReadonlySet<Promise<unknown>> {
+  return _pendingResources;
+}
+
 /** Resets all cache state. Intended for use in tests only. */
 export function _clearCache(): void {
   _cache.clear();
   _inflight.clear();
   _registry.clear();
+  _pendingResources.clear();
 }
