@@ -1,0 +1,39 @@
+{
+  "name": "@praxisjs/ssg",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./prerender": {
+      "import": "./dist/prerender.js",
+      "types": "./dist/prerender.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "packageManager": "pnpm@10.30.2",
+  "dependencies": {
+    "@praxisjs/core": "workspace:*",
+    "@praxisjs/head": "workspace:*",
+    "@praxisjs/router": "workspace:*",
+    "@praxisjs/runtime": "workspace:*",
+    "@praxisjs/shared": "workspace:*",
+    "jsdom": "^29.0.1"
+  },
+  "peerDependencies": {
+    "vite": ">=8.0.0"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^28.0.3",
+    "@types/node": "^25.9.1",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}
