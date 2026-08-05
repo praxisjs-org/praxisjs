@@ -1,6 +1,6 @@
 {
   "name": "praxisjs",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CLI for maintaining existing PraxisJS projects",
   "type": "module",
   "bin": {
