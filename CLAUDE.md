@@ -405,7 +405,7 @@ This is enforced, not a style preference. Before finishing any change, review ev
 Docs source: `docs/content/docs/`. Built with [Fumadocs](https://fumadocs.vercel.app) + Next.js (`output: export`). Structure:
 
 ```
-guide/          introduction  getting-started  project-status
+guide/          introduction  getting-started  ai-skills
 essentials/     components  reactivity  jsx  lifecycle  async-data
 decorators/     state  watchers  events  performance  timing  utilities  dx
 ecosystem/      router  store  di  motion  fsm

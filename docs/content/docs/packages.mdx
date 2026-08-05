@@ -1,6 +1,6 @@
 ---
 title: Packages
-description: All PraxisJS packages, their current versions, and install commands.
+description: All PraxisJS packages, their stability, current versions, and install commands.
 icon: Package
 ---
 
@@ -8,9 +8,11 @@ icon: Package
 
 All public packages published to npm. Versions follow [semantic versioning](https://semver.org) — breaking changes only happen in major bumps.
 
+PraxisJS itself is **stable and production-ready**: no surprise API changes (breaking changes require a major version bump), deprecations before removal, and test coverage across every package. Docs are updated alongside releases, not after. A handful of newer packages are still settling — those are marked **Beta** or **Experimental** below.
+
 ## Foundation
 
-Core packages that every PraxisJS project depends on.
+Core packages that every PraxisJS project depends on. All stable.
 
 | Package | Version | Description |
 | ------- | ------- | ----------- |
@@ -24,7 +26,7 @@ Core packages that every PraxisJS project depends on.
 
 ## Packages
 
-First-party plugins — install only what your project needs.
+First-party plugins — install only what your project needs. All stable.
 
 | Package | Version | Description |
 | ------- | ------- | ----------- |
@@ -71,6 +73,8 @@ First-party plugins — install only what your project needs.
 
 ## Utilities
 
+All stable.
+
 | Package | Version | Description |
 | ------- | ------- | ----------- |
 | `@praxisjs/composables` | `1.1.2` | DOM, browser, and list composable classes via `@Compose` |
@@ -84,13 +88,13 @@ First-party plugins — install only what your project needs.
 
 ## Tooling
 
-| Package | Version | Description |
-| ------- | ------- | ----------- |
-| `@praxisjs/vite-plugin` | `4.0.3` | Vite integration — decorators, JSX transform, HMR, and CSS static extraction |
-| `@praxisjs/ssg` | `0.1.0` | Static site generation — prerenders routes to HTML and hydrates them client-side **(experimental)** |
-| `@praxisjs/devtools` | `0.2.21` | In-app signal inspector and component profiler |
-| `@praxisjs/storybook` | `0.2.4` | Storybook framework adapter |
-| `@praxisjs/mcp` | `0.3.1` | MCP server — live docs access for any MCP-compatible AI assistant |
+| Package | Version | Status | Description |
+| ------- | ------- | ------ | ----------- |
+| `@praxisjs/vite-plugin` | `4.0.3` | Stable | Vite integration — decorators, JSX transform, HMR, and CSS static extraction |
+| `@praxisjs/ssg` | `0.1.0` | Experimental | Static site generation — prerenders routes to HTML and hydrates them client-side |
+| `@praxisjs/devtools` | `0.2.21` | Beta | In-app signal inspector and component profiler |
+| `@praxisjs/storybook` | `0.2.4` | Stable | Storybook framework adapter |
+| `@praxisjs/mcp` | `0.3.1` | Beta | MCP server — live docs access for any MCP-compatible AI assistant |
 
 **Vite Plugin**
 
@@ -113,6 +117,8 @@ First-party plugins — install only what your project needs.
 <PackageInstall pkg="@praxisjs/mcp" dev />
 
 ## CLI
+
+Both stable.
 
 | Package | Version | Description |
 | ------- | ------- | ----------- |
@@ -182,3 +188,18 @@ bunx praxisjs upgrade
 </Tabs>
 
 See the [praxisjs CLI reference](/docs/tooling/cli) for what each command checks, installs, or updates.
+
+---
+
+## Why it was built
+
+PraxisJS started as a personal exploration of what a more explicit, traceable frontend architecture could look like — one where reactivity is a first-class, visible contract rather than an implementation detail.
+
+It also became an experiment in AI-assisted development: not to automate thinking, but to pressure-test ideas, surface blind spots, and accelerate iteration on the design.
+
+## Contributing
+
+Found a bug? Have an idea? Contributions are welcome at any level.
+
+- [Open an issue](https://github.com/praxisjs-org/praxisjs/issues) — bug reports, feature requests, or questions
+- [Submit a pull request](https://github.com/praxisjs-org/praxisjs/pulls) — fixes, improvements, new features
