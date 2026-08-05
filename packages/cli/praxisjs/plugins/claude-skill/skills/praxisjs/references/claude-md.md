@@ -15,11 +15,12 @@ CLAUDE.md is the primary context document for AI-assisted development. Every Cla
 - No router, no store
 
 ## Architecture
-Single-page app. Entry: `src/main.ts` mounts `<App />`. Components live in `src/components/`.
+Single-page app. Entry: `src/main.tsx` calls `render(() => <App />, …)`. Components live in `src/components/`.
 
 ## Conventions
 - All components in PascalCase files: `src/components/MyComponent.tsx`
 - No global state — all state is local to components
+- Presentational components extend `StatelessComponent<Props>`; anything with `@State`, `@Watch`, or `@Emit` extends `StatefulComponent`
 
 ## Known constraints
 [e.g. targets Chrome 90+, no IE support]
@@ -38,13 +39,14 @@ Single-page app. Entry: `src/main.ts` mounts `<App />`. Components live in `src/
 - Build: Vite [version] + @praxisjs/vite-plugin
 
 ## Architecture
-SPA. Entry: `src/main.ts`. Routes configured on the root component with `@Router([...])`.
+SPA. Entry: `src/main.tsx`. Routes configured on the root component with `@Router([...])`.
 Pages in `src/pages/`, shared components in `src/components/`.
 
 ## Routing conventions
 - Each page is a class annotated with `@Route('/path')` or `@Route({ path, name, meta })`
-- Lazy-loaded routes use `@Lazy` — fetch `ecosystem/router` for details
-- Route params via `@Params`, query via `@Query`, current location via `@Location`
+- Lazy routes use `Lazy(() => import('./pages/x'))` from `@praxisjs/router` — not the `@Lazy` decorator from `@praxisjs/decorators`, which is the viewport-deferred-mount decorator
+- Route params via `@Params`, query via `@Query`, current location via `@Location`, route meta via `@Meta` / `useMeta`
+- Navigation UI uses `<Link to="…">`; the matched page renders into `<RouterView />`
 
 ## Known constraints
 [auth guards, redirect behavior, etc.]
@@ -68,7 +70,7 @@ DI container configured in `src/di.ts`. Pages in `src/pages/`, components in `sr
 
 ## Store conventions
 - One store per domain: `UserStore`, `CartStore`, `NotificationsStore`
-- Stores are class singletons decorated with `@Storable()`
+- Stores are class singletons: `@Storable() class UserStore extends ReactiveStore`, reactive fields declared with `@State()`
 - Inject via `@Store(UserStore) user!: UserStore`, or resolve imperatively with `store(UserStore)`
 
 ## DI conventions
@@ -77,7 +79,39 @@ DI container configured in `src/di.ts`. Pages in `src/pages/`, components in `sr
 - Scoped containers via `@Scope` on feature modules
 
 ## Known constraints
-[auth flow, token storage, SSR/SPA decision, etc.]
+[auth flow, token storage, SSR/SSG decision, etc.]
+```
+
+---
+
+## Content / blog site
+
+```markdown
+# [App name]
+
+## Stack
+- PraxisJS + @praxisjs/core, @praxisjs/decorators, @praxisjs/runtime, @praxisjs/jsx
+- @praxisjs/router, @praxisjs/content, @praxisjs/head
+- Build: Vite [version] + @praxisjs/vite-plugin
+- Prerendering: [@praxisjs/ssg / none]
+
+## Architecture
+Markdown-backed site. Posts in `src/content/posts/*.md`, collection defined in `src/content/posts.ts`.
+Pages in `src/pages/`, entry `src/main.tsx`.
+
+## Content conventions
+- Frontmatter shape is a class extending `ContentSchema`, wired with `@Collection` / `@PagedCollection`
+- Entries are read with `getCollection` / `getEntry`; paginated lists with `getPage` / `getTotal`
+- Per-page title and meta tags come from `@Head`
+
+## Prerendering
+[If @praxisjs/ssg is used: `ssgPlugin({ root: './src/app.tsx' })` in vite.config.ts.
+`src/app.tsx` default-exports the root component and named-exports the same `routes` array
+passed to `@Router([...])`. Dynamic routes expand via `getStaticPaths` on the route entry —
+`collectionStaticPaths` from @praxisjs/content covers the common content case.]
+
+## Known constraints
+[deploy target, base path, feed generation, etc.]
 ```
 
 ---
@@ -91,8 +125,9 @@ DI container configured in `src/di.ts`. Pages in `src/pages/`, components in `sr
 - PraxisJS
 - Packages: @praxisjs/core, @praxisjs/decorators, @praxisjs/runtime, @praxisjs/jsx,
   @praxisjs/router, @praxisjs/store, @praxisjs/di, @praxisjs/motion, @praxisjs/composables,
-  @praxisjs/css
-- Build: Vite [version] + @praxisjs/vite-plugin + @praxisjs/devtools (dev only)
+  @praxisjs/concurrent, @praxisjs/head, @praxisjs/css
+- Build: Vite [version] + @praxisjs/vite-plugin (+ praxisjsCSS() for static CSS extraction)
+  + @praxisjs/devtools (dev only)
 
 ## Architecture
 [Describe the overall structure — feature folders, shared modules, entry points]
@@ -110,10 +145,14 @@ DI container configured in `src/di.ts`. Pages in `src/pages/`, components in `sr
 [Which components use @Tween / @Spring and what they animate]
 
 ## Styling
-[@praxisjs/css / plain / modules / tailwind / unocss — which components use ReactiveStylesheet vs. plain classes]
+[@praxisjs/css / plain / modules / tailwind / unocss — which components use ReactiveStylesheet
+vs. plain Stylesheet vs. plain classes]
 
 ## Composables
-[Which @praxisjs/composables are used and where]
+[Which @praxisjs/composables classes are attached via @Compose and where]
+
+## Async & concurrency
+[Which endpoints go through @Resource, which flows use @Task / @Queue / @Pool]
 
 ## Conventions
 [Project-specific patterns beyond the defaults]
@@ -156,6 +195,9 @@ Update immediately (don't defer) after:
 | Created new store or DI service | Store/DI conventions |
 | Added new route pattern | Routing conventions |
 | Created base class components share | Conventions section |
+| Wrote custom logic because the docs confirmed no native API covers it | Conventions section — say what you built and why nothing built-in fit |
+| Added a shared stylesheet class or composable | Styling / Composables section |
+| Enabled or reconfigured `@praxisjs/ssg` | Prerendering section |
 | Changed how auth/env/config, or styling, works | Known constraints |
 | Renamed a major directory | Architecture section |
 

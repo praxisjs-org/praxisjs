@@ -40,7 +40,7 @@ Stores developer preferences at the project root. Created once during the init f
 | `true` | Every new component gets a sibling test file in `src/__tests__/`. Every new `@Watch` handler, `@Resource` field, or stateful behavior gets at least one test. |
 | `false` | No test files are generated. Tests can still be requested explicitly. |
 
-Test files follow the project convention: `src/__tests__/ComponentName.test.ts`. Environment defaults to `node`; add `// @vitest-environment jsdom` when DOM APIs are needed.
+Test files follow the project convention: `src/__tests__/ComponentName.test.ts`. Tests run on Vitest; the environment defaults to `node`, so add `// @vitest-environment jsdom` as the first line of any file that touches `document`, `localStorage`, or other DOM APIs.
 
 ---
 
@@ -101,12 +101,12 @@ When `i18n` is `true`, this value is the default/fallback locale passed to the i
 
 #### i18n pattern (when `i18n: true`)
 
-Fetch `praxisjs_get_page('essentials/jsx')` and `praxisjs_get_page('ecosystem/store')` to confirm the current recommended integration before implementing.
+PraxisJS ships no i18n package — this is an application-level pattern built on a store. Fetch `praxisjs_get_page('ecosystem/store')` and `praxisjs_get_page('essentials/jsx')` to confirm the current store and reactive-binding APIs before implementing.
 
 General approach:
 1. Strings live in locale files: `src/locales/en.ts`, `src/locales/pt-BR.ts`, etc.
-2. A translation store (or composable) holds the active locale and exposes a `t(key)` function reactively
-3. Templates use `{() => t('key')}` — reactive so locale switching updates the DOM without remount
+2. A store holds the active locale and exposes a `t(key)` lookup; reading `this.locale` inside `t` makes every call site reactive
+3. Templates use `{() => t('key')}` — reactive, so switching locale updates the DOM without remounting
 
 ```ts
 // src/locales/en.ts
@@ -117,14 +117,31 @@ export const en = {
 
 // src/locales/pt-BR.ts
 export const ptBR = {
-  nav: { home: 'Início', sobre: 'Sobre' },
+  nav: { home: 'Início', about: 'Sobre' },
   actions: { save: 'Salvar', cancel: 'Cancelar' },
+}
+```
+
+```ts
+// src/stores/i18n.ts
+import { State } from '@praxisjs/decorators'
+import { Storable, ReactiveStore } from '@praxisjs/store'
+
+@Storable()
+export class I18nStore extends ReactiveStore {
+  @State() locale: 'en' | 'pt-BR' = 'en'
+
+  t(key: string): string { /* resolve key against the active locale */ }
 }
 ```
 
 ```tsx
 // In a component — reactive locale key lookup
-<button>{() => t('actions.save')}</button>
+@Store(I18nStore) i18n!: I18nStore
+
+render() {
+  return <button>{() => this.i18n.t('actions.save')}</button>
+}
 ```
 
 Add `i18n: true` and the active locale to `AGENTS.md` under **Known constraints** so future sessions know strings must never be hardcoded.
@@ -135,12 +152,14 @@ Add `i18n: true` and the active locale to `AGENTS.md` under **Known constraints*
 
 | Value | Behavior |
 |---|---|
-| `"praxisjs-css"` | Use `@praxisjs/css` — define a `ReactiveStylesheet` subclass per component with `@Param()` (reactive CSS custom properties) and `.css({...})` / `@Style()` for rules. Fetch `css/index` before writing any styles; the API (fluent builder, tokens, `cx()`) is easy to get subtly wrong from memory. |
+| `"praxisjs-css"` | Use `@praxisjs/css`. Define a stylesheet class per component: `Stylesheet` for plain scoped class fields (`$root = this.css({...})`), or `ReactiveStylesheet` when the component also needs `@Param()` reactive CSS custom properties — `ReactiveStylesheet` only attaches to a `StatefulComponent`. Inject it with `@Styled(MyStyles) $s!: MyStyles`. Fetch `css` first, then `css/stylesheets` and `css/builder` for the fluent API, `css/reactive` for `@Param`/`@Style`, and `css/tokens` for design tokens. The API is easy to get subtly wrong from memory. |
 | `"plain"` | Add styles in a plain `.css` file imported at the top of the component file. Scope with a root class name matching the component. |
 | `"modules"` | Use `import styles from './ComponentName.module.css'` and reference `styles.className` in JSX. |
 | `"tailwind"` | Apply Tailwind utility classes directly in JSX. No separate CSS file unless strictly necessary. |
 | `"unocss"` | Apply UnoCSS utility classes directly in JSX (same pattern as Tailwind). |
 | `"none"` | Write no CSS. Provide component structure and logic only; the developer handles all styling. |
+
+When `css` is `"praxisjs-css"`, check whether the project also registers `praxisjsCSS()` in `vite.config.ts` — that plugin extracts all stylesheet rules at build time so no `<style>` tags are injected at runtime. See `tooling/vite-plugin`.
 
 ---
 

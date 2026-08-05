@@ -6,6 +6,12 @@ icon: Rocket
 
 # create-praxisjs
 
+## 1.0.7
+
+Updated dependency — `praxisjs@1.0.2`. Projects scaffolded with an AI integration now receive the refreshed Claude Code and Codex skills: corrected import paths (`StatefulComponent` and `StatelessComponent` come from `@praxisjs/core`), the `StatelessComponent<Props>` / `this.props` convention, a per-package API map, the full docs slug table, and a new **Check for a native path first** rule that makes the assistant look for an existing PraxisJS decorator or composable before hand-rolling one. See the [praxisjs changelog](/docs/changelog/praxisjs) for the full list.
+
+No change to the templates themselves — scaffolded application code is unaffected.
+
 ## 1.0.6
 
 Fixed the **blog** template's `vite.config.ts` plugin order — `contentPlugin()` now runs before `praxisjs()`. With `praxisjs()` first, its decorator lowering stripped `@Collection('./path/*.md')` down to a plain call before `contentPlugin()`'s regex transform ever saw the `@`, so the glob string reached `@praxisjs/content` unexpanded and `getCollection()` produced one broken entry per character of that string instead of the real posts.

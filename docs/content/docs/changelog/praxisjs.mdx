@@ -6,6 +6,18 @@ icon: Wrench
 
 # praxisjs
 
+## 1.0.2
+
+The Claude Code and Codex skill instructions were refreshed against the current framework surface.
+
+Two corrections matter most. `StatefulComponent`, `StatelessComponent`, and `Composable` are imported from `@praxisjs/core`, not `@praxisjs/runtime` — the skills previously taught the wrong path. And `StatelessComponent` receives its props as a generic type parameter read through `this.props`; `@Prop`, `@State`, `@Watch`, `@Emit`, and `@Slot` only work on `StatefulComponent`, where the old skill example used `@Prop()` on a stateless component. The `import { signal, computed, effect, batch } from '@praxisjs/core'` example was dropped entirely: those primitives are exported from `@praxisjs/core/internal` and are not application API — application code uses `@State`, `@Computed`, `@Resource`, and `@Persisted` instead.
+
+Both skills gained a **Check for a native path first** rule. Before implementing anything it isn't certain about, the assistant now has to search the docs for an existing PraxisJS decorator, composable, or package export instead of hand-rolling it — and check for a first-party equivalent before reaching for a third-party dependency. The rule ships with a lookup table mapping roughly twenty-five commonly hand-written utilities to the API that already covers them: debounce timers to `@Debounce`, manual loading/error flags to `@Resource`, `localStorage` sync to `@Persisted`, undo stacks to `@History`, resize and intersection listeners to the DOM composables, `requestAnimationFrame` loops to `@Tween`/`@Spring`, singleton state objects to `@Storable`, retry loops to `@Retry`, list virtualization to `VirtualList`, and so on. When nothing native fits, the assistant records what it built and why in the project memory file. The same working agreement was added to the bundled `CLAUDE.md` and `AGENTS.md` templates.
+
+Both skills now carry a per-package API map — decorators grouped by category, the public exports of router, store, DI, content, CSS, concurrent, composables, and the tooling entry points — plus the complete docs slug table (`css/*`, `tooling/ssg`, `tooling/storybook`, `tooling/cli`, `tooling/devtools-plugins`, `ecosystem/ui`, `guide/*`, `internal/*`), the `blog` scaffolding template, `render()` and lifecycle-hook basics, the reference-vs-mutation rule for signals, a warning about the `Lazy` name collision between `@praxisjs/decorators` and `@praxisjs/router`, and all four MCP tools including `praxisjs_full_docs`.
+
+The bundled `CLAUDE.md` / `AGENTS.md` templates gained a content/blog variant covering `@praxisjs/content` and `@praxisjs/ssg` prerendering, and the project-config reference now explains `Stylesheet` vs. `ReactiveStylesheet` and shows a store-based i18n pattern.
+
 ## 1.0.1
 
 `praxisjs doctor` now flags `useDefineForClassFields: false` instead of `true` in `tsconfig.json`, matching the Vite 8 / oxc requirement described in the `@praxisjs/vite-plugin` changelog. Projects still on the old Vite 7 setup with `false` will need to flip this once they upgrade.
