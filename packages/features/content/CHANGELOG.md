@@ -1,5 +1,15 @@
 # @praxisjs/content
 
+## 0.2.1
+
+### Patch Changes
+
+- 50e8d20: `getCollection()` caches the loaded, parsed and rendered entries per collection (callers get a copy of the array; failed loads are not cached), so list and detail pages — or every page of an SSG run — no longer re-parse all the markdown.
+- Updated dependencies [a97a37c]
+- Updated dependencies [c7a5950]
+  - @praxisjs/core@2.2.0
+  - @praxisjs/decorators@1.7.0
+
 ## 0.2.0
 
 ### Minor Changes

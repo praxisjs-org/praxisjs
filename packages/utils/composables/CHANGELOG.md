@@ -1,5 +1,13 @@
 # @praxisjs/composables
 
+## 1.2.1
+
+### Patch Changes
+
+- 75316d7: `Mouse`, `WindowSize`, `ScrollPosition` and `ElementSize` update their paired values in one batch, so bindings reading both re-run once per event.
+- Updated dependencies [a97a37c]
+  - @praxisjs/core@2.2.0
+
 ## 1.2.0
 
 ### Minor Changes

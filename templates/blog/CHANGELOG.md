@@ -1,5 +1,21 @@
 # template-blog
 
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [a97a37c]
+- Updated dependencies [50e8d20]
+- Updated dependencies [c7a5950]
+- Updated dependencies [7f68df1]
+- Updated dependencies [073e76a]
+  - @praxisjs/core@2.2.0
+  - @praxisjs/content@0.2.1
+  - @praxisjs/decorators@1.7.0
+  - @praxisjs/router@2.2.1
+  - @praxisjs/runtime@0.7.0
+  - @praxisjs/jsx@0.7.6
+
 ## 1.0.3
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @praxisjs/motion
 
+## 1.1.24
+
+### Patch Changes
+
+- 66ff549: `@Tween` and `@Spring` stop their running animation when the component unmounts.
+- Updated dependencies [a97a37c]
+- Updated dependencies [c7a5950]
+  - @praxisjs/core@2.2.0
+  - @praxisjs/decorators@1.7.0
+
 ## 1.1.23
 
 ### Patch Changes

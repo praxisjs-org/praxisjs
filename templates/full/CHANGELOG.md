@@ -1,5 +1,25 @@
 # template-full
 
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [a97a37c]
+- Updated dependencies [75316d7]
+- Updated dependencies [c7a5950]
+- Updated dependencies [7f68df1]
+- Updated dependencies [073e76a]
+- Updated dependencies [055d5b3]
+  - @praxisjs/core@2.2.0
+  - @praxisjs/composables@1.2.1
+  - @praxisjs/decorators@1.7.0
+  - @praxisjs/router@2.2.1
+  - @praxisjs/runtime@0.7.0
+  - @praxisjs/store@2.0.4
+  - @praxisjs/di@1.3.13
+  - @praxisjs/jsx@0.7.6
+  - @praxisjs/concurrent@1.3.8
+
 ## 1.0.3
 
 ### Patch Changes
