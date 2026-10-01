@@ -431,3 +431,69 @@ describe("createMachine", () => {
     expect(onEnter).toHaveBeenCalledOnce();
   });
 });
+
+describe("createMachine historyLimit", () => {
+  function limited(historyLimit?: number) {
+    return createMachine<TrafficState, TrafficEvent>({
+      initial: "red",
+      historyLimit,
+      states: {
+        red: { on: { GO: "green" } },
+        green: { on: { SLOW: "yellow" } },
+        yellow: { on: { STOP: "red" } },
+      },
+    });
+  }
+
+  function cycle(m: ReturnType<typeof limited>, times: number) {
+    for (let i = 0; i < times; i++) {
+      m.send("GO");
+      m.send("SLOW");
+      m.send("STOP");
+    }
+  }
+
+  it("keeps the last 100 entries by default", () => {
+    const m = limited();
+    cycle(m, 40);
+    expect(m.history()).toHaveLength(100);
+    expect(m.history().at(-1)).toEqual({ from: "yellow", event: "STOP", to: "red" });
+  });
+
+  it("Infinity keeps every entry", () => {
+    const m = limited(Infinity);
+    cycle(m, 40);
+    expect(m.history()).toHaveLength(120);
+  });
+
+  it("keeps only the most recent entries, in order", () => {
+    const m = limited(2);
+    m.send("GO");
+    m.send("SLOW");
+    m.send("STOP");
+    expect(m.history()).toEqual([
+      { from: "green", event: "SLOW", to: "yellow" },
+      { from: "yellow", event: "STOP", to: "red" },
+    ]);
+  });
+
+  it("does not drop anything while below the limit", () => {
+    const m = limited(5);
+    m.send("GO");
+    m.send("SLOW");
+    expect(m.history()).toHaveLength(2);
+  });
+
+  it("a limit of 1 keeps just the last transition", () => {
+    const m = limited(1);
+    cycle(m, 2);
+    expect(m.history()).toEqual([{ from: "yellow", event: "STOP", to: "red" }]);
+  });
+
+  it("a limit of 0 disables the history without affecting transitions", () => {
+    const m = limited(0);
+    cycle(m, 2);
+    expect(m.history()).toEqual([]);
+    expect(m.state()).toBe("red");
+  });
+});

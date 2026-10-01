@@ -104,6 +104,17 @@ Access via `this.machine` (or the configured property name).
 | `send(event)` | `boolean` | Trigger a transition — returns `true` if it happened |
 | `reset()` | `void` | Return to the initial state |
 
+`history` keeps the 100 most recent transitions — each transition copies the array, so an unbounded history would make a long-running machine slower over time. Set `historyLimit` in the definition to change that (`0` turns the history off, `Infinity` keeps everything):
+
+```tsx
+@StateMachine({
+  initial: 'idle',
+  historyLimit: 20,
+  states: { /* ... */ },
+})
+machine!: Machine<State, Event>
+```
+
 ---
 
 ## Guards

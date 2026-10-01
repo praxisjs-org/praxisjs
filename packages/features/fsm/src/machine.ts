@@ -24,6 +24,12 @@ export interface MachineDefinition<
   initial: S;
   states: StateMap<S, E, T>;
   onTransition?: (from: S, event: E, to: S) => void;
+  /**
+   * Maximum number of entries kept in `history`; the oldest are dropped first. `0` disables the
+   * history and `Infinity` keeps everything. Defaults to 100: each transition copies the array,
+   * so an unbounded history makes a long-running machine slower and larger over time.
+   */
+  historyLimit?: number;
 }
 
 export interface Machine<S extends string, E extends string> {
@@ -49,6 +55,8 @@ function resolveTransition<S extends string, T extends object>(
   };
 }
 
+const DEFAULT_HISTORY_LIMIT = 100;
+
 export function createMachine<
   S extends string,
   E extends string,
@@ -56,6 +64,7 @@ export function createMachine<
 >(definition: MachineDefinition<S, E, T>, instance: T = {} as T): Machine<S, E> {
   const _state = signal(definition.initial);
   const _history = signal<Array<{ from: S; event: E; to: S }>>([]);
+  const limit = definition.historyLimit ?? DEFAULT_HISTORY_LIMIT;
 
   function send(event: E): boolean {
     const current = _state();
@@ -70,7 +79,13 @@ export function createMachine<
 
     definition.states[current].onExit?.({ event, to: nextState });
     _state.set(nextState);
-    _history.update((h) => [...h, { from: current, event, to: nextState }]);
+    if (limit !== 0) {
+      _history.update((h) => {
+        const entry = { from: current, event, to: nextState };
+        if (h.length < limit) return [...h, entry];
+        return [...h.slice(h.length - limit + 1), entry];
+      });
+    }
     definition.onTransition?.(current, event, nextState);
     resolved.action?.();
     definition.states[nextState].onEnter?.({ event, from: current });

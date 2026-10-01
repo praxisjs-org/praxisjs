@@ -6,6 +6,12 @@ icon: GitBranch
 
 # @praxisjs/fsm
 
+## 2.2.0
+
+New `historyLimit` option on the machine definition. `history` used to grow forever, and every transition copied the whole array; it now keeps the 100 most recent entries by default. Set `historyLimit` to change that (`0` disables the history, `Infinity` restores the old unbounded behaviour).
+
+**Behaviour change:** a machine that makes more than 100 transitions no longer reports the oldest ones in `history()`. Pass `historyLimit: Infinity` if you rely on the full list.
+
 ## 2.1.0
 
 **Guards and per-transition actions on `@StateMachine`.**
