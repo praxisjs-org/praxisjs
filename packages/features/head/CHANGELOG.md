@@ -1,5 +1,15 @@
 # @praxisjs/head
 
+## 0.3.1
+
+### Patch Changes
+
+- 98f3a18: Updating the head only adds and removes the tags that actually changed instead of recreating every managed tag on each update.
+- Updated dependencies [a97a37c]
+- Updated dependencies [c7a5950]
+  - @praxisjs/core@2.2.0
+  - @praxisjs/decorators@1.7.0
+
 ## 0.3.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @praxisjs/router
 
+## 2.2.1
+
+### Patch Changes
+
+- 7f68df1: Resolve a route's component and layout in parallel and apply them in one update, so `RouterView` rebuilds once with a consistent pair (no layout-less flash, no sequential lazy-chunk waterfall). Plain and already-loaded lazy routes are applied synchronously. A layout that fails to load still rejects the navigation after the page is shown. Route matching runs once per path.
+- Updated dependencies [a97a37c]
+- Updated dependencies [c7a5950]
+  - @praxisjs/core@2.2.0
+  - @praxisjs/decorators@1.7.0
+  - @praxisjs/jsx@0.7.6
+
 ## 2.2.0
 
 ### Minor Changes

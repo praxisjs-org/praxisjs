@@ -1,5 +1,18 @@
 # @praxisjs/fsm
 
+## 2.2.0
+
+### Minor Changes
+
+- 2d5bd45: New `historyLimit` option, defaulting to 100: `history` keeps only the most recent transitions (`0` disables it, `Infinity` keeps everything). A machine with more than 100 transitions no longer reports the oldest ones unless `historyLimit: Infinity` is set.
+
+### Patch Changes
+
+- Updated dependencies [a97a37c]
+- Updated dependencies [c7a5950]
+  - @praxisjs/core@2.2.0
+  - @praxisjs/decorators@1.7.0
+
 ## 2.1.7
 
 ### Patch Changes

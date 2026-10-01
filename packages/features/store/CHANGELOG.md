@@ -1,5 +1,15 @@
 # @praxisjs/store
 
+## 2.0.4
+
+### Patch Changes
+
+- 055d5b3: `createStore` actions keep a stable wrapper identity, `$patch()` and `$reset()` run in a single batch, and the previous value passed to `onMutation` is read untracked.
+- Updated dependencies [a97a37c]
+- Updated dependencies [c7a5950]
+  - @praxisjs/core@2.2.0
+  - @praxisjs/decorators@1.7.0
+
 ## 2.0.3
 
 ### Patch Changes

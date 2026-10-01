@@ -1,5 +1,20 @@
 # @praxisjs/runtime
 
+## 0.7.0
+
+### Minor Changes
+
+- 073e76a: JSX event handlers now run inside `batch()`, so multiple state writes in one handler re-run dependent effects once. Also: a single shared microtask drains all `onMount` hooks of a mount pass, the writable-property lookup used for JSX props is cached per prototype, `Portal` attaches its subtree in one operation, and `ref` callbacks run untracked.
+
+  Replacing or removing a multi-node reactive child (and `Portal` cleanup) now walks the sibling nodes instead of allocating a `Range` per update, which is several times faster (rebuilding a 500-row list: ~3.2 ms → ~0.2 ms in a browser benchmark).
+
+### Patch Changes
+
+- Updated dependencies [a97a37c]
+- Updated dependencies [c7a5950]
+  - @praxisjs/core@2.2.0
+  - @praxisjs/decorators@1.7.0
+
 ## 0.6.0
 
 ### Minor Changes
