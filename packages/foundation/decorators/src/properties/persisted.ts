@@ -1,25 +1,30 @@
-import { persistedSignal, type PersistedSignalOptions } from "@praxisjs/core/internal";
-import type { Signal } from "@praxisjs/shared";
+import {
+  persistedSignal,
+  type PersistedSignal,
+  type PersistedSignalOptions,
+} from "@praxisjs/core/internal";
 
 import { createFieldDecorator } from "../create-field-decorator";
 
-const signalMap = new WeakMap<object, Map<string, Signal<unknown>>>();
+const signalMap = new WeakMap<object, Map<string, PersistedSignal<unknown>>>();
 
 function getOrCreateSignal<T>(
   instance: object,
   storageKey: string,
   initialValue: T,
   options: PersistedSignalOptions<T>,
-): Signal<T> {
-  if (!signalMap.has(instance)) signalMap.set(instance, new Map());
-  const map = signalMap.get(instance) as Map<string, Signal<unknown>>;
-  if (!map.has(storageKey)) {
-    map.set(
-      storageKey,
-      persistedSignal(storageKey, initialValue, options) as Signal<unknown>,
-    );
+): PersistedSignal<T> {
+  let map = signalMap.get(instance);
+  if (!map) {
+    map = new Map();
+    signalMap.set(instance, map);
   }
-  return map.get(storageKey) as Signal<T>;
+  let sig = map.get(storageKey);
+  if (!sig) {
+    sig = persistedSignal(storageKey, initialValue, options) as PersistedSignal<unknown>;
+    map.set(storageKey, sig);
+  }
+  return sig as PersistedSignal<T>;
 }
 
 export function Persisted<T>(
@@ -28,15 +33,14 @@ export function Persisted<T>(
 ) {
   return createFieldDecorator({
     bind(instance, name, initialValue) {
-      const storageKey = key ?? name;
-      getOrCreateSignal(instance, storageKey, initialValue as T, options);
+      const sig = getOrCreateSignal(instance, key ?? name, initialValue as T, options);
       return {
         descriptor: {
-          get: () =>
-            getOrCreateSignal(instance, storageKey, undefined as T, options)(),
-          set: (value: T) =>
-            { getOrCreateSignal(instance, storageKey, undefined as T, options).set(value); },
+          get: () => sig(),
+          set: (value: T) => { sig.set(value); },
         },
+        // Without this every mounted instance would leave a window "storage" listener behind.
+        onUnmount() { sig.close(); },
       };
     },
   });

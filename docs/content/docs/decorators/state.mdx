@@ -241,6 +241,11 @@ Setting the value to `null` or `undefined` removes the entry from `localStorage`
 | `serialize` | `(v: T) => string` | `JSON.stringify` | Custom serializer |
 | `deserialize` | `(s: string) => T` | `JSON.parse` | Custom deserializer |
 | `syncTabs` | `boolean` | `true` | Sync across browser tabs via `storage` event |
+| `writeDelay` | `number` | `0` | Milliseconds to hold back `localStorage` writes. Writes inside the window are coalesced into one with the latest value; pending data is flushed on `pagehide` and on unmount. `0` writes on every assignment |
+
+Set `writeDelay` on fields bound to fast input (a text box, a slider) so each keystroke doesn't serialize and write synchronously.
+
+With `syncTabs` on, the `storage` listener is removed when the component unmounts, so mounting and unmounting a component repeatedly does not accumulate listeners.
 
 <StorybookLink story="decorators-persistence-persisted--persisted-story" label="Live demo — @Persisted" />
 
@@ -248,7 +253,7 @@ Setting the value to `null` or `undefined` removes the entry from `localStorage`
 
 ## `@History(fieldName, limit?)`
 
-Adds undo/redo to a `@State` property. Declare a separate field decorated with `@History('fieldName')` and type it with `HistoryOf<Class, 'fieldName'>` for full intellisense.
+Adds undo/redo to a `@State` property. Tracking stops when the component unmounts. Declare a separate field decorated with `@History('fieldName')` and type it with `HistoryOf<Class, 'fieldName'>` for full intellisense.
 
 ```tsx
 import { History, HistoryOf } from '@praxisjs/decorators'
@@ -461,7 +466,7 @@ class ThemeEditor extends StatefulComponent {
 }
 ```
 
-Any mutation at any depth — including `push`, index assignment, and property deletion — triggers reactive updates.
+Any mutation at any depth — including `push`, index assignment, and property deletion — triggers reactive updates. Assigning a value a property already holds, or deleting a key that doesn't exist, does not. Reading a nested object returns the same reference every time (`this.config.theme === this.config.theme`), so identity comparisons behave as you'd expect.
 
 <Callout type="info" title="@State vs @DeepState">
   Prefer `@State` with immutable patterns (`this.items = [...this.items, x]`) — it's explicit and fine-grained. Use `@DeepState` when working with deeply nested structures where immutable patterns become too verbose.

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-import { signal } from "@praxisjs/core/internal";
+import { effect, signal } from "@praxisjs/core/internal";
 import { Memo } from "../functions/memo";
 
 function mockCtx(name: string) {
@@ -204,5 +204,90 @@ describe("Memo", () => {
     expect(() => method(BigInt(42))).not.toThrow();
     method(BigInt(42));
     expect(fn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Memo({ max })", () => {
+  function setup(max: number) {
+    const fn = vi.fn((x: unknown) => (x as number) * 2);
+    const ctx = mockCtx("dbl");
+    Memo({ max })(fn, ctx);
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => unknown>).dbl;
+    return { fn, method };
+  }
+
+  it("keeps at most max entries, evicting the oldest first", () => {
+    const { fn, method } = setup(2);
+    method(1);
+    method(2);
+    method(3); // evicts 1
+    expect(fn).toHaveBeenCalledTimes(3);
+    method(2);
+    method(3);
+    expect(fn).toHaveBeenCalledTimes(3);
+    method(1); // recomputed
+    expect(fn).toHaveBeenCalledTimes(4);
+  });
+
+  it("a cache hit refreshes recency so the used entry survives", () => {
+    const { fn, method } = setup(2);
+    method(1);
+    method(2);
+    method(1); // 1 is now the most recent
+    method(3); // evicts 2
+    fn.mockClear();
+    method(1);
+    expect(fn).not.toHaveBeenCalled();
+    method(2);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps 100 combinations by default and drops the oldest beyond that", () => {
+    const fn = vi.fn((x: unknown) => x);
+    const ctx = mockCtx("id");
+    Memo()(fn, ctx);
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => unknown>).id;
+    for (let i = 0; i < 101; i++) method(i);
+    fn.mockClear();
+    method(100);
+    expect(fn).not.toHaveBeenCalled();
+    method(0);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("max: Infinity keeps every combination", () => {
+    const fn = vi.fn((x: unknown) => x);
+    const ctx = mockCtx("id");
+    Memo({ max: Infinity })(fn, ctx);
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => unknown>).id;
+    for (let i = 0; i < 200; i++) method(i);
+    fn.mockClear();
+    for (let i = 0; i < 200; i++) method(i);
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it("an evicted entry that a binding still uses keeps updating", async () => {
+    const s = signal(1);
+    const fn = vi.fn((x: unknown) => (x as number) * s());
+    const ctx = mockCtx("scaled");
+    Memo({ max: 1 })(fn, ctx);
+    const obj = {};
+    ctx.runInitializers(obj);
+    const method = (obj as Record<string, (...a: unknown[]) => unknown>).scaled;
+
+    let seen: unknown;
+    effect(() => {
+      seen = method(10);
+    });
+    method(20); // evicts the entry the effect reads
+    s.set(2);
+    await Promise.resolve();
+    expect(seen).toBe(20);
   });
 });

@@ -4,37 +4,51 @@ import { createFieldDecorator } from "../create-field-decorator";
 
 import type { ReactiveHost } from "../reactive-host";
 
-function deepProxy<T extends object>(target: T, notify: () => void): T {
-  return new Proxy(target, {
+// One proxy per raw object: repeated reads return the same reference (so `a.b === a.b` and
+// identity comparisons in effects hold) and don't allocate a new Proxy on every access.
+function deepProxy<T extends object>(
+  target: T,
+  notify: () => void,
+  cache: WeakMap<object, object>,
+): T {
+  const existing = cache.get(target);
+  if (existing) return existing as T;
+
+  const proxy = new Proxy(target, {
     get(obj, key, receiver) {
       const val: unknown = Reflect.get(obj, key, receiver);
       if (val !== null && typeof val === "object") {
-        return deepProxy(val, notify);
+        return deepProxy(val, notify, cache);
       }
       return val;
     },
     set(obj, key, value) {
+      const had = Object.hasOwn(obj, key);
+      const prev: unknown = Reflect.get(obj, key);
       const result = Reflect.set(obj, key, value);
-      notify();
+      if (!had || !Object.is(prev, value)) notify();
       return result;
     },
     deleteProperty(obj, key) {
+      const had = Object.hasOwn(obj, key);
       const result = Reflect.deleteProperty(obj, key);
-      notify();
+      if (had) notify();
       return result;
     },
   });
+  cache.set(target, proxy);
+  return proxy;
 }
 
 export function DeepState() {
   return createFieldDecorator<ReactiveHost>({
     bind(instance, _name, initialValue) {
       const version = signal(0);
-      let current = initialValue;
+      const cache = new WeakMap<object, object>();
       let proxy =
-        current !== null && typeof current === "object"
-          ? deepProxy(current, notify)
-          : current;
+        initialValue !== null && typeof initialValue === "object"
+          ? deepProxy(initialValue, notify, cache)
+          : initialValue;
 
       function notify() {
         markStateDirty(instance);
@@ -48,10 +62,9 @@ export function DeepState() {
             return proxy;
           },
           set(value: unknown) {
-            current = value;
             proxy =
               value !== null && typeof value === "object"
-                ? deepProxy(value, notify)
+                ? deepProxy(value, notify, cache)
                 : value;
             notify();
           },

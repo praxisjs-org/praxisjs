@@ -37,6 +37,8 @@ export function History(fieldName: string, limit = 50) {
           },
           enumerable: false,
         },
+        // The tracking effect would otherwise keep recording a source that outlives the component.
+        onUnmount() { h?.destroy(); },
       };
     },
   });

@@ -232,3 +232,57 @@ describe("initSlots / getSlot", () => {
     expect(getSlot(instance, "nonexistent")).toEqual([]);
   });
 });
+
+describe("Persisted decorator — unmount cleanup", () => {
+  function mountPersisted(name: string, key: string) {
+    const { ctx, run } = fieldCtx(name);
+    Persisted<string>(key)(undefined, ctx);
+    const instance = new TestComponent();
+    (instance as unknown as Record<string, unknown>)[name] = "initial";
+    run(instance);
+    return instance as unknown as Record<string, unknown> & { onUnmount?: () => void };
+  }
+
+  function storageEvent(key: string, newValue: string) {
+    window.dispatchEvent(new StorageEvent("storage", { key, newValue, storageArea: localStorage }));
+  }
+
+  it("keeps syncing other tabs while mounted", () => {
+    const instance = mountPersisted("a", "sync-key");
+    storageEvent("sync-key", '"remote"');
+    expect(instance.a).toBe("remote");
+  });
+
+  it("stops listening for storage events after unmount", () => {
+    const instance = mountPersisted("a", "gone-key");
+    instance.onUnmount?.();
+    storageEvent("gone-key", '"remote"');
+    expect(instance.a).toBe("initial");
+  });
+
+  it("repeated mount/unmount cycles do not accumulate window listeners", () => {
+    const add = vi.spyOn(window, "addEventListener");
+    const remove = vi.spyOn(window, "removeEventListener");
+    for (let i = 0; i < 5; i++) mountPersisted("a", "cycle-key").onUnmount?.();
+    const added = add.mock.calls.filter(([type]) => type === "storage").length;
+    const removed = remove.mock.calls.filter(([type]) => type === "storage").length;
+    expect(added).toBe(5);
+    expect(removed).toBe(5);
+    add.mockRestore();
+    remove.mockRestore();
+  });
+
+  it("two fields sharing a key on one instance share one signal", () => {
+    const first = fieldCtx("a");
+    const second = fieldCtx("b");
+    Persisted<string>("shared-key")(undefined, first.ctx);
+    Persisted<string>("shared-key")(undefined, second.ctx);
+    const instance = new TestComponent() as unknown as Record<string, unknown>;
+    instance.a = "x";
+    instance.b = "y";
+    first.run(instance);
+    second.run(instance);
+    instance.a = "changed";
+    expect(instance.b).toBe("changed");
+  });
+});

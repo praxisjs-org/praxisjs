@@ -1524,3 +1524,33 @@ describe("createAccessorDecorator — init", () => {
     expect(result.init!.call(instance, "hello")).toBe("hello");
   });
 });
+
+describe("History decorator — unmount cleanup", () => {
+  function mountHistory() {
+    const { ctx, run } = fieldCtx("scoreHistory");
+    History("score")(undefined, ctx);
+    const s = signal(0);
+    const instance = new TestComponent();
+    Object.defineProperty(instance, "score", {
+      get: () => s(),
+      set: (v: number) => { s.set(v); },
+      configurable: true,
+    });
+    run(instance);
+    return { s, instance: instance as unknown as { scoreHistory: { values: () => number[] }; onUnmount?: () => void } };
+  }
+
+  it("stops recording once the component unmounts", () => {
+    const { s, instance } = mountHistory();
+    expect(instance.scoreHistory.values()).toEqual([0]);
+    s.set(1);
+    instance.onUnmount?.();
+    s.set(2);
+    expect(instance.scoreHistory.values()).toEqual([0, 1]);
+  });
+
+  it("unmounting before the history was ever read is a no-op", () => {
+    const { instance } = mountHistory();
+    expect(() => { instance.onUnmount?.(); }).not.toThrow();
+  });
+});

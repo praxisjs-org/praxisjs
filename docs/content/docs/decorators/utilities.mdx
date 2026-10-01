@@ -120,6 +120,15 @@ class PriceList extends StatefulComponent {
 
 When `this.discount` changes, all three cached values recompute. Each argument combination has an independent cache entry.
 
+The cache keeps the 100 most recently used argument combinations; the least recently used entry is dropped once the limit is exceeded, and its subscriptions to the signals it read are released (unless a binding is still using it). Pass `max` to change the limit, or `Infinity` to keep every combination for the life of the component:
+
+```tsx
+@Memo({ max: 50 })
+search(query: string) {
+  return this.items.filter((i) => i.name.includes(query))
+}
+```
+
 <Callout type="info" title="How argument caching works">
   Arguments are serialized as a string key:
   - Objects/null → `JSON.stringify` (falls back to object identity for non-serializable values)

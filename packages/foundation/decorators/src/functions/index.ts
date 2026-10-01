@@ -1,4 +1,4 @@
-export { Memo } from "./memo";
+export { Memo, type MemoOptions } from "./memo";
 export { Bind } from "./bind";
 export { Log } from "./log";
 export { Once } from "./once";

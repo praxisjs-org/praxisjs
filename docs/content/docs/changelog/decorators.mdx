@@ -6,6 +6,14 @@ icon: Tag
 
 # @praxisjs/decorators
 
+## 1.7.0
+
+Fixed a leak in `@Persisted`: each component instance registered a `window` `storage` listener (when `syncTabs` is on) that was never removed, so mounting and unmounting a component repeatedly piled up listeners — every cross-tab write then deserialized the value once per leftover instance. The listener is now closed on unmount. The field also reads through the signal captured at bind time instead of two map lookups per read.
+
+`@Memo` now bounds its cache: it keeps the 100 most recently used argument combinations and drops the least recently used one beyond that, releasing its subscriptions unless a binding is still reading it. `@Memo({ max })` changes the limit and `max: Infinity` restores the old unbounded cache. The only observable difference is that a very old combination is recomputed the next time it is called. `@History` now stops tracking when the component unmounts.
+
+`@DeepState` now returns one proxy per nested object instead of a new `Proxy` on every property read, so `this.config.theme === this.config.theme` holds and reads no longer allocate. It also no longer notifies when a property is assigned the value it already has or when a missing key is deleted, and an array `push` notifies once instead of twice.
+
 ## 1.6.0
 
 **`@Command<T>()` — field decorator syntax for `createCommand()`.**

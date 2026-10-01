@@ -1,6 +1,7 @@
 export { Component, Lazy } from "./component";
 export {
   Memo,
+  type MemoOptions,
   Bind,
   Log,
   Once,
