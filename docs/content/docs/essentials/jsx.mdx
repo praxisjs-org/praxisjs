@@ -73,11 +73,53 @@ render() {
 
 <StorybookLink story="essentials-jsx-lists--lists" label="Live demo — lists" />
 
+### Fine-grained rows
+
+Because the whole list is replaced whenever its arrow function re-runs, what the arrow **reads** decides how often that happens. Keep the list function *structural* — read only what determines which rows exist — and read each row's content in nested arrows:
+
+```tsx
+@State() ids = [1, 2, 3]                                  // structure: which rows exist
+@State() todos: Record<number, Todo> = { /* id → todo */ } // content: what each row shows
+
+render() {
+  return (
+    <ul>
+      {() => this.ids.map((id) => (            // tracks `ids` only
+        <li class={() => (this.todos[id].done ? 'done' : '')}>
+          <input
+            value={() => this.todos[id].title}  // tracks `todos`, per binding
+            onInput={(e) => this.rename(id, (e.target as HTMLInputElement).value)}
+          />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+rename(id: number, title: string) {
+  this.todos = { ...this.todos, [id]: { ...this.todos[id], title } }
+}
+```
+
+Editing a title re-runs the `value`/`class` bindings and nothing else: the `<li>` elements are not recreated, so focus, caret position and scroll survive typing. Only adding or removing an id (`this.ids = [...this.ids, id]`) rebuilds the list.
+
+```tsx
+// ❌ reads `item.title` inside the list arrow — every keystroke rebuilds every row
+{() => this.items.map((item) => <li>{item.title}</li>)}
+
+// ✅ the list arrow only reads `ids`; the title is read by its own binding
+{() => this.ids.map((id) => <li>{() => this.items[id].title}</li>)}
+```
+
+When rows carry richer local state, make each row a component that owns it with `@State()` and receives only its id (or initial value) as a prop. A change inside one row then never touches its siblings.
+
+<StorybookLink story="essentials-jsx-finegrainedlists--fine-grained-lists" label="Live demo — fine-grained rows" />
+
 ---
 
 ## Event handlers
 
-Event props use camelCase (`onClick`, `onInput`, `onKeyDown`, `onPointermove`, etc.). Event handlers are plain arrow functions — they don't need to be reactive:
+Event props use camelCase (`onClick`, `onInput`, `onKeyDown`, `onPointermove`, etc.). Event handlers are plain arrow functions — they don't need to be reactive. Each handler runs inside a batch, so several state writes in the same handler update the DOM once, after the handler returns:
 
 ```tsx
 render() {
@@ -93,6 +135,8 @@ render() {
   )
 }
 ```
+
+Only the synchronous part of a handler is batched. After an `await`, writes flush one by one — wrap them in `batch()` from `@praxisjs/core/internal` if you need them coalesced.
 
 <StorybookLink story="essentials-jsx-eventhandlers--event-handlers" label="Live demo — event handlers" />
 

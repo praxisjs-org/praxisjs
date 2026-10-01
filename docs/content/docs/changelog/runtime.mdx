@@ -6,6 +6,20 @@ icon: Boxes
 
 # @praxisjs/runtime
 
+## 0.7.0
+
+**JSX event handlers are now batched.** Every `onClick`/`onInput`/… handler runs inside `batch()`, so several state writes in one handler re-run the dependent effects once instead of once per write. Previously a handler that wrote three signals read by the same reactive child rebuilt that child three times. Only the synchronous part of a handler is batched. The same handler registered twice on one element still fires once, as with `addEventListener`.
+
+Rendering performance:
+
+- `onMount` hooks are drained by a single shared microtask per mount pass instead of one microtask per component. Order is unchanged (children before parents), and an `onMount` that throws still doesn't stop the others.
+- The "is this DOM property writable?" lookup behind every JSX prop is cached per prototype instead of walking the prototype chain for each prop of each element.
+- Replacing or removing a multi-node reactive child (any component, list, or conditional that returns several nodes) no longer allocates a `Range` per update — it walks the siblings instead. Creating a `Range` per removal was several times slower than the walk, and unreachable ranges stay registered with the document until collected. In a browser benchmark, rebuilding a 500-row list went from ~3.2 ms to ~0.2 ms and toggling a four-node child 300 times from ~9.4 ms to ~0.2 ms. `Portal` cleanup uses the same walk.
+- `Portal` builds its subtree in a fragment and attaches it to the target in one operation.
+- `ref` callbacks now run untracked, so a ref that reads a signal no longer subscribes the enclosing reactive child.
+
+Docs: [Fine-grained rows](/docs/essentials/jsx#fine-grained-rows) explains how to keep a list function structural so content edits don't rebuild the list.
+
 ## 0.6.0
 
 `render()` now hydrates prerendered HTML instead of discarding it, when the container carries the marker `@praxisjs/ssg` writes onto its static output.

@@ -98,6 +98,8 @@ this.last = 'Smith'
 
 <StorybookLink story="essentials-reactivity-computed--computed-values" label="Live demo — @Computed" />
 
+The same applies to writes made inside a JSX event handler (`onClick`, `onInput`, …): the runtime batches the whole handler, so every effect that depends on the changed state re-runs once when the handler returns, not once per write.
+
 ---
 
 ## Arrays and objects

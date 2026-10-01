@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 
 import { StatefulComponent } from "@praxisjs/core";
 import { getComponentProps } from "@praxisjs/core/internal";
@@ -293,5 +293,71 @@ describe("mountComponent", () => {
     expect(() => mountComponent(NoRenderComp as never, {}, scope)).not.toThrow();
     expect(caughtError).toBeInstanceOf(Error);
     scope.dispose();
+  });
+});
+
+describe("mountComponent onMount scheduling", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function stubMicrotasks(): Array<() => void> {
+    const jobs: Array<() => void> = [];
+    vi.stubGlobal("queueMicrotask", (fn: () => void) => { jobs.push(fn); });
+    return jobs;
+  }
+
+  function lifecycleComp(onMount: () => void) {
+    return class extends StatefulComponent {
+      static __isComponent = true as const;
+      static __isStateless = false;
+      onMount() { onMount(); }
+      render() { return null; }
+    };
+  }
+
+  it("drains every component mounted in the same pass with a single microtask, in mount order", () => {
+    const jobs = stubMicrotasks();
+    const order: string[] = [];
+    const scope = new Scope();
+    mountComponent(lifecycleComp(() => order.push("a")), {}, scope);
+    mountComponent(lifecycleComp(() => order.push("b")), {}, scope);
+    expect(jobs).toHaveLength(1);
+    jobs.shift()?.();
+    expect(order).toEqual(["a", "b"]);
+  });
+
+  it("schedules a new microtask for components mounted after a drain", () => {
+    const jobs = stubMicrotasks();
+    const onMount = vi.fn();
+    const scope = new Scope();
+    mountComponent(lifecycleComp(onMount), {}, scope);
+    jobs.shift()?.();
+    mountComponent(lifecycleComp(onMount), {}, scope);
+    expect(jobs).toHaveLength(1);
+    jobs.shift()?.();
+    expect(onMount).toHaveBeenCalledTimes(2);
+  });
+
+  it("a throwing onMount does not stop the others and is rethrown on its own microtask", () => {
+    const jobs = stubMicrotasks();
+    const second = vi.fn();
+    const scope = new Scope();
+    mountComponent(lifecycleComp(() => { throw new Error("mount boom"); }), {}, scope);
+    mountComponent(lifecycleComp(second), {}, scope);
+    jobs.shift()?.();
+    expect(second).toHaveBeenCalledOnce();
+    expect(jobs).toHaveLength(1);
+    expect(() => { jobs.shift()?.(); }).toThrow("mount boom");
+  });
+
+  it("skips onMount for a component disposed before the drain", () => {
+    const jobs = stubMicrotasks();
+    const onMount = vi.fn();
+    const scope = new Scope();
+    mountComponent(lifecycleComp(onMount), {}, scope);
+    scope.dispose();
+    jobs.shift()?.();
+    expect(onMount).not.toHaveBeenCalled();
   });
 });

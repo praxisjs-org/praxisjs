@@ -11,6 +11,28 @@ import { runInScope } from "./context";
 
 import type { Scope } from "./scope";
 
+let pendingMounts: Array<() => void> = [];
+
+// One shared microtask drains every component mounted in the same synchronous pass, in mount
+// order (children before parents). A throwing onMount is rethrown on its own microtask so it
+// can't stop the others, as it couldn't when each component had a microtask of its own.
+function scheduleMount(run: () => void): void {
+  if (pendingMounts.length === 0) {
+    queueMicrotask(() => {
+      const queue = pendingMounts;
+      pendingMounts = [];
+      for (const job of queue) {
+        try {
+          job();
+        } catch (e) {
+          queueMicrotask(() => { throw e; });
+        }
+      }
+    });
+  }
+  pendingMounts.push(run);
+}
+
 export function mountComponent(
   ctor: ComponentConstructor,
   props: Record<string, unknown>,
@@ -56,7 +78,7 @@ export function mountComponent(
     mountChildren(container, dom, scope);
     container.appendChild(end);
 
-    queueMicrotask(() => {
+    scheduleMount(() => {
       if (disposed) return;
       setComponentMounted(instance, true);
       instance.onMount?.();

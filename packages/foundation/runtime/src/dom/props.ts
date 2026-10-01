@@ -1,3 +1,5 @@
+import { untrack } from "@praxisjs/core/internal";
+
 import { EVENT_MAP } from "./constants";
 import { addEvent } from "./events";
 
@@ -42,10 +44,10 @@ function applyAttr(el: Element, key: string, value: unknown): void {
   }
 }
 
-// Read-only accessors (SVG geometry, `list`, `form`, `part`, `classList`…)
-// must be excluded here or assignment below throws.
-function hasWritableProperty(el: Element, key: string): boolean {
-  let target: object | null = el;
+const writableCache = new WeakMap<object, Map<string, boolean>>();
+
+function lookupWritable(proto: object, key: string): boolean {
+  let target: object | null = proto;
   while (target) {
     const descriptor = Object.getOwnPropertyDescriptor(target, key);
     if (descriptor) {
@@ -54,6 +56,28 @@ function hasWritableProperty(el: Element, key: string): boolean {
     target = Object.getPrototypeOf(target) as object | null;
   }
   return false;
+}
+
+// Read-only accessors (SVG geometry, `list`, `form`, `part`, `classList`…)
+// must be excluded here or assignment below throws. The prototype walk is cached per
+// prototype because every element of a given tag repeats the same lookups; a property defined on
+// a prototype after its first lookup (e.g. a late polyfill) is therefore not picked up.
+function hasWritableProperty(el: Element, key: string): boolean {
+  const own = Object.getOwnPropertyDescriptor(el, key);
+  if (own) return own.set !== undefined || own.writable === true;
+
+  const proto = Object.getPrototypeOf(el) as object;
+  let keys = writableCache.get(proto);
+  if (!keys) {
+    keys = new Map();
+    writableCache.set(proto, keys);
+  }
+  let writable = keys.get(key);
+  if (writable === undefined) {
+    writable = lookupWritable(proto, key);
+    keys.set(key, writable);
+  }
+  return writable;
 }
 
 function setProp(el: Element, key: string, value: unknown): void {
@@ -81,7 +105,8 @@ export function applyProp(
   if (normalizedKey === "key" || normalizedKey === "children") return;
 
   if (normalizedKey === "ref") {
-    (value as (el: Element) => void)(el);
+    // untracked: a ref callback that reads a signal must not subscribe the enclosing reactive child
+    untrack(() => { (value as (el: Element) => void)(el); });
     return;
   }
 

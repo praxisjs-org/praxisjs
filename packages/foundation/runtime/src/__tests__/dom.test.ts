@@ -323,4 +323,112 @@ describe("addEvent", () => {
     expect(fn).toHaveBeenCalledOnce();
     scope.dispose();
   });
+
+  it("batches signal writes made by a handler so effects run once", () => {
+    const el = document.createElement("button");
+    const scope = new Scope();
+    const a = signal(0);
+    const b = signal(0);
+    const runs = vi.fn();
+    scope.effect(() => {
+      void a();
+      void b();
+      runs();
+    });
+    runs.mockClear();
+    addEvent(el, "click", () => {
+      a.set(1);
+      b.set(1);
+    }, scope);
+    el.dispatchEvent(new MouseEvent("click"));
+    expect(runs).toHaveBeenCalledOnce();
+    scope.dispose();
+  });
+
+  it("calls the handler with the element as this and forwards the event", () => {
+    const el = document.createElement("button");
+    const scope = new Scope();
+    let seenThis: unknown;
+    let seenEvent: Event | undefined;
+    addEvent(el, "click", function (this: unknown, e: Event) {
+      seenThis = this;
+      seenEvent = e;
+    }, scope);
+    const event = new MouseEvent("click");
+    el.dispatchEvent(event);
+    expect(seenThis).toBe(el);
+    expect(seenEvent).toBe(event);
+    scope.dispose();
+  });
+
+  it("registers the same handler on different elements independently", () => {
+    const a = document.createElement("button");
+    const b = document.createElement("button");
+    const scope = new Scope();
+    const fn = vi.fn();
+    addEvent(a, "click", fn, scope);
+    addEvent(b, "click", fn, scope);
+    a.dispatchEvent(new MouseEvent("click"));
+    b.dispatchEvent(new MouseEvent("click"));
+    expect(fn).toHaveBeenCalledTimes(2);
+    scope.dispose();
+    a.dispatchEvent(new MouseEvent("click"));
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("applyProp writable-property cache", () => {
+  it("assigns prototype properties and keeps doing so for later elements of the same tag", () => {
+    const scope = new Scope();
+    const first = document.createElement("input");
+    const second = document.createElement("input");
+    applyProp(first, "value", "a", scope);
+    applyProp(second, "value", "b", scope);
+    expect(first.value).toBe("a");
+    expect(second.value).toBe("b");
+  });
+
+  it("falls back to attributes for unknown and read-only properties, consistently across elements", () => {
+    const scope = new Scope();
+    for (let i = 0; i < 2; i++) {
+      const input = document.createElement("input");
+      applyProp(input, "data-x", "1", scope);
+      applyProp(input, "list", "dl", scope);
+      expect(input.getAttribute("data-x")).toBe("1");
+      expect(input.getAttribute("list")).toBe("dl");
+    }
+  });
+
+  it("honours own properties: writable ones are assigned, getter-only ones become attributes", () => {
+    const scope = new Scope();
+    const el = document.createElement("div") as unknown as HTMLElement & Record<string, unknown>;
+    el.expando = "old";
+    Object.defineProperty(el, "readonlyThing", { get: () => "fixed", configurable: true });
+    applyProp(el, "expando", "new", scope);
+    applyProp(el, "readonlyThing", "attr", scope);
+    expect(el.expando).toBe("new");
+    expect(el.readonlyThing).toBe("fixed");
+    expect(el.getAttribute("readonlyThing")).toBe("attr");
+  });
+
+  it("an own property with a setter is assigned", () => {
+    const scope = new Scope();
+    const el = document.createElement("div") as unknown as HTMLElement & Record<string, unknown>;
+    let stored = "";
+    Object.defineProperty(el, "custom", { get: () => stored, set: (v: string) => { stored = v; }, configurable: true });
+    applyProp(el, "custom", "set", scope);
+    expect(stored).toBe("set");
+  });
+
+  it("runs ref callbacks untracked so they do not subscribe the enclosing effect", () => {
+    const scope = new Scope();
+    const s = signal(0);
+    const runs = vi.fn();
+    scope.effect(() => {
+      runs();
+      applyProp(document.createElement("div"), "ref", () => { void s(); }, scope);
+    });
+    s.set(1);
+    expect(runs).toHaveBeenCalledOnce();
+  });
 });

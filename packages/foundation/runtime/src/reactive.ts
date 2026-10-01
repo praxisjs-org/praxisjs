@@ -1,4 +1,5 @@
 import { runInScope } from "./context";
+import { removeNodes } from "./dom/remove";
 import { isRecording, registerReactiveNode } from "./hydration-context";
 import { Scope } from "./scope";
 
@@ -49,15 +50,10 @@ export function mountReactive(
 
     const anchor = end.parentNode ?? parent;
 
-    if (currentNodes.length > 0) {
-      if (currentNodes.length === 1) {
-        (anchor as Element).removeChild(currentNodes[0]);
-      } else {
-        const range = document.createRange();
-        range.setStartBefore(currentNodes[0]);
-        range.setEndAfter(currentNodes[currentNodes.length - 1]);
-        range.deleteContents();
-      }
+    if (currentNodes.length === 1) {
+      (anchor as Element).removeChild(currentNodes[0]);
+    } else if (currentNodes.length > 1) {
+      removeNodes(currentNodes);
     }
 
     if (newNodes.length > 0) {

@@ -3,6 +3,7 @@ import { isServerRenderPass } from "@praxisjs/core/internal";
 
 import { mountChildren } from "./children";
 import { getCurrentScope } from "./context";
+import { removeNodes } from "./dom/remove";
 
 export interface PortalProps {
   to?: Element | string | null;
@@ -27,16 +28,16 @@ export class Portal extends StatelessComponent<PortalProps> {
     const start = document.createComment("");
     const end = document.createComment("");
 
-    target.appendChild(start);
-    mountChildren(target, this.props.children, scope);
-    target.appendChild(end);
+    // Built off-document and attached once, so the target never sees a half-built subtree.
+    const fragment = document.createDocumentFragment();
+    fragment.appendChild(start);
+    mountChildren(fragment, this.props.children, scope);
+    fragment.appendChild(end);
+    target.appendChild(fragment);
 
     scope.add(() => {
       if (!start.parentNode || start.parentNode !== end.parentNode) return;
-      const range = document.createRange();
-      range.setStartBefore(start);
-      range.setEndAfter(end);
-      range.deleteContents();
+      removeNodes([start, end]);
     });
 
     return document.createComment("portal");

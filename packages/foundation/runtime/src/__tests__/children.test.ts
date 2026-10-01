@@ -216,3 +216,61 @@ describe("mountReactive", () => {
     document.body.removeChild(parent);
   });
 });
+
+describe("fine-grained rows", () => {
+  function setup() {
+    const ids = signal([1, 2]);
+    const titles = signal<Record<number, string>>({ 1: "a", 2: "b" });
+    let listRuns = 0;
+    const ul = container();
+    const scope = new Scope();
+    mountChildren(ul, () => {
+      listRuns++;
+      return ids().map((id) => {
+        const li = document.createElement("li");
+        mountChildren(li, () => titles()[id], scope);
+        return li;
+      });
+    }, scope);
+    return { ids, titles, ul, scope, runs: () => listRuns };
+  }
+
+  it("changing row content updates text in place without re-running the list function", () => {
+    const { titles, ul, scope, runs } = setup();
+    const rows = [...ul.querySelectorAll("li")];
+    titles.set({ 1: "A", 2: "b" });
+    expect(runs()).toBe(1);
+    expect([...ul.querySelectorAll("li")]).toEqual(rows);
+    expect(rows.map((r) => r.textContent)).toEqual(["A", "b"]);
+    scope.dispose();
+  });
+
+  it("changing the structure rebuilds the list", () => {
+    const { ids, titles, ul, scope, runs } = setup();
+    titles.set({ 1: "a", 2: "b", 3: "c" });
+    ids.set([1, 2, 3]);
+    expect(runs()).toBe(2);
+    expect(ul.querySelectorAll("li")).toHaveLength(3);
+    scope.dispose();
+  });
+});
+
+describe("mountReactive multi-node replacement", () => {
+  it("removes nodes that were inserted between the tracked ones after mount", () => {
+    const toggle = signal(0);
+    const parent = container();
+    const scope = new Scope();
+    let a!: Node;
+    mountChildren(parent, () => {
+      void toggle();
+      a = document.createElement("a");
+      return [a, document.createElement("b")];
+    }, scope);
+    const stray = document.createElement("stray");
+    parent.insertBefore(stray, a.nextSibling);
+    toggle.set(1);
+    expect(parent.contains(stray)).toBe(false);
+    expect([...parent.children].map((c) => c.localName)).toEqual(["a", "b"]);
+    scope.dispose();
+  });
+});

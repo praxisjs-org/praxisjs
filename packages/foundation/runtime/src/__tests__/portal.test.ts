@@ -150,4 +150,28 @@ describe("resolvePortalTarget", () => {
     expect(resolvePortalTarget("#resolve-test")).toBe(el);
     document.body.removeChild(el);
   });
+
+  it("attaches the whole subtree to the target in one operation", () => {
+    const target = document.createElement("div");
+    document.body.appendChild(target);
+    const spy = vi.spyOn(target, "appendChild");
+    const children = [document.createElement("p"), document.createElement("span")];
+    const { scope } = mount({ to: target, children });
+    expect(spy).toHaveBeenCalledOnce();
+    expect(target.querySelector("p")).not.toBeNull();
+    expect(target.querySelector("span")).not.toBeNull();
+    scope.dispose();
+  });
+
+  it("reactive children mounted through the portal keep updating after attach", () => {
+    const target = document.createElement("div");
+    document.body.appendChild(target);
+    const s = signal("one");
+    const { scope } = mount({ to: target, children: () => s() });
+    expect(target.textContent).toContain("one");
+    s.set("two");
+    expect(target.textContent).toContain("two");
+    expect(target.textContent).not.toContain("one");
+    scope.dispose();
+  });
 });
