@@ -379,3 +379,76 @@ describe("@Head decorator — reactive config", () => {
     inst.onUnmount?.();
   });
 });
+
+describe("head tag diffing", () => {
+  const tags = () => [...document.head.querySelectorAll("[data-praxis-head]")];
+  const byName = (name: string) => document.head.querySelector(`meta[name="${name}"]`);
+
+  it("keeps tags that did not change and only replaces the ones that did", () => {
+    const id = Symbol();
+    pushHead(id, { description: "same", meta: [{ name: "robots", content: "index" }] });
+    const description = byName("description");
+    const robots = byName("robots");
+
+    pushHead(id, { description: "same", meta: [{ name: "robots", content: "noindex" }] });
+
+    expect(byName("description")).toBe(description);
+    expect(byName("robots")).not.toBe(robots);
+    expect(byName("robots")?.getAttribute("content")).toBe("noindex");
+    expect(tags()).toHaveLength(2);
+  });
+
+  it("removes tags that are no longer in the config", () => {
+    const id = Symbol();
+    pushHead(id, { description: "d", canonical: "https://example.com/" });
+    pushHead(id, { description: "d" });
+    expect(document.head.querySelector('link[rel="canonical"]')).toBeNull();
+    expect(byName("description")).not.toBeNull();
+  });
+
+  it("keeps identical repeated tags as separate elements", () => {
+    const id = Symbol();
+    pushHead(id, { meta: [{ name: "x", content: "1" }, { name: "x", content: "1" }] });
+    expect(document.head.querySelectorAll('meta[name="x"]')).toHaveLength(2);
+    pushHead(id, { meta: [{ name: "x", content: "1" }, { name: "x", content: "1" }] });
+    expect(document.head.querySelectorAll('meta[name="x"]')).toHaveLength(2);
+  });
+
+  it("recreates a managed tag that was removed from the document", () => {
+    const id = Symbol();
+    pushHead(id, { description: "d" });
+    byName("description")?.remove();
+    pushHead(id, { description: "d" });
+    expect(byName("description")?.getAttribute("content")).toBe("d");
+    expect(tags()).toHaveLength(1);
+  });
+
+  it("sweeps managed-looking tags a prerender left behind", () => {
+    const stale = document.createElement("meta");
+    stale.setAttribute("name", "old");
+    stale.setAttribute("data-praxis-head", "");
+    document.head.appendChild(stale);
+    pushHead(Symbol(), { description: "d" });
+    expect(byName("old")).toBeNull();
+    expect(byName("description")).not.toBeNull();
+  });
+
+  it("restores the title and removes every tag once the last entry is gone", () => {
+    const id = Symbol();
+    pushHead(id, { title: "Page", description: "d" });
+    removeHead(id);
+    expect(document.title).toBe("initial");
+    expect(tags()).toHaveLength(0);
+  });
+
+  it("a nested entry's tags replace the outer ones and the outer ones come back on removal", () => {
+    const outer = Symbol();
+    const inner = Symbol();
+    pushHead(outer, { description: "outer" });
+    pushHead(inner, { description: "inner" });
+    expect(byName("description")?.getAttribute("content")).toBe("inner");
+    removeHead(inner);
+    expect(byName("description")?.getAttribute("content")).toBe("outer");
+    expect(tags()).toHaveLength(1);
+  });
+});

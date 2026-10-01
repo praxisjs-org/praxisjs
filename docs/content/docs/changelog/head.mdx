@@ -6,6 +6,10 @@ icon: Globe
 
 # @praxisjs/head
 
+## 0.3.1
+
+Updating the head no longer removes and recreates every managed tag. Tags the new config shares with the previous one stay in the document untouched, and only the difference is added or removed — a reactive `@Head` that changes one field now touches one tag. Repeated identical tags are kept as separate elements, a managed tag removed from the document is recreated on the next update, and tags left behind by a prerender are still swept. `headVersion` still increments on every update.
+
 ## 0.3.0
 
 Added a `@praxisjs/head/internal` entry point exporting `resetHeadState()`, so `@praxisjs/ssg`'s prerender runner can clear `<head>` tag state between routes rendered in the same Node process.
