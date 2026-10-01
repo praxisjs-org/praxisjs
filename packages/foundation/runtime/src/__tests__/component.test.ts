@@ -5,6 +5,8 @@ import { StatefulComponent } from "@praxisjs/core";
 import { getComponentProps } from "@praxisjs/core/internal";
 
 import { mountComponent } from "../component";
+import { getCurrentScope } from "../context";
+import { mountElement } from "../element";
 import { Scope } from "../scope";
 
 class SimpleComp extends StatefulComponent {
@@ -359,5 +361,21 @@ describe("mountComponent onMount scheduling", () => {
     scope.dispose();
     jobs.shift()?.();
     expect(onMount).not.toHaveBeenCalled();
+  });
+});
+
+describe("mountComponent with optional event handlers", () => {
+  class OptionalHandlers extends StatefulComponent {
+    static __isComponent = true as const;
+    static __isStateless = false;
+    render() {
+      return mountElement("form", { onSubmit: undefined, onClick: null, children: "content" }, getCurrentScope());
+    }
+  }
+
+  it("renders the element instead of failing when a forwarded handler is not provided", () => {
+    const nodes = mountComponent(OptionalHandlers, {}, new Scope());
+    const form = nodes.find((n) => n instanceof HTMLFormElement);
+    expect(form?.textContent).toBe("content");
   });
 });

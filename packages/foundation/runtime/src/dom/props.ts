@@ -106,7 +106,7 @@ export function applyProp(
 
   if (normalizedKey === "ref") {
     // untracked: a ref callback that reads a signal must not subscribe the enclosing reactive child
-    untrack(() => { (value as (el: Element) => void)(el); });
+    if (typeof value === "function") untrack(() => { (value as (el: Element) => void)(el); });
     return;
   }
 

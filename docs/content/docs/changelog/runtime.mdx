@@ -6,6 +6,10 @@ icon: Boxes
 
 # @praxisjs/runtime
 
+## 0.7.1
+
+Fixed a regression in 0.7.0: an event prop whose value is `undefined` or `null` (`<form onSubmit={this.props.onSubmit}>` with no handler passed) threw `TypeError: Invalid value used as weak map key`, which made the surrounding component render empty. Missing handlers are ignored again, as `addEventListener` always did, and an `EventListenerObject` (`{ handleEvent }`) is registered as-is, without batching. `ref={undefined}` is ignored too instead of throwing "not a function".
+
 ## 0.7.0
 
 **JSX event handlers are now batched.** Every `onClick`/`onInput`/… handler runs inside `batch()`, so several state writes in one handler re-run the dependent effects once instead of once per write. Previously a handler that wrote three signals read by the same reactive child rebuilt that child three times. Only the synchronous part of a handler is batched. The same handler registered twice on one element still fires once, as with `addEventListener`.

@@ -21,10 +21,13 @@ function batched(handler: EventListener): EventListener {
 export function addEvent(
   el: Element,
   eventName: string,
-  handler: EventListener,
+  handler: EventListener | EventListenerObject | null | undefined,
   scope: Scope,
 ): void {
-  const listener = batched(handler);
+  // Components forward optional handlers (`onSubmit={this.onSubmit}`) as-is, and addEventListener
+  // has always treated a missing listener as a no-op.
+  if (handler == null) return;
+  const listener = typeof handler === "function" ? batched(handler) : handler;
   el.addEventListener(eventName, listener);
   scope.add(() => { el.removeEventListener(eventName, listener); });
 }

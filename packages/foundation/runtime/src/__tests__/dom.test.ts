@@ -432,3 +432,52 @@ describe("applyProp writable-property cache", () => {
     expect(runs).toHaveBeenCalledOnce();
   });
 });
+
+describe("event props without a usable handler", () => {
+  it.each([undefined, null])("addEvent ignores a %s handler", (handler) => {
+    const el = document.createElement("button");
+    const scope = new Scope();
+    const add = vi.spyOn(el, "addEventListener");
+    expect(() => { addEvent(el, "click", handler, scope); }).not.toThrow();
+    expect(add).not.toHaveBeenCalled();
+    expect(() => { scope.dispose(); }).not.toThrow();
+  });
+
+  it.each([undefined, null])("applyProp skips an onClick prop whose value is %s", (value) => {
+    const el = document.createElement("button");
+    const scope = new Scope();
+    expect(() => { applyProp(el, "onClick", value, scope); }).not.toThrow();
+    expect(() => { el.dispatchEvent(new MouseEvent("click")); }).not.toThrow();
+  });
+
+  it("still registers a handler passed later in the same props object", () => {
+    const el = document.createElement("form");
+    const scope = new Scope();
+    const onInput = vi.fn();
+    applyProp(el, "onSubmit", undefined, scope);
+    applyProp(el, "onInput", onInput, scope);
+    el.dispatchEvent(new Event("input"));
+    expect(onInput).toHaveBeenCalledOnce();
+  });
+
+  it("supports an EventListenerObject, calling handleEvent as the DOM does", () => {
+    const el = document.createElement("button");
+    const scope = new Scope();
+    const handleEvent = vi.fn();
+    const listener = { handleEvent };
+    addEvent(el, "click", listener, scope);
+    const event = new MouseEvent("click");
+    el.dispatchEvent(event);
+    expect(handleEvent).toHaveBeenCalledWith(event);
+    scope.dispose();
+    el.dispatchEvent(new MouseEvent("click"));
+    expect(handleEvent).toHaveBeenCalledOnce();
+  });
+});
+
+describe("ref prop without a callback", () => {
+  it.each([undefined, null])("applyProp ignores a ref whose value is %s", (value) => {
+    const el = document.createElement("div");
+    expect(() => { applyProp(el, "ref", value, new Scope()); }).not.toThrow();
+  });
+});
