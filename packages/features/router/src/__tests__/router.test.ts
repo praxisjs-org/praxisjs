@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { flushPendingResources, setServerRenderPass } from "@praxisjs/core/internal";
+import { effect, flushPendingResources, setServerRenderPass } from "@praxisjs/core/internal";
 
 import { RouterInstance, createRouter, useRouter, useParams, useQuery, useLocation, lazy } from "../router";
 import { Router, Lazy, Params, Query, Location, Route, InjectLayout } from "../decorators";
@@ -750,5 +750,159 @@ describe("@Location", () => {
     run(instance);
     const loc = (instance.location as () => { path: string })();
     expect(loc.path).toBe("/");
+  });
+});
+
+describe("Router component + layout resolution", () => {
+  class Layout {}
+  class OtherLayout {}
+
+  function deferred<T>() {
+    let resolve!: (v: T) => void;
+    let reject!: (e: unknown) => void;
+    const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+    return { promise, resolve, reject };
+  }
+
+  function watchPair(r: RouterInstance) {
+    const seen: Array<[unknown, unknown]> = [];
+    effect(() => {
+      seen.push([r.currentComponent(), r.currentLayout()]);
+    });
+    seen.length = 0;
+    return seen;
+  }
+
+  it("applies the initial route synchronously when nothing is lazy", () => {
+    const r = new RouterInstance([{ path: "/", component: HomePage, layout: Layout }]);
+    expect(r.currentComponent()).toBe(HomePage);
+    expect(r.currentLayout()).toBe(Layout);
+  });
+
+  it("applies an unknown path as null component and layout", () => {
+    window.history.pushState(null, "", "/nowhere");
+    const r = new RouterInstance([{ path: "/", component: HomePage }]);
+    expect(r.currentComponent()).toBeNull();
+    expect(r.currentLayout()).toBeNull();
+  });
+
+  it("changes component and layout in one update", async () => {
+    const r = new RouterInstance([
+      { path: "/", component: HomePage, layout: Layout },
+      { path: "/about", component: AboutPage, layout: OtherLayout },
+    ]);
+    const seen = watchPair(r);
+    await r.push("/about");
+    expect(seen).toEqual([[AboutPage, OtherLayout]]);
+  });
+
+  it("applies an already-loaded lazy component and layout without waiting", async () => {
+    const lazyPage = lazy(() => Promise.resolve({ default: AboutPage }));
+    const lazyLayout = lazy(() => Promise.resolve({ default: Layout }));
+    const r = new RouterInstance([
+      { path: "/", component: HomePage },
+      { path: "/lazy", component: lazyPage, layout: lazyLayout },
+    ]);
+    await r.push("/lazy");
+    await r.push("/");
+    void r.push("/lazy");
+    expect(r.currentComponent()).toBe(AboutPage);
+    expect(r.currentLayout()).toBe(Layout);
+  });
+
+  it("starts loading a lazy component and a lazy layout together and applies them in one update", async () => {
+    const page = deferred<{ default: typeof AboutPage }>();
+    const layout = deferred<{ default: typeof Layout }>();
+    const pageLoader = vi.fn(() => page.promise);
+    const layoutLoader = vi.fn(() => layout.promise);
+    const r = new RouterInstance([
+      { path: "/", component: HomePage },
+      { path: "/lazy", component: lazy(pageLoader), layout: lazy(layoutLoader) },
+    ]);
+    const seen = watchPair(r);
+
+    const nav = r.push("/lazy");
+    await vi.waitFor(() => { expect(pageLoader).toHaveBeenCalled(); });
+    expect(layoutLoader).toHaveBeenCalled();
+
+    layout.resolve({ default: Layout });
+    await Promise.resolve();
+    expect(seen).toEqual([]);
+
+    page.resolve({ default: AboutPage });
+    await nav;
+    expect(seen).toEqual([[AboutPage, Layout]]);
+  });
+
+  it("shows the page and rejects the navigation when the layout fails to load", async () => {
+    const r = new RouterInstance([
+      { path: "/", component: HomePage },
+      { path: "/page", component: AboutPage, layout: lazy(() => Promise.reject(new Error("layout failed"))) },
+    ]);
+    await expect(r.push("/page")).rejects.toThrow("layout failed");
+    expect(r.currentComponent()).toBe(AboutPage);
+    expect(r.currentLayout()).toBeNull();
+  });
+
+  it("discards a slow navigation that was superseded", async () => {
+    const slow = deferred<{ default: typeof AboutPage }>();
+    const r = new RouterInstance([
+      { path: "/", component: HomePage },
+      { path: "/slow", component: lazy(() => slow.promise) },
+      { path: "/fast", component: UserPage },
+    ]);
+    const first = r.push("/slow");
+    await vi.waitFor(() => { expect(r.loading()).toBe(true); });
+    await r.push("/fast");
+    slow.resolve({ default: AboutPage });
+    await first;
+    expect(r.currentComponent()).toBe(UserPage);
+  });
+
+  it("loads a lazy component alongside an already-available plain layout", async () => {
+    const r = new RouterInstance([
+      { path: "/", component: HomePage },
+      { path: "/lazy", component: lazy(() => Promise.resolve({ default: AboutPage })), layout: Layout },
+    ]);
+    await r.push("/lazy");
+    expect(r.currentComponent()).toBe(AboutPage);
+    expect(r.currentLayout()).toBe(Layout);
+  });
+
+  it("loads a lazy layout for a plain component, reusing an already-loaded lazy component", async () => {
+    const lazyPage = lazy(() => Promise.resolve({ default: AboutPage }));
+    const lazyLayout = lazy(() => Promise.resolve({ default: Layout }));
+    const r = new RouterInstance([
+      { path: "/", component: HomePage },
+      { path: "/a", component: lazyPage },
+      { path: "/b", component: lazyPage, layout: lazyLayout },
+    ]);
+    await r.push("/a");
+    await r.push("/b");
+    expect(r.currentComponent()).toBe(AboutPage);
+    expect(r.currentLayout()).toBe(Layout);
+  });
+
+  it("loads a lazy layout for a plain component", async () => {
+    const r = new RouterInstance([
+      { path: "/", component: HomePage },
+      { path: "/plain", component: UserPage, layout: lazy(() => Promise.resolve({ default: OtherLayout })) },
+    ]);
+    await r.push("/plain");
+    expect(r.currentComponent()).toBe(UserPage);
+    expect(r.currentLayout()).toBe(OtherLayout);
+  });
+
+  it("reuses an already-loaded lazy layout while a new lazy component loads", async () => {
+    const lazyLayout = lazy(() => Promise.resolve({ default: Layout }));
+    const r = new RouterInstance([
+      { path: "/", component: HomePage },
+      { path: "/a", component: lazy(() => Promise.resolve({ default: AboutPage })), layout: lazyLayout },
+      { path: "/b", component: lazy(() => Promise.resolve({ default: UserPage })), layout: lazyLayout },
+    ]);
+    await r.push("/a");
+    await r.push("/b");
+    expect(r.currentComponent()).toBe(UserPage);
+    expect(r.currentLayout()).toBe(Layout);
   });
 });

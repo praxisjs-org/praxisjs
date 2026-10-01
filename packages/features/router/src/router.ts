@@ -1,4 +1,4 @@
-import { computed, signal, trackPendingResource } from "@praxisjs/core/internal";
+import { batch, computed, signal, trackPendingResource } from "@praxisjs/core/internal";
 import type { Signal, Computed } from "@praxisjs/shared";
 
 import { compilePath, parseQuery } from "./utils";
@@ -36,6 +36,8 @@ export class RouterInstance {
   private readonly _resolvedComponents = new Map<LazyRouteComponent, RouteComponent>();
   private readonly _resolvedLayouts = new Map<LazyRouteComponent, RouteComponent>();
   private readonly _afterEachHandlers: AfterEachHandler[] = [];
+  private _lastMatchPath: string | undefined;
+  private _lastMatch: CompiledRoute | undefined;
   private readonly _scrollBehavior: RouterOptions["scrollBehavior"];
 
   readonly location: Signal<RouteLocationInternal>;
@@ -95,6 +97,7 @@ export class RouterInstance {
     const effectiveLayout = route.layout ?? inheritedLayout;
     const compiled: CompiledRoute = { definition: route, fullPath, regex, paramNames, layout: effectiveLayout };
     this.compiled.push(compiled);
+    this._lastMatchPath = undefined;
     if (route.name) this._nameMap.set(route.name, compiled);
 
     if (route.children) {
@@ -104,8 +107,14 @@ export class RouterInstance {
     }
   }
 
+  // A navigation matches the same path several times (location, component, layout, hooks); the
+  // regex scan runs once per path instead.
   private matchRoute(path: string): CompiledRoute | undefined {
-    return this.compiled.find((r) => r.regex.test(path));
+    if (path === this._lastMatchPath) return this._lastMatch;
+    const match = this.compiled.find((r) => r.regex.test(path));
+    this._lastMatchPath = path;
+    this._lastMatch = match;
+    return match;
   }
 
   private buildLocation(
@@ -135,25 +144,21 @@ export class RouterInstance {
     return "__isLazy" in c && c.__isLazy;
   }
 
-  private async resolveComponent(path: string): Promise<RouteComponent | null> {
-    for (const route of this.compiled) {
-      if (!route.regex.test(path)) continue;
-      const { component } = route.definition;
-      if (!this.isLazy(component)) return component;
+  private async resolveComponent(route: CompiledRoute): Promise<RouteComponent> {
+    const { component } = route.definition;
+    if (!this.isLazy(component)) return component;
 
-      const cached = this._resolvedComponents.get(component);
-      if (cached) return cached;
+    const cached = this._resolvedComponents.get(component);
+    if (cached) return cached;
 
-      this._loading.set(true);
-      try {
-        const mod = await component();
-        this._resolvedComponents.set(component, mod.default);
-        return mod.default;
-      } finally {
-        this._loading.set(false);
-      }
+    this._loading.set(true);
+    try {
+      const mod = await component();
+      this._resolvedComponents.set(component, mod.default);
+      return mod.default;
+    } finally {
+      this._loading.set(false);
     }
-    return null;
   }
 
   private async resolveLayout(layout: RouteComponent | LazyRouteComponent): Promise<RouteComponent> {
@@ -165,23 +170,55 @@ export class RouterInstance {
     return mod.default;
   }
 
-  private async resolveLayoutForPath(path: string): Promise<RouteComponent | null> {
-    for (const route of this.compiled) {
-      if (!route.regex.test(path)) continue;
-      if (!route.layout) return null;
-      return this.resolveLayout(route.layout);
-    }
-    return null;
+  // Component and layout when neither needs a network round-trip (plain components, or lazy ones
+  // already loaded) — lets navigation apply them with no microtask gap.
+  private resolveSync(route: CompiledRoute): { component: RouteComponent; layout: RouteComponent | null } | undefined {
+    const { component } = route.definition;
+    const resolved = this.isLazy(component) ? this._resolvedComponents.get(component) : component;
+    if (!resolved) return undefined;
+
+    if (!route.layout) return { component: resolved, layout: null };
+    const resolvedLayout = this.isLazy(route.layout) ? this._resolvedLayouts.get(route.layout) : route.layout;
+    return resolvedLayout ? { component: resolved, layout: resolvedLayout } : undefined;
   }
 
+  // Component and layout are resolved concurrently (two lazy chunks no longer load one after the
+  // other) and applied together, so RouterView rebuilds the page once with a consistent pair
+  // instead of showing the page without its layout first.
   private async resolveAndSetComponent(path: string): Promise<void> {
     const seq = ++this._navSeq;
-    const component = await this.resolveComponent(path);
+
+    const route = this.matchRoute(path);
+    if (!route) {
+      batch(() => {
+        this._component.set(null);
+        this._layout.set(null);
+      });
+      return;
+    }
+
+    const ready = this.resolveSync(route);
+    if (ready) {
+      batch(() => {
+        this._component.set(ready.component);
+        this._layout.set(ready.layout);
+      });
+      return;
+    }
+
+    const layoutResult = (route.layout ? this.resolveLayout(route.layout) : Promise.resolve(null)).then(
+      (layout) => ({ layout, error: undefined as unknown, failed: false }),
+      (error: unknown) => ({ layout: null, error, failed: true }),
+    );
+    const component = await this.resolveComponent(route);
+    const { layout, error, failed } = await layoutResult;
     if (seq !== this._navSeq) return;
-    this._component.set(component);
-    const layout = await this.resolveLayoutForPath(path);
-    if (seq !== this._navSeq) return;
-    this._layout.set(layout);
+    batch(() => {
+      this._component.set(component);
+      if (!failed) this._layout.set(layout);
+    });
+    // The page is already shown; a layout that failed to load is still reported to the caller.
+    if (failed) throw error;
   }
 
   private runAfterHooks(to: RouteLocationInternal, from: RouteLocationInternal | null): void {
@@ -311,7 +348,7 @@ export class RouterInstance {
     // so it's preserved even when beforeEnter triggers a redirect.
     if (_redirectDepth === 0) this.saveCurrentScrollPosition();
 
-    const matched = this.compiled.find((r) => r.regex.test(path));
+    const matched = this.matchRoute(path);
     if (matched?.definition.beforeEnter) {
       const result = await matched.definition.beforeEnter(loc, this._prevLocation);
       if (result === false) return;

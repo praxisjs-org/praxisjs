@@ -320,6 +320,8 @@ import { DashboardHome } from './pages/DashboardHome'
 ])
 ```
 
+When a route needs lazy chunks for both its page and its layout, the router loads them **in parallel** and applies the pair together — `RouterView` rebuilds once with the right layout instead of showing the page bare first. Components and layouts that are plain imports (or lazy ones already loaded) are applied immediately, with no extra tick.
+
 ### Layout inheritance via `children`
 
 When a route has `children`, its `component` becomes the layout for all child routes automatically:
