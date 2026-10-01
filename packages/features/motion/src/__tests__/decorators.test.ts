@@ -257,3 +257,45 @@ describe("@Spring edge cases", () => {
     vi.useRealTimers();
   });
 });
+
+describe("unmount cleanup", () => {
+  type Unmountable = Record<string, unknown> & { onUnmount?: () => void };
+
+  it("@Tween stops its running animation on unmount", () => {
+    vi.useFakeTimers();
+    const { ctx, run } = makeCtx("x");
+    Tween({ duration: 1000, easing: "linear" })(undefined, ctx);
+    const instance: Unmountable = {};
+    run(instance);
+    instance.x = 100;
+    vi.advanceTimersByTime(200);
+    const spy = vi.spyOn(globalThis, "cancelAnimationFrame");
+    instance.onUnmount?.();
+    expect(spy).toHaveBeenCalled();
+    const frozen = instance.x;
+    vi.advanceTimersByTime(1000);
+    expect(instance.x).toBe(frozen);
+    spy.mockRestore();
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
+  it("@Spring stops its running animation on unmount", () => {
+    vi.useFakeTimers();
+    const { ctx, run } = makeCtx("x");
+    Spring()(undefined, ctx);
+    const instance: Unmountable = {};
+    run(instance);
+    instance.x = 100;
+    vi.advanceTimersByTime(50);
+    const spy = vi.spyOn(globalThis, "cancelAnimationFrame");
+    instance.onUnmount?.();
+    expect(spy).toHaveBeenCalled();
+    const frozen = instance.x;
+    vi.advanceTimersByTime(1000);
+    expect(instance.x).toBe(frozen);
+    spy.mockRestore();
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+});

@@ -14,7 +14,7 @@ Animated field decorators. Assign a new value and the transition plays automatic
 
 ## `@Tween(options?)`
 
-Animates a numeric field from its current value to a new one using a duration-based easing curve. Reading the field returns the current interpolated value.
+Animates a numeric field from its current value to a new one using a duration-based easing curve. Reading the field returns the current interpolated value. A running animation is stopped when the component unmounts.
 
 ```tsx
 import { Tween } from '@praxisjs/motion'

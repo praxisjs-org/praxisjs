@@ -21,6 +21,8 @@ export function Tween(options: TweenOptions = {}) {
             tweens.get(this)?.target.set(value);
           },
         },
+        // An animation still running when the component goes away would keep its rAF loop alive.
+        onUnmount() { tweens.get(instance)?.stop(); },
       };
     },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,6 +45,7 @@ export function Spring(options: SpringOptions = {}) {
             springs.get(this)?.target.set(value);
           },
         },
+        onUnmount() { springs.get(instance)?.stop(); },
       };
     },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
