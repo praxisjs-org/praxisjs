@@ -1,4 +1,4 @@
-import { signal, effect } from "@praxisjs/core/internal";
+import { batch, effect, peek, signal } from "@praxisjs/core/internal";
 
 import { getGlobalPlugins } from "./plugin-registry.js";
 
@@ -30,6 +30,9 @@ export function createStore<T extends Record<string, unknown>>(
 
   const activePlugins = [...getGlobalPlugins(), ...(options.plugins ?? [])];
   const extensions: Record<string, unknown> = {};
+  // A stable wrapper per action, so `store.action` is the same function on every read
+  // (listener identity, memoised props) and isn't re-allocated on each access.
+  const wrappedActions = new Map<string, (...args: unknown[]) => unknown>();
 
   const store = new Proxy({} as T, {
     get(_t, key: string | symbol) {
@@ -41,26 +44,31 @@ export function createStore<T extends Record<string, unknown>>(
           : ext;
       }
       if (key in methods) {
-        return (...args: unknown[]): unknown => {
-          for (const p of activePlugins) p.onAction?.({ name: key, args, storeName });
-          const result = methods[key].call(store, ...args);
-          if (result instanceof Promise) {
-            return result
-              .then((resolved: unknown) => {
-                for (const p of activePlugins)
-                  p.onActionDone?.({ name: key, args, storeName, result: resolved });
-                return resolved;
-              })
-              .catch((err: unknown) => {
-                for (const p of activePlugins)
-                  p.onActionDone?.({ name: key, args, storeName, result: undefined, error: err });
-                throw err;
-              });
-          }
-          for (const p of activePlugins)
-            p.onActionDone?.({ name: key, args, storeName, result });
-          return result;
-        };
+        let wrapped = wrappedActions.get(key);
+        if (!wrapped) {
+          wrapped = (...args: unknown[]): unknown => {
+            for (const p of activePlugins) p.onAction?.({ name: key, args, storeName });
+            const result = methods[key].call(store, ...args);
+            if (result instanceof Promise) {
+              return result
+                .then((resolved: unknown) => {
+                  for (const p of activePlugins)
+                    p.onActionDone?.({ name: key, args, storeName, result: resolved });
+                  return resolved;
+                })
+                .catch((err: unknown) => {
+                  for (const p of activePlugins)
+                    p.onActionDone?.({ name: key, args, storeName, result: undefined, error: err });
+                  throw err;
+                });
+            }
+            for (const p of activePlugins)
+              p.onActionDone?.({ name: key, args, storeName, result });
+            return result;
+          };
+          wrappedActions.set(key, wrapped);
+        }
+        return wrapped;
       }
       if (key === "$subscribe") return subscribe;
       if (key === "$reset") return reset;
@@ -74,7 +82,7 @@ export function createStore<T extends Record<string, unknown>>(
     set(_t, key: string | symbol, value: unknown) {
       if (typeof key !== "string") return true;
       if (key in signals) {
-        const prevValue = signals[key]();
+        const prevValue = peek(signals[key]);
         signals[key].set(value);
         for (const p of activePlugins)
           p.onMutation?.({ key, value, prevValue, storeName });
@@ -106,15 +114,20 @@ export function createStore<T extends Record<string, unknown>>(
     });
   }
 
+  // Grouped so dependents re-run once for the whole operation, not once per key.
   function reset(): void {
-    for (const [k, v] of Object.entries(initialState)) signals[k].set(v);
+    batch(() => {
+      for (const [k, v] of Object.entries(initialState)) signals[k].set(v);
+    });
   }
 
   function patch(partial: Partial<Record<string, unknown>>): void {
-    for (const [k, v] of Object.entries(partial)) {
-      if (v === undefined) continue;
-      if (k in signals) Reflect.set(store as object, k, v);
-    }
+    batch(() => {
+      for (const [k, v] of Object.entries(partial)) {
+        if (v === undefined) continue;
+        if (k in signals) Reflect.set(store as object, k, v);
+      }
+    });
   }
 
   return () => store;

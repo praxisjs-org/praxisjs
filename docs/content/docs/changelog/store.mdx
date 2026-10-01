@@ -6,6 +6,10 @@ icon: Store
 
 # @praxisjs/store
 
+## 2.0.4
+
+`store.action` now returns the same wrapper function on every read instead of allocating a new one per access. `$patch()` and `$reset()` run inside one batch, so dependents re-run once for the whole operation rather than once per key. Writing a key inside an effect no longer subscribes that effect to the key (the previous value is read untracked).
+
 ## 2.0.0
 
 **Breaking: `ReactiveStore` no longer exposes `_stateDirty`.**

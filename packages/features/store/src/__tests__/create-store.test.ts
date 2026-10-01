@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 
+import { effect } from "@praxisjs/core/internal";
+
 import { createStore } from "../create-store";
 
 function makeCounter() {
@@ -228,5 +230,53 @@ describe("createStore", () => {
     (storeA as unknown as { count: number }).count = 42;
     expect(storeA.count).toBe(42);
     expect(storeB.count).toBe(0); // independent — storeB unaffected
+  });
+});
+
+describe("createStore — grouped updates and stable actions", () => {
+  function makeStore() {
+    return createStore({ a: 1, b: 2, c: 3, bump() { return; } })() as unknown as {
+      a: number; b: number; c: number; bump: () => void;
+      $patch: (p: Record<string, unknown>) => void; $reset: () => void;
+    };
+  }
+
+  function countRuns(read: () => void) {
+    let runs = 0;
+    effect(() => {
+      read();
+      runs++;
+    });
+    runs = 0;
+    return () => runs;
+  }
+
+  it("returns the same wrapper for an action on every read", () => {
+    const s = makeStore();
+    expect(s.bump).toBe(s.bump);
+  });
+
+  it("$patch re-runs dependents once for several keys", () => {
+    const s = makeStore();
+    const runs = countRuns(() => { void s.a; void s.b; void s.c; });
+    s.$patch({ a: 10, b: 20, c: 30 });
+    expect(runs()).toBe(1);
+    expect([s.a, s.b, s.c]).toEqual([10, 20, 30]);
+  });
+
+  it("$reset re-runs dependents once for several keys", () => {
+    const s = makeStore();
+    s.$patch({ a: 10, b: 20, c: 30 });
+    const runs = countRuns(() => { void s.a; void s.b; void s.c; });
+    s.$reset();
+    expect(runs()).toBe(1);
+    expect([s.a, s.b, s.c]).toEqual([1, 2, 3]);
+  });
+
+  it("writing a key inside an effect does not subscribe that effect to it", () => {
+    const s = makeStore();
+    const runs = countRuns(() => { s.a = 5; });
+    s.a = 99;
+    expect(runs()).toBe(0);
   });
 });
