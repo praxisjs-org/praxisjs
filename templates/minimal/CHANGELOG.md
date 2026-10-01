@@ -1,5 +1,13 @@
 # template-minimal
 
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [7720b22]
+  - @praxisjs/runtime@0.7.1
+  - @praxisjs/jsx@0.7.7
+
 ## 1.0.3
 
 ### Patch Changes

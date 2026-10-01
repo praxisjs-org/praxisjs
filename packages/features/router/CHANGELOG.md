@@ -1,5 +1,11 @@
 # @praxisjs/router
 
+## 2.2.2
+
+### Patch Changes
+
+- @praxisjs/jsx@0.7.7
+
 ## 2.2.1
 
 ### Patch Changes

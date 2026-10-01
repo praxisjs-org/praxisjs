@@ -1,5 +1,13 @@
 # @praxisjs/ssg
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [7720b22]
+  - @praxisjs/runtime@0.7.1
+  - @praxisjs/router@2.2.2
+
 ## 0.1.1
 
 ### Patch Changes
