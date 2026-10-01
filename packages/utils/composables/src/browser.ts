@@ -1,5 +1,5 @@
 import { Composable } from "@praxisjs/core";
-import { signal, computed } from "@praxisjs/core/internal";
+import { batch, signal, computed } from "@praxisjs/core/internal";
 
 export class MediaQuery extends Composable {
   declare matches: boolean;
@@ -71,8 +71,10 @@ export class Mouse extends Composable {
     const x = signal(0);
     const y = signal(0);
     this._handler = (e) => {
-      x.set(e.clientX);
-      y.set(e.clientY);
+      batch(() => {
+        x.set(e.clientX);
+        y.set(e.clientY);
+      });
     };
     window.addEventListener("mousemove", this._handler);
     this._view = { x, y };

@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import { effect } from "@praxisjs/core/internal";
+
 import { MediaQuery, ColorScheme, Mouse, KeyCombo, Idle } from "../browser";
 
 function mockMatchMedia(matches: boolean, onAdd?: (_: string, fn: (e: MediaQueryListEvent) => void) => void) {
@@ -391,5 +393,22 @@ describe("Idle (additional)", () => {
     idle.onUnmount();
     vi.restoreAllMocks();
     vi.useRealTimers();
+  });
+});
+
+describe("Mouse paired updates", () => {
+  it("re-runs dependents once per mousemove", () => {
+    const mouse = new Mouse();
+    const { x, y } = mouse.setup() as { x: () => number; y: () => number };
+    let runs = 0;
+    effect(() => {
+      void x();
+      void y();
+      runs++;
+    });
+    runs = 0;
+    window.dispatchEvent(new MouseEvent("mousemove", { clientX: 5, clientY: 6 }));
+    expect(runs).toBe(1);
+    mouse.onUnmount();
   });
 });

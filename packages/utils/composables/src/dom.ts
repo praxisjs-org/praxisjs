@@ -1,5 +1,5 @@
 import { Composable } from "@praxisjs/core";
-import { signal } from "@praxisjs/core/internal";
+import { batch, signal } from "@praxisjs/core/internal";
 
 export class WindowSize extends Composable {
   declare width: number;
@@ -13,8 +13,10 @@ export class WindowSize extends Composable {
     const width = signal(window.innerWidth);
     const height = signal(window.innerHeight);
     this._handler = () => {
-      width.set(window.innerWidth);
-      height.set(window.innerHeight);
+      batch(() => {
+        width.set(window.innerWidth);
+        height.set(window.innerHeight);
+      });
     };
     window.addEventListener("resize", this._handler);
     this._view = { width, height };
@@ -76,10 +78,12 @@ export class ScrollPosition extends Composable {
     this._mounted = true;
     const t = this._resolveTarget();
     this._handler = () => {
-      this._x.set(
-        t === window ? window.scrollX : (t as HTMLElement).scrollLeft,
-      );
-      this._y.set(t === window ? window.scrollY : (t as HTMLElement).scrollTop);
+      batch(() => {
+        this._x.set(
+          t === window ? window.scrollX : (t as HTMLElement).scrollLeft,
+        );
+        this._y.set(t === window ? window.scrollY : (t as HTMLElement).scrollTop);
+      });
     };
     t.addEventListener("scroll", this._handler);
     // set initial values
@@ -111,8 +115,10 @@ export class ElementSize extends Composable {
     this._width = signal(0);
     this._height = signal(0);
     this._observer = new ResizeObserver(([entry]) => {
-      this._width.set(entry.contentRect.width);
-      this._height.set(entry.contentRect.height);
+      batch(() => {
+        this._width.set(entry.contentRect.width);
+        this._height.set(entry.contentRect.height);
+      });
     });
     this._view = { width: this._width, height: this._height };
     return this._view;

@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import { effect } from "@praxisjs/core/internal";
+
 import { WindowSize, ScrollPosition, ElementSize, Intersection, Focus } from "../dom";
 
 // ── WindowSize ────────────────────────────────────────────────────────────────
@@ -511,5 +513,55 @@ describe("ScrollPosition (_staticTarget fallback)", () => {
     expect(scrollCall).toBeDefined(); // proves _resolveTarget() hit the window fallback
     addSpy.mockRestore();
     sp.onUnmount();
+  });
+});
+
+describe("paired updates re-run dependents once per event", () => {
+  function countRuns(read: () => void) {
+    let runs = 0;
+    effect(() => {
+      read();
+      runs++;
+    });
+    runs = 0;
+    return () => runs;
+  }
+
+  it("WindowSize", () => {
+    const ws = new WindowSize();
+    const { width, height } = ws.setup() as { width: () => number; height: () => number };
+    const runs = countRuns(() => { void width(); void height(); });
+    Object.defineProperty(window, "innerWidth", { value: 111, configurable: true });
+    Object.defineProperty(window, "innerHeight", { value: 222, configurable: true });
+    window.dispatchEvent(new Event("resize"));
+    expect(runs()).toBe(1);
+    ws.onUnmount();
+  });
+
+  it("ScrollPosition", () => {
+    const sp = new ScrollPosition(window);
+    const { x, y } = sp.setup() as { x: () => number; y: () => number };
+    sp.onMount();
+    const runs = countRuns(() => { void x(); void y(); });
+    Object.defineProperty(window, "scrollX", { value: 7, configurable: true });
+    Object.defineProperty(window, "scrollY", { value: 9, configurable: true });
+    window.dispatchEvent(new Event("scroll"));
+    expect(runs()).toBe(1);
+    sp.onUnmount();
+  });
+
+  it("ElementSize", () => {
+    let callback!: ResizeObserverCallback;
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(cb: ResizeObserverCallback) { callback = cb; }
+      observe = vi.fn();
+      disconnect = vi.fn();
+    });
+    const es = new ElementSize({ current: document.createElement("div") });
+    const { width, height } = es.setup() as { width: () => number; height: () => number };
+    const runs = countRuns(() => { void width(); void height(); });
+    callback([{ contentRect: { width: 10, height: 20 } } as ResizeObserverEntry], {} as ResizeObserver);
+    expect(runs()).toBe(1);
+    vi.unstubAllGlobals();
   });
 });

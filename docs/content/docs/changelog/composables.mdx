@@ -6,6 +6,10 @@ icon: Layers
 
 # @praxisjs/composables
 
+## 1.2.1
+
+`Mouse`, `WindowSize`, `ScrollPosition`, and `ElementSize` now update their paired values (`x`/`y`, `width`/`height`) inside one batch, so a binding that reads both re-runs once per event instead of twice.
+
 ## 1.2.0
 
 **New: file upload composables** — `FileSelection`, `DropZone`, `FileUpload` and `FilePreview`, plus the `formatFileSize` and `validateFiles` helpers.
