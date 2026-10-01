@@ -1,5 +1,12 @@
 # template-full
 
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [64480c7]
+  - @praxisjs/composables@1.2.0
+
 ## 1.0.2
 
 ### Patch Changes

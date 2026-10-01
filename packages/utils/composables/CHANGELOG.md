@@ -1,5 +1,11 @@
 # @praxisjs/composables
 
+## 1.2.0
+
+### Minor Changes
+
+- 64480c7: Added file upload composables: `FileSelection` (native file dialog + validation), `DropZone` (drag and drop), `FileUpload` (XHR uploads with per-file progress, concurrency limit, cancel and retry) and `FilePreview` (auto-revoked object URLs), plus the `formatFileSize` and `validateFiles` helpers.
+
 ## 1.1.8
 
 ### Patch Changes
