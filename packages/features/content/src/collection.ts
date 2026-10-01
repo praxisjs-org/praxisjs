@@ -18,6 +18,11 @@ export function registerCollection(
   _registry.set(SchemaClass, config);
 }
 
+// Parsing and rendering every entry is the expensive part, and a collection's files don't change
+// while the page lives (an edited file triggers a full reload that resets this module). Keyed by
+// config so re-registering a collection starts clean.
+const _collectionCache = new WeakMap<CollectionConfig, Promise<unknown[]>>();
+
 export async function getCollection<S extends ContentSchema>(
   SchemaClass: new () => S,
 ): Promise<Array<Entry<S>>> {
@@ -28,6 +33,22 @@ export async function getCollection<S extends ContentSchema>(
     );
   }
 
+  let pending = _collectionCache.get(config);
+  if (!pending) {
+    pending = loadCollection(SchemaClass, config);
+    _collectionCache.set(config, pending);
+    // A failed load must not be remembered, or one transient import error would stick.
+    pending.catch(() => { _collectionCache.delete(config); });
+  }
+
+  // Copy so a caller sorting or mutating the array doesn't affect the next caller.
+  return [...((await pending) as Array<Entry<S>>)];
+}
+
+async function loadCollection<S extends ContentSchema>(
+  SchemaClass: new () => S,
+  config: CollectionConfig,
+): Promise<Array<Entry<S>>> {
   const { glob, render = defaultRender } = config;
 
   const settled = await Promise.all(

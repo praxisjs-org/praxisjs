@@ -150,6 +150,8 @@ const count = getTotal(Blog)                                     // number — n
 const page  = await getPage(Blog, { page: 2, pageSize: 10 })    // Promise<Entry<Blog>[]>
 ```
 
+`getCollection` loads, parses, and renders every entry the first time it is called, then reuses that result: calling it again (a list page, then each detail page, or once per page in an SSG run) costs nothing. Each caller gets its own copy of the array, so sorting or reversing it is safe. A failed load is not remembered — the next call retries.
+
 `getTotal` is synchronous and reads zero files — it only counts the keys already present in the glob record. `getPage` loads only the files for the requested slice, all in parallel.
 
 ---

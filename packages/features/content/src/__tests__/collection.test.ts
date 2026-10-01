@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { getCollection, getEntry, getTotal, getPage, pathToSlug, registerCollection, collectionStaticPaths } from "../collection";
-import { ContentSchema } from "../types";
+import { ContentSchema, type GlobImport } from "../types";
 
 class Blog extends ContentSchema {
   title = "";
@@ -208,5 +208,55 @@ describe("collectionStaticPaths", () => {
     await expect(collectionStaticPaths(Blog)("/blog/:year/:slug")).rejects.toThrow(
       "expects exactly one dynamic segment",
     );
+  });
+});
+
+describe("getCollection caching", () => {
+  class Cached extends ContentSchema {
+    title = "";
+  }
+  const ENTRY = "---\ntitle: T\n---\nbody";
+
+  function register(glob: GlobImport) {
+    registerCollection(Cached as unknown as typeof ContentSchema, { glob });
+  }
+
+  it("loads and parses each file once across repeated calls", async () => {
+    const loaders = {
+      "./a.md": vi.fn(() => Promise.resolve(ENTRY)),
+      "./b.md": vi.fn(() => Promise.resolve(ENTRY)),
+    };
+    register(loaders);
+    await getCollection(Cached);
+    await getCollection(Cached);
+    await Promise.all([getCollection(Cached), getCollection(Cached)]);
+    expect(loaders["./a.md"]).toHaveBeenCalledOnce();
+    expect(loaders["./b.md"]).toHaveBeenCalledOnce();
+  });
+
+  it("returns an independent array to every caller", async () => {
+    register({ "./a.md": ENTRY, "./b.md": ENTRY });
+    const first = await getCollection(Cached);
+    first.reverse();
+    const second = await getCollection(Cached);
+    expect(second.map((e) => e.slug)).toEqual(["a", "b"]);
+  });
+
+  it("does not remember a failed load", async () => {
+    let fail = true;
+    const loader = vi.fn(() => (fail ? Promise.reject(new Error("import failed")) : Promise.resolve(ENTRY)));
+    register({ "./a.md": loader });
+    await expect(getCollection(Cached)).rejects.toThrow("import failed");
+    fail = false;
+    const entries = await getCollection(Cached);
+    expect(entries).toHaveLength(1);
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  it("starts clean when the collection is registered again", async () => {
+    register({ "./a.md": ENTRY });
+    expect(await getCollection(Cached)).toHaveLength(1);
+    register({ "./a.md": ENTRY, "./b.md": ENTRY });
+    expect(await getCollection(Cached)).toHaveLength(2);
   });
 });
