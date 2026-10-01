@@ -60,7 +60,17 @@ export function computed<T>(getter: () => T): Computed<T> {
     return cachedValue as T;
   }
 
-  const c = read as Computed<T>;
+  const c = read as Computed<T> & { dispose(): void };
+
+  // Drops this computed's subscriptions to its sources so an unreachable one (e.g. an evicted
+  // @Memo entry) isn't kept alive by the signals it read. Does nothing while anything still
+  // depends on it: detaching then would leave those dependents silently stale.
+  c.dispose = () => {
+    if (leafHolder.subs !== null || computedHolder.subs !== null) return;
+    if (recompute !== null) cleanupEffectDeps(recompute);
+    dirty = true;
+    cachedValue = undefined;
+  };
 
   c.subscribe = (fn: (value: T) => void) => {
     const wrapped: Effect = () => { fn(read()); };

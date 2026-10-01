@@ -1,6 +1,6 @@
 import type { Effect } from "./effect";
 
-const batchEffects: Effect[] = [];
+const batchEffects = new Set<Effect>();
 let batchDepth = 0;
 
 export function isBatching(): boolean {
@@ -8,7 +8,7 @@ export function isBatching(): boolean {
 }
 
 export function enqueueEffect(effect: Effect): void {
-  if (!batchEffects.includes(effect)) batchEffects.push(effect);
+  batchEffects.add(effect);
 }
 
 export function batch(fn: () => void) {
@@ -16,10 +16,24 @@ export function batch(fn: () => void) {
   try {
     fn();
   } finally {
-    if (--batchDepth === 0) {
-      const n = batchEffects.length;
-      for (let i = 0; i < n; i++) batchEffects[i]();
-      batchEffects.length = 0;
+    if (--batchDepth === 0) flush();
+  }
+}
+
+// The queue is detached before running so a throwing effect can't leave stale entries behind,
+// and every queued effect still runs — matching how notifySubs treats errors outside a batch.
+function flush(): void {
+  const queued = [...batchEffects];
+  batchEffects.clear();
+  let lastError: unknown;
+  let hasError = false;
+  for (const effect of queued) {
+    try {
+      effect();
+    } catch (e) {
+      lastError = e;
+      hasError = true;
     }
   }
+  if (hasError) throw lastError;
 }

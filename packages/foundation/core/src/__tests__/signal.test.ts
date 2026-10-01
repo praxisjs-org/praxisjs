@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 
 import { batch } from "../signal/batch";
+import { SUBS_SET_THRESHOLD } from "../signal/effect";
+import { effect } from "../signal/effect";
 import { signal, addSub, removeSub, type SubList } from "../signal/signal";
 import type { Effect } from "../signal/effect";
 
@@ -209,5 +211,81 @@ describe("signal", () => {
     s.set(obj);
     // Object.is(obj, obj) === true, so no notification
     expect(calls.length).toBe(before);
+  });
+});
+
+describe("large subscriber lists", () => {
+  function fns(count: number): Array<() => void> {
+    return Array.from({ length: count }, () => () => {});
+  }
+
+  it("keeps an array up to the threshold and promotes to a Set past it, preserving order", () => {
+    const holder: { subs: SubList } = { subs: null };
+    const list = fns(SUBS_SET_THRESHOLD);
+    for (const fn of list) addSub(holder, fn);
+    expect(Array.isArray(holder.subs)).toBe(true);
+
+    const extra = () => {};
+    addSub(holder, extra);
+    expect(holder.subs).toBeInstanceOf(Set);
+    expect([...(holder.subs as Set<() => void>)]).toEqual([...list, extra]);
+  });
+
+  it("addSub on a Set holder adds new subscribers and ignores duplicates", () => {
+    const list = fns(SUBS_SET_THRESHOLD + 1);
+    const holder: { subs: SubList } = { subs: new Set(list) };
+    addSub(holder, list[0]);
+    expect((holder.subs as Set<() => void>).size).toBe(list.length);
+    const extra = () => {};
+    addSub(holder, extra);
+    expect((holder.subs as Set<() => void>).size).toBe(list.length + 1);
+  });
+
+  it("removeSub on a Set holder removes one subscriber, ignores unknown ones, and normalizes to null when emptied", () => {
+    const [a, b, stranger] = fns(3);
+    const holder: { subs: SubList } = { subs: new Set([a, b]) };
+    removeSub(holder, stranger);
+    expect((holder.subs as Set<() => void>).size).toBe(2);
+    removeSub(holder, a);
+    expect([...(holder.subs as Set<() => void>)]).toEqual([b]);
+    removeSub(holder, b);
+    expect(holder.subs).toBeNull();
+  });
+
+  it("many effects on one signal all re-run once per change, in subscription order", () => {
+    const count = SUBS_SET_THRESHOLD * 3;
+    const s = signal(0);
+    const order: number[] = [];
+    const stops = Array.from({ length: count }, (_, i) =>
+      effect(() => {
+        void s();
+        order.push(i);
+      }),
+    );
+    order.length = 0;
+    s.set(1);
+    expect(order).toEqual(Array.from({ length: count }, (_, i) => i));
+    order.length = 0;
+    s.set(2);
+    expect(order).toEqual(Array.from({ length: count }, (_, i) => i));
+    stops.forEach((stop) => { stop(); });
+    order.length = 0;
+    s.set(3);
+    expect(order).toEqual([]);
+  });
+
+  it("an effect stopped while the signal holds a Set no longer runs, the others still do", () => {
+    const s = signal(0);
+    const runs = new Map<number, number>();
+    const stops = Array.from({ length: SUBS_SET_THRESHOLD + 4 }, (_, i) =>
+      effect(() => {
+        void s();
+        runs.set(i, (runs.get(i) ?? 0) + 1);
+      }),
+    );
+    stops[2]();
+    s.set(1);
+    expect(runs.get(2)).toBe(1);
+    expect(runs.get(3)).toBe(2);
   });
 });

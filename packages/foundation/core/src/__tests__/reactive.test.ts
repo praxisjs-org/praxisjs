@@ -303,3 +303,41 @@ describe("history", () => {
     expect(snapshot1).not.toBe(snapshot2);
   });
 });
+
+describe("history.destroy", () => {
+  it("stops recording changes but keeps what was recorded", () => {
+    const s = signal(0);
+    const h = history(s);
+    s.set(1);
+    h.destroy();
+    s.set(2);
+    s.set(3);
+    expect(h.values()).toEqual([0, 1]);
+    expect(h.current()).toBe(1);
+  });
+
+  it("can still undo recorded entries after destroy", () => {
+    const s = signal(0);
+    const h = history(s);
+    s.set(1);
+    h.destroy();
+    h.undo();
+    expect(s()).toBe(0);
+  });
+});
+
+describe("history with a computed source", () => {
+  it("undo and redo move the tracked value without writing back to the read-only source", async () => {
+    const s = signal(0);
+    const source = computed(() => s());
+    const h = history(source);
+    s.set(1);
+    await Promise.resolve();
+    h.undo();
+    expect(h.current()).toBe(0);
+    expect(s()).toBe(1);
+    h.redo();
+    expect(h.current()).toBe(1);
+    expect(s()).toBe(1);
+  });
+});

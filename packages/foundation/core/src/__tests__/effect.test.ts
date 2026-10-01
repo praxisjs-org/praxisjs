@@ -194,6 +194,21 @@ describe("effect", () => {
     expect(unmatchedArrayHolder.subs).toEqual([other]);
   });
 
+  it("cleanupEffectDeps handles Set dependency holders, emptying them to null", () => {
+    const tracked = vi.fn();
+    const other = vi.fn();
+    const sharedHolder: SubscriberHolder = { subs: new Set([tracked, other]) };
+    const soleHolder: SubscriberHolder = { subs: new Set([tracked]) };
+
+    recordDependency(tracked, sharedHolder);
+    recordDependency(tracked, soleHolder);
+
+    cleanupEffectDeps(tracked);
+
+    expect([...(sharedHolder.subs as Set<() => void>)]).toEqual([other]);
+    expect(soleHolder.subs).toBeNull();
+  });
+
   it("exception inside nested track() restores outer activeEffect", () => {
     const s = signal(0);
     const outer = vi.fn();

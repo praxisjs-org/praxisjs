@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 import { computed, writableComputed } from "../signal/computed";
+import { effect } from "../signal/effect";
 import { signal } from "../signal/signal";
 
 describe("computed", () => {
@@ -286,5 +287,47 @@ describe("writableComputed", () => {
     expect(wc()).toBe(6);
     s.set(7);
     expect(wc()).toBe(14);
+  });
+});
+
+describe("computed.dispose", () => {
+  type Disposable<T> = (() => T) & { dispose(): void };
+
+  it("does nothing while an effect still depends on it", async () => {
+    const s = signal(1);
+    const c = computed(() => s() * 2) as unknown as Disposable<number>;
+    let seen = 0;
+    effect(() => {
+      seen = c();
+    });
+    c.dispose();
+    s.set(2);
+    await Promise.resolve();
+    expect(seen).toBe(4);
+  });
+
+  it("does nothing while another computed depends on it", () => {
+    const s = signal(1);
+    const inner = computed(() => s() * 2) as unknown as Disposable<number>;
+    const outer = computed(() => inner() + 1);
+    expect(outer()).toBe(3);
+    inner.dispose();
+    s.set(2);
+    expect(outer()).toBe(5);
+  });
+
+  it("recomputes from scratch when read again after disposal", () => {
+    const getter = vi.fn(() => 42);
+    const c = computed(getter) as unknown as Disposable<number>;
+    c();
+    c.dispose();
+    expect(c()).toBe(42);
+    expect(getter).toHaveBeenCalledTimes(2);
+  });
+
+  it("is safe on a computed that was never read", () => {
+    const c = computed(() => 1) as unknown as Disposable<number>;
+    expect(() => { c.dispose(); }).not.toThrow();
+    expect(c()).toBe(1);
   });
 });

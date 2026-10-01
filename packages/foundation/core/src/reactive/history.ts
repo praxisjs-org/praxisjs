@@ -12,6 +12,8 @@ export interface HistoryElement<T> {
   undo(): void;
   redo(): void;
   clear(): void;
+  /** Stops tracking the source. Existing entries stay readable; no new ones are recorded. */
+  destroy(): void;
 }
 
 export function history<T>(
@@ -25,7 +27,7 @@ export function history<T>(
   let _ignoreNext = false;
   let _initialized = false;
 
-  effect(() => {
+  const stop = effect(() => {
     const value = source();
 
     if (!_initialized) {
@@ -83,5 +85,6 @@ export function history<T>(
       _past.set([]);
       _future.set([]);
     },
+    destroy: stop,
   };
 }

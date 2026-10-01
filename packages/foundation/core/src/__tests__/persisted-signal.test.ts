@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 import { persistedSignal } from "../signal/persisted";
 
@@ -190,5 +190,116 @@ describe("persistedSignal", () => {
     );
     // Should stay at 20 since the event is from sessionStorage, not localStorage
     expect(s()).toBe(20);
+  });
+
+  it("close() stops storage-event syncing but keeps the signal working locally", () => {
+    const s = persistedSignal("close-key", 0);
+    s.close();
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: "close-key", newValue: "5", storageArea: localStorage }),
+    );
+    expect(s()).toBe(0);
+    s.set(3);
+    expect(s()).toBe(3);
+    expect(localStorage.getItem("close-key")).toBe("3");
+  });
+
+  it("close() removes the window listener and is safe to call twice", () => {
+    const remove = vi.spyOn(window, "removeEventListener");
+    const s = persistedSignal("close-twice", 0);
+    s.close();
+    s.close();
+    expect(remove.mock.calls.filter(([type]) => type === "storage")).toHaveLength(1);
+    remove.mockRestore();
+  });
+
+  it("close() is a no-op when syncTabs is false", () => {
+    const remove = vi.spyOn(window, "removeEventListener");
+    const s = persistedSignal("close-nosync", 0, { syncTabs: false });
+    expect(() => { s.close(); }).not.toThrow();
+    expect(remove.mock.calls.filter(([type]) => type === "storage")).toHaveLength(0);
+    remove.mockRestore();
+  });
+});
+
+describe("persistedSignal writeDelay", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("writes immediately by default", () => {
+    const s = persistedSignal("wd-default", 0);
+    s.set(1);
+    expect(localStorage.getItem("wd-default")).toBe("1");
+  });
+
+  it("holds writes back and flushes the latest value once the delay elapses", () => {
+    vi.useFakeTimers();
+    const setItem = vi.spyOn(Storage.prototype, "setItem");
+    const s = persistedSignal("wd-burst", 0, { writeDelay: 100 });
+    s.set(1);
+    s.set(2);
+    s.update((n) => n + 1);
+    expect(s()).toBe(3);
+    expect(localStorage.getItem("wd-burst")).toBeNull();
+    vi.advanceTimersByTime(100);
+    expect(localStorage.getItem("wd-burst")).toBe("3");
+    expect(setItem.mock.calls.filter(([k]) => k === "wd-burst")).toHaveLength(1);
+    setItem.mockRestore();
+  });
+
+  it("starts a new window for writes after a flush", () => {
+    vi.useFakeTimers();
+    const s = persistedSignal("wd-next", 0, { writeDelay: 50 });
+    s.set(1);
+    vi.advanceTimersByTime(50);
+    s.set(2);
+    expect(localStorage.getItem("wd-next")).toBe("1");
+    vi.advanceTimersByTime(50);
+    expect(localStorage.getItem("wd-next")).toBe("2");
+  });
+
+  it("flushes pending data on pagehide", () => {
+    vi.useFakeTimers();
+    const s = persistedSignal("wd-hide", 0, { writeDelay: 1000 });
+    s.set(5);
+    window.dispatchEvent(new Event("pagehide"));
+    expect(localStorage.getItem("wd-hide")).toBe("5");
+    vi.advanceTimersByTime(1000);
+    expect(localStorage.getItem("wd-hide")).toBe("5");
+  });
+
+  it("close() flushes pending data and stops listening for pagehide", () => {
+    vi.useFakeTimers();
+    const s = persistedSignal("wd-close", 0, { writeDelay: 1000 });
+    s.set(7);
+    s.close();
+    expect(localStorage.getItem("wd-close")).toBe("7");
+    s.set(8);
+    window.dispatchEvent(new Event("pagehide"));
+    expect(localStorage.getItem("wd-close")).toBe("7");
+  });
+
+  it("a value arriving from another tab discards the pending local write", () => {
+    vi.useFakeTimers();
+    const s = persistedSignal("wd-remote", 0, { writeDelay: 100 });
+    s.set(1);
+    localStorage.setItem("wd-remote", "9");
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: "wd-remote", newValue: "9", storageArea: localStorage }),
+    );
+    vi.advanceTimersByTime(100);
+    expect(s()).toBe(9);
+    expect(localStorage.getItem("wd-remote")).toBe("9");
+  });
+
+  it("removes null and undefined values when the write is flushed", () => {
+    vi.useFakeTimers();
+    const s = persistedSignal<number | null>("wd-null", 1, { writeDelay: 10 });
+    s.set(2);
+    vi.advanceTimersByTime(10);
+    s.set(null);
+    vi.advanceTimersByTime(10);
+    expect(localStorage.getItem("wd-null")).toBeNull();
   });
 });

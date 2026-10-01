@@ -6,6 +6,17 @@ export interface PersistedSignalOptions<T> {
   serialize?: (value: T) => string;
   deserialize?: (value: string) => T;
   syncTabs?: boolean;
+  /**
+   * Milliseconds to hold back writes to `localStorage`. Writes within the window are coalesced
+   * into one, using the latest value; pending data is flushed on `pagehide` and `close()`.
+   * `0` (default) writes on every `set`.
+   */
+  writeDelay?: number;
+}
+
+export interface PersistedSignal<T> extends Signal<T> {
+  /** Stops listening for `storage` events from other tabs. The signal keeps working locally. */
+  close(): void;
 }
 
 export function persistedSignal<T>(
@@ -17,6 +28,7 @@ export function persistedSignal<T>(
     serialize = JSON.stringify,
     deserialize = JSON.parse as (value: string) => T,
     syncTabs = true,
+    writeDelay = 0,
   } = options;
 
   function getStoredValue(): T {
@@ -41,6 +53,29 @@ export function persistedSignal<T>(
     }
   }
 
+  let pendingWrite: { value: T } | undefined;
+  let writeTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function flushWrite(): void {
+    clearTimeout(writeTimer);
+    writeTimer = undefined;
+    if (!pendingWrite) return;
+    const { value } = pendingWrite;
+    pendingWrite = undefined;
+    setStoredValue(value);
+  }
+
+  // The timer starts at the first write of a burst (throttle, not debounce) so a value that keeps
+  // changing still reaches storage within `writeDelay`.
+  function scheduleWrite(value: T): void {
+    if (writeDelay <= 0) {
+      setStoredValue(value);
+      return;
+    }
+    pendingWrite = { value };
+    writeTimer ??= setTimeout(flushWrite, writeDelay);
+  }
+
   const inner = signal(getStoredValue());
 
   function read() {
@@ -48,19 +83,23 @@ export function persistedSignal<T>(
   }
 
   function set(value: T) {
-    setStoredValue(value);
+    scheduleWrite(value);
     inner.set(value);
   }
 
   function update(fh: (prev: T) => T) {
     const newValue = fh(inner());
-    setStoredValue(newValue);
+    scheduleWrite(newValue);
     inner.set(newValue);
   }
 
+  let removeStorageListener: (() => void) | undefined;
+
   if (syncTabs) {
-    window.addEventListener("storage", (event) => {
+    const onStorage = (event: StorageEvent): void => {
       if (event.key !== key || event.storageArea !== localStorage) return;
+      // Another tab's value wins; a still-pending local write would overwrite it later.
+      pendingWrite = undefined;
       try {
         const newValue = event.newValue
           ? deserialize(event.newValue)
@@ -73,14 +112,24 @@ export function persistedSignal<T>(
         );
         inner.set(initialValue);
       }
-    });
+    };
+    window.addEventListener("storage", onStorage);
+    removeStorageListener = () => { window.removeEventListener("storage", onStorage); };
   }
 
-  const source = read as Signal<T>;
+  if (writeDelay > 0) window.addEventListener("pagehide", flushWrite);
+
+  const source = read as PersistedSignal<T>;
   source.set = set;
   source.update = update;
   source.subscribe = inner.subscribe.bind(inner);
   source.__isSignal = true;
+  source.close = () => {
+    removeStorageListener?.();
+    removeStorageListener = undefined;
+    window.removeEventListener("pagehide", flushWrite);
+    flushWrite();
+  };
 
   return source;
 }

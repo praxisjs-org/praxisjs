@@ -4,6 +4,8 @@ import { isBatching, enqueueEffect } from "./batch";
 import {
   activeEffect,
   recordDependency,
+  removeSub,
+  SUBS_SET_THRESHOLD,
   type Effect,
   type SubList,
   type SubscriberHolder,
@@ -17,23 +19,16 @@ export function addSub(holder: SubscriberHolder, eff: Effect): void {
     holder.subs = eff;
   } else if (typeof subs === "function") {
     if (subs !== eff) holder.subs = [subs, eff];
-  } else {
-    if (!subs.includes(eff)) subs.push(eff);
+  } else if (subs instanceof Set) {
+    subs.add(eff);
+  } else if (!subs.includes(eff)) {
+    subs.push(eff);
+    if (subs.length > SUBS_SET_THRESHOLD) holder.subs = new Set(subs);
   }
   recordDependency(eff, holder);
 }
 
-export function removeSub(holder: SubscriberHolder, eff: Effect): void {
-  const subs = holder.subs;
-  if (subs === null) return;
-  if (typeof subs === "function") {
-    if (subs === eff) holder.subs = null;
-  } else {
-    const idx = subs.indexOf(eff);
-    if (idx >= 0) subs.splice(idx, 1);
-    if (subs.length === 0) holder.subs = null;
-  }
-}
+export { removeSub };
 
 export function notifySubs(subs: Exclude<SubList, null>, batching: boolean): void {
   if (typeof subs === "function") {

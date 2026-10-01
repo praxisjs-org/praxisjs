@@ -6,6 +6,18 @@ icon: Activity
 
 # @praxisjs/core
 
+## 2.2.0
+
+`persistedSignal()` now returns a `close()` method that removes its `window` `storage` listener. `@Persisted` calls it on unmount; calling it yourself is only needed for signals you create directly with `syncTabs` on. It also takes a new `writeDelay` option: writes to `localStorage` within the window are coalesced into one using the latest value, flushed on `pagehide` and on `close()`. A value arriving from another tab discards a still-pending local write. The default (`0`) keeps the previous write-on-every-set behaviour.
+
+`history()` returns a `destroy()` method that stops its tracking effect; recorded entries stay readable. Every `computed` also has a `dispose()` that releases its subscriptions to its sources — it does nothing while anything still depends on it, so detaching can never leave a dependent stale.
+
+`batch()` now deduplicates queued effects with a `Set` instead of scanning an array, so large batches no longer pay a quadratic cost.
+
+Signals, computeds and effects now switch a subscriber list from an array to a `Set` once it holds more than 16 effects. Every time an effect re-runs it unsubscribes and resubscribes, and removing from a long array is O(n), so a signal read by thousands of bindings (a theme or locale signal in a large list) updated in quadratic time. In a browser benchmark, one signal driving 20,000 effects went from ~47 ms to ~1.6 ms per update. Subscription order is unchanged.
+
+Bug fix: if an effect threw while a batch was flushing, the remaining effects were skipped and the queue was left with stale entries that re-ran on the next batch. The flush now detaches the queue first, runs every effect, and rethrows the last error afterwards — the same behaviour signal writes outside a batch already had.
+
 ## 2.1.0
 
 Added a resource settle barrier and a server-render-pass flag for `@praxisjs/ssg`.

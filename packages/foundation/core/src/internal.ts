@@ -16,6 +16,7 @@ export {
   effect,
   untrack,
   type PersistedSignalOptions,
+  type PersistedSignal,
   type SyncedSignal,
 } from "./signal";
 export { RootComponent } from "./component";

@@ -84,4 +84,55 @@ describe("batch", () => {
     expect(seen).toContain(0);
     expect(seen).toContain(5);
   });
+
+  it("an effect fed by several signals runs once per batch", () => {
+    const a = signal(0);
+    const b = signal(0);
+    const runs = vi.fn();
+    effect(() => {
+      void a();
+      void b();
+      runs();
+    });
+    runs.mockClear();
+    batch(() => {
+      a.set(1);
+      b.set(1);
+      a.set(2);
+    });
+    expect(runs).toHaveBeenCalledOnce();
+  });
+
+  it("a throwing effect does not stop the others and the error is rethrown after the flush", () => {
+    const s = signal(0);
+    const after = vi.fn();
+    let armed = false;
+    effect(() => {
+      void s();
+      if (armed) throw new Error("effect boom");
+    });
+    effect(() => {
+      void s();
+      if (armed) after();
+    });
+    armed = true;
+    expect(() => { batch(() => { s.set(1); }); }).toThrow("effect boom");
+    expect(after).toHaveBeenCalledOnce();
+  });
+
+  it("a failed flush leaves no stale entries for the next batch", () => {
+    const s = signal(0);
+    const runs = vi.fn();
+    let throws = true;
+    effect(() => {
+      void s();
+      runs();
+      if (throws && s() === 1) throw new Error("once");
+    });
+    expect(() => { batch(() => { s.set(1); }); }).toThrow("once");
+    throws = false;
+    runs.mockClear();
+    batch(() => { s.set(2); });
+    expect(runs).toHaveBeenCalledOnce();
+  });
 });
