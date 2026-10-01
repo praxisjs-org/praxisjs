@@ -351,6 +351,8 @@ import { describe, it, expect } from 'vitest'
 - New composables or concurrency utilities
 - New DX packages (`packages/dx/**`) — mock external dependencies (MCP SDK, Vite, Storybook, etc.) with `vi.mock` / `vi.stubGlobal` and test the exported logic directly
 
+**Coverage must be 100%** (statements, branches, functions and lines) for every source file you create or edit. Check it before finishing with `pnpm vitest run <package path> --coverage --coverage.include='<package path>/src/<file>.ts'` and add tests until no uncovered lines or branches remain. Defensive branches count too — write a test that exercises each one.
+
 Do not open a changeset or consider a task done without corresponding tests. If a package has no `__tests__` directory yet, create it.
 
 ---

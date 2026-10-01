@@ -6,6 +6,12 @@ icon: Layers
 
 # @praxisjs/composables
 
+## 1.2.0
+
+**New: file upload composables** — `FileSelection`, `DropZone`, `FileUpload` and `FilePreview`, plus the `formatFileSize` and `validateFiles` helpers.
+
+Together they cover the usual upload flow: open the native file dialog or accept dropped files, validate them (`accept`, `maxSize`, `minSize`, `maxFiles`), preview images, and upload with per-file progress, a concurrency limit, cancel and retry. See [File Upload](/docs/composables/upload).
+
 ## 1.1.2
 
 Internal: `ScrollPosition._target` getter converted to a private `_resolveTarget()` method with explicit conditional branches. No behaviour change.

@@ -4,6 +4,7 @@
   "pages": [
     "dom",
     "browser",
-    "list"
+    "list",
+    "upload"
   ]
 }

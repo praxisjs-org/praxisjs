@@ -14,3 +14,18 @@ export {
   type PaginationOptions,
 } from "./utilities";
 export { VirtualList, type VirtualItem } from "./list";
+export {
+  FileSelection,
+  DropZone,
+  FileUpload,
+  FilePreview,
+  formatFileSize,
+  validateFiles,
+  type FileValidationOptions,
+  type FileSelectionOptions,
+  type FileUploadOptions,
+  type FileError,
+  type FileErrorCode,
+  type UploadItem,
+  type UploadStatus,
+} from "./upload";

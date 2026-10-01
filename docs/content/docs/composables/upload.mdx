@@ -1,0 +1,170 @@
+---
+title: File Upload
+description: "@praxisjs/composables file upload composables — FileSelection, DropZone, FileUpload and FilePreview for picking, validating, previewing and uploading files."
+icon: Upload
+---
+
+# File Upload
+
+Composables for the file upload flow: pick or drop files, validate them, preview images and send them to your server with progress tracking. Attach them with `@Compose`.
+
+<PackageInstall pkg="@praxisjs/composables" />
+
+All composables share the same validation options:
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `accept` | `string \| string[]` | Same syntax as `<input accept>`: `.pdf`, `image/png`, `image/*` |
+| `maxSize` | `number` | Maximum bytes per file |
+| `minSize` | `number` | Minimum bytes per file |
+| `maxFiles` | `number` | Maximum number of files held at once |
+
+Rejected files never throw — they land in `errors` as `{ file, code, message }`, where `code` is `'type' | 'max-size' | 'min-size' | 'max-files'`.
+
+---
+
+## `FileSelection`
+
+Opens the native file dialog and keeps the validated selection.
+
+```tsx
+import { FileSelection } from '@praxisjs/composables'
+import { Compose } from '@praxisjs/decorators'
+
+@Component()
+class Avatar extends StatefulComponent {
+  @Compose(FileSelection, { accept: 'image/*', maxSize: 2 * 1024 * 1024 })
+  picker!: FileSelection
+
+  render() {
+    return (
+      <div>
+        <button onClick={() => this.picker.open()}>Choose image</button>
+        {() => this.picker.files.map((f) => <p>{f.name}</p>)}
+        {() => this.picker.errors.map((e) => <p class="error">{e.message}</p>)}
+      </div>
+    )
+  }
+}
+```
+
+**Options:** validation options plus `multiple` (defaults to `true` when `maxFiles > 1`; otherwise a new selection replaces the previous one) and `onFiles(files)`.
+
+**Properties:** `files: File[]`, `errors: FileError[]`
+
+**Methods:** `open()`, `add(files)` (accepts a `FileList` — wire it to your own `<input onChange>`), `remove(file)`, `clear()`
+
+---
+
+## `DropZone`
+
+Same as `FileSelection`, plus drag and drop on an element. Takes a ref as the first argument.
+
+```tsx
+@Ref<HTMLDivElement>()
+zoneRef!: Ref<HTMLDivElement>
+
+@Compose(DropZone, 'zoneRef', { accept: ['.pdf'], maxFiles: 5 })
+drop!: DropZone
+
+render() {
+  return (
+    <div
+      ref={this.zoneRef}
+      style={() => `border:2px dashed ${this.drop.dragging ? '#6d5bbd' : '#ccc'}`}
+      onClick={() => this.drop.open()}
+    >
+      Drop PDFs here or click to browse
+    </div>
+  )
+}
+```
+
+**Extra property:** `dragging: boolean` — `true` while files are dragged over the zone (nested children don't make it flicker). Dragging anything other than files is ignored.
+
+---
+
+## `FileUpload`
+
+Uploads files with `XMLHttpRequest` so you get real upload progress. Files are queued, uploaded up to `concurrency` at a time, and each one is tracked as an `UploadItem`.
+
+```tsx
+@Compose(FileUpload, {
+  url: '/api/upload',
+  headers: () => ({ Authorization: `Bearer ${token()}` }),
+  accept: 'image/*',
+  maxSize: 5 * 1024 * 1024,
+  concurrency: 2,
+})
+upload!: FileUpload
+
+render() {
+  return (
+    <div>
+      <input type="file" multiple onChange={(e) => this.upload.add((e.target as HTMLInputElement).files)} />
+      <p>{() => this.upload.progress}%</p>
+      {() => this.upload.items.map((item) => (
+        <div>
+          {item.file.name} — {item.status} ({item.progress}%)
+          {item.status === 'error' && <button onClick={() => this.upload.retry(item.id)}>Retry</button>}
+          {item.status === 'uploading' && <button onClick={() => this.upload.cancel(item.id)}>Cancel</button>}
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+Combine it with a `DropZone` by passing its files on: `onClick={() => this.upload.add(this.drop.files)}`.
+
+**Options**
+
+| Option | Default | Description |
+| ------ | ------- | ----------- |
+| `url` | — | String, or `(file) => string` |
+| `method` | `'POST'` | HTTP method |
+| `headers` | — | Object, or function returning one (evaluated per upload) |
+| `fieldName` | `'file'` | Form field that carries the file |
+| `data` | — | Extra form fields — object, or `(file) => object` |
+| `withCredentials` | `false` | Send cookies cross-origin |
+| `concurrency` | `3` | Simultaneous uploads |
+| `autoStart` | `true` | Upload on `add()`; when `false`, call `start()` |
+| `onSuccess` / `onError` | — | Called with the finished `UploadItem` |
+
+Plus the validation options.
+
+**Properties:** `items: UploadItem[]`, `errors: FileError[]`, `uploading: boolean`, `progress: number` (0–100 average)
+
+**Methods:** `add(files)`, `start()`, `cancel(id)`, `retry(id)`, `remove(id)`, `clear()`
+
+An `UploadItem` is `{ id, file, status, progress, response?, error? }` where `status` is `'pending' | 'uploading' | 'success' | 'error' | 'aborted'`. `response` is the parsed JSON body (or raw text when it isn't JSON). In-flight requests are aborted when the component unmounts.
+
+---
+
+## `FilePreview`
+
+Turns a `File` into an object URL for `<img>`/`<video>` previews. The URL is revoked when the file changes and on unmount, so you never leak blob URLs.
+
+```tsx
+@State() file: File | null = null
+
+@Compose(FilePreview, getter('file'))
+preview!: FilePreview
+
+render() {
+  return <img src={() => this.preview.url ?? ''} />
+}
+```
+
+**Properties:** `url: string | null`
+
+---
+
+## Helpers
+
+```ts
+import { formatFileSize, validateFiles } from '@praxisjs/composables'
+
+formatFileSize(1536)               // "1.5 KB"
+validateFiles(files, 0, { accept: '.png', maxSize: 1024 }) // { accepted, rejected }
+```
