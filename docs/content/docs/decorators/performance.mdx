@@ -1,6 +1,6 @@
 ---
 title: Performance Decorators
-description: Optimize rendering with @Lazy for viewport-deferred components and VirtualList for large lists.
+description: Optimize rendering with @Lazy for viewport-deferred components, @Selector for keyed selection, and VirtualList for large lists.
 icon: Gauge
 ---
 
@@ -58,6 +58,68 @@ class HeavyRow extends StatefulComponent { /* ... */ }
 **Good use cases:** components below the fold, heavy data visualizations, third-party widgets.
 
 <StorybookLink story="decorators-performance-lazy--lazy-story" label="Live demo — @Lazy" />
+
+---
+
+## `@Selector(field, options?)`
+
+Turns one piece of state into a per-key check. Comparing a field against each row directly subscribes every row to that field, so changing it re-runs every row's binding:
+
+```tsx
+// 1,000 rows → 1,000 bindings re-run on every selection
+<tr class={() => (this.selected === row.id ? 'danger' : '')}>
+```
+
+`@Selector` gives each key its own subscriber list. When the field changes, only the bindings that read the previous key and the next key re-run — 2 instead of 1,000:
+
+```tsx
+import { Component, Selector, State } from '@praxisjs/decorators'
+
+@Component()
+class Table extends StatefulComponent {
+  @State() rows: Row[] = []
+  @State() selected = 0
+  @Selector('selected') isSelected!: Selector<number>
+
+  render() {
+    return (
+      <tbody>
+        {() => this.rows.map((row) => (
+          <tr class={() => (this.isSelected(row.id) ? 'danger' : '')}>
+            <td onClick={() => { this.selected = row.id }}>{row.label}</td>
+          </tr>
+        ))}
+      </tbody>
+    )
+  }
+}
+```
+
+The argument names the field to watch — any reactive field works (`@State`, `@Prop`, `@Computed`, store fields). The decorated field is a function `(key) => boolean`, typed with the `Selector<K>` type exported alongside the decorator. Writing to `this.selected` is unchanged; only the reads go through `this.isSelected(key)`.
+
+Called outside a binding (in an event handler or in `render()` itself), `this.isSelected(key)` simply returns the comparison without subscribing.
+
+### Custom equality
+
+By default a key is selected when it is the same value as the field (the same rule `Map` uses for keys). Pass `equals` to decide differently — for example, multi-selection:
+
+```tsx
+@State() selectedIds: number[] = []
+@Selector('selectedIds', { equals: (id: number, ids: number[]) => ids.includes(id) })
+isSelected!: Selector<number>
+```
+
+With a custom `equals`, every key currently in use is checked when the field changes, and only the bindings whose result flipped re-run. The default comparison skips that walk and looks up the two affected keys directly.
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `equals` | `(key: K, value: T) => boolean` | SameValueZero | Whether `key` counts as selected for the field's value `value` |
+
+<Callout type="info" title="No cleanup needed">
+  Each key's subscriber list is removed as soon as the last binding reading it is disposed, so removed rows leave nothing behind. When no binding reads any key, the selector also stops watching the field (one microtask later, so a list re-render does not drop and re-create the subscription).
+</Callout>
+
+<StorybookLink story="decorators-performance-selector--selector-story" label="Live demo — @Selector" />
 
 ---
 

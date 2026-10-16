@@ -1,0 +1,184 @@
+---
+title: Lists
+description: Render arrays with For and Index. Rows are kept per key, and an update creates, moves or removes only the rows that changed.
+icon: List
+---
+
+# Lists
+
+`For` and `Index` from `@praxisjs/runtime` render arrays. They compare the old and new items **before** rendering anything, then render only the new rows, keep the rest with their DOM, state and effects, and move the existing nodes into the new order. There is no virtual DOM.
+
+<PackageInstall pkg="@praxisjs/runtime" />
+
+## `For`
+
+```tsx
+import { StatefulComponent } from '@praxisjs/core'
+import { Component, State } from '@praxisjs/decorators'
+import { For } from '@praxisjs/runtime'
+
+interface Todo { id: number; title: string; done: boolean }
+
+@Component()
+class TodoList extends StatefulComponent {
+  @State() todos: Todo[] = []
+
+  render() {
+    return (
+      <ul>
+        <For each={() => this.todos} by={(todo) => todo.id} fallback={<li>Nothing to do</li>}>
+          {(todo, index) => (
+            <li class={() => (todo().done ? 'done' : '')}>
+              {() => `${index() + 1}. ${todo().title}`}
+            </li>
+          )}
+        </For>
+      </ul>
+    )
+  }
+}
+```
+
+| Prop | Type | Description |
+| ---- | ---- | ----------- |
+| `each` | `T[]`, any iterable, or a function returning one | The items. A function is tracked: the list updates when what it reads changes. `null`/`undefined` render as empty. |
+| `by` | `(item, index) => unknown` or a property name of `T` | The key of an item. Defaults to the item itself. |
+| `fallback` | JSX | Shown while the list is empty. A function is mounted each time it shows and disposed when rows appear. |
+| `transition` | `{ enter?(el), leave?(el) }` returning promises | Animates added and removed rows, see [Transitions](#transitions). |
+| `appear` | `boolean` | Also run `transition.enter` for the rows of the first render. |
+| children | `(item: () => T, index: () => number) => JSX` | Renders one row. Runs once per key. |
+
+`by` is a prop of its own because the JSX runtime takes `key` out of the props before a component receives them. `by="id"` is short for `by={(item) => item.id}`.
+
+### What an update does
+
+- **The row function runs once per key**, untracked, in a scope of its own. It is not called again while the key stays in the list, so reading a signal in it (outside an arrow) never re-renders the list.
+- **New keys** render and mount (`onMount` runs). **Removed keys** are disposed: `onUnmount` runs and their effects and listeners are released.
+- **Moves keep the rows.** Moving one row or swapping two costs one or two DOM moves. Other reorders move only the rows outside the longest increasing subsequence of the old positions, which is the minimum. Where the browser has `Element.prototype.moveBefore()`, moved rows keep focus, running CSS animations, iframes and media playback.
+- **Common changes take a shortcut.** Filling an empty list inserts one `DocumentFragment`. Appending or prepending renders only the new rows and inserts them at once. Replacing every key removes the old rows in one pass. Clearing a list that is the only content of its parent uses `textContent = ""`.
+- **An unchanged list does nothing.** Same keys in the same order touch no DOM.
+- **Several writes in one event handler**, or inside `batch()`, update the list once.
+
+### `item()` and `index()`
+
+The row function receives accessors, not values.
+
+- `item()` returns the current item for that key. When the array holds a **new object under the same key**, the row stays and every binding that reads `item()` updates in place:
+
+  ```tsx
+  toggle(id: number) {
+    // new object, same id: the <li> is kept, its class binding updates
+    this.todos = this.todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t))
+  }
+  ```
+
+- `index()` returns the row's current position and updates when the row moves.
+
+Like any value in PraxisJS, they are reactive only inside an arrow: `{todo().title}` is read once, `{() => todo().title}` follows changes. The signals behind them are created on first use, so rows that never read them cost nothing extra.
+
+Without `by`, the item itself is the key. This fits items with a stable identity, such as stores or class instances whose fields are `@State()`: `item()` then never changes and per-field bindings do the updating.
+
+```tsx
+class Row extends ReactiveStore {
+  @State() label = ''
+  constructor(readonly id: number) { super() }
+}
+
+<For each={() => this.rows}>
+  {(row) => <tr><td>{row().id}</td><td>{() => row().label}</td></tr>}
+</For>
+```
+
+### Keys
+
+Keys must be unique within the list. A duplicate logs a warning in development that names the key. The behavior stays deterministic in production: the first occurrence keeps its row and later ones get a new row on every update.
+
+### Row shapes
+
+A row can render anything JSX can: one element, several nodes, a fragment, a component, text, or nothing. A row that is a single element is moved as that element. Other rows are moved and removed as the whole range of nodes between their first and last node, so content a nested reactive child inserts later travels with them.
+
+### Transitions
+
+Pass anything with Promise-based `enter`/`leave` hooks, such as `createTransition()` from `@praxisjs/motion`:
+
+```tsx
+import { createTransition } from '@praxisjs/motion'
+
+const fade = createTransition({ name: 'fade', duration: 200 })
+
+<For each={() => this.toasts} by="id" transition={fade}>
+  {(toast) => <div class="toast">{() => toast().message}</div>}
+</For>
+```
+
+- `enter` runs on the elements of every added row, and on the first render's rows with `appear`.
+- A removed row stays in the DOM until `leave` resolves (or rejects), then it is disposed and removed. While it leaves it is no longer part of the list: it is not reused and not moved.
+- Adding the same key back while its old row is leaving creates a new row. The old one finishes leaving on its own.
+- With a `leave` hook set, every removal goes through it, so the bulk clearing shortcuts are skipped.
+
+### Errors
+
+If the row function throws, that row renders empty and the rest of the update completes. The error is then rethrown to whatever triggered the update (several errors as one `AggregateError`). The failed row renders again on the next update. Errors during the first render are reported asynchronously, since `render()` errors would otherwise be swallowed. Errors thrown while disposing removed rows are collected the same way.
+
+<StorybookLink story="essentials-lists-keyedlist--keyed-list" label="Live demo — For" />
+
+---
+
+## `Index`
+
+`Index` keeps rows by **position**. Row `i` is created once; when the value at `i` changes, only the bindings that read `item()` update.
+
+```tsx
+import { Index } from '@praxisjs/runtime'
+
+<Index each={() => this.tags}>
+  {(tag, i) => (
+    <input
+      value={() => tag()}
+      onInput={(e) => { this.rename(i, (e.target as HTMLInputElement).value) }}
+    />
+  )}
+</Index>
+```
+
+Use it for primitives, lists with repeated values, and lists edited in place. With `For`, editing a string changes its key and recreates its row, so an input being typed into would lose focus. With `Index` the input stays. `index` is a plain number, growing the array appends rows and shrinking it removes rows from the end. `Index` takes the same `fallback`, `transition` and `appear` props as `For`.
+
+<StorybookLink story="essentials-lists-indexlist--index-list" label="Live demo — Index" />
+
+---
+
+## `.map()` with `key`
+
+`@praxisjs/vite-plugin` rewrites the common keyed `.map()` into a `For` at build time:
+
+```tsx
+// written
+{() => this.rows.map((row) => <tr key={row.id}>…</tr>)}
+
+// compiled as
+<For each={() => this.rows} by={(row) => row.id}>
+  {(item) => () => { const row = item(); return <tr key={row.id}>…</tr> }}
+</For>
+```
+
+Each row then re-renders on its own when its item, its index (when the callback takes one) or anything else it reads changes. That is what the `.map()` did for the whole list, so the output is the same, but untouched rows are kept.
+
+The rewrite applies to an arrow child `{() => expr.map(cb)}` where `cb` is an arrow function with `(item)` or `(item, index)` parameters that returns one JSX element with a `key` computed only from those parameters. Anything else is left unchanged and the plugin prints a warning with the file and line, so you can switch it to `For`. Turn the rewrite off with `praxisjs({ keyedLists: false })`.
+
+Writing `For` directly is still the better choice: it renders each row once and updates bindings in place, while the rewritten form re-renders a row whenever anything it reads changes.
+
+---
+
+## Server-rendered lists
+
+With [`@praxisjs/ssg`](/docs/tooling/vite-plugin#static-site-generation), the prerendered rows are hydrated: `For` and `Index` adopt the existing elements (listeners and bindings are attached to them) instead of creating new ones, and later updates move those same elements.
+
+## Large lists
+
+For thousands of rows, render only the visible window with the [`VirtualList` composable](/docs/composables/list) and key its items by index:
+
+```tsx
+<For each={() => this.virtual.visibleItems} by={(v) => v.index}>
+  {(v) => <div class="row">{() => v().item.name}</div>}
+</For>
+```

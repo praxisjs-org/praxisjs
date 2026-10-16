@@ -6,6 +6,86 @@ icon: Tag
 
 # @praxisjs/decorators
 
+## 2.0.0
+
+**Breaking: the `accessor` APIs are removed.** PraxisJS no longer needs the `accessor` keyword anywhere.
+
+- `createAccessorDecorator` (and its `AccessorBehavior` / `AccessorBinding` types) is removed. Use `createFieldDecorator` with the new `setup` form on a plain field: `bind(instance, name, initialValue)` becomes `init(instance, initialValue)` storing state in a symbol slot, and the returned `get`/`set` become the shared `get`/`set`.
+- `@Computed({ get, set })` declared on an `accessor` field is removed. Write a `@Computed()` getter with a `set` accessor of the same name next to it.
+
+See [Migrating from `createAccessorDecorator`](/docs/advanced/custom-decorators#migrating-from-createaccessordecorator) for before/after code.
+
+**Shared `setup` form for every builder.** `createFieldDecorator`, `createMethodDecorator`, `createGetterDecorator` and `createWritableGetterDecorator` accept `setup`, which runs once per decorated member and returns functions shared by every instance (`this` is the instance, per-instance state lives in symbol slots). Building an instance allocates nothing for them and every instance keeps one hidden class. Measured per instance with three decorated members: field decorator 870 → 320 ns (`bind` → `setup`), method decorator 31 ns, writable getter 57 ns, and a decorated getter read 10 → 0.9 ns.
+
+```ts
+createFieldDecorator<object, number>({
+  setup(name) {
+    const slot = Symbol(name)
+    return {
+      get(this: Slots) { return (this[slot] as Signal<number>)() },
+      set(this: Slots, v) { (this[slot] as Signal<number>).set(v) },
+      init(instance, initial) { (instance as Slots)[slot] = signal(initial) },
+    }
+  },
+})
+```
+
+- `setup` results can carry `onMount(instance)` / `onUnmount(instance)` hooks (fields, methods through `{ method, onMount, onUnmount }`, getters), and `init(instance, …)` for per-instance slots.
+- `ClassBehavior` hooks `onMount(instance)`, `onUnmount(instance)` and `render(instance, originalRender)` can be defined on the behavior itself, with no per-instance object. `create` is optional, and a behavior with only `initialize` leaves the class unwrapped.
+- `createGetterObserverDecorator` takes `register(getter, instance, name)`, run on every mount once the fields are set and undone on unmount. A function returned by `observe` now runs on unmount.
+- Every builder takes a `label` used in error messages, and checks the member kind when the class is defined: `` @Clamp() decorates getters only, not the method "reset". `` Wrong `bind`/`setup`/`wrap` results throw a `TypeError` naming the decorator.
+
+**Typing.** `createFieldDecorator<Host, Value>`, `createGetterDecorator<Host, Value>`, `createMethodDecorator<Host, M>` and `createLifecycleMethodDecorator<Host, Args>` restrict the members a decorator accepts, so TypeScript rejects a `number` decorator on a `string` field. `Value` is inferred from `get`/`set`. New exported types: `FieldDecorator`, `FieldSetup`, `SharedFieldBehavior`, `MethodDecorator`, `MethodSetup`, `SharedMethodBehavior`, `GetterDecorator`, `GetterSetup`, `SharedGetterBehavior`, `SharedWritableGetterBehavior`.
+
+**Faster per-instance forms.**
+
+- `createMethodDecorator({ wrap })` keeps each instance's wrapper in a slot behind one replacement on the class instead of defining a property per instance: 288 → 71 ns per instance with three methods. Reading the method returns it bound, so detached calls (`onClick={this.save}`) work, and it now stacks under built-in method decorators such as `@Once()` instead of hiding them.
+- `createWritableGetterDecorator({ bind })` reads each instance's pair through one accessor on the class: 1119 → 137 ns per instance with three getters, and instances share one hidden class. Assigning a property whose binding has no `set` still throws a `TypeError`.
+- `@Computed()` installs its getter once on the class instead of a property on every instance: 346 → 133 ns per instance with three computeds.
+
+**Bug fixes.**
+
+- `@Computed()` with a `set` accessor declared next to the getter threw `TypeError: Cannot set property … which has only a getter` on assignment. The writable pair now works, and a subclass can override a computed getter and read it through `super`.
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+The package is marked `"sideEffects": false`, so bundlers leave out the modules of it that an app does not use.
+
+**`@Selector(field, options?)` — keyed selection.**
+
+`@Selector('selected') isSelected!: Selector<number>` exposes `this.isSelected(key)`. Bindings that read it subscribe to their own key only, so changing `selected` re-runs the previous and the next row instead of every row in the list. `{ equals }` takes a custom comparison such as `(id, ids) => ids.includes(id)` for multi-selection. No lifecycle cleanup is needed: subscriptions are released as rows are disposed.
+
+```tsx
+@State() selected = 0
+@Selector('selected') isSelected!: Selector<number>
+
+<tr class={() => (this.isSelected(row.id) ? 'danger' : '')}>
+```
+
+**Cheaper per-instance setup.**
+
+- `@State()` and `@Prop()` install one accessor pair per decorated field, shared by every instance, instead of new closures per instance. Instances of a class now share one hidden class, so field reads stay monomorphic, and each field costs a single property definition.
+- `@Computed()` creates its computed the first time the getter is read, so a getter a component never reads costs nothing beyond its slot.
+- `@Component()` marks the class itself instead of wrapping it in a subclass, which removed a per-instance object and a per-render closure. The decorated class is returned unchanged.
+- `@Bind`, `@Once`, `@Throttle`, `@Debounce`, `@Retry`, `@Log`, `@Memo`, `@Emit` and `@Until` replace the method once on the class instead of defining a wrapper on every instance, and keep their per-instance state (timer, cache, last call) in symbol slots. Reading the method from an instance still returns a function bound to it, the same one on every read, created the first time it is read. `vi.spyOn(instance, 'method')` works before the first read as well: the spy wraps the method, which takes `this` from each call through the spy. Building a component with these decorators no longer allocates anything for them.
+- `@Ref`, `@Command`, `@Slot`, `@FunctionProp`, `@History`, `@DeepState`, `@Persisted`, `@Synced`, `@Resource`, `@Compose` and `@Selector` share one accessor pair per decorated field, like `@State`. `@Ref`, `@Command` and `@Selector` create their object on first read. `@DeepState` uses one proxy handler per field instead of three closures per proxied object, and slots, persisted and synced signals are kept on the instance instead of in `WeakMap`s.
+- Decorators that hook into `onMount`/`onUnmount` (`@Watch`, `@When`, `@OnCommand`, `@History`, `@Persisted`, `@Synced`, `@Resource`, `@Compose`, `@Debounce`, and `createFieldDecorator` / `createLifecycleMethodDecorator` bindings) chain onto the instance's hooks with two closures and no bound functions. `@Debounce` only hooks into `onUnmount` once the method has been called. `@Watch` and `@When` dispose their effect directly.
+- `@Memo` builds the cache key of a single-argument call without an intermediate array.
+- `@Lazy` creates one object per instance instead of three closures and a signal.
+
+**Instances stay in fast properties.** With `@praxisjs/vite-plugin`, a field whose innermost decorator is `@State()`, `@Prop()`, any other built-in field decorator or a `createFieldDecorator` binding is no longer defined as a plain value first and then replaced: the decorator installs its property directly with the field's initial value. Replacing a value with an accessor made every instance a slow dictionary-mode object in V8. Order, stacked decorators, `Object.keys()` and spread are unchanged, and without the plugin fields behave as before. `addClaimableInitializer(context, init)` is exported for field decorators written against the TC39 API, so they get the same path.
+
+**Field decorators reject `accessor` members.**
+
+`@State()`, `@Prop()`, `createFieldDecorator` bindings and every other built-in field decorator now throw a `TypeError` when the class is defined if they decorate an `accessor` (or a method, getter or setter), with the member to fix in the message: `` @State() decorates plain class fields only: remove `accessor` from "count". `` Before, the decorator defined its property over the accessor, and decorators stacked on the same member wrapped the wrong one. `assertFieldContext(context, label?)` is exported for field decorators written directly against the TC39 API.
+
+**Bug fixes.**
+
+- `@Until('field')` on a `@State` (or `@Prop`) field threw, because it passed the field's plain value where a signal was expected. It now waits on the field itself, as the docs show.
+- Calling `onMount()` twice without `onUnmount()` in between left the first `@Watch`, `@When`, `@OnCommand` or `createLifecycleMethodDecorator` registration running forever. The previous registration is now stopped before the new one starts.
+- Stacking method decorators kept only one of them: with `@Log() @Throttle(100)` only `@Log` ran, and a `createMethodDecorator`-based decorator (such as `@Debug`) placed above `@Emit` dropped `@Emit`. Every decorator in the stack now runs.
+- Method decorators on private methods (`@Once() #load()`) did nothing; they now apply.
+
 ## 1.7.0
 
 Fixed a leak in `@Persisted`: each component instance registered a `window` `storage` listener (when `syncTabs` is on) that was never removed, so mounting and unmounting a component repeatedly piled up listeners — every cross-tab write then deserialized the value once per leftover instance. The listener is now closed on unmount. The field also reads through the signal captured at bind time instead of two map lookups per read.

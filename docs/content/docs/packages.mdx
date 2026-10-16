@@ -16,11 +16,11 @@ Core packages that every PraxisJS project depends on. All stable.
 
 | Package | Version | Description |
 | ------- | ------- | ----------- |
-| `@praxisjs/core` | `2.2.0` | Reactivity engine — `signal`, `computed`, `effect`, `batch`, `peek`, `untrack`, `resource` |
-| `@praxisjs/decorators` | `1.7.0` | Class component decorators — `@State`, `@Prop`, `@FunctionProp`, `@Watch`, `@Emit`, `@Compose`, `@Resource`, `@Ref`, `@Command` |
-| `@praxisjs/runtime` | `0.7.1` | DOM renderer — mounts components, manages scopes, handles reactive children, Portal, SSG hydration |
-| `@praxisjs/jsx` | `0.7.1` | JSX runtime (`jsx-runtime`, `jsx-dev-runtime`) |
-| `@praxisjs/shared` | `0.3.1` | Shared types and internal utilities (not installed directly) |
+| `@praxisjs/core` | `2.3.0` | Reactivity engine — `signal`, `computed`, `effect`, `batch`, `peek`, `untrack`, `selector`, `resource` |
+| `@praxisjs/decorators` | `2.0.0` | Class component decorators — `@State`, `@Prop`, `@FunctionProp`, `@Watch`, `@Emit`, `@Compose`, `@Resource`, `@Ref`, `@Command`, `@Selector` |
+| `@praxisjs/runtime` | `0.8.0` | DOM renderer — mounts components, manages scopes, handles reactive children, keyed lists (`For`, `Index`), Portal, SSG hydration |
+| `@praxisjs/jsx` | `0.8.0` | JSX runtime (`jsx-runtime`, `jsx-dev-runtime`) |
+| `@praxisjs/shared` | `0.3.2` | Shared types and internal utilities (not installed directly) |
 
 <PackageInstall pkg={['@praxisjs/core', '@praxisjs/decorators', '@praxisjs/runtime', '@praxisjs/jsx']} />
 
@@ -30,14 +30,14 @@ First-party plugins — install only what your project needs. All stable.
 
 | Package | Version | Description |
 | ------- | ------- | ----------- |
-| `@praxisjs/head` | `0.3.1` | Reactive document head — `@Head` decorator for title, meta, og:*, twitter:* |
-| `@praxisjs/content` | `0.2.1` | Markdown content collections with `@Collection`, `@PagedCollection`, frontmatter validation, and Vite plugin |
-| `@praxisjs/router` | `2.2.1` | Client-side router with `@Router`, `@Route`, named routes, route meta, and scroll restoration |
-| `@praxisjs/store` | `2.0.4` | Class-based singleton state with `@Storable`, `@Store`, and plugin system |
-| `@praxisjs/di` | `1.3.3` | Decorator-based dependency injection with scoped containers |
-| `@praxisjs/motion` | `1.1.24` | `@Tween` and `@Spring` animated field decorators |
-| `@praxisjs/fsm` | `2.2.0` | `@StateMachine` and `@Transition` finite state machines |
-| `@praxisjs/concurrent` | `1.3.0` | `@Task`, `@Queue`, `@Pool` async concurrency control with opt-in AbortSignal |
+| `@praxisjs/head` | `0.3.2` | Reactive document head — `@Head` decorator for title, meta, og:*, twitter:* |
+| `@praxisjs/content` | `0.2.2` | Markdown content collections with `@Collection`, `@PagedCollection`, frontmatter validation, and Vite plugin |
+| `@praxisjs/router` | `2.3.0` | Client-side router with `@Router`, `@Route`, named routes, route meta, and scroll restoration |
+| `@praxisjs/store` | `2.0.5` | Class-based singleton state with `@Storable`, `@Store`, and plugin system |
+| `@praxisjs/di` | `1.3.14` | Decorator-based dependency injection with scoped containers |
+| `@praxisjs/motion` | `1.2.0` | `@Tween` and `@Spring` animated field decorators, `createTransition` |
+| `@praxisjs/fsm` | `2.2.1` | `@StateMachine` and `@Transition` finite state machines |
+| `@praxisjs/concurrent` | `1.3.9` | `@Task`, `@Queue`, `@Pool` async concurrency control with opt-in AbortSignal |
 
 **Head**
 
@@ -77,8 +77,8 @@ All stable.
 
 | Package | Version | Description |
 | ------- | ------- | ----------- |
-| `@praxisjs/composables` | `1.2.1` | DOM, browser, list, and file upload composable classes via `@Compose` |
-| `@praxisjs/css` | `0.3.1` | Scoped CSS with typed class names (`@Styled`), reactive CSS properties (`@Style`), design tokens, and static build-time extraction via the Vite plugin |
+| `@praxisjs/composables` | `1.2.2` | DOM, browser, list, and file upload composable classes via `@Compose` |
+| `@praxisjs/css` | `0.3.5` | Scoped CSS with typed class names (`@Styled`), reactive CSS properties (`@Style`), design tokens, and static build-time extraction via the Vite plugin |
 
 <PackageInstall pkg="@praxisjs/composables" />
 
@@ -90,11 +90,11 @@ All stable.
 
 | Package | Version | Status | Description |
 | ------- | ------- | ------ | ----------- |
-| `@praxisjs/vite-plugin` | `4.0.3` | Stable | Vite integration — decorators, JSX transform, HMR, and CSS static extraction |
-| `@praxisjs/ssg` | `0.1.0` | Experimental | Static site generation — prerenders routes to HTML and hydrates them client-side |
-| `@praxisjs/devtools` | `0.2.21` | Beta | In-app signal inspector and component profiler |
-| `@praxisjs/storybook` | `0.2.4` | Stable | Storybook framework adapter |
-| `@praxisjs/mcp` | `0.3.1` | Beta | MCP server — live docs access for any MCP-compatible AI assistant |
+| `@praxisjs/vite-plugin` | `4.1.0` | Stable | Vite integration — decorators, JSX transform, compiled templates, keyed list rewrite, HMR, and CSS static extraction |
+| `@praxisjs/ssg` | `0.1.3` | Experimental | Static site generation — prerenders routes to HTML and hydrates them client-side |
+| `@praxisjs/devtools` | `0.3.0` | Beta | In-app signal inspector and component profiler |
+| `@praxisjs/storybook` | `0.3.0` | Stable | Storybook framework adapter |
+| `@praxisjs/mcp` | `0.4.0` | Beta | MCP server — docs, API reference, project inspection, validation and project memory for AI assistants |
 
 **Vite Plugin**
 
@@ -122,8 +122,8 @@ Both stable.
 
 | Package | Version | Description |
 | ------- | ------- | ----------- |
-| `create-praxisjs` | `1.0.7` | Project scaffolding CLI |
-| `praxisjs` | `1.0.2` | Maintenance CLI for existing projects — `ai add`/`ai remove`, `doctor`, `upgrade` |
+| `create-praxisjs` | `1.1.0` | Project scaffolding CLI |
+| `praxisjs` | `1.1.0` | Maintenance CLI for existing projects — `ai add`/`ai remove`, `doctor`, `upgrade` |
 
 **Scaffold a new project**
 

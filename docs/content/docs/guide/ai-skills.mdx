@@ -1,12 +1,12 @@
 ---
 title: AI Skills
-description: How to use PraxisJS AI skills — docs-first development, project memory, and one-time project config for Claude Code and Codex.
+description: How to use PraxisJS AI skills — docs-first development through the MCP server, no duplicated code, the project's folder structure, a versioned project memory and one-time project config for Claude Code and Codex.
 icon: Sparkles
 ---
 
 # AI Skills
 
-PraxisJS ships AI skills that give Claude Code and Codex a structured way to work on your project — always consulting live documentation, keeping project context persistent, and following framework conventions without guessing.
+PraxisJS ships AI skills that give Claude Code and Codex a structured way to work on your project — looking every API up in the live documentation, reusing what the framework and your project already have, keeping files where your project keeps them, and recording what they build in a project memory the next session reads.
 
 ---
 
@@ -97,28 +97,53 @@ bunx praxisjs ai remove
 </Tab>
 </Tabs>
 
-This deletes the skill directory and, for Claude Code, `.claude/settings.json`. It leaves `CLAUDE.md`/`AGENTS.md` and `.praxisjs-ai.json` alone — those hold project context and preferences that aren't owned exclusively by the integration.
+This deletes the PraxisJS skills and removes the `praxisjs` MCP server from the project configuration (other servers and settings stay). It leaves `CLAUDE.md`/`AGENTS.md`, `.praxisjs-ai.json` and `.praxis/` alone — those hold project context and preferences that aren't owned exclusively by the integration.
 
 ---
 
 ## What gets installed
 
-| Integration | Skill location | Project memory | MCP config |
+| Integration | Skills | MCP server config | Project memory file |
 |---|---|---|---|
-| **Claude Code** | `.claude/skills/praxisjs/` | `CLAUDE.md` | `.claude/settings.json` (auto) |
-| **Codex** | `.agents/skills/praxisjs/` | `AGENTS.md` | `~/.codex/config.toml` (manual) |
+| **Claude Code** | `.claude/skills/praxisjs/` + `.claude/skills/praxisjs-*/` | `.mcp.json`, approved in `.claude/settings.json` | `CLAUDE.md` |
+| **Codex** | `.agents/skills/praxisjs/` + `.agents/skills/praxisjs-*/` | `.codex/config.toml` (trusted projects) | `AGENTS.md` |
 
-The MCP server (`@praxisjs/mcp`) is configured automatically for Claude Code. For Codex, see the [MCP Server](/docs/tooling/mcp) page for the `~/.codex/config.toml` snippet.
+The skills need the [MCP server](/docs/tooling/mcp) (`@praxisjs/mcp`): it gives them the docs, your project's structure and the project memory. `ai add` configures it for both agents; Claude Code asks you to approve it the first time (check with `/mcp`). For other clients, see the [MCP Server](/docs/tooling/mcp#setup) page.
+
+### The skills
+
+`praxisjs` is the main skill, loaded for any PraxisJS work. The others are workflows it hands over to:
+
+| Skill | Use |
+|---|---|
+| `praxisjs-component` | Create or change a component or page: reuse check, type choice, reactive JSX, styles, test, memory entry |
+| `praxisjs-decorator` | Build a custom decorator with the current builders (`setup` form), test it, record it |
+| `praxisjs-composable` | Build a `Composable` attached with `@Compose` |
+| `praxisjs-store` | Shared state with `@praxisjs/store`, services with `@praxisjs/di`, store plugins |
+| `praxisjs-testing` | Vitest setup with `decoratorLoweringPlugin()`, what to test for each kind of code, coverage |
+| `praxisjs-performance` | Measure with the devtools profiler and `@Trace`, then fix with `For`/`Index`, `@Selector`, `@Lazy`, `VirtualList` |
+| `praxisjs-upgrade` | `praxisjs upgrade`, `praxisjs doctor`, changelogs and migrations of removed APIs |
+| `praxisjs-memory` | Query and maintain the project memory |
+| `praxisjs-memory-bootstrap` | First full analysis of the project into the memory, as parallel passes (subagents when the agent has them) |
+| `praxisjs-ui` | Use Morphos primitives and Kosmesis components: find, add with the `kosmesis` CLI, wrap, style, update |
+| `praxisjs-ai-setup` | Update an older project's skills, MCP configuration and memory format |
 
 ---
 
-## The three rules
+## The rules
 
-Both skills enforce the same three rules on every task:
+Every skill follows the same rules:
 
-1. **Docs first** — the skill calls `praxisjs_overview` then `praxisjs_get_page` for the relevant topic before writing any code. APIs evolve; the skill never guesses.
-2. **Project memory always** — reads `CLAUDE.md` or `AGENTS.md` at session start; updates it whenever an architectural decision is made.
-3. **No workarounds** — if the idiomatic path isn't clear from the docs, the skill fetches the page rather than improvising.
+1. **Docs before code** — every PraxisJS API is looked up through the MCP server (`praxisjs_search_docs`, `praxisjs_get_page`, `praxisjs_api_reference`) before it is used; the website is only a fallback while the server isn't connected.
+2. **MCP connected** — when the server's tools are missing, the skill helps you connect it before writing PraxisJS code.
+3. **Reuse, don't duplicate** — before creating a component, composable, store, service, decorator or helper, `praxisjs_memory_check_duplicate` searches PraxisJS itself, the project memory and your code.
+4. **UI from Morphos and Kosmesis first** — before building a UI piece, the skill checks your installed Kosmesis components, the Kosmesis registry and the [Morphos](https://morphos.praxisjs.org) primitives; Kosmesis components are added with the `kosmesis` CLI and updated with `kosmesis outdated` / `kosmesis update`, Morphos primitives are wrapped, never edited in `node_modules`.
+5. **Extend PraxisJS its own way** — custom behavior goes through the [Extending PraxisJS](/docs/advanced) APIs: the decorator builders (`setup` form), `Composable`, store plugins, devtools plugins.
+6. **Never the `accessor` keyword** — PraxisJS decorators work on plain fields.
+7. **Keep the structure** — files go where the project keeps that kind of file (`praxisjs_scaffold`); misplaced code the task touches is moved, with your consent for larger moves. See [Project structure](#project-structure).
+8. **Project memory through the MCP only** — `.praxis/` is read and written only with the `praxisjs_memory_*` tools.
+9. **Validate** — `praxisjs_validate_file` runs on every file the assistant creates or changes.
+10. **No workarounds** — if the idiomatic path isn't clear, the skill reads the docs page rather than improvising.
 
 ---
 
@@ -143,30 +168,36 @@ To update a preference after init, edit `.praxisjs-ai.json` directly or ask the 
 
 ## Project memory
 
-`CLAUDE.md` (Claude Code) and `AGENTS.md` (Codex) serve the same purpose: they give every new session instant context about the project so you don't have to re-explain it.
+Two places hold what a new session needs to know:
 
-The skill creates the file when missing and updates it whenever an architectural decision is made — a new package added, a store pattern established, a routing convention decided.
+| | `CLAUDE.md` / `AGENTS.md` | `.praxis/` |
+|---|---|---|
+| Holds | stack, entry points, constraints, a pointer to `.praxis/` | reusable components and utilities, business rules, architecture decisions, conventions, glossary |
+| Changed by | the assistant, directly | the assistant, only through the MCP server's `praxisjs_memory_*` tools |
 
-Minimal structure (Claude Code example):
+The skill creates the memory file when missing and updates it when the stack or constraints change. Minimal structure (Claude Code example):
 
 ```markdown
 # My App
 
 ## Stack
-- PraxisJS 2.x + @praxisjs/core, @praxisjs/decorators, @praxisjs/runtime, @praxisjs/jsx
+- PraxisJS + @praxisjs/core, @praxisjs/decorators, @praxisjs/runtime, @praxisjs/jsx
 - Build: Vite 7 + @praxisjs/vite-plugin
 - Routing: @praxisjs/router
 - State: @praxisjs/store
 
 ## Architecture
-SPA. Entry: src/main.ts. Pages in src/pages/, components in src/components/.
+SPA. Entry: src/main.tsx. Pages in src/pages/, components in src/components/.
 
-## Conventions
-Stores are singletons injected via @Store. All forms extend FormBase.
+## Project memory
+Reusable code, business rules, decisions and conventions are in `.praxis/`, read and changed only
+through the PraxisJS MCP server (`praxisjs_memory_*` tools).
 
 ## Known constraints
 JWT stored in memory only. Targets Chrome 100+.
 ```
+
+`.praxis/` is set up on the first session by the `praxisjs-memory-bootstrap` skill (commit it): `praxisjs_memory_bootstrap_plan` splits a full analysis of the project into eight focused passes — UI components, utilities and stores, routes and pages, business rules, architecture, conventions, dependencies and UI libraries, tests and tooling — that run in parallel when the agent supports subagents and one after another otherwise. Each pass writes only through `praxisjs_memory_upsert` (dry run first), links every entry to its source files and reports what it couldn't infer, such as business rules, as questions for you. Re-running it updates entries instead of duplicating them and asks before rewriting text people wrote. The memory is then kept current as the assistant adds, changes, moves or removes reusable code and as rules and decisions come up. Its format, tools and safety guarantees are described on the [MCP Server](/docs/tooling/mcp#project-memory) page.
 
 <Callout type="info">
   The skill will not proceed with any task until the project memory file exists. If it is missing at session start, the skill creates it before writing any code.
@@ -174,19 +205,77 @@ JWT stored in memory only. Targets Chrome 100+.
 
 ---
 
+## Project structure
+
+The skills follow the structure your project already has, as recorded in `conventions/project-structure`. Two layouts are shown as examples — the skills only suggest one for a new project or when you ask to reorganize:
+
+```
+by kind (create-praxisjs templates)     feature slices
+src/                                   src/
+  app.tsx, main.tsx                      app/        bootstrap, router, global providers
+  pages/                                 features/
+  components/  (components/ui/ Kosmesis)   cart/
+  stores/  composables/  services/           components/  stores/  composables/  services/
+  decorators/  utils/  styles/               routes.ts  index.ts (public API)  __tests__/
+  __tests__/                             shared/
+                                           ui/  (Kosmesis components, Morphos wrappers)
+                                           lib/  config/  types/
+```
+
+In a feature-slice project, features import each other only through their `index.ts`, `shared/` never imports from `features/`, and tests and styles stay with their feature; `praxisjs_validate_file` flags imports that cross these lines and `praxisjs_scaffold` places new files in the right feature (or in `shared/`).
+
+---
+
+## Updating an existing project
+
+Projects set up by an earlier `praxisjs` or `create-praxisjs` move to the current setup with:
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npx praxisjs ai sync --dry-run
+npx praxisjs ai sync
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm dlx praxisjs ai sync --dry-run
+pnpm dlx praxisjs ai sync
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn dlx praxisjs ai sync --dry-run
+yarn dlx praxisjs ai sync
+```
+</Tab>
+<Tab value="bun">
+```sh
+bunx praxisjs ai sync --dry-run
+bunx praxisjs ai sync
+```
+</Tab>
+</Tabs>
+
+`ai sync` updates every installed integration in place: it adds the new skills, replaces skill files you never changed, removes files the current version no longer ships, and rewrites the MCP server configuration (moving an old entry out of `.claude/settings.json`, where Claude Code never read it). Files you edited are never overwritten silently: it shows the diff and asks, and without a terminal (CI) it keeps them. It recognizes installs from before it existed by the hashes of every file earlier releases shipped, and from now on records what it installed in `.praxisjs-ai.lock.json` (commit it). It is safe to run again. `praxisjs doctor` reports an outdated setup, and `praxisjs upgrade` offers to sync it after upgrading packages. See [ai sync](/docs/tooling/cli#ai-sync).
+
+Then ask your agent to update the rest — the `praxisjs-ai-setup` skill walks it through it: a project without `.praxis/` gets the memory bootstrap, and a `.praxis/` in an older format is migrated with `praxisjs_memory_migrate` (dry run first, then an atomic swap; see [Format versions](/docs/tooling/mcp#format-versions)).
+
+---
+
 ## How it uses the MCP server
 
-The skill calls three tools from `@praxisjs/mcp` during a session:
-
-| Tool | When |
+| Moment | Tools |
 |---|---|
-| `praxisjs_overview` | First call in every session — fast index of all docs pages |
-| `praxisjs_get_page` | Before implementing anything — fetches the relevant page by slug |
-| `praxisjs_full_docs` | When cross-topic context is needed |
+| Session start | `praxisjs_inspect_project` (versions, code, layout, memory status), `praxisjs_memory_search` for the task |
+| Before writing code | `praxisjs_search_docs` → `praxisjs_get_page`, `praxisjs_api_reference` for each API |
+| Before creating something reusable | `praxisjs_memory_check_duplicate`, then `praxisjs_scaffold` for the path and starter code |
+| After writing | `praxisjs_validate_file`, then `praxisjs_memory_add` / `praxisjs_memory_update` |
+| Building a UI piece | `praxisjs_ui_components`, the Morphos/Kosmesis docs (`library` on the docs tools) |
+| Installing a package | `praxisjs_get_install_command` (no version numbers) |
+| Code moved or memory out of date | `praxisjs_memory_map` |
 
-The fourth tool, `praxisjs_get_install_command`, is called whenever a package needs to be installed — it generates the correct CLI command without version pinning.
-
-Register the MCP server for your AI client: [MCP Server](/docs/tooling/mcp).
+The full tool list is on the [MCP Server](/docs/tooling/mcp#tools) page.
 
 ---
 
@@ -256,6 +345,26 @@ Add a /products/:id route that lazy-loads the ProductDetail component and
 reads the id from route params. Fetch the router docs before implementing.
 ```
 
+### Reuse and project memory
+
+```
+Analyze this project and set up the project memory: components, stores, business rules,
+architecture and conventions. Use subagents for the passes.
+```
+
+```
+Add a settings dialog. Use our Kosmesis components if we have them, otherwise add
+the right one from the registry.
+```
+
+```
+Before you build a date range picker, check whether we or PraxisJS already have one.
+```
+
+```
+Our checkout rule is that a cart holds at most 20 items. Record it and enforce it in CartStore.
+```
+
 ### Refactoring and debugging
 
 ```
@@ -266,6 +375,15 @@ signals change. Read the reactivity docs and explain why, then fix it.
 ```
 Extract the authentication logic from UserPage into a reusable composable.
 Check the custom-composables docs for the right pattern.
+```
+
+```
+The product list is slow when it has 5,000 rows. Profile it and fix it.
+```
+
+```
+Our helpers are scattered across components/ and lib/. Propose where they belong
+according to the project structure, then move them.
 ```
 
 ### Adding packages
@@ -283,4 +401,4 @@ toggles open and closed. Install the package first, then fetch the motion docs.
 
 ## See also
 
-The skill itself tells you to run `praxisjs doctor` when something seems misconfigured, and `praxisjs upgrade` to update `@praxisjs/*` dependencies. Full reference for both, plus `ai add` / `ai remove`, in the [praxisjs CLI docs](/docs/tooling/cli).
+The skill itself tells you to run `praxisjs doctor` when something seems misconfigured (including a missing MCP server configuration), and `praxisjs upgrade` to update `@praxisjs/*` dependencies. Full reference for both, plus `ai add` / `ai remove`, in the [praxisjs CLI docs](/docs/tooling/cli).

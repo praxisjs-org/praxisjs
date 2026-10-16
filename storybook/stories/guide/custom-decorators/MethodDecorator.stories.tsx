@@ -2,13 +2,14 @@ import { StatefulComponent } from "@praxisjs/core";
 import { Component, State, createMethodDecorator } from "@praxisjs/decorators";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
+const calls = Symbol("calls");
+
 function CountCalls() {
-  const counts = new WeakMap<object, number>();
   return createMethodDecorator({
-    wrap(original: (...args: unknown[]) => unknown, instance: object) {
-      counts.set(instance, 0);
-      return function (this: object, ...args: unknown[]) {
-        counts.set(this, (counts.get(this) ?? 0) + 1);
+    label: "@CountCalls()",
+    setup(original) {
+      return function (this: { [calls]?: number }, ...args: unknown[]) {
+        this[calls] = (this[calls] ?? 0) + 1;
         return original.apply(this, args);
       };
     },
@@ -46,8 +47,8 @@ class CountCallsDemo extends StatefulComponent {
           <span>Calls: <strong>{() => this.callCount}</strong></span>
         </div>
         <p style="margin:0;font-size:.78rem;color:#aaa">
-          Built with <code>createMethodDecorator</code>: wraps each instance's method via
-          <code>Object.defineProperty</code>. Uses <code>WeakMap</code> for per-instance state.
+          Built with <code>createMethodDecorator</code>'s <code>setup</code> form: one replacement
+          shared by every instance, the call count kept in a symbol slot on the instance.
         </p>
       </div>
     );

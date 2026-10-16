@@ -275,6 +275,18 @@ const unregister = router.afterEach((to, from) => {
 // Call unregister() to remove the handler
 ```
 
+### `isActive(path)`
+
+Whether `path` is the current location's path. It is reactive, and an effect or JSX binding that reads it re-runs only when that path becomes or stops being the current one, not on every navigation. `<Link>` uses it for its active class, so a page with hundreds of links re-evaluates two of them per navigation:
+
+```tsx
+<li class={() => (router.isActive('/settings') ? 'current' : '')}>Settings</li>
+```
+
+### `destroy()`
+
+Removes the router's `popstate` listener. `createRouter()` calls it on the router it replaces, so you only need it for a `RouterInstance` you constructed yourself.
+
 ---
 
 ## `<Link>` component
@@ -292,7 +304,7 @@ import { Link } from '@praxisjs/router'
 <Link to={{ name: 'search', query: { q: 'praxis' } }}>Search</Link>
 ```
 
-`<Link>` resolves named targets to a concrete path for the `href` attribute and compares it against the current route for the active class.
+`<Link>` resolves named targets to a concrete path for the `href` attribute and checks it with `router.isActive()` for the active class.
 
 | Prop | Type | Description |
 |---|---|---|
@@ -352,6 +364,8 @@ An explicit `layout` on a child route overrides the inherited one:
 Layouts are regular PraxisJS class components. There are two ways to render the matched page inside them.
 
 Layout components must extend **`StatelessComponent`** — the router passes the current page as reactive `children` and `StatelessComponent` re-renders automatically when children change.
+
+A layout stays mounted while navigation moves between routes that share it: only the page inside it is swapped, so the layout keeps its state (an open sidebar, a scroll position, a half-typed search). It is rebuilt only when the next route uses another layout or none.
 
 **Pattern A — `children` prop** — `RouterView` passes the matched page as a reactive child. Extend `StatelessComponent` with a typed props interface and render `{this.props.children}`:
 
@@ -517,6 +531,14 @@ router.location().name  // current route name (or undefined)
 ---
 
 ## Route path syntax
+
+Everything other than `:param`, `:param?` and `**` is matched literally, so a `.`, `+` or `(` in a path is just that character:
+
+```ts
+{ path: '/v1.0/changelog', component: Changelog }  // matches /v1.0/changelog only
+```
+
+Routes are tried in declaration order, and the first match wins. Static paths are looked up directly instead of being tested one by one, so the size of the route table barely affects navigation.
 
 ### Named parameters
 

@@ -1,12 +1,18 @@
 ---
 title: MCP Server
-description: "@praxisjs/mcp — Model Context Protocol server for PraxisJS. Gives any MCP-compatible AI assistant live access to documentation and install commands."
+description: "@praxisjs/mcp — Model Context Protocol server for PraxisJS. Gives AI assistants the docs, an API reference, project inspection, validation, scaffolding and a versioned project memory."
 icon: Bot
 ---
 
 # MCP Server
 
-`@praxisjs/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server for PraxisJS. It works with any MCP-compatible AI assistant — Claude Code, Cursor, VS Code/Copilot, Windsurf, and others — giving it live access to praxisjs.org documentation and install command generation.
+`@praxisjs/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server for PraxisJS. It works with any MCP-compatible AI assistant — Claude Code, Codex, Cursor, VS Code/Copilot, Windsurf, and others — and gives it:
+
+- **The docs**: PraxisJS, Morphos and Kosmesis — search by topic, read pages, look up any export with the signature of the version you have installed.
+- **UI building blocks**: the Kosmesis registry (including your custom registries) and the Morphos primitives and Kosmesis components your project already uses, with their versions and local edits.
+- **Your project**: installed versions, pages, components, stores, routes and folder layout, read by static analysis.
+- **Checks**: a validator for the PraxisJS rules assistants most often break, and scaffolding plans that follow your folder structure.
+- **A project memory**: `.praxis/`, a versioned catalog of your reusable code, business rules, decisions and conventions that assistants read and update only through the server.
 
 <PackageInstall pkg="@praxisjs/mcp" dev />
 
@@ -39,11 +45,11 @@ bunx @praxisjs/mcp
 
 ## Setup
 
-Pick your AI client and add the server to its MCP config file.
+`npx praxisjs ai add` configures the server for Claude Code and Codex together with the [AI skills](/docs/guide/ai-skills). To set it up by hand, pick your AI client:
 
-<Tabs items={['Claude Code', 'Cursor', 'VS Code / Copilot', 'Windsurf', 'Codex']}>
+<Tabs items={['Claude Code', 'Codex', 'Cursor', 'VS Code / Copilot', 'Windsurf']}>
 <Tab value="Claude Code">
-Add to `.claude/settings.json` (project) or `~/.claude/settings.json` (global):
+Add it to `.mcp.json` at the project root (commit it so the whole team gets it):
 
 ```json
 {
@@ -55,6 +61,23 @@ Add to `.claude/settings.json` (project) or `~/.claude/settings.json` (global):
   }
 }
 ```
+
+or run `claude mcp add --scope project praxisjs -- npx -y @praxisjs/mcp`. Claude Code asks you to approve project servers the first time; `"enabledMcpjsonServers": ["praxisjs"]` in `.claude/settings.json` approves it ahead of time. Check it with `/mcp`.
+
+<Callout type="warn">
+  Claude Code reads MCP servers from `.mcp.json` (project) or `~/.claude.json` (user), not from an `mcpServers` key in `.claude/settings.json`. Earlier versions of `praxisjs ai add` wrote it there, where the server never started: run `ai add` again to fix it.
+</Callout>
+</Tab>
+<Tab value="Codex">
+Add it to `.codex/config.toml` at the project root (Codex loads project config in trusted projects), or to `~/.codex/config.toml` for every project:
+
+```toml
+[mcp_servers.praxisjs]
+command = "npx"
+args = ["-y", "@praxisjs/mcp"]
+```
+
+or run `codex mcp add praxisjs -- npx -y @praxisjs/mcp`.
 </Tab>
 <Tab value="Cursor">
 Add to `.cursor/mcp.json` at the project root (or `~/.cursor/mcp.json` for global):
@@ -90,26 +113,18 @@ Add to `.vscode/mcp.json` at the project root:
 Click **Start** in the config file editor, or use the MCP panel in the GitHub Copilot Chat sidebar.
 </Tab>
 <Tab value="Windsurf">
-Add to `~/.codeium/windsurf/mcp_config.json`:
+Add to `~/.codeium/windsurf/mcp_config.json`, and set the project with `PRAXISJS_PROJECT_ROOT` (see below), since the config is global:
 
 ```json
 {
   "mcpServers": {
     "praxisjs": {
       "command": "npx",
-      "args": ["-y", "@praxisjs/mcp"]
+      "args": ["-y", "@praxisjs/mcp"],
+      "env": { "PRAXISJS_PROJECT_ROOT": "/path/to/your/project" }
     }
   }
 }
-```
-</Tab>
-<Tab value="Codex">
-Add to `~/.codex/config.toml`:
-
-```toml
-[mcp_servers.praxisjs]
-command = "npx"
-args = ["-y", "@praxisjs/mcp"]
 ```
 </Tab>
 </Tabs>
@@ -118,81 +133,202 @@ args = ["-y", "@praxisjs/mcp"]
   If you prefer a local install over `npx`, run `npm install -D @praxisjs/mcp` and replace `"command": "npx", "args": ["-y", "@praxisjs/mcp"]` with `"command": "./node_modules/.bin/praxisjs-mcp"`.
 </Callout>
 
+### Which project it works on
+
+The project tools and the project memory work on one folder, chosen in this order:
+
+1. `PRAXISJS_PROJECT_ROOT`, if set in the server's environment.
+2. `CLAUDE_PROJECT_DIR`, which Claude Code sets for the servers it starts.
+3. The first folder the client announces through MCP roots (VS Code, Claude Code and others do).
+4. The server's working directory.
+
+From there it walks up to the nearest folder with a `package.json`, so starting it from `src/` still serves the whole project. `praxisjs_inspect_project` prints the root in use.
+
 ---
 
 ## Tools
 
-The server exposes four tools.
+| Group | Tool | What it does |
+|---|---|---|
+| Docs | `praxisjs_overview` | The docs index (`llms.txt`) |
+| | `praxisjs_get_page` | One docs page as Markdown |
+| | `praxisjs_full_docs` | Every page concatenated (large) |
+| | `praxisjs_search_docs` | Docs sections matching a topic, with snippets |
+| | `praxisjs_api_reference` | One export: package, kind, installed signature, docs section |
+| | `praxisjs_list_apis` | The public API by kind and package |
+| | `praxisjs_get_install_command` | Install command for `@praxisjs/*` / `@morphos/*` packages, without versions |
+| Project | `praxisjs_inspect_project` | Versions, configuration, pages, components, stores, routes, layout, UI libraries |
+| | `praxisjs_validate_file` | PraxisJS rules check for a file or folder |
+| | `praxisjs_scaffold` | Where a new file goes and how it starts |
+| | `praxisjs_ui_components` | Kosmesis registry components and their install status |
+| Memory | `praxisjs_memory_init` | Creates `.praxis/` and records the project structure |
+| | `praxisjs_memory_list` / `_get` / `_search` | Read entries |
+| | `praxisjs_memory_add` / `_update` / `_remove` | Change entries |
+| | `praxisjs_memory_upsert` | Add or update many entries at once, with a dry run |
+| | `praxisjs_memory_bootstrap_plan` | The first full analysis of the project, split into parallel passes |
+| | `praxisjs_memory_map` | Compares the code with the memory: unrecorded code, stale entries |
+| | `praxisjs_memory_check_duplicate` | "Is there already something that does X?" |
+| | `praxisjs_memory_migrate` | Brings an older `.praxis/` to the current format |
 
-### `praxisjs_overview`
+Every tool declares MCP annotations (read-only, destructive, idempotent), so clients can skip confirmations for the read-only ones.
 
-Returns the documentation index (`llms.txt`) — a concise list of all available pages with one-line descriptions. Use this first to orient before fetching a specific page.
+### Docs tools
 
-### `praxisjs_get_page`
+Every docs tool takes an optional `library`: `"praxisjs"` (default), `"morphos"` or `"kosmesis"`. The three sites publish the same `llms.txt`, `llms-full.txt` and per-page Markdown, so search, pages and snippets work the same for [Morphos](https://morphos.praxisjs.org) and [Kosmesis](https://kosmesis.praxisjs.org). The docs tools need network access; offline, the signatures of installed packages are still available through `praxisjs_api_reference`.
 
-Returns a specific documentation page as Markdown. Pass a slug from the table below.
+Docs responses are kept in memory for 10 minutes, so repeated calls in a session don't hit praxisjs.org again, and calls for the same page at the same time share one request. A failed request is not cached, and a request that takes longer than 15 seconds fails with an error.
 
-| Topic | Slug |
-|---|---|
-| Components | `essentials/components` |
-| Reactivity & signals | `essentials/reactivity` |
-| JSX | `essentials/jsx` |
-| Lifecycle hooks | `essentials/lifecycle` |
-| Async data | `essentials/async-data` |
-| State & Props | `decorators/state` |
-| Watchers | `decorators/watchers` |
-| Events & Slots | `decorators/events` |
-| Performance | `decorators/performance` |
-| Timing decorators | `decorators/timing` |
-| Utility decorators | `decorators/utilities` |
-| Router | `ecosystem/router` |
-| Store | `ecosystem/store` |
-| Dependency injection | `ecosystem/di` |
-| Motion | `ecosystem/motion` |
-| State machines | `ecosystem/fsm` |
-| Concurrency | `ecosystem/concurrency` |
-| DOM composables | `composables/dom` |
-| Browser composables | `composables/browser` |
-| Custom decorators | `advanced/custom-decorators` |
-| Custom composables | `advanced/custom-composables` |
-| Vite plugin | `tooling/vite-plugin` |
+**`praxisjs_get_page`** takes a slug relative to `/docs` (`essentials/components`, `decorators/performance`, `advanced/custom-decorators`…). The `/docs/…` links listed by `praxisjs_overview` and full `https://praxisjs.org/docs/…` URLs work too, with or without a trailing slash or `#anchor`.
 
-### `praxisjs_full_docs`
+**`praxisjs_search_docs`** takes a `query` in plain words ("debounce an input handler"), and optionally `limit` (default 8) and `includeChangelog` (default `false`). It splits the documentation into sections and ranks them by how many of the query's words they contain (names and headings weigh more), returning `slug#anchor — Page › Heading` and the best matching line of each.
 
-Returns all documentation pages concatenated (`llms-full.txt`). Use when cross-topic context is needed or the relevant page slug is unknown.
+**`praxisjs_api_reference`** takes a `symbol` (`"Debounce"`, `"@State"`, `"For"`, `"createFieldDecorator"`). It answers with the package, the kind (field decorator, composable, component…), whether it is reactive or `StatefulComponent`-only, the import line, the docs page, the docs sections about it and the **TypeScript signature read from your installed package** (`node_modules/<package>`, following its `.d.ts` re-exports), so the signature always matches your version. A name PraxisJS doesn't export is looked up in the installed `@morphos/*` packages; an unknown name gets close suggestions.
 
-### `praxisjs_get_install_command`
+**`praxisjs_list_apis`** lists the API by `kind` (`field-decorator`, `method-decorator`, `class-decorator`, `getter-decorator`, `decorator-builder`, `composable`, `component`, `base-class`, `function`, `class`) and `package`; `signatures: true` adds the installed signatures.
 
-Generates the correct CLI command to install `@praxisjs/*` packages without pinning version numbers. Use this whenever a PraxisJS package needs to be installed — never write version constraints directly into `package.json`.
-
-**Input:**
+**`praxisjs_get_install_command`** generates the command to install `@praxisjs/*` and `@morphos/*` packages (and the `praxisjs`, `create-praxisjs` and `kosmesis` CLIs) without pinning versions — never write version constraints directly into `package.json`.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `packages` | `string[]` | — | One or more `@praxisjs/*` package names |
+| `packages` | `string[]` | — | One or more `@praxisjs/*` or `@morphos/*` package names (`praxisjs`, `create-praxisjs` and `kosmesis` are accepted too). Duplicates are dropped. |
 | `manager` | `"npm" \| "pnpm" \| "yarn" \| "bun"` | `"npm"` | Package manager to use |
-| `dev` | `boolean` | `true` | Install as devDependency |
-
-**Examples:**
+| `dev` | `boolean` | `true` | Install as devDependency. Pass `false` for packages the app imports at runtime (`core`, `decorators`, `jsx`, `runtime`, `router`, …). |
 
 ```
-packages: ["@praxisjs/router", "@praxisjs/store"]
-manager: "pnpm"
-→  pnpm add -D @praxisjs/router @praxisjs/store
+packages: ["@praxisjs/router", "@praxisjs/store"], manager: "pnpm", dev: false
+→  pnpm add @praxisjs/router @praxisjs/store
 ```
 
+### Project tools
+
+The project tools read your source files (`.ts`, `.tsx`, `.js`, `.jsx`, skipping `node_modules`, build output, dot-folders and declaration files) with a small scanner built into the server: no TypeScript compiler or other dependency is loaded, and a file in the middle of an edit is read up to where it breaks.
+
+**`praxisjs_inspect_project`** reports the `@praxisjs/*` packages (declared range and installed version), tsconfig options PraxisJS needs, installed AI integrations, whether the project memory exists, and the code grouped as pages, components (stateful/stateless, props, route), stores, composables, services, custom decorators, stylesheets and exported helpers, plus the routes from `@Router([...])` tables and `@Route` decorators, the folder each kind of file lives in (or the features of a feature-slice project), and a **UI libraries** section: installed `@morphos/*` packages and which primitives each file imports; the Kosmesis setup from `components.json` (style system, components folder, registries) and every installed component with its version from `components.lock.json`, whether a newer one is in the registry and whether its files were edited locally. Components installed before Kosmesis kept a lock are listed by file name as untracked.
+
+**`praxisjs_validate_file`** takes a `path` (a file, or a folder to check every source file in it) or `source` text with a `filename`. Rules:
+
+| Rule | Severity | Flags |
+|---|---|---|
+| `missing-component` | error | A class extending `StatefulComponent`/`StatelessComponent` without `@Component()` |
+| `component-order` | error | `@Component()` not the innermost class decorator |
+| `missing-render` | error | A component without `render()` |
+| `accessor-keyword` | error / warning | A decorated `accessor` field (field decorators throw on it) / any `accessor` field |
+| `stateless-decorator` | error | `@State`, `@Prop`, `@Watch`, `@Emit`, `@Slot`… on a `StatelessComponent` |
+| `stateful-props` | error | `this.props` in a `StatefulComponent` |
+| `core-export` | error | Importing a name `@praxisjs/core` doesn't export (`signal`, `effect`…) |
+| `compiler-helper-import` | error | Importing the `_$` helpers the Vite plugin emits |
+| `decorator-order` | warning | `@State()` / `@Prop()` not closest to the field |
+| `unknown-member` | warning | `@Watch('x')`, `@Selector('x')`, `@Task('x')`… naming a member the class doesn't declare |
+| `in-place-mutation` | warning | `this.items.push(…)` or `this.form.name = …` on a `@State`/`@Persisted`/`@Synced`/`@History` field (no update) |
+| `static-read` | warning / info | A reactive field read in `render()` outside an arrow (`{this.count}` is a snapshot); props are only hinted |
+| `internal-import` | warning | `@praxisjs/*/internal` in application code (composables and custom decorators may use it) |
+| `feature-deep-import` | warning | In a feature-slice project, importing another feature past its `index.ts` |
+| `shared-imports-feature` | warning | `src/shared/` importing from `src/features/` |
+
+**`praxisjs_scaffold`** takes a `kind` (`page`, `component`, `store`, `composable`, `service`, `decorator`, `function`, `stylesheet`), a `name`, for pages and components `route` and `stateful`, and in a feature-slice project the `feature` (without it, shared code goes to `src/shared/ui` or `src/shared/lib`). It writes nothing: it returns the path the file should have (the folder the project already uses for that kind, or the default layout), whether it already exists, starter code with the current APIs, a test file when the project writes tests (and where it keeps them), the docs to read and similar code that may already cover it. It follows `.praxisjs-ai.json` (`css`, `tests`).
+
+**`praxisjs_ui_components`** lists the components of every Kosmesis registry the project uses — the default one and each `@namespace` registry in `components.json`, served over HTTP or from a local folder — with name, description, version, npm and registry dependencies, and, for installed ones, their version, whether an update is available and whether they were edited. `query` filters by words, `installed: true` shows only installed components. Without `components.json` it lists the public registry. It reads each registry's `index.json`; a registry that can't be reached is reported instead of failing the call.
+
+---
+
+## Project memory
+
+The project memory is a `.praxis/` folder at the project root, versioned with your code. It records what the project already has and how it is built, so assistants reuse existing code, respect your business rules and keep files where they belong — and so do people, since it is plain Markdown you review in pull requests.
+
+Assistants read and change it **only through the server's tools**: the AI skills tell them never to touch `.praxis/` files directly, and every file starts with a "Managed by the PraxisJS MCP server" header.
+
+### Layout
+
 ```
-packages: ["@praxisjs/core", "@praxisjs/runtime"]
-manager: "npm"
-dev: false
-→  npm install @praxisjs/core @praxisjs/runtime
+.praxis/
+  README.md                       what the folder is, generated
+  index.md                        every entry by category, rebuilt on each change
+  components/<id>.md              reusable UI components
+  utilities/<id>.md               composables, stores, services, custom decorators, helpers, stylesheets
+  business-rules/<id>.md          domain rules and where they are enforced
+  architecture/0001-<id>.md       decisions (ADR): context, decision, consequences
+  conventions/<id>.md             folder layout and coding rules; project-structure.md says where each kind of file lives,
+                                  ui-libraries.md which Morphos primitives and Kosmesis components the project uses
+  glossary/<id>.md                domain vocabulary
 ```
+
+### Entry format
+
+One Markdown file per entry, named after its id (kebab-case). Short fields go in the frontmatter, longer text in fixed `##` sections:
+
+```md
+---
+# Managed by the PraxisJS MCP server (@praxisjs/mcp). Change it through the praxisjs_memory_* tools, not by hand.
+id: date-picker
+title: DatePicker
+summary: "Calendar popover for picking a date, with min/max bounds."
+location: src/components/date-picker.tsx
+exports: [DatePicker, DatePickerProps]
+tags: [form, input]
+related: [utilities/format-date]
+---
+
+## Purpose
+
+Every date field in forms. Use DateRangePicker for ranges.
+
+## API
+
+Props: `value`, `min`, `max`, `onChange(date)`.
+
+## Usage
+
+<DatePicker value={() => this.due} onChange={(d) => (this.due = d)} />
+```
+
+| Category | Fields | Sections |
+|---|---|---|
+| `components` | `location`, `exports` | Purpose, API, Usage, Notes |
+| `utilities` | `kind` (`composable`, `store`, `service`, `decorator`, `function`, `class`, `stylesheet`, `type`, `constant`), `location`, `exports` | Purpose, API, Usage, Notes |
+| `business-rules` | `locations` | Rule, Rationale, Examples |
+| `architecture` | `status` (`proposed`, `accepted`, `superseded`, `deprecated`), `date`, `supersedes` | Context, Decision, Consequences |
+| `conventions` | `scope` (`structure`, `naming`, `code`, `testing`, `styling`, `workflow`, `other`), `paths` | Rule, Rationale, Examples |
+| `glossary` | `aliases` | Definition |
+
+Every entry also has `title`, a one-line `summary`, and optional `tags` and `related` (`"category/id"`).
+
+The format is chosen for small, readable diffs: keys and sections always come in the same order, lists are sorted and deduplicated, whitespace is normalized and there are no timestamps besides an architecture decision's `date`, so rewriting an unchanged entry changes nothing and editing one field changes one line.
+
+### Format versions
+
+`index.md` is the memory's manifest: its frontmatter records the format version (`schema: 1`). The tools refuse to write to a memory in an older format until `praxisjs_memory_migrate` brought it up to date, and to a newer one until you update the server. `praxisjs_memory_migrate` is a dry run by default; with `dryRun: false` it validates every entry, writes it again in the canonical form (renaming files whose name doesn't match their id), regenerates `README.md` and `index.md`, builds all of it in a sibling folder and swaps it in with two renames, so the project never sees half a migration. Invalid entries are reported and kept as they are.
+
+### Safe writes
+
+- Every entry is validated against its category's schema; unknown fields, multi-line summaries, absolute paths or paths with `..` are refused with a message naming the field.
+- Values that look like secrets (private keys, provider tokens, JWTs, credentials in URLs, `password = …`) are refused: `.praxis/` is committed.
+- Files are written to a temporary file and renamed, so a crash never leaves half an entry, and `index.md` is rebuilt from the entries after every change.
+- A file that no longer parses is reported by `praxisjs_memory_list` instead of breaking the other tools.
+
+### Memory tools
+
+| Tool | Input | Notes |
+|---|---|---|
+| `praxisjs_memory_init` | — | Creates `README.md` and `index.md`, records `conventions/project-structure` from the folders the project uses (or the default layout), and lists reusable code not recorded yet. Safe to run again. |
+| `praxisjs_memory_list` | `category?`, `tag?` | |
+| `praxisjs_memory_get` | `category`, `id` | |
+| `praxisjs_memory_search` | `query`, `category?`, `limit?` | Ranked by title, tags, summary and body |
+| `praxisjs_memory_add` | `category`, `entry` | The id comes from the title when not given; architecture ids are numbered (`0001-…`) and dated |
+| `praxisjs_memory_update` | `category`, `id`, `changes` | `null` clears an optional field; ids never change |
+| `praxisjs_memory_remove` | `category`, `id` | Reports entries whose `related` still points at it |
+| `praxisjs_memory_map` | `record?` | Lists exported components (installed Kosmesis components with their docs link and update workflow), stores, composables, services, decorators, helpers and stylesheets with no entry (pages and the app root are left out), with prefilled entries; `record: true` adds them, tagging undocumented ones `unreviewed`, and records or refreshes `conventions/ui-libraries`. Also lists stale entries whose file or export is gone, and where the export lives now when it moved. |
+| `praxisjs_memory_check_duplicate` | `description`, `name?` | Searches PraxisJS's own API, the memory's components and utilities, and the code |
+| `praxisjs_memory_upsert` | `entries` (`[{ category, entry }]`), `dryRun?`, `confirmRewrite?` | Updates the matching entry (same id, same location and export, or same title) or adds a new one. Lists are merged; rewriting the title, summary or a non-empty section of a reviewed entry returns `needs-confirmation` until `confirmRewrite: true`. Entries tagged `unreviewed` are completed freely. |
+| `praxisjs_memory_bootstrap_plan` | — | Eight focused passes — UI components, utilities and stores, routes and pages, business rules, architecture, conventions, dependencies and UI libraries, tests and tooling — each with its goal, the files to read and the categories it writes, ready for parallel subagents |
+| `praxisjs_memory_migrate` | `dryRun?` (default `true`) | See [Format versions](#format-versions) |
+
+The memory tools other than `praxisjs_memory_init` and `praxisjs_memory_check_duplicate` ask you to run `praxisjs_memory_init` first when `.praxis/` doesn't exist.
 
 ---
 
 ## Pairing with an AI skill
 
-The MCP server handles documentation lookup. For AI-assisted development that also enforces project memory (`CLAUDE.md` / `AGENTS.md`), one-time project config, and PraxisJS conventions, add a skill to your project:
+The MCP server provides the tools. The [AI skills](/docs/guide/ai-skills) tell the assistant when to use them — docs before code, duplicate checks before new code, validation after every change, the memory kept current — together with project memory files (`CLAUDE.md` / `AGENTS.md`), one-time project config and PraxisJS conventions:
 
 ```sh
 # New project — select the integration during scaffolding
@@ -202,4 +338,4 @@ pnpm create praxisjs@latest
 npx praxisjs ai add
 ```
 
-See the [AI skills guide](/docs/guide/ai-skills) for what each skill does and how to use it, and the [praxisjs CLI](/docs/tooling/cli) reference for `ai remove`, `doctor`, and `upgrade`.
+See the [praxisjs CLI](/docs/tooling/cli) reference for `ai remove`, `doctor`, and `upgrade`.

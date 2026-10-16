@@ -6,6 +6,21 @@ icon: FileStack
 
 # @praxisjs/ssg
 
+## 0.1.3
+
+**Hydration code only where it is used.** `render()` from `@praxisjs/runtime` hydrates only once `enableHydration()` has run, which keeps the reconciliation code out of apps that don't prerender. `ssgPlugin()` adds that call in front of the client entry (a module script Vite bundles with it), so prerendered pages hydrate exactly as before. With `hydrate: false` nothing is added. See [Enabling hydration](/docs/tooling/ssg#enabling-hydration).
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+**Faster prerendering.** `prerender()` used to parse a new JSDOM window for every route, which cost more than rendering most pages. One window now serves the whole run and is reset before each route: a fresh copy of the built `index.html`, the route's URL, empty storage and none of the `window` globals the previous route added. 300 routes went from about 900 ms to about 170 ms. Pages are also written to disk in parallel. See [Route isolation](/docs/tooling/ssg#route-isolation).
+
+**Bug fixes:**
+
+- `localStorage` and `sessionStorage` during a prerender were the host environment's own, not the page's, so values written by `@Persisted` on one route showed up on the next. They now belong to the page and start empty for every route.
+- The JSDOM windows were never closed, so a timer a page started kept running after the build finished with it. The window is now closed at the end of the run.
+- A page is now unmounted even when serializing it throws.
+- An absolute `build.outDir` in `vite.config.ts` was joined onto the project root instead of being used as is, so the plugin read and wrote under the wrong directory.
+
 ## 0.1.0
 
 Initial release.

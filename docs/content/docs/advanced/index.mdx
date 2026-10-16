@@ -16,7 +16,7 @@ PraxisJS exposes the same primitives used to build all first-party composables a
   />
   <Card
     title="Creating Decorators"
-    description="Six factory functions for six decorator types: field, method, lifecycle method, getter, getter-observer, and class. Each handles per-instance state correctly via addInitializer."
+    description="Builders for field, method, lifecycle method, getter, writable getter, getter observer and class decorators. The shared setup form creates a decorator's functions once per member, so building an instance costs almost nothing."
     href="/docs/advanced/custom-decorators"
   />
 </Cards>
@@ -28,15 +28,16 @@ PraxisJS exposes the same primitives used to build all first-party composables a
 | You want to… | Use |
 |---|---|
 | Wrap a DOM API, external subscription, or event bus as a reusable reactive class | `Composable` → used via `@Compose` |
-| Replace a class field with a custom reactive getter/setter | `createFieldDecorator` |
+| Give a class field custom reactive get/set behavior | `createFieldDecorator` |
 | Wrap a method with cross-cutting logic (logging, auth checks, analytics) | `createMethodDecorator` |
 | Auto-subscribe/unsubscribe a method at mount/unmount | `createLifecycleMethodDecorator` |
 | Transform or constrain a getter's return value | `createGetterDecorator` |
+| Make a getter writable, with the decorator handling writes | `createWritableGetterDecorator` |
 | Observe a getter for side effects without changing its value | `createGetterObserverDecorator` |
 | Augment the component lifecycle or wrap `render()` | `createClassDecorator` |
 
 <Callout type="info">
-  All factory functions handle per-instance state via `addInitializer` (field, getter) or `WeakMap` (method) — you don't need manual prototype patching or cleanup.
+  Builders take a `setup` behavior, run once per decorated member and shared by every instance, or a per-instance `bind` / `wrap`. Prefer `setup` and keep per-instance state in symbol slots on the instance. See [Creating Decorators](/docs/advanced/custom-decorators#two-forms-setup-and-bind).
 </Callout>
 
 ---

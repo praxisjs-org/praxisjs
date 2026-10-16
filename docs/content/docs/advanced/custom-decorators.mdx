@@ -1,57 +1,79 @@
 ---
 title: Creating Decorators
-description: How to build custom decorators in PraxisJS using createFieldDecorator, createMethodDecorator, createLifecycleMethodDecorator, createGetterDecorator, createWritableGetterDecorator, createGetterObserverDecorator, createAccessorDecorator, and createClassDecorator.
+description: Build your own decorators with createFieldDecorator, createMethodDecorator, createLifecycleMethodDecorator, createGetterDecorator, createWritableGetterDecorator, createGetterObserverDecorator and createClassDecorator. Covers the shared setup form, typing, performance, testing and migrating from createAccessorDecorator.
 icon: Tag
 ---
 
 # Creating Decorators
 
-PraxisJS provides factory functions for creating decorators. Each handles a different use case and manages per-instance state correctly.
+`@praxisjs/decorators` exports the builders every built-in decorator is made with. A decorator you build with them stacks with the built-ins, works on stores wrapped in plugin Proxies, survives SSR hydration and HMR, and keeps instances in V8's fast properties.
 
 <PackageInstall pkg={['@praxisjs/decorators', '@praxisjs/core']} />
 
-| Factory | Applied to | `bind` / `wrap` called | Use when |
-|---|---|---|---|
-| `createFieldDecorator` | plain field | once per instance | replacing a `field = value` with custom reactive behavior |
-| `createMethodDecorator` | method | once per instance | wrapping a method with cross-cutting logic |
-| `createLifecycleMethodDecorator` | method | once per instance (in `onMount`) | auto-registering a method as an event listener |
-| `createGetterDecorator` | `get` accessor | on every read | transforming or constraining a getter's return value |
-| `createWritableGetterDecorator` | `get` accessor | once per instance | intercepting both reads and writes; setter owned by the decorator |
-| `createGetterObserverDecorator` | `get` accessor | once per instance | observing a getter for side effects without changing its value |
-| `createAccessorDecorator` | `accessor` field | once per instance (lazy) | owning the full state of a writable reactive field |
-| `createClassDecorator` | class | once per instance | augmenting lifecycle hooks or wrapping `render()` |
+## Which builder?
+
+| I want to… | Use | Example |
+|---|---|---|
+| Give a field custom reactive get/set behavior | [`createFieldDecorator`](#field-decorators) | `@SessionValue('key') query = ''` |
+| Wrap a field another decorator already set up | `createFieldDecorator` with `bind` | `@Trimmed() @State() email = ''` |
+| Wrap a method (confirm, log, debounce, guard) | [`createMethodDecorator`](#method-decorators) | `@Confirm('Sure?') remove()` |
+| Register a method somewhere on mount and undo it on unmount | [`createLifecycleMethodDecorator`](#lifecycle-method-decorators) | `@OnResize() recalculate()` |
+| Change what a getter returns | [`createGetterDecorator`](#getter-decorators) | `@Clamp(0, 100) get value()` |
+| Make a getter writable, with the decorator handling writes | [`createWritableGetterDecorator`](#writable-getter-decorators) | `@Overridable() get title()` |
+| React to a getter's value without changing it | [`createGetterObserverDecorator`](#getter-observers) | `@LogChange() get total()` |
+| Add mount/unmount behavior or wrap `render()` for a whole class | [`createClassDecorator`](#class-decorators) | `@Analytics('Dashboard')` |
+| Reuse reactive logic as an object with its own state | a [composable](/docs/advanced/custom-composables) | `@Compose(NetworkStatus)` |
+
+## Two forms: `setup` and `bind`
+
+Most builders take one of two behaviors:
+
+- **`setup`**: runs **once per decorated member**, when the class is defined. What it returns (accessors, a replacement method or getter, hooks) is shared by every instance, and `this` is the instance. Per-instance state lives in symbol-keyed slots on the instance. This is the recommended form.
+- **`bind`** (`wrap` for methods): runs **once per instance**, while it is built, and returns closures for that instance. Use it when the decorator needs something only an instance has, such as the accessor a decorator stacked under it installed.
+
+The two forms are interchangeable from the outside: same decorator syntax, same stacking rules. They differ in what building an instance costs (see [Performance](#performance)).
+
+Every builder also takes an optional `label`, used in error messages:
+
+```
+@Clamp() decorates getters only, not the method "reset".
+@SessionValue(): setup() must return an object (a FieldSetup), got undefined.
+```
 
 <Callout type="info" title="Internal APIs">
-Decorator implementations have access to the reactive engine through `@praxisjs/core/internal` — `signal`, `computed`, `effect`, `batch`, `peek`, and more. See the [Internal APIs](/docs/internal/core) reference for the full list.
+Decorator implementations use the reactive engine through `@praxisjs/core/internal`: `signal`, `computed`, `effect`, `batch`, `peek` and more. See [Internal API reference](#internal-api-reference) below.
 </Callout>
 
 ---
 
 ## Field decorators
 
-Use `createFieldDecorator` to replace a property with custom reactive behavior.
+### `setup`: one accessor pair for every instance
 
-`bind()` is called once per instance when the class initializes. Return a `descriptor` to replace the property with a custom getter/setter.
-
-**Example — `@SessionValue`** stores a value in `sessionStorage` and stays reactive:
+`setup(name, context)` returns a `FieldSetup`. Its `get` and `set` replace the field on every instance, and `init` creates the instance's state from the field's initial value.
 
 ```ts
 import { createFieldDecorator } from '@praxisjs/decorators'
 import { signal } from '@praxisjs/core/internal'
+import type { Signal } from '@praxisjs/shared'
+
+type Slots = Record<symbol, unknown>
 
 export function SessionValue(key: string) {
-  return createFieldDecorator({
-    bind(_instance, name) {
-      const stored = sessionStorage.getItem(key)
-      const _value = signal(stored ?? '')
-
+  return createFieldDecorator<object, string>({
+    label: '@SessionValue()',
+    setup(name) {
+      const slot = Symbol(`sessionValue.${name}`)
       return {
-        descriptor: {
-          get() { return _value() },
-          set(v: string) {
-            _value.set(v)
-            sessionStorage.setItem(key, v)
-          },
+        get(this: Slots) {
+          return (this[slot] as Signal<string>)()
+        },
+        set(this: Slots, value) {
+          (this[slot] as Signal<string>).set(value)
+          sessionStorage.setItem(key, value)
+        },
+        init(instance, initialValue) {
+          (instance as Slots)[slot] = signal(sessionStorage.getItem(key) ?? initialValue)
         },
       }
     },
@@ -62,44 +84,111 @@ export function SessionValue(key: string) {
 ```tsx
 @Component()
 class SearchPage extends StatefulComponent {
-  @SessionValue('search:query')
-  query = ''
+  @SessionValue('search:query') query = ''
 
   render() {
     return (
       <input
         value={() => this.query}
-        onInput={(e) => { this.query = (e.target as HTMLInputElement).value }}
+        onInput={(e: Event) => { this.query = (e.target as HTMLInputElement).value }}
       />
     )
   }
 }
 ```
 
-`bind()` receives `(instance, name, initialValue)`. The `FieldBinding` you return can also include `onMount`, `onUnmount`, and `additional` (extra properties to define on the instance).
+| `FieldSetup` key | Runs | Notes |
+|---|---|---|
+| `get()` | on every read | `this` is the instance. Leave out both `get` and `set` to keep the plain field. |
+| `set(value)` | on every write | Without it, a write throws a `TypeError`, as for any getter without a setter. |
+| `init(instance, initialValue)` | once per instance, before `get`/`set` are installed | Create every slot here, so all instances have the same shape. A decorator stacked under this one has already installed its property. |
+| `onMount(instance)` / `onUnmount(instance)` | on every mount / unmount | Chained after the instance's own hooks. |
+| `enumerable` | | Defaults to `true`, like a plain field. |
 
-<StorybookLink story="guide-custom-decorators-fielddecorator--field-decorator" label="Live demo — createFieldDecorator (@SessionValue)" />
+Read the initial value from `init`, not from `instance[name]`: with `@praxisjs/vite-plugin` the innermost decorator defines the field itself, so it does not exist yet when `init` runs.
+
+<StorybookLink story="guide-custom-decorators-fielddecorator--field-decorator" label="Live demo: createFieldDecorator (@SessionValue)" />
+
+### `bind`: one binding per instance
+
+`bind(instance, name, initialValue)` returns a `FieldBinding` for that instance: a `descriptor` to install, `additional` properties, and `onMount` / `onUnmount`. It suits decorators that wrap what a decorator stacked under them installed, since that accessor only exists on the instance:
+
+```ts
+export function Trimmed() {
+  return createFieldDecorator<object, string>({
+    label: '@Trimmed()',
+    bind(instance, name) {
+      const inner = Object.getOwnPropertyDescriptor(instance, name)
+      return {
+        descriptor: {
+          get: () => inner?.get?.call(instance) as string,
+          set: (value: string) => inner?.set?.call(instance, value.trim()),
+        },
+      }
+    },
+  })
+}
+```
+
+```tsx
+@Trimmed() @State() email = ''   // @State runs first, @Trimmed wraps its accessor
+```
+
+A binding without a `descriptor` leaves the property as it is, which is how observers such as `@Debug` attach to a field.
+
+### Plain fields only
+
+Field decorators apply to plain class fields. `createFieldDecorator`, `@State()`, `@Prop()` and every built-in field decorator throw a `TypeError` when the class is defined if they are put on an `accessor`, a method or a getter:
+
+```
+@State() decorates plain class fields only: remove `accessor` from "count".
+```
+
+PraxisJS never needs the `accessor` keyword: decorators define the property they need on each instance.
+
+### Writing against the TC39 API directly
+
+A field decorator written without `createFieldDecorator` should use the same two helpers the built-ins use. `assertFieldContext(context, label)` gives the error above, and `addClaimableInitializer(context, init)` registers the per-instance setup so that, with `@praxisjs/vite-plugin`, it runs in place of the field's own definition: the instance never holds a plain value that the decorator then replaces, which would slow down property access for every instance.
+
+```ts
+import { addClaimableInitializer, assertFieldContext } from '@praxisjs/decorators'
+
+export function ReadOnly() {
+  return function (_value: undefined, context: ClassFieldDecoratorContext) {
+    assertFieldContext(context, '@ReadOnly()')
+    const slot = Symbol(String(context.name))
+    const descriptor = {
+      get(this: Record<symbol, unknown>) { return this[slot] },
+      enumerable: true,
+      configurable: true,
+    }
+    addClaimableInitializer(context, function (initial) {
+      (this as Record<symbol, unknown>)[slot] = initial
+      Object.defineProperty(this, context.name, descriptor)
+    })
+  }
+}
+```
+
+The function must define the field's property itself, since the field may not exist yet when it runs.
 
 ---
 
 ## Method decorators
 
-Use `createMethodDecorator` to wrap a method with cross-cutting behavior.
+### `setup`: one replacement for every instance
 
-`wrap()` receives the original function and returns a replacement. It's called once per instance.
-
-**Example — `@Confirm`** shows a dialog before running:
+`setup(original, context)` returns the method that runs in place of `original`. It is created once, installed on the class, and `this` is the instance:
 
 ```ts
 import { createMethodDecorator } from '@praxisjs/decorators'
 
 export function Confirm(message: string) {
   return createMethodDecorator({
-    wrap(original) {
+    label: '@Confirm()',
+    setup(original) {
       return function (this: object, ...args: unknown[]) {
-        if (window.confirm(message)) {
-          return original.apply(this, args)
-        }
+        if (window.confirm(message)) return original.apply(this, args)
       }
     },
   })
@@ -113,17 +202,18 @@ async deleteItem(id: number) {
 }
 ```
 
-For per-instance state, use a `WeakMap` keyed on the instance:
+Reading the method from an instance returns it bound to that instance, the same function on every read, so `onClick={this.deleteItem}` works without an arrow.
+
+Keep per-instance state in a symbol slot on `this` rather than in a `WeakMap`:
 
 ```ts
-export function CountCalls() {
-  const counts = new WeakMap<object, number>()
+const calls = Symbol('calls')
 
+export function CountCalls() {
   return createMethodDecorator({
-    wrap(original, instance) {
-      counts.set(instance, 0)
-      return function (this: object, ...args: unknown[]) {
-        counts.set(this, (counts.get(this) ?? 0) + 1)
+    setup(original) {
+      return function (this: { [calls]?: number }, ...args: unknown[]) {
+        this[calls] = (this[calls] ?? 0) + 1
         return original.apply(this, args)
       }
     },
@@ -131,24 +221,64 @@ export function CountCalls() {
 }
 ```
 
+To clean up on unmount, return a `MethodSetup` with the method and lifecycle hooks:
+
+```ts
+export function Later(ms: number) {
+  return createMethodDecorator({
+    setup(original, context) {
+      const timer = Symbol(`timer.${String(context.name)}`)
+      return {
+        method(this: Slots, ...args: unknown[]) {
+          clearTimeout(this[timer] as number | undefined)
+          this[timer] = setTimeout(() => original.apply(this, args), ms)
+        },
+        onUnmount(instance) {
+          clearTimeout((instance as Slots)[timer] as number | undefined)
+        },
+      }
+    },
+  })
+}
+```
+
+<StorybookLink story="guide-custom-decorators-methoddecorator--method-decorator" label="Live demo: createMethodDecorator (@CountCalls)" />
+
+### `wrap`: one wrapper per instance
+
+`wrap(original, instance, name)` runs for each instance while it is built and returns that instance's function. Use it when the wrapper must close over the instance:
+
+```ts
+export function Logged() {
+  return createMethodDecorator({
+    wrap(original, instance, name) {
+      const tag = `${instance.constructor.name}.${name}`
+      return (...args: unknown[]) => {
+        console.log(tag, args)
+        return original.apply(instance, args)
+      }
+    },
+  })
+}
+```
+
+Both forms stack with built-in method decorators in any order (`@Once() @Logged() load()`), work on `static` and `#private` methods, and keep `vi.spyOn(instance, 'method')` working.
+
 ---
 
 ## Lifecycle method decorators
 
-Use `createLifecycleMethodDecorator` to automatically register a method as a listener on mount and clean it up on unmount — without the component knowing about it.
-
-`register(callback, instance)` is called inside `onMount`. If it returns a function, that function is called on `onUnmount` as cleanup.
-
-**Example — `@OnResize`** calls a method whenever the window is resized:
+`createLifecycleMethodDecorator({ register })` registers a method on every mount and undoes it on unmount. `register(callback, instance, name)` receives the method bound to the instance and returns what undoes the registration, if anything.
 
 ```ts
 import { createLifecycleMethodDecorator } from '@praxisjs/decorators'
 
 export function OnResize() {
   return createLifecycleMethodDecorator({
+    label: '@OnResize()',
     register(callback) {
       window.addEventListener('resize', callback)
-      return () => window.removeEventListener('resize', callback)
+      return () => { window.removeEventListener('resize', callback) }
     },
   })
 }
@@ -170,29 +300,39 @@ class Layout extends StatefulComponent {
 }
 ```
 
-No manual `addEventListener`/`removeEventListener` needed — the decorator handles it.
+The second type parameter types the callback's arguments, and TypeScript then checks the decorated method against them:
 
-<StorybookLink story="guide-custom-decorators-lifecycledecorator--lifecycle-decorator" label="Live demo — createLifecycleMethodDecorator (@OnResize)" />
+```ts
+export function OnKey(key: string) {
+  return createLifecycleMethodDecorator<StatefulComponent, [event: KeyboardEvent]>({
+    register(callback) {
+      const listener = (event: KeyboardEvent) => { if (event.key === key) callback(event) }
+      window.addEventListener('keydown', listener)
+      return () => { window.removeEventListener('keydown', listener) }
+    },
+  })
+}
+```
+
+Mounting twice without an unmount in between stops the first registration before starting the next one.
+
+<StorybookLink story="guide-custom-decorators-lifecycledecorator--lifecycle-decorator" label="Live demo: createLifecycleMethodDecorator (@OnResize)" />
 
 ---
 
 ## Getter decorators
 
-### `createGetterDecorator` — transform or constrain a getter's value
-
-`wrap(original, instance)` is called on every property access and should return a function that computes the final value.
-
-**Example — `@Clamp(min, max)`** constrains a getter to a numeric range:
+`setup(original, context)` returns the replacement getter. It is installed on the class, so neither building an instance nor reading the getter allocates anything:
 
 ```ts
 import { createGetterDecorator } from '@praxisjs/decorators'
 
 export function Clamp(min: number, max: number) {
-  return createGetterDecorator({
-    wrap(original, instance) {
-      return () => {
-        const value = original.call(instance) as number
-        return Math.min(max, Math.max(min, value))
+  return createGetterDecorator<object, number>({
+    label: '@Clamp()',
+    setup(original) {
+      return function (this: object) {
+        return Math.min(max, Math.max(min, original.call(this)))
       }
     },
   })
@@ -205,36 +345,45 @@ class Slider extends StatefulComponent {
   @State() raw = 0
 
   @Clamp(0, 100)
-  get value() { return this.raw }
+  get value() { return this.raw }   // always between 0 and 100
 
   render() {
-    return <p>{() => this.value}</p>  // always between 0 and 100
+    return <p>{() => this.value}</p>
   }
 }
 ```
 
-<StorybookLink story="guide-custom-decorators-getterdecorator--getter-decorator" label="Live demo — createGetterDecorator (@Clamp)" />
+`setup` can also return a `GetterSetup` (`get`, `set`, `init`, `onMount`, `onUnmount`, the same keys as a field's) when the getter needs per-instance state. Without `get`, the original getter stays.
 
-### `createWritableGetterDecorator` — getter with a decorator-owned setter
+The older form, `wrap(original, instance)`, is still supported. It is called on **every read** and returns a function that produces the value, so each read allocates: prefer `setup`.
 
-`bind(instance, name, original)` is called once per instance. `original` is the getter formula from the class body. Return `{ get, set? }` — both are installed on the instance via `Object.defineProperty`.
+<StorybookLink story="guide-custom-decorators-getterdecorator--getter-decorator" label="Live demo: createGetterDecorator (@Clamp)" />
 
-Use this when the decorator needs to intercept writes as well as reads, and the getter formula stays visible in the class body.
+### Writable getter decorators
 
-**Example — `@Overrideable`** lets any computed getter be pinned to a static value by assigning to it, while falling back to the derived value when cleared:
+`createWritableGetterDecorator({ setup })` returns a `GetterSetup` whose `set` handles writes. `get`, `set` and `init` are shared like a field's:
 
 ```ts
 import { createWritableGetterDecorator } from '@praxisjs/decorators'
 import { signal } from '@praxisjs/core/internal'
+import type { Signal } from '@praxisjs/shared'
 
-export function Overrideable<T>() {
-  return createWritableGetterDecorator<T>({
-    bind(_instance, _name, original) {
-      const override = signal<T | undefined>(undefined)
-
+export function Overridable() {
+  return createWritableGetterDecorator({
+    label: '@Overridable()',
+    setup(original, context) {
+      const pinned = Symbol(`pinned.${String(context.name)}`)
       return {
-        get: () => override() !== undefined ? override() : original.call(_instance) as T,
-        set: (value) => override.set(value as T | undefined),
+        get(this: Slots) {
+          const value = (this[pinned] as Signal<unknown>)()
+          return value === undefined ? original.call(this) : value
+        },
+        set(this: Slots, value) {
+          (this[pinned] as Signal<unknown>).set(value)
+        },
+        init(instance) {
+          (instance as Slots)[pinned] = signal(undefined)
+        },
       }
     },
   })
@@ -246,8 +395,9 @@ export function Overrideable<T>() {
 class PageHeader extends StatefulComponent {
   @State() page = { title: 'Home' }
 
-  @Overrideable<string>()
-  get title() { return this.page.title }   // derived by default
+  @Overridable()
+  get title(): string | undefined { return this.page.title }
+  set title(_value: string | undefined) { /* replaced by @Overridable() */ }
 
   render() {
     return (
@@ -261,72 +411,15 @@ class PageHeader extends StatefulComponent {
 }
 ```
 
-When `this.title = 'Custom'` is assigned, the override signal is set and the getter returns `'Custom'`. Assigning `undefined` clears the override so the getter falls back to `this.page.title`.
+TypeScript treats a getter without a `set` as read-only, and a decorator cannot change that. Declare a `set` next to the getter so assignments type-check: the decorator's `set` replaces it.
 
-<Callout type="info" title="Setter optionality">
-  If `set` is omitted from the returned binding, the property remains read-only at runtime. TypeScript may still see a setter if one is declared in the class body — the decorator does not interfere with it.
-</Callout>
+The older `bind(instance, name, original)` form returns a `{ get, set? }` pair per instance. Its pair is now read through one accessor on the class instead of being defined on each instance.
 
----
+<StorybookLink story="guide-custom-decorators-writablegetterdecorator--writable-getter-decorator" label="Live demo: createWritableGetterDecorator (@Overridable)" />
 
-## Accessor decorators
+### Getter observers
 
-Use `createAccessorDecorator` to replace an `accessor` field with fully custom reactive behavior. Unlike getter decorators, the field has no formula — both `get` and `set` are owned entirely by the decorator.
-
-`bind(instance, name, initialValue)` is called once per instance on first access. `initialValue` is the value from the `accessor foo = value` initializer.
-
-**Example — `@Bounded(min, max)`** creates a reactive numeric field that clamps every read and write:
-
-```ts
-import { createAccessorDecorator } from '@praxisjs/decorators'
-import { signal } from '@praxisjs/core/internal'
-
-export function Bounded(min: number, max: number) {
-  return createAccessorDecorator({
-    bind(_instance, _name, initialValue) {
-      const clamp = (v: number) => Math.min(max, Math.max(min, v))
-      const s = signal(clamp((initialValue as number) ?? min))
-
-      return {
-        get: () => clamp(s()),
-        set: (value) => s.set(clamp(value as number)),
-      }
-    },
-  })
-}
-```
-
-```tsx
-@Component()
-class VideoPlayer extends StatefulComponent {
-  @Bounded(0, 100)
-  accessor volume = 80     // initialised to 80, clamped to [0, 100]
-
-  render() {
-    return (
-      <input
-        type="range" min={0} max={100}
-        value={() => this.volume}
-        onInput={(e) => { this.volume = Number((e.target as HTMLInputElement).value) }}
-      />
-    )
-  }
-}
-```
-
-Setting `this.volume = 150` stores `100`; setting `this.volume = -5` stores `0`. The `accessor` keyword tells TypeScript the field is read-write.
-
-<Callout type="info" title="accessor vs field decorator">
-  Use `createAccessorDecorator` when the decorator owns the full state of the property (no external signals). Use `createFieldDecorator` when the property wraps a plain class field that may be assigned at class instantiation.
-</Callout>
-
----
-
-### `createGetterObserverDecorator` — observe a getter for side effects
-
-Observes a getter without changing its return value. `observe(getter, instance, name)` is called once per instance at initialization — set up a reactive effect here.
-
-**Example — `@LogChange`** logs whenever a computed getter produces a new value:
+`createGetterObserverDecorator` reacts to a getter without changing its value. `register(getter, instance, name)` runs on every mount, once the instance's fields are set, and returns what stops it on unmount (a function or an effect):
 
 ```ts
 import { createGetterObserverDecorator } from '@praxisjs/decorators'
@@ -334,10 +427,8 @@ import { effect } from '@praxisjs/core/internal'
 
 export function LogChange() {
   return createGetterObserverDecorator({
-    observe(getter, instance, name) {
-      effect(() => {
-        console.log(`[${name}]`, getter.call(instance))
-      })
+    register(getter, instance, name) {
+      return effect(() => { console.log(`[${name}]`, getter.call(instance)) })
     },
   })
 }
@@ -347,21 +438,24 @@ export function LogChange() {
 @LogChange()
 @Computed()
 get filteredItems() {
-  return this.items.filter(i => i.active)
+  return this.items.filter((i) => i.active)
 }
 ```
 
-The observer runs once on setup, then again whenever a signal read inside `getter` changes.
+`observe(getter, instance, name)` runs instead while each instance is built, before its fields are initialized. A function it returns runs on unmount.
 
 ---
 
 ## Class decorators
 
-Use `createClassDecorator` to augment the component lifecycle or wrap `render()`.
+Extend `ClassBehavior` and implement the hooks you need. Hooks defined on the behavior receive the instance and allocate nothing per instance:
 
-Extend `ClassBehavior` and implement `create()`, called once per instance. Return a `ClassEnhancement` with `onMount`, `onUnmount`, and/or `render`.
-
-**Example — `@Analytics`** tracks mount/unmount events automatically:
+| `ClassBehavior` method | Runs |
+|---|---|
+| `onMount(instance)` / `onUnmount(instance)` | on every mount / unmount, after the class's own hook |
+| `render(instance, originalRender)` | on every render, around the class's own output |
+| `create(instance)` | once per instance; returns a `ClassEnhancement` (`onMount`, `onUnmount`, `render(originalRender)`) whose closures hold per-instance state |
+| `initialize(Enhanced, original)` | once, when the class is decorated; for static setup such as registration |
 
 ```ts
 import { createClassDecorator, ClassBehavior } from '@praxisjs/decorators'
@@ -369,13 +463,8 @@ import { createClassDecorator, ClassBehavior } from '@praxisjs/decorators'
 class AnalyticsBehavior extends ClassBehavior {
   constructor(private readonly name: string) { super() }
 
-  create() {
-    const name = this.name
-    return {
-      onMount()   { analytics.track('mount',   { component: name }) },
-      onUnmount() { analytics.track('unmount', { component: name }) },
-    }
-  }
+  onMount()   { analytics.track('mount',   { component: this.name }) }
+  onUnmount() { analytics.track('unmount', { component: this.name }) }
 }
 
 export function Analytics(name: string) {
@@ -389,19 +478,171 @@ export function Analytics(name: string) {
 class UserDashboard extends StatefulComponent { /* ... */ }
 ```
 
-To wrap rendering, return a `render` function that receives `originalRender` and can modify or wrap its output:
+To wrap rendering, implement `render`:
 
 ```ts
-create(_instance) {
-  return {
-    render(originalRender) {
-      const nodes = originalRender()
-      // wrap with an error boundary, portal, loading gate, etc.
-      return nodes
-    },
+class TimedRender extends ClassBehavior {
+  render(instance: RootComponent, originalRender: () => Node | Node[] | null) {
+    const start = performance.now()
+    const nodes = originalRender()
+    console.log(instance.constructor.name, performance.now() - start)
+    return nodes
   }
 }
 ```
+
+A behavior with only `initialize` leaves the class as it is. Any other hook makes the decorator return a subclass that keeps the original name, so put class decorators **above** `@Component()` and use them as real decorators (not called by hand with the result discarded).
+
+<StorybookLink story="guide-custom-decorators-classdecorator--class-decorator" label="Live demo: createClassDecorator (@MountCounter)" />
+
+---
+
+## Typing
+
+The builders' type parameters say which members a decorator accepts, and TypeScript reports a misplaced decorator in the editor:
+
+| Builder | Type parameters | Rejects |
+|---|---|---|
+| `createFieldDecorator<Host, Value>` | class, field type | `@SessionValue('k') count = 0` (a `number` field for a `string` decorator) |
+| `createMethodDecorator<Host, M>` | class, method type | `@OnlyPositive() name(s: string)` with `M = (n: number) => void` |
+| `createLifecycleMethodDecorator<Host, Args>` | class, callback arguments | a method whose parameters don't match `Args` |
+| `createGetterDecorator<Host, Value>` | class, getter type | `@Clamp(0, 1) get label(): string` |
+
+`Value` is inferred from `get` and `set` when it is not given. A method decorator's `M` is never inferred from `setup`, so a decorator fits every method unless `M` is given. Every decorator also checks the member kind at runtime, for plain JavaScript and builds that skip type checking.
+
+`FieldDecorator<Host, Value>`, `MethodDecorator<Host, M>` and `GetterDecorator<Host, Value>` name the returned decorator types, for an explicit return annotation:
+
+```ts
+import type { FieldDecorator } from '@praxisjs/decorators'
+
+export function SessionValue(key: string): FieldDecorator<object, string> { /* ... */ }
+```
+
+---
+
+## Performance
+
+A field decorator built with `bind` creates a new accessor pair for every instance, so instances end up with different hidden classes and every read of the field becomes polymorphic. With `setup`, every instance shares the decorator's functions and one hidden class.
+
+Measured with Node 22 on a minified build, three decorated members per class (lower is better):
+
+| Building one instance | `bind` / `wrap` | `setup` |
+|---|---|---|
+| field decorator (signal per field) | 870 ns | 320 ns |
+| method decorator | 71 ns | 31 ns |
+| writable getter decorator | 137 ns | 57 ns |
+| getter decorator, per read | 10 ns | 0.9 ns |
+
+Guidelines:
+
+- Create per-instance state in `init`, in symbol slots, for **every** instance, even when it starts empty (`instance[slot] = undefined`). Adding a slot later, on first use, gives instances different shapes.
+- Don't create closures inside a shared `get` or `set`: a closure there makes every call allocate. Move it into a helper function, as `@Computed()` does when it creates its computed on first read.
+- `signal()` allocates a few closures per call. In a hot decorator, `SignalNode` with `readSignal` / `writeSignal` from `@praxisjs/core/internal` stores the same state in one object.
+- `onMount` / `onUnmount` hooks cost two small closures per instance, so add them only when the decorator needs them.
+
+---
+
+## Testing a custom decorator
+
+Decorated classes need the decorator lowering in Vitest too: register `decoratorLoweringPlugin()` as described in [Using decorators in Vitest](/docs/tooling/vite-plugin#using-decorators-in-vitest). Then build instances and call their lifecycle hooks by hand:
+
+```ts
+import { describe, it, expect } from 'vitest'
+import { StatefulComponent } from '@praxisjs/core'
+import { SessionValue } from './session-value'
+
+class Search extends StatefulComponent {
+  @SessionValue('test:q') query = 'initial'
+  render() { return null }
+}
+
+describe('@SessionValue', () => {
+  it('starts from the stored value and writes through', () => {
+    sessionStorage.setItem('test:q', 'stored')
+    const search = new Search()
+    expect(search.query).toBe('stored')
+    search.query = 'next'
+    expect(sessionStorage.getItem('test:q')).toBe('next')
+  })
+
+  it('keeps instances independent', () => {
+    sessionStorage.clear()
+    const a = new Search()
+    const b = new Search()
+    a.query = 'a'
+    expect(b.query).toBe('initial')
+  })
+
+  it('names itself when misplaced', () => {
+    expect(() => {
+      class Wrong {
+        // @ts-expect-error -- a field decorator on a method
+        @SessionValue('k') run() {}
+      }
+      return Wrong
+    }).toThrow('@SessionValue() decorates class fields only, not the method "run".')
+  })
+})
+```
+
+For hooks, call `instance.onMount?.()` and `instance.onUnmount?.()` and check that what the decorator registered is undone. `// @vitest-environment jsdom` at the top of the file gives the test `window`, `document` and `sessionStorage`.
+
+---
+
+## Migrating from `createAccessorDecorator`
+
+`@praxisjs/decorators` 2.0 removes `createAccessorDecorator` and the `@Computed({ get, set })` form declared on an `accessor` field. PraxisJS no longer needs the `accessor` keyword anywhere.
+
+**`createAccessorDecorator` → `createFieldDecorator` with `setup`.** `bind(instance, name, initialValue)` becomes `init(instance, initialValue)` storing state in a slot, and the returned `get`/`set` become the shared `get`/`set`. Remove `accessor` from the fields.
+
+```ts
+// Before
+export function Bounded(min: number, max: number) {
+  return createAccessorDecorator({
+    bind(_instance, _name, initialValue) {
+      const s = signal(clamp(initialValue as number))
+      return { get: () => s(), set: (v) => s.set(clamp(v as number)) }
+    },
+  })
+}
+@Bounded(0, 100) accessor volume = 80
+
+// After
+export function Bounded(min: number, max: number) {
+  const clamp = (v: number) => Math.min(max, Math.max(min, v))
+  return createFieldDecorator<object, number>({
+    setup(name) {
+      const slot = Symbol(`bounded.${name}`)
+      return {
+        get(this: Slots) { return (this[slot] as Signal<number>)() },
+        set(this: Slots, v) { (this[slot] as Signal<number>).set(clamp(v)) },
+        init(instance, initialValue) { (instance as Slots)[slot] = signal(clamp(initialValue)) },
+      }
+    },
+  })
+}
+@Bounded(0, 100) volume = 80
+```
+
+If the per-instance closures are easier to keep, `createFieldDecorator({ bind })` takes them almost unchanged: return `{ descriptor: { get, set } }` instead of `{ get, set }`.
+
+**`@Computed({ get, set }) accessor x` → a getter and a setter.** Move `get` into a `@Computed()` getter and `set` into a `set` accessor with the same name:
+
+```ts
+// Before
+@Computed({
+  get(this: Converter) { return (this.celsius * 9) / 5 + 32 },
+  set(this: Converter, f: number) { this.celsius = ((f - 32) * 5) / 9 },
+})
+accessor fahrenheit!: number
+
+// After
+@Computed()
+get fahrenheit() { return (this.celsius * 9) / 5 + 32 }
+set fahrenheit(f: number) { this.celsius = ((f - 32) * 5) / 9 }
+```
+
+Field decorators already threw on `accessor` members, so no other code changes.
 
 ---
 
@@ -411,9 +652,10 @@ Decorator implementations commonly use these internal primitives:
 
 | Import | From | Description |
 |---|---|---|
-| `signal` | `@praxisjs/core/internal` | Create reactive state inside a decorator binding. |
+| `signal` | `@praxisjs/core/internal` | Reactive state for a decorator's slot. |
+| `SignalNode`, `readSignal`, `writeSignal` | `@praxisjs/core/internal` | The same state as `signal()` in a single object, for hot decorators. |
 | `computed` | `@praxisjs/core/internal` | Derive a memoized value from signals. |
-| `effect` | `@praxisjs/core/internal` | Run side effects that re-run when signals change. |
+| `effect` | `@praxisjs/core/internal` | Run side effects that re-run when signals change. Returns a stop function. |
 | `batch` | `@praxisjs/core/internal` | Group multiple signal writes into a single notification. |
 | `peek` | `@praxisjs/core/internal` | Read a signal without subscribing. |
 | `RootComponent` | `@praxisjs/core/internal` | Type the `instance` parameter in class decorators. |

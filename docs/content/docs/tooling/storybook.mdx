@@ -36,7 +36,18 @@ export default config
 
 ### `.storybook/preview.ts`
 
-No extra setup needed — the adapter handles mounting automatically.
+No extra setup needed. The preset registers `@praxisjs/storybook/preview`, which provides `renderToCanvas` and a default `render`, so a `preview.ts` only holds your own parameters and decorators.
+
+A story without a `render` function mounts the meta's `component` with the story's args as props:
+
+```tsx
+const meta: Meta = { title: 'Components/Badge', component: Badge }
+export default meta
+
+export const Primary: StoryObj = { args: { label: 'New' } } // <Badge label="New" />
+```
+
+A meta with neither `component` nor a story `render` fails with an error that names the story's title.
 
 ---
 
@@ -127,6 +138,7 @@ Each key becomes an entry in the sidebar. `expanded` controls whether the ref's 
 
 ## How it works
 
-- **`renderToCanvas`** — mounts the component via `@praxisjs/runtime`'s `render()` and stores a cleanup function. On `forceRemount`, the previous component is unmounted before the new one mounts.
-- **`viteFinal`** — merges `@praxisjs/vite-plugin` (with HMR) into Vite's config and injects a `storySource` plugin that embeds the raw story file source for the source preview panel.
-- **`managerEntries`** — registers the custom manager panel.
+- **`renderToCanvas`** mounts the story with `@praxisjs/runtime`'s `render()`. PraxisJS has no re-render pass, so every render of a canvas (new args from the controls, `forceRemount`, HMR) first disposes what that canvas holds: its effects stop and `onUnmount` runs. Each canvas is tracked on its own, so stories rendered side by side on a docs page don't affect each other. It returns a teardown that Storybook calls when the story leaves the canvas.
+- **`viteFinal`** merges `@praxisjs/vite-plugin` (with HMR) into Vite's config and adds a plugin that embeds the raw source of each `*.stories.*` / `*.story.*` file for the **Code** panel.
+- **`previewAnnotations`** registers `@praxisjs/storybook/preview` (`renderToCanvas` plus the default `render`).
+- **`managerEntries`** registers the custom manager panel.

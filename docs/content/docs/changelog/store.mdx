@@ -6,6 +6,26 @@ icon: Store
 
 # @praxisjs/store
 
+## 2.0.5
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+The package is marked `"sideEffects": false`, so bundlers leave out the modules of it that an app does not use.
+
+`@Store` throw a `TypeError` when the class is defined if they decorate an `accessor` instead of a plain field, naming the member to fix (see [`assertFieldContext`](/docs/advanced/custom-decorators#field-decorators)).
+
+Fixes for `@Storable` stores with plugins, which the 2.0.4 notes described but which only reached the old functional store:
+
+- An action read from the store is the same function on every read, instead of a new wrapper per access. It stays bound to the store, so `onClick={cart.clear}` still works.
+- Writing a field inside an effect no longer subscribes that effect to the field. The previous value passed to `onMutation` (and anything the plugins read) is read untracked; an effect assigning `store.value = source()` used to re-run on every external write to `value`, overwriting it.
+- Extension functions from `extend()` are bound once instead of on every read, and an extension no longer shadows inherited members such as `constructor`.
+- `constructor` and inherited `Object.prototype` methods (`toString`, `hasOwnProperty`...) are no longer wrapped and reported to plugins as actions.
+
+`store()` does a single registry lookup, and `@Store(Class)` keeps the singleton after its first read, sharing one accessor across instances.
+
+Removed the internal `createStore()` module: it was no longer exported, so nothing outside the package could use it, and the plugin tests that went through it now run against `@Storable` classes.
+
+
 ## 2.0.4
 
 `store.action` now returns the same wrapper function on every read instead of allocating a new one per access. `$patch()` and `$reset()` run inside one batch, so dependents re-run once for the whole operation rather than once per key. Writing a key inside an effect no longer subscribes that effect to the key (the previous value is read untracked).

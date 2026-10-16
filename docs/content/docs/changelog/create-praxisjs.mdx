@@ -6,6 +6,22 @@ icon: Rocket
 
 # create-praxisjs
 
+## 1.1.0
+
+**New:** desktop apps with [Tauri v2](https://v2.tauri.app), with every template. After the template, the CLI asks "Desktop app with Tauri v2?"; `--tauri` answers yes without asking and `--no-tauri` answers no (with npm: `npm create praxisjs@latest my-app -- --tauri`). It runs the official Tauri CLI (`tauri init` through `npx`, `pnpm dlx`, `yarn dlx` or `bunx`) to generate `src-tauri/`, then wires it to the project: `tauri.conf.json` points at Vite's port 5173 and `dist/` and runs your package manager's `dev` / `build` scripts, `package.json` gets `tauri`, `tauri:dev` and `tauri:build` scripts plus `@tauri-apps/api` and `@tauri-apps/cli`, `vite.config.ts` gets the settings Tauri recommends (fixed port, `strictPort`, `clearScreen: false`, `TAURI_ENV_*` prefix, HMR host for mobile devices), and a small `Greet` component calls a `greet` Rust command with `invoke()`. See [Desktop app with Tauri v2](/docs/guide/getting-started#desktop-app-with-tauri-v2).
+
+When `cargo` is missing the CLI explains what to install for your platform; the web project works either way. When the Tauri CLI cannot be downloaded or fails, the CLI says why and leaves the web project as it would be without `--tauri`.
+
+Unknown command-line options (anything starting with `-` other than `--tauri` / `--no-tauri`) are now rejected with an error instead of being ignored.
+
+**Bug fix:** `npm run lint` failed in every freshly scaffolded project with "The file was not found in any of the provided project(s): eslint.config.mjs". The type-aware parser options in the template's `eslint.config.mjs` applied to every file, including the config itself, which no tsconfig includes. They now apply to `.ts` and `.tsx` files only.
+
+**Bug fix:** scaffolded projects no longer contain a `CHANGELOG.md` with the release history of the internal template package.
+
+Scaffolded projects allow esbuild's install script for pnpm (`pnpm.onlyBuiltDependencies`), so `pnpm install` no longer warns "Ignored build scripts: esbuild". esbuild comes with `@praxisjs/vite-plugin`, and works either way.
+
+The **blog** template renders its post list with `For` keyed by slug instead of a `.map()` inside an arrow. Projects scaffolded with an AI integration receive the updated skills from [praxisjs 1.1.0](/docs/changelog/praxisjs).
+
 ## 1.0.7
 
 Updated dependency — `praxisjs@1.0.2`. Projects scaffolded with an AI integration now receive the refreshed Claude Code and Codex skills: corrected import paths (`StatefulComponent` and `StatelessComponent` come from `@praxisjs/core`), the `StatelessComponent<Props>` / `this.props` convention, a per-package API map, the full docs slug table, and a new **Check for a native path first** rule that makes the assistant look for an existing PraxisJS decorator or composable before hand-rolling one. See the [praxisjs changelog](/docs/changelog/praxisjs) for the full list.

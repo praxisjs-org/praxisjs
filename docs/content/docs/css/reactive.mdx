@@ -98,7 +98,7 @@ class ThemeProvider extends StatefulComponent {
 All child elements using `var(--bg)`, `var(--accent)`, or `var(--radius)` update instantly when `setTheme()` runs.
 
 <Callout type="info" title="Cleanup on unmount">
-  `@Style` removes the CSS property and stops the reactive effect when the component unmounts.
+  `@Style` removes the CSS property and stops the reactive effect when the component unmounts. The property is removed from the element it was set on at mount, even if the component's anchor has already been detached.
 </Callout>
 
 <StorybookLink story="ecosystem-css-style--style-story" label="Live demo — @Style()" />

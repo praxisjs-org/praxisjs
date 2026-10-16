@@ -1,21 +1,26 @@
 import { StatefulComponent } from "@praxisjs/core";
-import { Component, createFieldDecorator } from "@praxisjs/decorators";
 import { signal } from "@praxisjs/core/internal";
+import { Component, createFieldDecorator } from "@praxisjs/decorators";
+import type { Signal } from "@praxisjs/shared";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
-function SessionValue(key: string) {
-  return createFieldDecorator({
-    bind(_instance, _name, initialValue) {
-      const stored = sessionStorage.getItem(key);
-      const _value = signal(stored ?? (initialValue as string) ?? "");
+type Slots = Record<symbol, unknown>;
 
+function SessionValue(key: string) {
+  return createFieldDecorator<object, string>({
+    label: "@SessionValue()",
+    setup(name) {
+      const slot = Symbol(`sessionValue.${name}`);
       return {
-        descriptor: {
-          get() { return _value(); },
-          set(v: string) {
-            _value.set(v);
-            sessionStorage.setItem(key, v);
-          },
+        get(this: Slots) {
+          return (this[slot] as Signal<string>)();
+        },
+        set(this: Slots, value) {
+          (this[slot] as Signal<string>).set(value);
+          sessionStorage.setItem(key, value);
+        },
+        init(instance, initialValue) {
+          (instance as Slots)[slot] = signal(sessionStorage.getItem(key) ?? initialValue);
         },
       };
     },
@@ -42,7 +47,8 @@ class SessionValueDemo extends StatefulComponent {
         </p>
         <p style="margin:0;font-size:.78rem;color:#aaa">
           Reload the page — the value persists in <code>sessionStorage</code>.
-          Built with <code>createFieldDecorator</code>: returns a signal-backed descriptor.
+          Built with <code>createFieldDecorator</code>'s <code>setup</code> form: one get/set
+          pair shared by every instance, each instance's signal in a symbol slot.
         </p>
       </div>
     );

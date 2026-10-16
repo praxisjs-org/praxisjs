@@ -191,6 +191,8 @@ const myPlugin: StorePlugin = {
 | `onAction` | Before each method call | `name`, `args`, `storeName` |
 | `onActionDone` | After each method returns/resolves | `name`, `result`, `error?`, `storeName` |
 
+With plugins, a method read from the store is a wrapper bound to the store, and it is the same function on every read: `onClick={cart.clear}` works and keeps a stable identity. Assigning a field inside an effect does not subscribe that effect to the field — `prevValue` and anything the plugins read during `onMutation` are read untracked.
+
 <Callout type="info" title="Plugin registration order matters">
   Plugins are snapshotted at store creation time. Register all plugins before creating stores (or before the first `store()` call for class-based stores). Plugins registered later will not be applied to already-created stores.
 </Callout>

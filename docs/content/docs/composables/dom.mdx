@@ -171,6 +171,6 @@ class SearchBar extends StatefulComponent {
 }
 ```
 
-**Properties:** `focused: boolean`
+**Properties:** `focused: boolean` (read from `document.activeElement` on mount, so an element that is already focused reports `true`)
 
 <StorybookLink story="composables-dom-focus--focus-story" label="Live demo — Focus" />

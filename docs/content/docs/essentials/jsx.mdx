@@ -53,65 +53,77 @@ render() {
 
 ## Lists
 
-Render arrays inside an arrow function so the list rebuilds when the signal changes:
+Render arrays with [`For`](/docs/essentials/lists) from `@praxisjs/runtime`. It keeps one row per key: an update renders only the new items, moves the existing rows into the new order and removes the ones that left.
 
 ```tsx
+import { For } from '@praxisjs/runtime'
+
 render() {
   return (
     <ul>
-      {() => this.items.map((item) => (
-        <li key={item.id}>{item.name}</li>
-      ))}
+      <For each={() => this.items} by={(item) => item.id}>
+        {(item) => <li>{() => item().name}</li>}
+      </For>
     </ul>
   )
 }
 ```
 
-<Callout type="warn" title="No reconciliation">
-  PraxisJS does not reconcile lists. When the arrow function re-runs, the entire list is replaced — all previous nodes are removed and new ones are inserted. The `key` prop is accepted by the type system for forward compatibility but has no runtime effect. For large lists, use the [`VirtualList` composable](/docs/composables/list) instead of a plain `.map()`.
+The row function receives accessors: `item()` is the current item for that key and `index()` its position. Both update the bindings that read them when the item or the position changes, without recreating the row. [`Index`](/docs/essentials/lists#index) does the same by position, for primitives and lists edited in place.
+
+<Callout type="info" title="Plain .map() with key">
+  `{() => this.items.map((item) => <li key={item.id}>…</li>)}` still works. `@praxisjs/vite-plugin` rewrites this pattern into a `For` at build time, so rows are kept here too, and warns about keyed `.map()` calls it can't rewrite. Without a `key`, or without the plugin, the whole list is rebuilt each time the arrow re-runs. See [`.map()` with `key`](/docs/essentials/lists#map-with-key).
 </Callout>
 
 <StorybookLink story="essentials-jsx-lists--lists" label="Live demo — lists" />
 
 ### Fine-grained rows
 
-Because the whole list is replaced whenever its arrow function re-runs, what the arrow **reads** decides how often that happens. Keep the list function *structural* — read only what determines which rows exist — and read each row's content in nested arrows:
+`For` tracks only `each`: the row function runs once per key and is not re-run when signals it read change. Keep `each` *structural* (read only what decides which rows exist and in which order) and read each row's content in nested arrows:
 
 ```tsx
-@State() ids = [1, 2, 3]                                  // structure: which rows exist
-@State() todos: Record<number, Todo> = { /* id → todo */ } // content: what each row shows
+@State() todos: Todo[] = []
 
 render() {
   return (
     <ul>
-      {() => this.ids.map((id) => (            // tracks `ids` only
-        <li class={() => (this.todos[id].done ? 'done' : '')}>
-          <input
-            value={() => this.todos[id].title}  // tracks `todos`, per binding
-            onInput={(e) => this.rename(id, (e.target as HTMLInputElement).value)}
-          />
-        </li>
-      ))}
+      <For each={() => this.todos} by={(todo) => todo.id}>
+        {(todo) => (
+          <li class={() => (todo().done ? 'done' : '')}>
+            <input
+              value={() => todo().title}
+              onInput={(e) => this.rename(todo().id, (e.target as HTMLInputElement).value)}
+            />
+          </li>
+        )}
+      </For>
     </ul>
   )
 }
 
 rename(id: number, title: string) {
-  this.todos = { ...this.todos, [id]: { ...this.todos[id], title } }
+  this.todos = this.todos.map((t) => (t.id === id ? { ...t, title } : t))
 }
 ```
 
-Editing a title re-runs the `value`/`class` bindings and nothing else: the `<li>` elements are not recreated, so focus, caret position and scroll survive typing. Only adding or removing an id (`this.ids = [...this.ids, id]`) rebuilds the list.
+Editing a title replaces one object in `todos`. `For` sees the same keys in the same order, does no DOM work, and the bindings of that one row read the new object: the `<li>` and the `<input>` are kept, so focus, caret position and scroll survive typing.
+
+For lists whose rows change often, give each row its own state. A row that is a store (or a class instance) with `@State()` fields needs no `by` at all, since the object itself is the key, and a change to one row's field re-runs only that row's bindings:
 
 ```tsx
-// ❌ reads `item.title` inside the list arrow — every keystroke rebuilds every row
-{() => this.items.map((item) => <li>{item.title}</li>)}
+import { ReactiveStore } from '@praxisjs/store'
 
-// ✅ the list arrow only reads `ids`; the title is read by its own binding
-{() => this.ids.map((id) => <li>{() => this.items[id].title}</li>)}
+class TodoItem extends ReactiveStore {
+  @State() title = ''
+  @State() done = false
+}
+
+<For each={() => this.todos}>
+  {(todo) => <li class={() => (todo().done ? 'done' : '')}>{() => todo().title}</li>}
+</For>
 ```
 
-When rows carry richer local state, make each row a component that owns it with `@State()` and receives only its id (or initial value) as a prop. A change inside one row then never touches its siblings.
+When rows carry richer local state, make each row a component that owns it with `@State()` and receives its item as a prop. `For` creates the component once per key and keeps it, so that state survives reorders.
 
 <StorybookLink story="essentials-jsx-finegrainedlists--fine-grained-lists" label="Live demo — fine-grained rows" />
 
@@ -187,6 +199,19 @@ render() {
       <Header />
       <Main />
       <Footer />
+    </>
+  )
+}
+```
+
+Fragment children follow the same rule as element children: an arrow function is a reactive region, a plain expression is static.
+
+```tsx
+render() {
+  return (
+    <>
+      <dt>{this.term}</dt>
+      {() => (this.expanded ? <dd>{this.definition}</dd> : null)}
     </>
   )
 }

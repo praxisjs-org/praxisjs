@@ -6,6 +6,71 @@ icon: Boxes
 
 # @praxisjs/runtime
 
+## 0.8.0
+
+**Breaking: hydration is opt-in, so apps that don't prerender leave it out.** `render()` used to carry the reconciliation code and a recording branch in every render path, whether or not the page was prerendered. It now hydrates only after the new `enableHydration()` has run, and an app that never calls it leaves that code out of its bundle (about 1.4 kB of minified JavaScript). `ssgPlugin()` from `@praxisjs/ssg` calls it at the start of the client bundle, so apps built with it hydrate as before with no change; a page prerendered another way calls `enableHydration()` once before `render()`. Without it, a container carrying the hydration marker is cleared and mounted fresh. See [Enabling hydration](/docs/tooling/ssg#enabling-hydration).
+
+**Templates from markup.** The new `_$html` helper clones a template parsed once from markup, which `@praxisjs/vite-plugin` emits for trees the HTML parser reads back unchanged: shorter than the DOM calls that build the same tree, and parsed in the same inert document. The list view's internal members are `#private`, which minifiers shorten, and its leave-transition set is created by the first leave transition. In the js-framework-benchmark entry these changes, with the plugin's, take the bundle from 35.8 to 31.7 kB (brotli 11.3 to 10.3 kB) and the first paint from about 87 to 79 ms on the same machine.
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+**Smaller production bundles.** The package is marked `"sideEffects": false`, so bundlers leave out the modules an app does not use: an app without `For` or `Index` no longer carries the list code that the row shape keeper kept in every bundle, and with code splitting a `For` used on one route moves into that route's chunk. `Index`'s positional update is passed to the shared list view instead of being one of its methods, so an app that only uses `For` leaves it out. The table of event props is spelled as camel-case event names and built into the same `Map` at load, which takes about half the bytes.
+
+**Component hot replacement.** `_$hmrRegister` and `_$hmrAccepts` back the HMR of `@praxisjs/vite-plugin`: in development, mounting a registered class mounts its newest version, and every mounted instance of a class replaced by an edit is rendered again in place, between its comment bounds. Nothing is tracked until a class is registered.
+
+**Keyed lists: `For` and `Index`.** Until now a list was a `.map()` inside an arrow, and any change to the array removed every row and built them all again: swapping two rows of 1000 recreated 1000 `<tr>`, removing one recreated 999. [`For`](/docs/essentials/lists) compares item keys before rendering and only creates, moves or removes the rows that changed:
+
+```tsx
+<For each={() => this.rows} by={(row) => row.id} fallback={<p>No rows</p>}>
+  {(row, index) => <tr>{() => `${index() + 1}. ${row().label}`}</tr>}
+</For>
+```
+
+- The row function runs once per key, untracked, in its own scope. Kept rows keep their DOM, state, effects and listeners. Removed rows are disposed (`onUnmount` runs).
+- `item()` and `index()` are accessors: a new object under the same key, or a row that moved, updates the bindings that read them without recreating the row. Their signals are only created when a row reads them.
+- Reorders use the minimum number of moves (longest increasing subsequence over the old positions, after trimming the common start and end). A single moved row or a swap is detected without building a map. Moves use `Element.prototype.moveBefore()` where available, so focus, iframes, media and CSS animations survive.
+- Fast paths for filling an empty list (one `DocumentFragment`), clearing (`textContent = ""` when the list is the only content of its parent), replacing every key, appending and prepending. An unchanged list touches no DOM.
+- `transition` takes Promise-based `enter`/`leave` hooks such as `@praxisjs/motion`'s `createTransition()`: a removed row stays until `leave` settles and is excluded from reuse and moves meanwhile.
+- Duplicate keys log a development warning that names the key, with deterministic behavior in production. An error in a row render leaves the rest of the list intact, is rethrown after the update, and the row renders again on the next one.
+- Server-rendered rows from `@praxisjs/ssg` are adopted on hydration.
+
+`Index` does the same by position, for primitives and lists edited in place: row `i` is kept and `item()` follows the value at `i`.
+
+**`mountChildren` is exported.** It mounts JSX children (nodes, strings, numbers, arrays and reactive functions) into a parent node within a scope. `@praxisjs/jsx` uses it so fragments handle function children the same way elements do.
+
+In the js-framework-benchmark (Chrome, same session, old and new build alternated), swap 1k went from 128 ms to 18 ms, remove one from 66 ms to 14 ms, append 1k from 66 ms to 35 ms and clear from 17 ms to 14 ms, with create, replace and select unchanged.
+
+**Reactive text is updated in place.** A reactive child that returns a string or number now rewrites the text of its existing node (and skips the write when the text is unchanged) instead of removing the node and inserting a new one. Bindings like `{() => this.labels[id]}` that re-run often but rarely change no longer cost a DOM replacement each time: with one `Record` state for 1000 labels, "update every 10th row" went from 38.8 ms to 17.0 ms.
+
+**Compiled templates.** `@praxisjs/vite-plugin` now compiles JSX trees of host elements into templates; the runtime builds each one once with the same DOM calls a plain render makes and clones it per render with `cloneNode(true)`, binding only the dynamic parts. The helpers it calls are exported with a `_$` prefix and are not meant to be used directly.
+
+**Faster DOM work everywhere.**
+
+- Event handlers: one shared listener per element and event type dispatches to the handlers stored on the element, with no wrapper per handler. Disposing a scope empties the handler slot instead of calling `removeEventListener`.
+- `Scope` stores effects and child scopes directly instead of wrapping each in a closure, and allocates its arrays only when something is registered.
+- Reactive children reuse one child scope across runs, and a reactive child that renders text into an empty slot writes the existing text node.
+- A reactive prop skips the DOM write when it produces the same primitive value again (`value`, `checked`, `selected`, `indeterminate`, `selectedIndex`, `open`, `muted`, `volume`, `currentTime`, `playbackRate`, `scrollTop` and `scrollLeft` are always written so a re-run restores what the user changed). `class` on HTML elements is set through `className`.
+- `mountComponent` copies props only when it has to remove `ref`, collects a single root node without a fragment, and uses one lifecycle object per component instead of two closures.
+- `For` fills an empty list that owns all of its parent while the parent is briefly detached, when it creates 64 rows or more and the parent is a plain container with no focus, popover, fullscreen or running animation inside.
+
+**Cheaper creation, for rows and for components.**
+
+- Compiled templates are built and cloned in the inert document of `<template>` contents and adopted on insertion, which is cheaper than cloning in the live document. A template with a custom element stays in the live document, so the element is upgraded when cloned. The runtime no longer touches `document` when it is imported, so it can be loaded before a server renderer installs a DOM.
+- Event props of compiled templates attach no listener when they are bound. The handler is stored on its element, and one capture listener per event type, on the document and on each render container and portal target, attaches the element's own listener the first time an event of that type is on its way to it. Handlers keep their exact semantics (phase, `this`, `currentTarget`, `stopPropagation()`, non-bubbling events, trees not in the document yet). Disposing a scope turns its handlers off without touching each element. In a 1,000-row table with two links per row, creating the rows registers no listener at all.
+- A reactive child creates its child scope only when one of its runs asks for the current scope (to render a component or a template, or to register a cleanup). A reactive text binding creates none.
+- Reactive props and reactive children run through one shared function per kind that keeps each binding's state in a record on its effect, instead of a closure and its context per binding. A reactive child that only shows text keeps no node array.
+- Text is created natively wherever the runtime inserts it (`textContent`, `append()`, `before()`), without a JS wrapper for the new node. A reactive text child looks its node up only when a later run changes or removes it. A reactive child that is the only content of its element needs no placeholder text node in the template.
+- A component that renders a single root node is no longer wrapped in two comments: the node bounds it by itself and is its anchor (`getComponentAnchor()` from `@praxisjs/core/internal`, whose `parentElement` is still the component's container). Components that render several nodes, nothing, or a reactive child keep their `<!--[Name]-->`/`<!--[/Name]-->` comments, and `For`/`Index` use their own boundaries as their component's. Mounting 1,000 small components went from 4.8 ms to 3.0 ms.
+- An only child that is text is written with `textContent`, arrays inserted into a template go straight in front of their anchor without a fragment, `class` checks for an HTML element without reading `className` back, and event props are looked up in a `Map`.
+- Compiled templates call specialized helpers for the bindings the compiler can resolve: an event prop binds through a target looked up once per module (no per-binding lookup or key check), and a reactive `class`/`className` binds an effect that writes the class directly, without the generic prop dispatch. Behavior is the same as the generic path, hydration included. The `_$on` helper stays exported for output compiled by earlier versions.
+- One inert instance of each per-row class (`Scope`, list rows, reactive children) is kept for the life of the page, so their V8 hidden classes, and the optimized code built on them, survive a full GC after a list is cleared, and every row now gets the same hidden class whether it renders one node or several.
+
+**Bug fix:** an element's children are now mounted before its props are applied. A static `value` on a `<select>` used to be set while the element had no options yet and was lost.
+
+**Bug fix:** a hydrated reactive child that is the only content of its element (compiled without an anchor comment) now keeps updating the server-rendered element. Its updates used to go to the copy built during hydration, so the page lost the child's content on its first change to nodes or from nothing to text.
+
+**Bug fix:** compiled templates are built again when `render()` runs with another global document. A server renderer that installs a new window per run (`prerender()` called twice in one process, or `vite build --watch` with `@praxisjs/ssg`) used to clone the first window's templates, whose nodes the runtime dropped.
+
 ## 0.7.1
 
 Fixed a regression in 0.7.0: an event prop whose value is `undefined` or `null` (`<form onSubmit={this.props.onSubmit}>` with no handler passed) threw `TypeError: Invalid value used as weak map key`, which made the surrounding component render empty. Missing handlers are ignored again, as `addEventListener` always did, and an `EventListenerObject` (`{ handleEvent }`) is registered as-is, without batching. `ref={undefined}` is ignored too instead of throwing "not a function".

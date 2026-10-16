@@ -5,6 +5,7 @@
     "components",
     "reactivity",
     "jsx",
+    "lists",
     "lifecycle",
     "async-data",
     "portal",

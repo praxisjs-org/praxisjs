@@ -6,6 +6,30 @@ icon: Wrench
 
 # praxisjs
 
+## 1.1.0
+
+**`ai add` now sets up the MCP server where Claude Code reads it.** It used to write the server into `.claude/settings.json`, which Claude Code ignores for MCP servers, so the skills' docs tools never started. It now adds it to `.mcp.json` and approves it in `.claude/settings.json` (`enabledMcpjsonServers`), and for Codex it adds `[mcp_servers.praxisjs]` to the project's `.codex/config.toml`. Existing configs are merged instead of overwritten, a leftover `mcpServers.praxisjs` in `.claude/settings.json` is removed, and a config that isn't valid JSON is left alone with a warning. `ai remove` removes only the PraxisJS skills and server and keeps your other settings. `doctor` reports a missing MCP server configuration and missing skills. See [ai add](/docs/tooling/cli#ai-add).
+
+**`praxisjs ai sync` updates existing AI setups.** It brings every installed integration up to this version in place: new skills are added, unedited old files are replaced, files no longer shipped are removed, and the MCP configuration is rewritten. Files you edited are kept unless you confirm the diff (never without a terminal). Installs from earlier releases are recognized by the hashes of the files they shipped, and `.praxisjs-ai.lock.json` records what was installed from now on. `--dry-run` previews; running it twice changes nothing. `ai add` on an installed integration runs the same update, `doctor` reports an outdated setup, and `upgrade` offers to sync it. See [ai sync](/docs/tooling/cli#ai-sync).
+
+**Stricter, shorter AI guidance.** The Claude Code and Codex skills (now generated from one text, so they never drift) open with ten rules: look every API up through the MCP server, connect the server first, check for duplicates before writing anything reusable, build UI from Morphos and Kosmesis first, extend PraxisJS with its own APIs (decorator builders in the `setup` form, `Composable`, store plugins, devtools plugins), never use `accessor`, keep the project's folder structure and reorganize misplaced code, use the project memory only through the MCP server, validate every changed file, no workarounds.
+
+**Eleven more skills**, installed with the main one: `praxisjs-component`, `praxisjs-decorator`, `praxisjs-composable`, `praxisjs-store`, `praxisjs-testing`, `praxisjs-performance`, `praxisjs-upgrade`, `praxisjs-memory`, `praxisjs-memory-bootstrap` (a full first analysis of the project into the memory, as parallel passes), `praxisjs-ui` (Morphos primitives and Kosmesis components first: find, add with the `kosmesis` CLI, wrap, update) and `praxisjs-ai-setup` (migrate an older project's AI setup), sharing references on the MCP server, the project memory, the project structure (by kind, or feature slices as an example layout) and the extension APIs. See [AI skills](/docs/guide/ai-skills#the-skills).
+
+**`upgrade` also upgrades Morphos and Kosmesis.** `@morphos/*` packages and the `kosmesis` CLI are bumped with the same rules as `@praxisjs/*`, when the project already lists them; nothing is added. Before writing `package.json`, `upgrade` reads the peer dependencies of every release it picks and holds back an upgrade that would break one, for example a Morphos release that needs a newer `@praxisjs/core` than the project gets. Held back `@praxisjs/*` packages stay together, since they depend on each other at exact versions. Peer conflicts the project already had are listed without changing anything. The output is grouped into PraxisJS, Morphos and Kosmesis. In a Kosmesis project (a `kosmesis` dependency or a Kosmesis `components.json`), `upgrade` then runs the installed `kosmesis outdated` (0.5.0 or later) or prints the command to run, since copied components are not npm packages. See [upgrade](/docs/tooling/cli#upgrade).
+
+**`doctor` checks that `@praxisjs/*` versions work together.** It reads the installed versions (or the declared ranges when nothing is installed) and flags `@praxisjs/vite-plugin` 4.1+ or `@praxisjs/jsx` 0.8+ next to a `@praxisjs/runtime` older than 0.8 (or no runtime dependency at all, for the plugin, whose compiled templates import from it), and `@praxisjs/decorators` 1.8+ next to a `@praxisjs/core` older than 2.3. See [doctor](/docs/tooling/cli#doctor).
+
+**`upgrade` fixes:**
+
+- A dependency ahead of the `latest` tag, such as a prerelease, was rewritten down to `latest`. `upgrade` now only moves a dependency forward.
+- A malformed `package.json` crashed with a stack trace. It is now reported and `upgrade` exits with code `1`.
+- `bun.lock` (Bun's text lockfile) is detected, not only `bun.lockb`.
+
+`upgrade` also looks every package up in parallel, once per name, and honors `npm_config_registry` like `create-praxisjs` does.
+
+**AI skills** (Claude Code and Codex) describe this release's APIs: `For` and `Index` lists with a pattern in the core section, `@Selector`, `createTransition()` for list transitions, the Vite plugin's compiled templates and keyed-list rewrite, the upload composables, the devtools debugging options (`@Debug({ log, break })`, `@Trace({ slow })`, the profiler and Performance tab), and the Storybook preset's automatic preview setup. The docs slug table gained `essentials/lists` and `composables/upload`, and the install examples pass `dev: false` for runtime packages.
+
 ## 1.0.2
 
 The Claude Code and Codex skill instructions were refreshed against the current framework surface.

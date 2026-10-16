@@ -6,6 +6,21 @@ icon: BookMarked
 
 # @praxisjs/storybook
 
+## 0.3.0
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+**`.storybook/preview.ts` needs no setup.** The preset now registers `@praxisjs/storybook/preview` through `previewAnnotations`. It provides `renderToCanvas` and a default `render` that mounts the meta's `component` with the story's args as props, so a story can be just `{ args: { … } }`. Exporting `renderToCanvas` from your own `preview.ts`, as before, still works. See [Setup](/docs/tooling/storybook#setup).
+
+**Bug fixes:**
+
+- Changing a story's args (or an HMR update) mounted the story again without disposing the previous render, whose effects and listeners stayed alive. Every render of a canvas now disposes what the canvas held first, and `onUnmount` runs.
+- All canvases shared one cleanup, so on a docs page a remount of one story could unmount another. Each canvas now tracks its own story.
+- `renderToCanvas` returns a teardown, so Storybook disposes the story when it leaves the canvas.
+- The manager and preview entry paths were taken from a URL's `pathname`, which keeps `%20` for spaces and a leading `/` before Windows drive letters. They are now real file paths.
+
+The source panel reads story files asynchronously instead of blocking Vite's transform, and `*.story.*` files now get the source panel too, matching the files the indexer picks up. The indexer no longer matches files such as `history.ts` whose name merely ends in `story`.
+
 ## 0.2.4
 
 Removed the `@storybook/core` dependency and peer dependency — it never published a Storybook 9/10 release, so it dragged in a stale `@storybook/theming@8.6.18` that conflicted with `storybook@10.4.0` and pinned `esbuild` below what `vite@8.1.4` requires. Internal imports moved from `@storybook/core/csf` and `@storybook/core/types` to `storybook/internal/csf` and `storybook/internal/types` — no change to `Meta`, `StoryObj`, or any other public export.

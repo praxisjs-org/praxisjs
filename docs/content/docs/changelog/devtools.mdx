@@ -6,6 +6,27 @@ icon: ScanEye
 
 # @praxisjs/devtools
 
+## 0.3.0
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+**`@Trace` and `@Debug` no longer bring the panel into production bundles.** The package was a single module, so an app that kept `@Trace()` in its production code bundled the whole devtools (about 50 kB minified) even though the decorator does nothing there. It is now built one file per module and marked `"sideEffects": false`, and the decorators check `process.env.NODE_ENV` where bundlers can fold it, so a production build keeps a few bytes of each decorator and neither the registry nor the panel.
+
+**Performance panel and profiler.** A new **Performance** tab records what the reactive graph does — signal writes, effect runs, computed recomputations and their cost — and ranks components by the work their bindings and effects did. `Registry.instance.profiler` (`start`, `stop`, `reset`, `snapshot`) gives the same data from code; it installs itself as the graph's observer only while recording, so it costs nothing otherwise. `PerformancePlugin`, `Profiler`, `ProfileSnapshot` and `OwnerStats` are exported, and `DevTools.init()` exposes the registry as `__PRAXIS_DEVTOOLS__` in the browser console.
+
+**`@Debug` options and coverage.**
+
+- `log: true | "trace"` logs every change or call to the console (with a stack trace for `"trace"`); `break: true | (next, prev) => boolean` pauses in the debugger.
+- Accessor fields (`@State`, `@Prop`, `@Persisted`, …) are observed reactively, so changes made behind the setter — a parent passing a new prop — are reported too. Previously only assignments through the field were.
+- A method that returns a promise is recorded when it settles, with the resolved value or rejection and the full duration (it used to record the time until the promise was returned).
+- Observation stops on unmount.
+
+**`@Trace({ slow })`** warns in the console when a render takes longer than `slow` ms.
+
+**Production builds:** `@Debug` and `@Trace` now return the member or class untouched when `process.env.NODE_ENV === "production"`. The docs already promised this, but they used to wrap and record in every build.
+
+**Faster registry:** a signal change appends to its history instead of copying it and the entry, and unmounting a component drops its signals through an index instead of scanning every signal. The panel itself is now compiled with the template compiler.
+
 ## 0.2.21
 
 Updated dependencies — `@praxisjs/decorators@1.1.1`.

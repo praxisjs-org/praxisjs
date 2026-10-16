@@ -1,6 +1,6 @@
 ---
 title: "@praxisjs/core/internal"
-description: Signal primitives (signal, computed, effect, batch, peek), persistence, reactive utilities (when, until, debounced, history), resource (cache, SWR, dedup, invalidation), and RootComponent.
+description: Signal primitives (signal, computed, effect, batch, peek, selector), persistence, reactive utilities (when, until, debounced, history), resource (cache, SWR, dedup, invalidation), and RootComponent.
 icon: Activity
 ---
 
@@ -60,7 +60,9 @@ const doubled = computed(() => count() * 2)
 doubled()  // reads and caches; re-runs only if count changed
 ```
 
-Uses a two-level subscriber graph internally: downstream computeds are tracked separately from leaf effects, enabling coalesced notifications and preventing redundant recomputes when multiple dependencies change in the same tick.
+Signals, computeds and effects form a push-pull graph. A write marks the direct subscribers stale and the ones behind a computed *maybe stale*; a computed then recomputes only when one of its sources actually changed, and a computed that recomputes to the same value (`Object.is`) does not wake what depends on it. Dependencies are stored as linked nodes that a re-run reuses in place, so a binding that reads the same sources every time allocates nothing and never resubscribes.
+
+Effects that read a changed signal directly re-run synchronously. Effects that depend on a change only through a computed re-run once per tick, in a microtask, with the final values of every write made in the same synchronous block. Either way an effect pulls fresh values when it runs, so it never sees a computed out of step with its sources, and a computed that reads itself throws a cycle error instead of looping.
 
 **`Computed<T>` interface**
 
@@ -147,6 +149,36 @@ effect(() => {
   }
 })
 ```
+
+---
+
+### `selector<T, K>(source, equals?)`
+
+Turns a source into a per-key boolean check whose subscribers are bucketed by key. When the source changes, only the effects that read an affected key are notified. Backs the [`@Selector`](/docs/decorators/performance) decorator.
+
+```ts
+type Selector<K> = (key: K) => boolean
+type SelectorEquals<K, T> = (key: K, value: T) => boolean
+
+function selector<T>(source: () => T): Selector<T>
+function selector<T, K>(source: () => T, equals: SelectorEquals<K, T>): Selector<K>
+```
+
+```ts
+const selected = signal(1)
+const isSelected = selector(() => selected())
+
+effect(() => { row1.className = isSelected(1) ? 'on' : '' })
+effect(() => { row2.className = isSelected(2) ? 'on' : '' })
+
+selected.set(2)  // re-runs both effects; a third key's effect would not run
+```
+
+- **Default comparison** — SameValueZero, the rule `Map` uses for keys. A change looks up the buckets of the previous and next value directly, so it costs O(1) regardless of how many keys are read.
+- **Custom `equals`** — every key in use is checked against the previous and next value, and only buckets whose result changed are notified.
+- **Notification** — affected buckets are flushed in one `batch`, so an effect reading several affected keys re-runs once.
+- **Lifetime** — a key's bucket is dropped when its last effect re-runs or stops. The source is read inside an internal effect that starts with the first tracked read and stops a microtask after the last bucket is gone.
+- **Untracked reads** — `isSelected(key)` outside an effect returns the comparison without subscribing. It reads the source directly when no effect is subscribed, or when the source changed and its subscribers have not been notified yet (inside a `batch`, an event handler, or a microtask after a computed source changed), so it always reflects the current source value.
 
 ---
 
@@ -414,7 +446,7 @@ Abstract base class that every PraxisJS component ultimately extends. The render
 abstract class RootComponent<T extends object = Record<string, never>> {
   readonly _rawProps: T
   _mounted: boolean
-  _anchor?: Comment
+  _anchor?: Node
 
   get props(): T
 
@@ -431,5 +463,5 @@ abstract class RootComponent<T extends object = Record<string, never>> {
 |---|---|
 | `_rawProps` | Props filled by the renderer at mount time. Read through `this.props` in user code. |
 | `_mounted` | Set to `true` after `onMount` fires. Used by lifecycle decorators to guard callbacks. |
-| `_anchor` | Comment node inserted by the renderer. Decorators use it to locate the parent DOM element. |
+| `_anchor` | A node of the component's output (read with `getComponentAnchor()`): its root node when it renders exactly one, otherwise the comment the renderer places after its nodes. Decorators use its `parentElement` to locate the component's container. |
 | `render()` | Must be implemented. Called exactly once on mount — never on updates. |

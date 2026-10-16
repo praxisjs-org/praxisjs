@@ -118,7 +118,7 @@ class Badge extends StatelessComponent<{ label: string; variant?: 'success' | 'e
 
 Each `$`-prefixed field gets a globally unique class name derived from a hash of its CSS content — for example `prx-root-a1b2c3`. Two fields with identical CSS share the same name. Class names are deterministic and stable.
 
-**Runtime mode** (default / dev server): `<style>` elements are injected eagerly at decoration time (module load), before any component mounts. Each instance mount/unmount increments/decrements an internal reference count, but the base injection from decoration time is permanent — styles stay for the page lifetime. Identical CSS across different components shares one injection.
+**Runtime mode** (default / dev server): `<style>` elements are injected eagerly at decoration time (module load), before any component mounts, and stay for the page lifetime. Identical CSS across different components shares one injection. Creating an instance only checks that its `<style>` is still in the document (putting it back if something removed it), so a stylesheet without `@Param()` costs each instance nothing more: every instance receives the same frozen class map, with no lifecycle hooks or signals.
 
 **Static mode** (production + `praxisjsCSS()` plugin): class names are identical but CSS is extracted at build time into `virtual:praxisjs/styles.css`. No `<style>` elements are injected at runtime — the CSS is part of the bundle from the start, fully cacheable by the browser. See [Static extraction](/css#static-extraction-vite-plugin).
 

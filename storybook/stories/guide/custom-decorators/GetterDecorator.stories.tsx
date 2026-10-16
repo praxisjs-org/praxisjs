@@ -3,11 +3,11 @@ import { Component, State, createGetterDecorator } from "@praxisjs/decorators";
 import type { Meta, StoryObj } from "@praxisjs/storybook";
 
 function Clamp(min: number, max: number) {
-  return createGetterDecorator({
-    wrap(original, instance) {
-      return () => {
-        const value = original.call(instance) as number;
-        return Math.min(max, Math.max(min, value));
+  return createGetterDecorator<object, number>({
+    label: "@Clamp()",
+    setup(original) {
+      return function (this: object) {
+        return Math.min(max, Math.max(min, original.call(this)));
       };
     },
   });

@@ -184,29 +184,7 @@ The setter writes back to `celsius`, which reactively invalidates the cached get
 
 <StorybookLink story="decorators-state-props-writablecomputed--temperature-converter-story" label="Live demo — @Computed with setter" />
 
-### Compact form — `@Computed({ get, set })` on `accessor`
-
-Pass both `get` and `set` to the decorator factory and declare the field with the `accessor` keyword. TypeScript treats `accessor` fields as read-write, so no cast is needed.
-
-```tsx
-@Computed({
-  get(this: TemperatureConverter): number {
-    return (this.celsius * 9) / 5 + 32
-  },
-  set(this: TemperatureConverter, fahrenheit: number) {
-    this.celsius = ((fahrenheit - 32) * 5) / 9
-  },
-})
-accessor fahrenheit!: number
-```
-
-The `!` (definite assignment assertion) tells TypeScript that the decorator initializes the field, so no initializer expression is needed. At runtime, reads go through a reactive `computed` backed by `get`; writes call `set` directly.
-
-<Callout type="info" title="accessor vs getter + setter">
-  Both forms are fully TypeScript-compatible. Use the `accessor` form when you prefer to keep the getter formula and setter logic co-located inside the decorator options. Use the plain getter + setter pair when you want the getter formula visible as a class method for readability or when you need to call `super`.
-</Callout>
-
-<StorybookLink story="decorators-state-props-writablecomputedaccessor--temperature-converter-accessor-story" label="Live demo — @Computed({ get, set }) accessor form" />
+`@Computed()` stays on the class, so a subclass can override the getter and read the cached value through `super.fahrenheit`.
 
 ---
 

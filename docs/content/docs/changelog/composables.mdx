@@ -6,6 +6,29 @@ icon: Layers
 
 # @praxisjs/composables
 
+## 1.2.2
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+The package is marked `"sideEffects": false`, so bundlers leave out the modules of it that an app does not use.
+
+**Listeners, observers and timers start on mount.** `WindowSize`, `MediaQuery`, `ColorScheme`, `Mouse`, `KeyCombo`, `Idle`, `ElementSize`, `Intersection`, `TimeAgo` and `Geolocation` used to attach listeners, start timers or send requests in `setup()`, which runs when the component is constructed. A component that was constructed but never mounted kept them forever, and on the server `setup()` threw on `window`. They now start in `onMount` and stop in `onUnmount`. Values that depend on the page (window size, media query match, scroll offset, focus) are read again on mount. Used through `@Compose`, nothing changes for your component.
+
+**Less work per event**
+
+- `Idle` records a timestamp per activity event instead of clearing and rescheduling a timer on every `mousemove` or `scroll` (about 6.4x cheaper per event). It still becomes idle exactly `timeout` after the last activity.
+- `TimeAgo` no longer polls every 60 seconds. It sets one timer for the exact moment its text changes, so "30 seconds ago" counts up every second and "3 days ago" wakes up once an hour or less.
+- `KeyCombo` parses the combo once instead of on every key press.
+- `FileUpload` skips progress events that don't change the rounded percentage, and counts running uploads from its request map instead of scanning the list.
+
+**Fixes**
+
+- `FileUpload.clear()` aborted the running uploads first, and each abort started the next pending upload just before the list was emptied, leaving requests uploading discarded files.
+- `FileUpload` and `FileSelection` read their own lists tracked, so calling `add()` from an effect subscribed that effect to the list: every progress update re-ran it and added the files again.
+- `ScrollPosition` and `Focus` re-read `ref.current` on unmount, so a ref that changed after mount left the listeners on the old element.
+- `VirtualList` measured its container once at mount. It now also reads the initial scroll offset and follows the container's height with a `ResizeObserver` when available.
+- `Focus` reported `false` for an element that was already focused when the component mounted.
+
 ## 1.2.1
 
 `Mouse`, `WindowSize`, `ScrollPosition`, and `ElementSize` now update their paired values (`x`/`y`, `width`/`height`) inside one batch, so a binding that reads both re-runs once per event instead of twice.

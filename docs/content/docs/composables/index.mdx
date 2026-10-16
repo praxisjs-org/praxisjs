@@ -32,7 +32,7 @@ class App extends StatefulComponent {
 2. Calls `setup()` and binds reactive properties onto the field (`this.window`)
 3. Hooks the composable's `onMount` and `onUnmount` into the component lifecycle automatically
 
-No manual setup or teardown needed.
+No manual setup or teardown needed. Event listeners, observers and timers start in `onMount` and stop in `onUnmount`, so a component that is constructed but never mounted (or rendered on the server) attaches nothing. Values that depend on the page, such as the window size or a media query match, are read again on mount.
 
 ---
 

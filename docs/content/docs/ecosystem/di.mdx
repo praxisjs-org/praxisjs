@@ -184,6 +184,15 @@ When a circular dependency is detected at resolution time, the container throws 
 Circular dependency detected: ServiceA → ServiceB → ServiceA
 ```
 
+The cycle is caught across nested resolutions too, including `inject()` calls in field initializers or constructors:
+
+```ts
+@Injectable() class ServiceA { b = inject(ServiceB) }
+@Injectable() class ServiceB { a = inject(ServiceA) }
+
+inject(ServiceA) // throws: [DI] Circular dependency detected: ServiceA → ServiceB → ServiceA
+```
+
 ---
 
 ## Container API

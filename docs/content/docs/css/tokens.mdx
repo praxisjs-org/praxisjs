@@ -110,6 +110,8 @@ Unoverridden tokens inherit from the parent theme through normal JavaScript prot
 
 `@Themed` is a class decorator that creates the singleton `ThemeInstance` and injects `:root` CSS vars when the root component mounts. Must appear above `@Component()`.
 
+Instantiating the decorated class again keeps the active theme, including one switched to with `theme().switch()`. It only re-applies its default theme when another `@Themed` class has replaced it in the meantime or the active instance was destroyed. A replaced `ThemeInstance` is destroyed, which closes its `BroadcastChannel`.
+
 ```tsx
 import { Themed } from '@praxisjs/css'
 import { AppTokens } from './tokens'

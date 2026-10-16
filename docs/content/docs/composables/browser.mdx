@@ -169,7 +169,7 @@ Properties: `lat: number | null`, `lng: number | null`, `error: GeolocationPosit
 
 ## `TimeAgo`
 
-Relative time formatting ("3 minutes ago", "2 days ago"), updated automatically every minute.
+Relative time formatting ("3 minutes ago", "2 days ago"), updated automatically while the component is mounted. Instead of polling, it sets one timer for the exact moment the text changes: every second for "30 seconds ago", once an hour or less for "3 days ago". The timer is re-armed when the source changes.
 
 ```tsx
 import { getter } from '@praxisjs/decorators'

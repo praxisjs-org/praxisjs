@@ -90,6 +90,7 @@ Rendering optimizations. [→ Full page](/docs/decorators/performance)
 | Decorator | What it does |
 |---|---|
 | `@Lazy(placeholder?)` | Defers rendering until the component enters the viewport via `IntersectionObserver`. |
+| `@Selector(field, options?)` | Exposes `this.isSelected(key)`; a change to `field` re-runs only the bindings of the previous and next key. |
 
 For large list virtualization, see [`VirtualList`](/docs/composables/list) from `@praxisjs/composables`.
 

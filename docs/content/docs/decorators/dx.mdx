@@ -22,9 +22,9 @@ import { Debug, Trace } from '@praxisjs/devtools'
 
 Exposes a field, getter, or method in the DevTools panel. What it tracks depends on what it decorates:
 
-### On `@State()` fields
+### On `@State()`, `@Prop()` and other reactive fields
 
-Records every value change in the **Signals** panel with a 20-entry history. This is the most common use case.
+Records every value change in the **Signals** panel with a 20-entry history. The field is observed reactively, so a change is reported whatever caused it: an assignment, a parent passing a new `@Prop` value, a `@Persisted` value arriving from another tab.
 
 ```tsx
 import { Component, State } from '@praxisjs/decorators'
@@ -44,7 +44,7 @@ class CartStore extends StatefulComponent {
 ```
 
 <Callout type="warn" title="Decorator order">
-  `@Debug` must be written **above** `@State()`. Decorators apply bottom-up, so `@State` runs first to set up the reactive accessor, then `@Debug` wraps it to observe changes.
+  `@Debug` must be written **above** `@State()` (or `@Prop()`). Decorators apply bottom-up, so `@State` runs first to set up the reactive accessor, then `@Debug` observes it.
 </Callout>
 
 ### On getters
@@ -60,7 +60,7 @@ get hasDiscount() {
 
 ### On methods
 
-Records every method call in the **Timeline** with arguments, return value, and execution duration in milliseconds.
+Records every method call in the **Timeline** with arguments, return value, and execution duration in milliseconds. For a method that returns a promise, the entry is recorded when the promise settles, with the resolved value (or `reject …`) and the full duration.
 
 ```tsx
 @Debug()
@@ -74,12 +74,21 @@ async fetchProducts() {
 | Option | Type | Description |
 |---|---|---|
 | `label` | `string` | Name shown in the panel. Defaults to the field or method name. |
+| `log` | `boolean \| "trace"` | Also logs every change or call to the console. `"trace"` logs with a stack trace, which shows what caused the change. |
+| `break` | `boolean \| (next, prev) => boolean` | Pauses in the debugger on every change or call, or only when the function returns `true` (for methods it receives the arguments). |
+
+```tsx
+// Find out who keeps resetting the cart: log with a stack trace, and stop when it empties.
+@Debug({ log: 'trace', break: (next) => (next as Product[]).length === 0 })
+@State()
+items: Product[] = []
+```
 
 ---
 
-## `@Trace()`
+## `@Trace(options?)`
 
-Instruments a component class to report lifecycle events and render metrics to the **Components** panel.
+Instruments a component class to report lifecycle events and render metrics to the **Components** panel. `@Trace({ slow: 4 })` also warns in the console whenever a render of that component takes more than 4 ms.
 
 ```tsx
 @Trace()
@@ -108,7 +117,7 @@ The Components panel shows:
 
 ## Production safety
 
-`@Debug` and `@Trace` check whether `DevTools.init()` has been called before doing anything. If it hasn't — which is the case in every production build — they're completely inert. Use a dynamic import to ensure the DevTools package is never bundled into production at all:
+In a production build (`process.env.NODE_ENV === "production"`, which Vite and other bundlers set) `@Debug` and `@Trace` return the member or class exactly as declared: no wrapper, no observation, no cost. Load the panel itself with a dynamic import so it is never bundled into production:
 
 ```ts
 // src/main.ts

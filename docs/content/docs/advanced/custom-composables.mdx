@@ -78,6 +78,12 @@ class App extends StatefulComponent {
 
 <StorybookLink story="guide-custom-composables-networkstatus--network-status-story" label="Live demo — NetworkStatus" />
 
+### What the field holds
+
+The decorated field holds a view of what `setup()` returned, built once per component instance: signals and computeds become getters (so `this.network.online` reads the signal and tracks it inside arrow functions), and everything else, such as functions, is copied as is. A method of the composable class is reachable only if `setup()` returns it.
+
+`onMount()` and `onUnmount()` on the composable run after the component's own hooks. Only the hooks the class defines are chained, so a composable without them adds no lifecycle work to the component.
+
 ---
 
 ## Constructor arguments

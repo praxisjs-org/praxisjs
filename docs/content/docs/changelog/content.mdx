@@ -6,6 +6,17 @@ icon: File
 
 # @praxisjs/content
 
+## 0.2.2
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+The package is marked `"sideEffects": false`, so bundlers leave out the modules of it that an app does not use.
+
+`@Collection` and `@PagedCollection` throw a `TypeError` when the class is defined if they decorate an `accessor` instead of a plain field, naming the member to fix (see [`assertFieldContext`](/docs/advanced/custom-decorators#field-decorators)).
+
+The entry cache now covers every API: each file is loaded, parsed and rendered once and shared by `getCollection()`, `getPage()` and `getEntry()`. Paging back and forth, or opening a detail page after the list, no longer re-renders markdown. `getEntry()` finds the slug in an index instead of scanning every path, `getPage()` sorts the paths once, and schema defaults are built once per class instead of once per entry. `@Collection` and `@PagedCollection` fields share one accessor across instances. A failed load is still not cached.
+
+
 ## 0.2.1
 
 `getCollection()` now caches its result per collection: entries are loaded, parsed, and rendered once, and later calls (a list page followed by each detail page, or every page of an SSG run) reuse them. Callers receive a copy of the array. A failed load is not cached.

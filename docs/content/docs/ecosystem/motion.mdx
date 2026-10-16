@@ -14,7 +14,7 @@ Animated field decorators. Assign a new value and the transition plays automatic
 
 ## `@Tween(options?)`
 
-Animates a numeric field from its current value to a new one using a duration-based easing curve. Reading the field returns the current interpolated value. A running animation is stopped when the component unmounts.
+Animates a numeric field from its current value to a new one using a duration-based easing curve. Reading the field returns the current interpolated value. A field starts at rest — creating the component schedules no animation frame — and a running animation is stopped when the component unmounts.
 
 ```tsx
 import { Tween } from '@praxisjs/motion'
@@ -108,3 +108,36 @@ class DragHandle extends StatefulComponent {
 </Callout>
 
 <StorybookLink story="ecosystem-motion-spring--spring-story" label="Live demo — @Spring" />
+
+---
+
+## `createTransition(options?)`
+
+Creates CSS-class transitions for elements entering and leaving the DOM. `enter(el)` and `leave(el)` return a Promise that resolves when the transition is over. Pass the result to the `transition` prop of [`For` and `Index`](/docs/essentials/lists#transitions) to animate added and removed rows: a removed row stays in place until `leave` resolves.
+
+```tsx
+import { createTransition } from '@praxisjs/motion'
+import { For } from '@praxisjs/runtime'
+
+const fade = createTransition({ name: 'fade', duration: 200 })
+
+<For each={() => this.toasts} by="id" transition={fade}>
+  {(toast) => <div class="toast">{() => toast().message}</div>}
+</For>
+```
+
+```css
+.toast { transition: opacity .2s ease, transform .2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(-4px); }
+```
+
+On `enter`, `${name}-enter-from` is added, swapped for `${name}-enter-to` on the next frame, and removed after `duration`. `leave` does the same with `${name}-leave-from` and `${name}-leave-to`.
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `name` | `string` | `"transition"` | Prefix of the classes added during the transition |
+| `duration` | `number` | `300` | Milliseconds until the Promise resolves and the classes are removed |
+| `onEnter` | `(el: HTMLElement) => void` | — | Called before the enter classes are added. Throwing rejects the Promise. |
+| `onLeave` | `(el: HTMLElement) => void` | — | Called before the leave classes are added. Throwing rejects the Promise. |
+
+<StorybookLink story="essentials-lists-listtransitions--list-transitions" label="Live demo — list transitions" />

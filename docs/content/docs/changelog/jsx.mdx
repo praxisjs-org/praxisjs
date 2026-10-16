@@ -6,6 +6,16 @@ icon: Braces
 
 # @praxisjs/jsx
 
+## 0.8.0
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+The package is marked `"sideEffects": false`, so bundlers leave out the modules of it that an app does not use.
+
+**Typed props for generic runtime components.** A component class with `static __jsxRawProps = true` is typed by its constructor props as written: TypeScript infers its type parameters from the attributes, and callback props such as a render function keep their exact signature instead of being widened to `Reactive<…>`. This is what makes `<For each={() => this.todos}>{(todo) => …}</For>` infer `todo` as `() => Todo`. Other components are unaffected.
+
+**Fix: function children of a fragment were dropped.** `<>{() => x}</>` rendered nothing, because fragment children were collected without the reactive path that element children use. Fragments now mount their children exactly like elements, so an arrow function inside a fragment is a reactive region that updates in place, moves with its row inside `For`, and is disposed with the scope that mounted it.
+
 ## 0.7.1
 
 **Internal: component prop inference no longer depends on `_rawProps`.**

@@ -6,6 +6,26 @@ icon: Route
 
 # @praxisjs/router
 
+## 2.3.0
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+The package is marked `"sideEffects": false`, so bundlers leave out the modules of it that an app does not use.
+
+**Bug fix:** a `Link` with no `class` prop removes its `class` attribute when it stops being active, instead of leaving `class=""` behind.
+
+`@Params`, `@Query`, `@Location` and `@InjectLayout` throw a `TypeError` when the class is defined if they decorate an `accessor` instead of a plain field, naming the member to fix (see [`assertFieldContext`](/docs/advanced/custom-decorators#field-decorators)).
+
+New `router.isActive(path)`: whether `path` is the current location's path. Inside an effect it re-runs only when that path becomes or stops being the current one. `Link` uses it, so a navigation re-evaluates the active class of two links instead of every link on the page. New `router.destroy()` removes the router's `popstate` listener; `createRouter()` calls it on the router it replaces.
+
+`RouterView` keeps the layout mounted when a navigation keeps the same layout, and swaps only the page inside it. Before, every navigation rebuilt the layout too, losing its state (an open sidebar, a scroll position, an input).
+
+Static route paths are now looked up by key and dynamic ones matched with a single regex run, with declaration order still deciding which route wins. `@Route` sets its metadata on the class without wrapping it in a subclass, and `@Params`, `@Query`, `@Location`, `@InjectLayout`, `@Meta` and `@Router()` share one accessor across instances instead of building one per instance.
+
+**Bug fix:** characters such as `.`, `+`, `(` or `)` in a route path are now matched literally. `/v1.0/docs` used to also match `/v1x0/docs`, and a path with parentheses never matched itself.
+
+**Bug fix:** a router replaced by a new `createRouter()` call (SSG prerender, or a re-mounted `@Router` app) kept listening to `popstate` and navigating in the background.
+
 ## 2.2.1
 
 The router now resolves a route's component and layout concurrently and applies them in a single update. Before, a route with lazy page and layout chunks loaded them one after the other, and `RouterView` rebuilt the page twice — first without its layout, then again once the layout arrived.

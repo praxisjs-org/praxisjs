@@ -96,6 +96,8 @@ this.last = 'Smith'
 // → DOM updates once with "Jane Smith", never shows "Jane Doe"
 ```
 
+Bindings that read a `@State` field directly update synchronously, right after the write. Bindings that depend on a change only through a `@Computed` update once at the end of the tick (a microtask), with the final value. Whichever runs first, a binding always reads up-to-date computeds, and a `@Computed` that recomputes to the same value does not update anything that depends on it.
+
 <StorybookLink story="essentials-reactivity-computed--computed-values" label="Live demo — @Computed" />
 
 The same applies to writes made inside a JSX event handler (`onClick`, `onInput`, …): the runtime batches the whole handler, so every effect that depends on the changed state re-runs once when the handler returns, not once per write.

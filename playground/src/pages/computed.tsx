@@ -70,21 +70,20 @@ class ComputedStyles extends Stylesheet {
   });
 }
 
-// ─── Temperature converter — writable @Computed with accessor ─────────────────
+// ─── Temperature converter — writable @Computed (getter + setter) ────────────
 
 @Component()
 class TemperatureConverter extends StatefulComponent {
   @State() celsius = 0;
 
-  @Computed({
-    get(this: TemperatureConverter): number {
-      return Math.round((this.celsius * 9) / 5 + 32);
-    },
-    set(this: TemperatureConverter, value: number) {
-      this.celsius = Math.round(((value - 32) * 5) / 9);
-    },
-  })
-  accessor fahrenheit!: number;
+  @Computed()
+  get fahrenheit(): number {
+    return Math.round((this.celsius * 9) / 5 + 32);
+  }
+
+  set fahrenheit(value: number) {
+    this.celsius = Math.round(((value - 32) * 5) / 9);
+  }
 
   @Styled(ComputedStyles) $s!: ComputedStyles;
   @Styled(FormStyles)     $form!: FormStyles;
@@ -204,9 +203,9 @@ export default class ComputedPage extends StatefulComponent {
         <div class={this.$page.$hero}>
           <h1 class={this.$page.$heroH1}>@Computed</h1>
           <p class={this.$page.$heroP}>
-            Derive values from reactive state. Use the plain getter form for
-            read-only values, or pass <code>{"{ get, set }"}</code> with{" "}
-            <code>accessor</code> for a writable computed.
+            Derive values from reactive state. Use a getter for read-only
+            values, and declare a <code>set</code> next to it for a writable
+            computed.
           </p>
         </div>
 
@@ -214,7 +213,7 @@ export default class ComputedPage extends StatefulComponent {
           {/* Writable computed */}
           <div>
             <div class={this.$sec.$title}>
-              <h2 class={this.$sec.$titleH2}>Writable computed — <code>accessor</code> form</h2>
+              <h2 class={this.$sec.$titleH2}>Writable computed — getter + setter</h2>
               <p class={this.$sec.$desc}>
                 Edit either field. The setter converts back to the source signal.
               </p>
@@ -241,9 +240,9 @@ export default class ComputedPage extends StatefulComponent {
         <div class={this.$demo.$infoBox}>
           <strong>How it works:</strong> <code>@Computed()</code> wraps the
           getter in a lazy signal — it only recomputes when accessed and a
-          dependency changed. The writable form (<code>{"{ get, set }"}</code>{" "}
-          + <code>accessor</code>) lets TypeScript infer the field as writable
-          without any cast.
+          dependency changed. The <code>set</code> declared next to the getter
+          writes back to the source signal, and TypeScript sees the property as
+          writable without any cast.
         </div>
       </div>
     );

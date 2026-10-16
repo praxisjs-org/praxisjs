@@ -104,6 +104,8 @@ Access via `this.machine` (or the configured property name).
 | `send(event)` | `boolean` | Trigger a transition — returns `true` if it happened |
 | `reset()` | `void` | Return to the initial state |
 
+`state()`, `history()`, `is()` and `can()` are reactive reads. `send()` and `reset()` are writes: they read the current state untracked, so an effect that sends an event does not re-run because of the transition it caused.
+
 `history` keeps the 100 most recent transitions — each transition copies the array, so an unbounded history would make a long-running machine slower over time. Set `historyLimit` in the definition to change that (`0` turns the history off, `Infinity` keeps everything):
 
 ```tsx

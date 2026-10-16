@@ -97,11 +97,30 @@ A chronological log of the last 200 events across the entire application:
 | `lifecycle` | Intermediate lifecycle hooks via `@Trace` |
 | `method:call` | `@Debug` method invocation |
 
+### Performance
+
+Profiles the reactive graph. Press **Record**, use the app, then **Stop**:
+
+- Totals: signal writes, effect runs and their time, computed recomputations and their time
+- Per component: how many bindings and effects it ran, their total time and the slowest single run, busiest first
+
+Effects are attributed to the component that was rendering when they were created (and effects created by a re-run inherit that component), so the table answers "which component is doing the work?". Nothing is recorded, and the graph pays nothing, while the profiler is stopped. The panel's own updates are excluded.
+
+The profiler is also available from code and from the browser console:
+
+```ts
+const { profiler } = DevTools.registry   // or __PRAXIS_DEVTOOLS__.profiler in the console
+profiler.start()
+// … interact …
+profiler.stop()
+console.table(profiler.snapshot().owners)
+```
+
 ---
 
 ## `@Debug(options?)` reference
 
-Tracks state, computed values, and methods in the Signals panel and Timeline. Imported from `@praxisjs/devtools`.
+Tracks state, props, computed values, and methods in the Signals panel and Timeline, with optional console logging (`log`) and debugger pauses (`break`). Imported from `@praxisjs/devtools`.
 
 See [DevTools Decorators](/docs/decorators/dx) for the full reference.
 
@@ -116,5 +135,5 @@ See [DevTools Plugins](/docs/tooling/devtools-plugins) for the full guide.
 ---
 
 <Callout type="info" title="Production builds">
-  `@Debug` and `@Trace` check whether `DevTools.init()` has been called before doing anything. If it hasn't (which is true in every production build), they're completely inert — zero runtime cost. Using a dynamic import ensures the DevTools package is never bundled into production.
+  In a production build (`process.env.NODE_ENV === "production"`) `@Debug` and `@Trace` return the member or class exactly as declared, so they cost nothing, and importing them brings neither the registry nor the panel into the bundle. Using a dynamic import for `DevTools.init()` keeps the panel itself out of the production bundle.
 </Callout>

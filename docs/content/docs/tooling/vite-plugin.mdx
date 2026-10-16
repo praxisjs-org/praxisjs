@@ -30,23 +30,73 @@ export default defineConfig({
 
 ```ts
 praxisjs({
-  hmr: true,         // component-level hot reload (default: false)
+  hmr: true,         // component-level hot reload in the dev server (default: true)
   autoImport: true,  // auto-import common decorators (default: false)
+  keyedLists: true,  // rewrite keyed .map() lists into <For> (default: true)
+  templates: true,   // compile static JSX trees into cloned templates (default: true)
 })
 ```
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `hmr` | `boolean` | `false` | Enables component-level hot module replacement. The component re-mounts in place without a full page reload when its source file changes. |
+| `hmr` | `boolean` | `true` | Component-level hot module replacement in the dev server: editing a component re-renders its mounted instances in place, without a page reload (see [Hot module replacement](#hot-module-replacement)). |
 | `autoImport` | `boolean` | `false` | Auto-imports `@Component`, `@State`, `@Prop`, and other commonly used decorators so you don't have to import them in every file. |
+| `keyedLists` | `boolean \| { warn?: boolean }` | `true` | Rewrites `{() => list.map((item) => <Row key={…} />)}` into [`For`](/docs/essentials/lists#map-with-key) so rows are kept between updates. Keyed `.map()` calls it can't rewrite are reported as build warnings; `{ warn: false }` silences them, `false` turns the rewrite off. |
+| `templates` | `boolean \| { include?: RegExp }` | `true` | Compiles JSX trees of HTML/SVG elements into templates that are built once and cloned per render (see [Compiled templates](#compiled-templates)). `false` leaves every element to `jsx()`; `include` restricts which modules are compiled. |
 
 ---
 
 ## What the plugin does
 
-- **Decorator support** — sets Vite's oxc transform target to `ES2022`, and lowers TC39 decorators with the TypeScript compiler since [oxc doesn't support that natively yet](https://github.com/oxc-project/oxc/issues/9170)
+- **Decorator support** — sets Vite's oxc transform target to `ES2022`, and lowers TC39 decorators with the TypeScript compiler since [oxc doesn't support that natively yet](https://github.com/oxc-project/oxc/issues/9170). The helpers the lowering calls (`__esDecorate`, `__runInitializers`, …) come from one virtual module, `virtual:praxisjs/decorators`, instead of being written into every decorated file, and the same copies written by `tsc` into the files of a library (an ES module) are replaced with imports of it. A helper is only replaced when it is exactly the one TypeScript writes. The decoration of a public field or method with a literal name, of the class itself, and the class's decorator metadata go through shorter helpers of the same module, which build the same context objects and apply the results the same way: about 200 bytes less per decorated member once minified. Accessors, getters, setters and private or computed members keep TypeScript's call
 - **JSX transform** — configures Vite to use `@praxisjs/jsx` as the JSX import source (equivalent to `jsxImportSource` in tsconfig)
-- **HMR** — when enabled, patches component classes on save so the instance re-mounts with new logic while preserving existing state where possible
+- **Keyed lists** — rewrites keyed `.map()` children into `For` (see [Lists](/docs/essentials/lists#map-with-key)). It parses with the TypeScript compiler the plugin already ships with and emits a source map
+- **Compiled templates** — turns trees of host elements into cloned templates (see below), with a source map
+- **HMR** — in the dev server, re-renders the mounted instances of an edited component in place (see below)
+
+---
+
+## Compiled templates
+
+A JSX tree of HTML or SVG elements is split at build time into its static part and its dynamic parts:
+
+```tsx
+<tr class={() => (this.isSelected(row().id) ? "danger" : "")}>
+  <td class="col-md-1">{row().id}</td>
+  <td class="col-md-4"><a onClick={() => this.select(row().id)}>{() => row().label}</a></td>
+  <td class="col-md-1"><a onClick={() => this.remove(row().id)}>×</a></td>
+</tr>
+```
+
+- **Static** — tags, literal attributes (`class="col-md-1"`), literal text and the anchors of reactive children. They are built **once** and every render starts from one `cloneNode(true)` of that tree. When the HTML parser provably reads the tree back unchanged, it is emitted as markup and parsed once (shorter in the bundle than one DOM call per node); otherwise it is built with the same DOM calls a plain render makes.
+- **Dynamic** — expressions, arrow functions, event handlers, refs and components. The clone is walked with `firstChild`/`nextSibling` to the nodes that need them, then each one is bound exactly as `jsx()` would bind it.
+
+A tree is emitted as markup only when it holds known HTML elements (no custom element, SVG, form control state or raw-text element), none the parser would close or move (block content inside a `p`, nested links, buttons, forms or headings, list items or table parts out of place), no text the parser would merge, drop or move out of a table, and only attributes whose property writes the same attribute the markup holds (`id`, `class`, `href`, `type`, `aria-*`, `data-*`, boolean attributes such as `disabled`, …). Any other tree keeps the DOM-call builder, so the result is always the DOM `jsx()` would build.
+
+A reactive child that is the only content of its element (`<a>{() => row().label}</a>`) needs no anchor comment: it fills the element, and a text update writes the `data` of its text node. Any other only child (`<td>{row().id}</td>`) is written with `textContent` when it is text.
+
+The template is built in the inert document that `<template>` contents use, and each clone is adopted by the page's document when it is inserted, which is cheaper than cloning inside the live document. A template that contains a custom element (a tag with a `-`) is built and cloned in the live document instead, so the element is upgraded as soon as it is cloned and its properties are set through its class.
+
+**Event handlers.** An event prop of a template element attaches no listener when it is bound: the handler is stored on the element. One capture listener per event type, on the document and on every render container and portal target, gives the element its own listener the first time an event of that type is on its way to it, before the event arrives. The handler then runs at its usual place in the dispatch (target or bubble phase), with the usual `this`, `currentTarget` and `stopPropagation()`, for bubbling and non-bubbling events alike, in or out of the document as long as the element is under a render container. The only difference from a listener added at render time is its position among other listeners added to the same element with `addEventListener` before that first event: those now run first.
+
+A lone element is compiled when it has something static (a literal attribute or text) or a reactive child. The output DOM is the same as without templates, except that a reactive child that is the only content of its element has no anchor comment, so the option can be turned off at any time. A tree stays on `jsx()` when it has a spread attribute (`{...props}`), an explicit `children` attribute, an HTML entity the compiler doesn't know, or an `await`/`yield` inside one of its expressions — its nested trees are still compiled on their own.
+
+<Callout type="info" title="Props that don't survive cloning">
+  A literal prop that lives only in a property (an expando, a custom element field) would be lost by `cloneNode`. The runtime checks each literal prop on a probe element when it builds the template and replays the ones that don't survive on every clone, so nothing has to be declared.
+</Callout>
+
+---
+
+## Hot module replacement
+
+In the dev server (`vite`), every top-level class of your app's modules is registered with the runtime under its file and class name. When you save a module whose exports are all component classes, Vite runs the new module and each mounted instance of its components is rendered again, in place, with the new class: no page reload, and the rest of the page (other components, the router, stores) keeps its state.
+
+- **State** — the edited component's instances are new instances: their `@State` fields start from their initial values, `onUnmount` runs on the old instance and `onMount` on the new one. State kept outside the component (stores, the URL) is untouched.
+- **References elsewhere** — a route table or a parent that imported the old class keeps working: mounting a registered class always mounts its newest version.
+- **Full reload, on purpose** — a module that also exports something else (a helper, a constant, a store, a re-export), or whose exported class is not a component, is not replaced in place: modules that import it may hold the old values, so the update goes to them the usual Vite way, which re-runs them or reloads the page. Edits to `main.tsx` and other modules without classes reload too. Keep components in their own modules to get hot updates.
+- **Dev DOM** — while HMR is active, every registered component is bounded by two comments (`<!--[Name]-->…<!--[/Name]-->`), also when it renders a single node, so it can be replaced between them. Production builds are unaffected: the plugin adds nothing to them.
+
+Dependencies (anything under `node_modules`, or linked from outside the project root) are left alone.
 
 ---
 

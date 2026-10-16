@@ -1,10 +1,36 @@
 ---
 title: "@praxisjs/mcp"
-description: Changelog for @praxisjs/mcp — PraxisJS MCP server for Claude Code.
+description: Changelog for @praxisjs/mcp — PraxisJS MCP server for AI assistants.
 icon: Bot
 ---
 
 # @praxisjs/mcp
+
+## 0.4.0
+
+The server now knows your project, not only the docs. Nineteen new tools, all described on the [MCP Server](/docs/tooling/mcp#tools) page:
+
+**Docs.** `praxisjs_search_docs` finds the docs sections for a topic, with snippets. `praxisjs_api_reference` describes one export (package, kind, docs page and section) with the TypeScript signature read from the version installed in your project. `praxisjs_list_apis` lists the public API by kind and package.
+
+**Project.** `praxisjs_inspect_project` reports installed `@praxisjs/*` versions, tsconfig problems, AI integrations, pages, components, stores, composables, services, custom decorators, routes and the folder layout. `praxisjs_validate_file` checks a file or a folder against PraxisJS rules: missing or misplaced `@Component`, the `accessor` keyword, decorators on the wrong component type, `@State`/`@Prop` not closest to the field, `this.props` in a `StatefulComponent`, in-place mutation of `@State` arrays and objects, reactive fields read outside a JSX arrow in `render()`, decorator arguments naming missing members, imports `@praxisjs/core` doesn't have. `praxisjs_scaffold` says where a new file goes in your project's structure and how it starts. They read source files with a scanner built into the server: no new dependency.
+
+**Project memory.** A `.praxis/` folder at the project root, versioned in git, catalogs reusable components and utilities, business rules, architecture decisions, conventions (including where each kind of file lives) and a glossary. It is managed through `praxisjs_memory_init`, `_list`, `_get`, `_search`, `_add`, `_update`, `_remove`, `_map` (finds unrecorded code and stale entries) and `_check_duplicate` ("is there already something that does X?", across PraxisJS, the memory and the code). Entries are validated, secrets are refused, writes are atomic and the format keeps git diffs small. See [Project memory](/docs/tooling/mcp#project-memory).
+
+**Morphos and Kosmesis.** Every docs tool takes `library: "morphos" | "kosmesis"` to read those sites. `praxisjs_ui_components` lists the components of the project's Kosmesis registries (the default one and every custom registry in `components.json`) with versions, dependencies and install status. `praxisjs_inspect_project` reports installed `@morphos/*` packages and the primitives each file uses, the Kosmesis setup, and each installed component's version, available update and local edits (from `components.lock.json`; older projects are listed by file name). `praxisjs_api_reference` finds exports of installed `@morphos/*` packages, `praxisjs_get_install_command` accepts `@morphos/*` and `kosmesis`, and the memory mapper records installed Kosmesis components and a `conventions/ui-libraries` entry.
+
+**Memory bootstrap and migration.** `praxisjs_memory_bootstrap_plan` splits a first full analysis of the project into eight focused passes for parallel subagents; `praxisjs_memory_upsert` writes many entries at once, with a dry run, list merging and a confirmation step before rewriting text in reviewed entries. The memory format is versioned in `index.md` (`schema: 1`): writes to another version are refused, and `praxisjs_memory_migrate` (dry run by default) migrates an older memory with an atomic folder swap.
+
+**Feature slices.** Projects organized in `src/features/<feature>/` are recognized: `praxisjs_scaffold` takes a `feature` (shared code goes to `src/shared/`), `conventions/project-structure` records the feature-slice rules, and `praxisjs_validate_file` flags imports past another feature's `index.ts` and `src/shared/` importing features.
+
+**Project root.** The project tools use `PRAXISJS_PROJECT_ROOT`, then `CLAUDE_PROJECT_DIR`, then the client's MCP roots, then the working directory. Every tool declares MCP annotations (read-only, destructive, idempotent).
+
+**Setup fix in the docs.** Claude Code reads project MCP servers from `.mcp.json`, not from `.claude/settings.json`: the setup instructions now say so (and `praxisjs ai add` writes it there).
+
+**Bug fix:** `praxisjs_get_page` returned a 404 for the page links `praxisjs_overview` lists, such as `/docs/essentials/components`, because the `docs/` prefix ended up in the URL twice. It now accepts those links, full `https://praxisjs.org/docs/…` URLs, a trailing slash, an `#anchor` and a `.md`/`.mdx` extension, and `/docs` alone returns the docs index page.
+
+**Faster tools.** Docs responses are kept in memory for 10 minutes, so repeated calls in a session (in particular `praxisjs_full_docs`, the whole documentation) are served without another download. Calls for the same page at the same time share one request. Failed requests are not cached, and a request that takes longer than 15 seconds fails instead of hanging the tool.
+
+`praxisjs_get_install_command` checks package names exactly (`@praxisjs/<name>`, `praxisjs`, `create-praxisjs`) instead of by prefix, so a name such as `@praxisjs/router; rm -rf .` is rejected, and duplicate names are dropped. The `dev` description now says to pass `false` for packages the app imports at runtime. The server reports its real package version to clients instead of `0.1.0`.
 
 ## 0.3.1
 

@@ -26,6 +26,7 @@ The inner structure uses three stacked elements: a top spacer, the visible items
 ```tsx
 import { VirtualList, type VirtualItem } from '@praxisjs/composables'
 import { Compose, getter, Ref } from '@praxisjs/decorators'
+import { For } from '@praxisjs/runtime'
 
 interface User { id: number; name: string; email: string }
 
@@ -50,13 +51,15 @@ class UserTable extends StatefulComponent {
           {/* Top spacer — hidden rows above the visible window */}
           <div style={() => `height:${this.virtual.offsetTop}px`} />
 
-          {/* Only the visible rows */}
-          {() => (this.virtual.visibleItems as VirtualItem<User>[]).map(({ item }) => (
-            <div style="height:48px;display:flex;align-items:center;padding:0 16px">
-              <strong>{item.name}</strong>
-              <span style="margin-left:12px;color:#888">{item.email}</span>
-            </div>
-          ))}
+          {/* Only the visible rows, kept per index while scrolling */}
+          <For each={() => this.virtual.visibleItems as VirtualItem<User>[]} by={(v) => v.index}>
+            {(v) => (
+              <div style="height:48px;display:flex;align-items:center;padding:0 16px">
+                <strong>{() => v().item.name}</strong>
+                <span style="margin-left:12px;color:#888">{() => v().item.email}</span>
+              </div>
+            )}
+          </For>
 
           {/* Bottom spacer — hidden rows below the visible window */}
           <div style={() => `height:${this.virtual.offsetBottom}px`} />
@@ -104,7 +107,7 @@ new VirtualList(containerRef, getItems, itemHeight, buffer?)
 
 | Argument | Type | Description |
 |---|---|---|
-| `containerRef` | `{ current: HTMLElement \| null }` | Ref to the scrollable container element |
+| `containerRef` | `{ current: HTMLElement \| null }` | Ref to the scrollable container element. Its height and scroll offset are read on mount, and its height is followed with a `ResizeObserver` when available |
 | `getItems` | `() => T[]` | Reactive items source — pass via `getter('propName')` |
 | `itemHeight` | `number` | Fixed height of each row in pixels |
 | `buffer` | `number` | Extra rows to render above and below the visible area (default: `3`) |

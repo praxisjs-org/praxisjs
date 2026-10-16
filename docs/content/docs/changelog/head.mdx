@@ -6,6 +6,17 @@ icon: Globe
 
 # @praxisjs/head
 
+## 0.3.2
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+The package is marked `"sideEffects": false`, so bundlers leave out the modules of it that an app does not use.
+
+Updates diff tags by a plain string key instead of `JSON.stringify`, and only query the whole `<head>` once, on the first update after load or `resetHeadState()`, to sweep tags left by a prerender. Updating or removing an entry that is not the top of the stack (an outer `@Head` while an inner one is mounted) no longer touches the document; `headVersion` still increments. A head update with a dozen tags is about twice as fast.
+
+**Bug fix:** `removeHead()` with an id that was never pushed (or was already removed) reset `document.title`.
+
+
 ## 0.3.1
 
 Updating the head no longer removes and recreates every managed tag. Tags the new config shares with the previous one stay in the document untouched, and only the difference is added or removed — a reactive `@Head` that changes one field now touches one tag. Repeated identical tags are kept as separate elements, a managed tag removed from the document is recreated on the next update, and tags left behind by a prerender are still swept. `headVersion` still increments on every update.

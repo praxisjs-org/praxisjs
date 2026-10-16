@@ -111,7 +111,9 @@ Reactive children inside the portal update normally via PraxisJS's fine-grained 
 
 ```tsx
 <Portal to="#toast-root">
-  {() => this.toasts.map(t => <ToastItem key={t.id} toast={t} />)}
+  <For each={() => this.toasts} by="id">
+    {(toast) => <ToastItem toast={() => toast()} />}
+  </For>
 </Portal>
 ```
 

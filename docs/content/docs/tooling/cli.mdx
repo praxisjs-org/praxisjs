@@ -33,10 +33,11 @@ bunx praxisjs <command>
 
 | Command | Purpose |
 |---|---|
-| [`ai add`](#ai-add) | Install an AI integration (Claude Code or Codex skill) |
+| [`ai add`](#ai-add) | Install an AI integration (Claude Code or Codex skills and the PraxisJS MCP server) |
 | [`ai remove`](#ai-remove) | Uninstall an AI integration |
+| [`ai sync`](#ai-sync) | Update installed AI integrations (skills, MCP configuration) to this version |
 | [`doctor`](#doctor) | Diagnose common project issues |
-| [`upgrade`](#upgrade) | Update `@praxisjs/*` dependencies to their latest version |
+| [`upgrade`](#upgrade) | Update `@praxisjs/*`, `@morphos/*` and `kosmesis` dependencies to their latest compatible version |
 
 Running `praxisjs` with no arguments, an unknown command, or `ai` without a subcommand prints this usage list and exits with code `1`.
 
@@ -50,12 +51,14 @@ Installs an AI integration into the current project. Prompts for which one:
 npx praxisjs ai add
 ```
 
-| Integration | Installs | Also creates if missing |
-|---|---|---|
-| **Claude Code** | `.claude/skills/praxisjs/` (skill files) | `.claude/settings.json` — MCP server pre-configured (overwritten on every `ai add`) |
-| **Codex** | `.agents/skills/praxisjs/` (skill files) | `AGENTS.md` at the project root (only if it doesn't already exist) |
+| Integration | Skills | MCP server | Also creates if missing |
+|---|---|---|---|
+| **Claude Code** | `.claude/skills/praxisjs/` plus the DX skills `.claude/skills/praxisjs-*/` | added to `.mcp.json` and approved in `.claude/settings.json` (`enabledMcpjsonServers`) | — |
+| **Codex** | `.agents/skills/praxisjs/` plus `.agents/skills/praxisjs-*/` | added to `.codex/config.toml` as `[mcp_servers.praxisjs]` (Codex loads it in trusted projects) | `AGENTS.md` at the project root |
 
-The skill itself creates `CLAUDE.md` / `AGENTS.md` project memory and `.praxisjs-ai.json` project preferences the first time it runs in a session — see the [AI skills guide](/docs/guide/ai-skills) for what each file is for and how the skill uses them.
+Existing config files are merged, never replaced: other MCP servers, settings and approvals stay as they are, and running `ai add` again only refreshes the skills. A config file that isn't valid JSON is left alone with a warning, so you can add the server by hand. A `praxisjs` entry under `mcpServers` in `.claude/settings.json`, written by earlier versions, is removed. Claude Code never reads MCP servers from that file, so with those versions the server never started.
+
+The skills create `CLAUDE.md` / `AGENTS.md`, `.praxisjs-ai.json` and the [project memory](/docs/tooling/mcp#project-memory) (`.praxis/`) the first time they run — see the [AI skills guide](/docs/guide/ai-skills) for what each file is for.
 
 <Callout type="info">
   During `create-praxisjs` scaffolding, the same integration picker appears as the "Add an AI integration?" step — `ai add` is only needed for a project that already exists.
@@ -73,10 +76,35 @@ npx praxisjs ai remove
 
 | Integration | Deletes | Leaves untouched |
 |---|---|---|
-| **Claude Code** | `.claude/skills/praxisjs/`, `.claude/settings.json` | `CLAUDE.md`, `.praxisjs-ai.json` |
-| **Codex** | `.agents/skills/praxisjs/` | `AGENTS.md`, `.praxisjs-ai.json` |
+| **Claude Code** | `.claude/skills/praxisjs*/`, the `praxisjs` server in `.mcp.json` and its approval in `.claude/settings.json` (a file left empty is deleted) | `CLAUDE.md`, `.praxisjs-ai.json`, `.praxis/`, your other skills and servers |
+| **Codex** | `.agents/skills/praxisjs*/`, the `[mcp_servers.praxisjs]` tables in `.codex/config.toml` | `AGENTS.md`, `.praxisjs-ai.json`, `.praxis/`, the rest of the config |
 
-The memory file and `.praxisjs-ai.json` are never deleted — they hold project context and preferences that aren't owned exclusively by the integration you're removing (and may still be read by the other one).
+The memory file, `.praxisjs-ai.json` and `.praxis/` are never deleted — they hold project context and preferences that aren't owned exclusively by the integration you're removing (and may still be read by the other one).
+
+---
+
+## `ai sync`
+
+Brings every installed AI integration up to the CLI's version — typically after upgrading `praxisjs`, or in a project set up by an earlier release:
+
+```sh
+npx praxisjs ai sync --dry-run   # show what would change
+npx praxisjs ai sync
+```
+
+For each integration it finds (a skill directory or an entry in the lock), it compares the files on disk with the ones this version ships:
+
+| File state | What happens |
+|---|---|
+| Missing (a new skill or reference) | Added |
+| An unedited copy from an earlier release | Replaced |
+| Shipped earlier but no longer | Removed (and its folder, once empty) |
+| Edited by you | Shows the diff and asks before replacing or removing it; without a terminal (no TTY, or `CI` set) it is always kept |
+| Already current | Left alone |
+
+"Unedited" means the file matches what the CLI recorded when it installed it, in `.praxisjs-ai.lock.json` (one hash per file, per integration; commit it), or, for installs made before the lock existed, one of the files earlier releases shipped. It also rewrites the MCP server configuration: the `praxisjs` server in `.mcp.json` gets the current command (a server pointing at a local `praxisjs-mcp` binary is kept, and so are extra keys such as `env`), its approval in `.claude/settings.json`, and the `[mcp_servers.praxisjs]` table in `.codex/config.toml`. Running it twice changes nothing the second time. It ends with a summary per integration: files written, removed and kept with your edits, and the config files it changed.
+
+`ai add` on an integration that is already installed runs the same update instead of overwriting it. The project memory (`.praxis/`) is updated separately, by the agent, with [`praxisjs_memory_migrate`](/docs/tooling/mcp#format-versions).
 
 ---
 
@@ -91,31 +119,81 @@ npx praxisjs doctor
 | Check | Flags an issue when |
 |---|---|
 | **`package.json`** | Missing, malformed, or has no `@praxisjs/*` dependency |
+| **Versions** | Two `@praxisjs/*` packages are on versions that don't work together (see below) |
 | **`tsconfig.json`** | Missing, malformed, or `compilerOptions` doesn't have `jsx: "react-jsx"`, `jsxImportSource: "@praxisjs/jsx"`, and `useDefineForClassFields: true` — the tsconfig check only runs once `package.json` passes |
-| **Claude Code integration** | The skill directory exists but `.claude/settings.json`, `CLAUDE.md`, or `.praxisjs-ai.json` is missing |
-| **Codex integration** | The skill directory exists but `AGENTS.md` or `.praxisjs-ai.json` is missing |
+| **Claude Code integration** | The skill directory exists but a DX skill, the `praxisjs` server in `.mcp.json`, `CLAUDE.md`, or `.praxisjs-ai.json` is missing |
+| **Codex integration** | The skill directory exists but a DX skill, the `praxisjs` server (in `.codex/config.toml` or `~/.codex/config.toml`), `AGENTS.md`, or `.praxisjs-ai.json` is missing |
+| **AI setup version** | An installed integration's skills or MCP configuration differ from what this version installs — run [`ai sync`](#ai-sync) |
 
-Each AI integration check only runs if its skill directory is present — `doctor` doesn't flag an integration that was never installed. Exits with code `1` if any check fails, `0` if everything passes.
+The version check reads the installed version from `node_modules` and falls back to the version in the declared range. It flags these pairs, each with a `praxisjs upgrade` hint:
+
+| When the project has | It also needs | Because |
+|---|---|---|
+| `@praxisjs/vite-plugin` 4.1+ | `@praxisjs/runtime` 0.8+ as a dependency | Compiled templates and the keyed-list rewrite import `For` and the template helpers from the runtime |
+| `@praxisjs/jsx` 0.8+ | `@praxisjs/runtime` 0.8+ | Fragments are mounted with the runtime's `mountChildren` |
+| `@praxisjs/decorators` 1.8+ | `@praxisjs/core` 2.3+ | `@Selector` is built on core's `selector()` |
+
+`@praxisjs/*` packages depend on each other at exact versions, so a mismatch also installs a second copy of the older package. The version and tsconfig checks only run once `package.json` passes. Each AI integration check only runs if its skill directory is present — `doctor` doesn't flag an integration that was never installed. Exits with code `1` if any check fails, `0` if everything passes.
 
 ---
 
 ## `upgrade`
 
-Updates every `@praxisjs/*` dependency in `package.json` to its latest published version:
+Updates the PraxisJS ecosystem packages in `package.json` to their latest published version:
 
 ```sh
 npx praxisjs upgrade
 ```
 
-For each `@praxisjs/*` entry in `dependencies`, `devDependencies`, and `peerDependencies`:
+| Ecosystem | Packages |
+|---|---|
+| **PraxisJS** | `@praxisjs/*` |
+| **Morphos** | `@morphos/*` |
+| **Kosmesis** | `kosmesis` (the CLI) |
 
-1. Skips it if the range is `workspace:*` (monorepo-internal, not a real npm version) or doesn't parse as a semver range.
-2. Looks up the latest published version from the npm registry.
-3. Skips it if already on the latest version.
+Only packages the project already lists are upgraded; `upgrade` never adds one. For each of them in `dependencies`, `devDependencies`, and `peerDependencies`:
+
+1. Skips it if the range is `workspace:*` (monorepo-internal, not a real npm version) or isn't a plain `x.y.z`, `^x.y.z` or `~x.y.z` range (a prerelease suffix is fine).
+2. Looks up the latest published version from the registry in `npm_config_registry` (the public npm registry by default). Every package is looked up once, all at the same time.
+3. Skips it if it is already on that version or a newer one, such as a prerelease ahead of `latest`. `upgrade` never moves a dependency backwards.
 4. Otherwise rewrites the range, preserving its prefix — `^1.0.0` becomes `^2.0.0`, `1.0.0` becomes `2.0.0`, `~1.0.0` becomes `~2.0.0`.
 
-If anything changed, `upgrade` writes `package.json` and runs the detected package manager's install command — `pnpm install`, `yarn`, `bun install`, or `npm install`, based on the lockfile present in the project root. If the install itself fails, `upgrade` reports it but doesn't crash; re-run the printed command manually.
+### Compatible versions
+
+Before writing anything, `upgrade` reads the `peerDependencies` of every version it is about to install (and of the installed version of every package it leaves alone) and checks them against the other ecosystem packages in the project. Morphos packages declare the `@praxisjs/*` ranges they work with and the exact `@morphos/core` they were built against, so this is what keeps them in step. When an upgrade would break a peer range, it is held back instead of producing a broken install:
+
+- If the new release of a package needs a peer the project won't have (a Morphos release that needs a newer `@praxisjs/core` than the latest one), that package stays on its current version.
+- If a package that isn't moving doesn't accept the new release of one of its peers (a Morphos package that doesn't support a new `@praxisjs/core` major yet), the peer stays on its current version.
+- Holding back one `@praxisjs/*` package holds back every `@praxisjs/*` package, because they depend on each other at exact versions and splitting them installs a second copy.
+
+Held back packages are listed in yellow with the reason, under their ecosystem. Peer conflicts the project already had before the upgrade, which no upgrade fixes, are listed under **Already incompatible** without changing anything. Run `upgrade` again once a compatible release is out.
+
+```text
+◇  PraxisJS
+│  @praxisjs/core: ^2.2.0 → ^2.3.0
+│  @praxisjs/runtime: ^0.7.1 → ^0.8.0
+◇  Morphos
+│  @morphos/core: ^0.1.3 → ^0.1.4
+│  @morphos/inputs: held back at ^1.0.3 (@morphos/inputs@1.1.0 needs @praxisjs/core >=3.0.0, the project would have 2.3.0)
+◇  Kosmesis
+│  kosmesis: ^0.4.0 → ^0.5.0
+```
+
+### Install
+
+If anything changed, `upgrade` writes `package.json` and runs the detected package manager's install command — `pnpm install`, `yarn`, `bun install`, or `npm install`, based on the lockfile present in the project root (`pnpm-lock.yaml`, `yarn.lock`, `bun.lock` or `bun.lockb`). A `package.json` that isn't valid JSON is reported and `upgrade` exits with code `1` without changing anything. If the install itself fails, `upgrade` reports it but doesn't crash; re-run the printed command manually.
+
+### Kosmesis components
+
+Kosmesis components are source files copied into the project by `kosmesis add`, not npm packages, so `upgrade` doesn't change them. When the project uses Kosmesis (it lists `kosmesis` or has a `components.json` with a `styleSystem` field), `upgrade` ends with a **Kosmesis components** section:
+
+- With `kosmesis` 0.5.0 or later installed in `node_modules`, it runs `kosmesis outdated` and shows its report.
+- Otherwise it prints the command to run yourself, such as `npx kosmesis outdated` (`pnpm dlx`, `yarn dlx` or `bunx` for the other package managers).
+
+Review and apply each component update with `kosmesis update <name>`, which shows the diff before overwriting your copy.
+
+Finally, when an installed AI integration is outdated, `upgrade` offers to run [`ai sync`](#ai-sync) (in a terminal) or prints the command (otherwise).
 
 <Callout type="info">
-  `upgrade` only touches `@praxisjs/*` packages. It won't bump unrelated dependencies like `vite` or `typescript`.
+  `upgrade` only touches the ecosystem packages above. It won't bump unrelated dependencies like `vite`, `typescript` or `lucide`.
 </Callout>

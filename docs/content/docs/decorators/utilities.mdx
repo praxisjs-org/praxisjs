@@ -41,6 +41,10 @@ class Panel extends StatefulComponent {
 }
 ```
 
+Every read returns the same bound function, so `removeEventListener` receives the listener that was added. The bound copy is created the first time the method is read from an instance, so instances that never read it pay nothing.
+
+`@Once`, `@Memo`, `@Log`, `@Retry`, `@Debounce`, `@Throttle` and `@Emit` return bound methods the same way, so they can be passed as callbacks directly too.
+
 <StorybookLink story="decorators-utilities-bind--bind-story" label="Live demo — @Bind" />
 
 ---

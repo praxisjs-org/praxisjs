@@ -6,6 +6,23 @@ icon: Cpu
 
 # @praxisjs/concurrent
 
+## 1.3.9
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+The package is marked `"sideEffects": false`, so bundlers leave out the modules of it that an app does not use.
+
+`@Task`, `@Queue` and `@Pool` throw a `TypeError` when the class is defined if they decorate an `accessor` instead of a plain field, naming the member to fix (see [`assertFieldContext`](/docs/advanced/custom-decorators#field-decorators)).
+
+**Faster decorated components and calls.** Measured in Node:
+
+- Whether a method takes an `AbortSignal` is now detected once per method instead of reading its source with `fn.toString()` for every new instance. With the field value returned from the decorator's initializer, constructing a component with `@Task`, `@Queue` and `@Pool` is about 2.5x faster.
+- `loading`, `error`, `pending`, `active` and `lastResult` read their signals directly instead of through a wrapping `computed()`, and state that changes together is published in one batch, so an effect reading `loading` and `lastResult` runs once per change.
+- An `AbortController` is only created when the method takes a `signal`. The synchronous part of a `@Task` call is about 13x cheaper.
+- `@Queue` and `@Pool` take items from the front of their backlog in constant time. Draining 20 000 queued calls went from about 156 ms to 6 ms.
+
+**Fix:** `@Pool` read its own `active` signal while scheduling, so calling a pool from inside an effect subscribed that effect to the pool's state and ran it again each time a task started or finished.
+
 ## 1.3.0
 
 **Opt-in `AbortSignal` support for `@Task`, `@Queue`, and `@Pool`.**

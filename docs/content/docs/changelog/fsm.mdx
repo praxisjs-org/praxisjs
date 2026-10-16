@@ -6,6 +6,19 @@ icon: GitBranch
 
 # @praxisjs/fsm
 
+## 2.2.1
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+The package is marked `"sideEffects": false`, so bundlers leave out the modules of it that an app does not use.
+
+`@StateMachine` throw a `TypeError` when the class is defined if they decorate an `accessor` instead of a plain field, naming the member to fix (see [`assertFieldContext`](/docs/advanced/custom-decorators#field-decorators)).
+
+**Bug fix:** `send()` and `reset()` read the current state untracked. An effect that called `machine.send(...)` used to subscribe to the machine state and re-run after its own transition. `can()` and `is()` stay reactive.
+
+Transitions no longer allocate wrapper closures on every `send()` or `can()`, and a history update copies the array once instead of twice. `@StateMachine` shares one accessor across instances and keeps each machine on its instance, making the first read of a machine field about three times cheaper.
+
+
 ## 2.2.0
 
 New `historyLimit` option on the machine definition. `history` used to grow forever, and every transition copied the whole array; it now keeps the 100 most recent entries by default. Set `historyLimit` to change that (`0` disables the history, `Infinity` restores the old unbounded behaviour).

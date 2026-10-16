@@ -6,6 +6,31 @@ icon: Palette
 
 # @praxisjs/css
 
+## 0.3.5
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+`@Styled` and `@Style` throw a `TypeError` when the class is defined if they decorate an `accessor` instead of a plain field, naming the member to fix (see [`assertFieldContext`](/docs/advanced/custom-decorators#field-decorators)).
+
+**Faster per-instance and per-render paths.** Measured in Node with jsdom:
+
+- `cx()` builds the class string directly instead of collecting parts in an array and joining them: about 1.9x faster.
+- `@Styled` with a stylesheet that has no `@Param()` now gives every instance the same frozen class map straight from the field initializer, with no per-instance lifecycle hooks, signals or reference counting. Constructing a component with one such field is about 4.7x faster (700 ns → 150 ns).
+- `@Styled` with `@Param()` shares its accessors and class names on one prototype per stylesheet, and each instance only holds its signal nodes. `@Style` uses one accessor pair per decorated field, which makes constructing a component with one `@Style` field about 2.4x faster. Neither adds per-instance closures for its mount hooks any more.
+- `this.css()` builders keep their methods on a shared prototype instead of creating about 40 closures per call (about 4x faster), and static token reads such as `t.colorPrimary` are cached (about 9.6x faster).
+
+The `<style>` registry no longer counts references: the injection made at decoration time was never released, so the count could not remove a stylesheet. Every new instance still checks that its `<style>` is present, puts it back if it was removed, and reports it to an active collector during a server render.
+
+**Fixes**
+
+- Static extraction (`praxisjsCSS()`) dropped the `layer` option of `globalStyle()`, so production CSS was un-layered while dev CSS was layered.
+- Static extraction had no `preflight()`. Calling it threw inside the extraction sandbox, which silently skipped the rest of that file's CSS, and the reset never reached the static stylesheet.
+- `ThemeInstance` skipped an active collector when there was no `document`, so a server render never collected the theme's `:root` vars.
+- Instantiating a `@Themed` class again reset the theme to its default (undoing `theme().switch()`) and left the previous instance's `BroadcastChannel` open. The active theme is now kept, and a replaced instance is destroyed.
+- `@Style` and `@Styled` with `@Param()` removed their CSS vars from the anchor's current parent on unmount, so a component whose anchor was already detached left them on its old container. They now remove them from the element they were set on.
+
+Extraction now shares the runtime's stylesheet, keyframes and global CSS code, so both always produce the same class names and CSS.
+
 ## 0.3.1
 
 Fixed build-time static extraction (`praxisjsCSS()`) silently dropping **all** CSS for any `Stylesheet` that read values through `tokenVars()`. The extraction sandbox stubbed `TokenSheet` as a plain empty class instead of the real Proxy-based implementation, so static property access on a token subclass (e.g. `t.colorPrimary`) resolved to `undefined` instead of `'var(--color-primary)'` — and since that `undefined` was often used inside a template literal or property value, the sheet's constructor could throw and get silently skipped by extraction's error handling, leaving the component completely unstyled in production builds. `TokenSheet` and `tokenVars` are now the real implementations during extraction, same as `Stylesheet`.

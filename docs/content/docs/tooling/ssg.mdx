@@ -69,7 +69,7 @@ export default class App extends StatefulComponent {
   `vite.config.ts` is loaded by Vite's own minimal config bundler, which doesn't lower decorator syntax. Passing `routes` or `getStaticPaths` inline — where either one imports something decorated, like a `@Collection` schema — bundles raw decorator syntax straight into the config, and Node can't run that. Exporting both from `root` sidesteps it: they only ever load through `ssrLoadModule()`, which runs your app's real Vite pipeline, decorators included.
 </Callout>
 
-Nothing else changes. `main.tsx` still calls `render(() => <App />, document.getElementById('app'))` exactly as before — `render()` checks the prerendered HTML for a hydration marker and decides on its own whether to hydrate.
+Nothing else changes. `main.tsx` still calls `render(() => <App />, document.getElementById('app'))` exactly as before. `ssgPlugin()` adds a call to `enableHydration()` from `@praxisjs/runtime` at the start of the client bundle, and from then on `render()` checks the prerendered HTML for a hydration marker and decides on its own whether to hydrate.
 
 ---
 
@@ -131,21 +131,45 @@ No path matching needed either way — a route's `getStaticPaths` only ever runs
 
 ## How hydration works
 
-1. **Prerender (build time, Node).** Each route mounts into a headless DOM, waiting for `resource()`/`@Collection` data and any `Lazy(...)`-wrapped route or layout component to settle, then serializes the result.
-2. **Client mount.** `render()` sees the hydration marker on the container and builds the component tree the same way it would for any client-only app — except into a detached node instead of the page.
+1. **Prerender (build time, Node).** Each route mounts into a headless DOM, waiting for `resource()`/`@Collection` data and any `Lazy(...)`-wrapped route or layout component to settle, then serializes the result. See [Route isolation](#route-isolation) for what each route starts from.
+2. **Client mount.** With hydration enabled (see below), `render()` sees the hydration marker on the container and builds the component tree the same way it would for any client-only app — except into a detached node instead of the page.
 3. **Reconcile.** That fresh tree is diffed against the container's real DOM. Matching elements keep their real node — props and event listeners are reapplied rather than recreated. Text and comment nodes always come from the fresh tree, and anything that doesn't line up locally is recreated at that one spot.
 
 No changes to how you write or mount a component are needed to make it hydratable — `render()` detects the marker on its own.
 
+### Enabling hydration
+
+The reconciliation code only ships in apps that hydrate: `render()` reaches it through `enableHydration()`, so an app that never calls it leaves it out of its bundle. `ssgPlugin()` injects the call for you (a module script in front of your entry). A page you prerender some other way, for example with `prerender()` from your own script, calls it once before `render()`:
+
+```ts
+import { enableHydration, render } from '@praxisjs/runtime'
+
+enableHydration()
+render(() => <App />, document.getElementById('app')!)
+```
+
+Without it, a container carrying the hydration marker is cleared and mounted fresh, as with `hydrate: false`.
+
 ### Turning hydration off
 
-Pass `hydrate: false` to skip all of the above. Output HTML carries no marker, and `render()` falls back to its normal create-mode mount (clear the container, mount fresh) on the client — same as a page with no server-rendered HTML at all. Reach for this when a page's DOM is unlikely to match closely enough for reconciliation to pay off, like heavy client-only randomization.
+Pass `hydrate: false` to skip all of the above. Output HTML carries no marker, the client bundle gets no `enableHydration()` call (and no reconciliation code), and `render()` falls back to its normal create-mode mount (clear the container, mount fresh) on the client — same as a page with no server-rendered HTML at all. Reach for this when a page's DOM is unlikely to match closely enough for reconciliation to pay off, like heavy client-only randomization.
+
+### Route isolation
+
+One JSDOM window serves the whole build, since parsing a new one for every route cost more than most renders. Before each route the window is reset:
+
+- the document is a fresh copy of the built `index.html`, so nodes and `<head>` changes from the previous page are gone
+- `location` and `history` point at the route's URL
+- `localStorage` and `sessionStorage` are empty (they belong to the page, so `@Persisted` reads and writes stay within one route)
+- globals the previous route added to `window` are removed
+
+Each page is unmounted after it is serialized, so `onUnmount` runs and its effects and listeners are released. The window is closed when the last route is done, which also stops any timer a page left running. Module-level state in your own code is not reset between routes.
 
 ### Limitations
 
 - **`<Portal>` content isn't in the prerendered HTML.** Portals mount outside the normal tree (`document.body` by default), so the server render skips them — they mount normally on the client right after hydration completes. Fine for modals and tooltips, which rarely need to exist in the initial HTML anyway.
 - **`resource()`/`@Collection` data is re-fetched on the client, not transferred.** For build-time-static data this reproduces the same result, so there's no visible mismatch — just some redundant work versus serializing the data alongside the HTML.
-- **Reconciliation is positional, not keyed.** Dynamic lists are matched by position rather than a stable key. Deterministic, build-time data isn't affected — same data, same order on both sides — but a genuine reorder between build and first client render shows up as a set of local mismatches rather than a detected reorder.
+- **Reconciliation is positional, not keyed.** Dynamic lists are matched by position rather than a stable key. [`For` and `Index`](/docs/essentials/lists#server-rendered-lists) rows are matched the same way, then the list keeps the adopted elements for its later updates. Deterministic, build-time data isn't affected — same data, same order on both sides — but a genuine reorder between build and first client render shows up as a set of local mismatches rather than a detected reorder.
 
 ---
 

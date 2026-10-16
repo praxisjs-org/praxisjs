@@ -6,6 +6,33 @@ icon: Activity
 
 # @praxisjs/core
 
+## 2.3.0
+
+The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).
+
+**Smaller production bundles.** The package is marked `"sideEffects": false`, so bundlers leave out the modules an app does not use (an app without `selector()` no longer carries its bucket class). The graph checks a boolean, not the observer itself, before reporting to a reactive observer: a minifier removes that instrumentation entirely from an app that never installs one, which is every app without devtools.
+
+Added `selector(source, equals?)` to `@praxisjs/core/internal`. It returns a `(key) => boolean` check whose subscribers are grouped by key, so a change to the source re-runs only the effects that read the previous or the next key instead of every effect that compared against it. With the default comparison (SameValueZero) the two affected keys are looked up directly; a custom `equals` checks every key in use and notifies only those whose result changed. A key's subscriber list is dropped when its last effect stops, and the source subscription is released a microtask after the last key is gone. Read outside an effect, the check always compares against the current source value, also right after a write inside a `batch` or an event handler, before the subscribers are notified.
+
+**New reactive graph.** Signals, computeds and effects were rewritten as a push-pull graph:
+
+- Dependencies are linked nodes that a re-run reuses in place. A binding that reads the same sources every time allocates nothing and no longer unsubscribes and resubscribes on each run, and a notification no longer copies the subscriber list.
+- A computed recomputes only when one of its sources actually changed (tracked with versions), and a computed that recomputes to the same value (`Object.is`) does not wake its dependents.
+- Effects that read a changed signal directly re-run synchronously, as before. Effects that depend on a change only through a computed still re-run once per tick in a microtask, but they now pull fresh values when they run, so they never see a computed out of step with its sources, and one that already re-ran for a direct change is not run a second time.
+- Bug fix: a computed that threw used to stay dirty, which stopped later changes of its sources from reaching its subscribers. It now retries on the next read and keeps propagating.
+- Bug fix: an effect invalidated by a computed while it was running could be left stale and never run again.
+- A computed that reads itself throws `Cycle detected` instead of recursing.
+
+**Component internals are stored on the instance** (under a symbol) instead of a `WeakMap`, so every `@Prop` read is a property load instead of a map lookup. `getComponentStart`/`setComponentStart` are new in `@praxisjs/core/internal`.
+
+`getComponentAnchor()` returns a `Node` instead of a `Comment`: a component that renders a single root node is anchored on that node, since `@praxisjs/runtime` no longer wraps it in comments. Its `parentElement` is the component's container as before. Every `selector()` now shares one bucket class instead of declaring one per call, so the graph code that links them always sees the same object shape.
+
+Every effect records what was rendering when it was created (`setCurrentOwner()`), whether or not a reactive observer is installed, and effects created while an owned effect runs inherit its owner. `getEffectOwner()` reads it from the effect node instead of a `WeakMap`, so devtools can attribute effects created before profiling started.
+
+`@praxisjs/core/internal` also exports the graph primitives the other packages build on: `SignalNode`, `readSignal`/`writeSignal`, `ComputedNode`/`readComputed`, `createEffect`/`disposeEffect`, `createContextEffect` (an effect whose shared function reads its state from `this.ctx`, so effects of one kind allocate no closure each), `startBatch`/`endBatch` and `pauseTracking`/`resumeTracking`.
+
+One inert instance of each graph class (signal, computed, effect, link, selector bucket) is kept for the life of the page, so their V8 hidden classes, and the optimized code built on them, survive a full GC after every node of a kind was collected (a list cleared), instead of the next render running cold.
+
 ## 2.2.0
 
 `persistedSignal()` now returns a `close()` method that removes its `window` `storage` listener. `@Persisted` calls it on unmount; calling it yourself is only needed for signals you create directly with `syncTabs` on. It also takes a new `writeDelay` option: writes to `localStorage` within the window are coalesced into one using the latest value, flushed on `pagehide` and on `close()`. A value arriving from another tab discards a still-pending local write. The default (`0`) keeps the previous write-on-every-set behaviour.

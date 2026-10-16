@@ -37,7 +37,7 @@ The arrow function `{() => this.count}` is the contract: *this value changes, tr
 Updates happen through reactive effects: each `{() => expr}` arrow function in JSX becomes a live subscription. When any signal it reads changes, only that specific DOM node is updated. The rest of the tree is untouched.
 
 This means:
-- No diffing, no reconciliation
+- No virtual DOM diffing. Lists rendered with [`For`](/docs/essentials/lists) compare item keys, not DOM trees, and touch only the rows that changed
 - No cascading re-renders from parent to child
 - Predictable update granularity — you know exactly what updates and when
 
