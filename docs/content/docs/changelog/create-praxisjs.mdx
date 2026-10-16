@@ -6,6 +6,10 @@ icon: Rocket
 
 # create-praxisjs
 
+## 1.2.1
+
+Depends on the other `@praxisjs/*` packages through caret ranges (`^2.3.0`) instead of exact versions, so npm no longer installs a second copy of a package when two releases disagree, and upgrades no longer end in peer conflicts.
+
 ## 1.2.0
 
 **New:** start with [Kosmesis](https://kosmesis.praxisjs.org) UI components, with every template and with Tauri v2. After the Tauri question, the CLI asks "Add Kosmesis UI components?" with Tailwind CSS or `@praxisjs/css`; `--kosmesis` answers Tailwind, `--kosmesis=praxisjs-css` (or `--kosmesis praxisjs-css`) `@praxisjs/css`, and `--no-kosmesis` no. It runs `kosmesis init` without prompts through your package manager (`kosmesis@^0.6.0`, the first release with the flags it needs) and adds the `button` and `card` components, which installs the project's dependencies. The theme, the Vite plugin, the `@/*` alias and the icon provider are wired for you, also in the Tauri `vite.config.ts`. When Kosmesis cannot be set up, the CLI says why, keeps the project as it would be without it and prints the commands to run later. See [UI components with Kosmesis](/docs/guide/getting-started#ui-components-with-kosmesis).
