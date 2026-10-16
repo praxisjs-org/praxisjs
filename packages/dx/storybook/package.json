@@ -13,15 +13,21 @@
     "./preset": {
       "types": "./dist/preset.d.ts",
       "import": "./dist/preset.js"
+    },
+    "./preview": {
+      "types": "./dist/preview.d.ts",
+      "import": "./dist/preview.js"
     }
   },
   "files": [
     "dist",
-    "manager.jsx"
+    "manager.jsx",
+    "!dist/**/__tests__"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch"
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@praxisjs/runtime": "workspace:*",

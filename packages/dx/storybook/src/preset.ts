@@ -1,9 +1,13 @@
-import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 
 import praxisjs from "@praxisjs/vite-plugin";
 
-import type { Indexer } from "storybook/internal/types";
+// Storybook loads the preset with Node itself, which needs the extension tsc leaves as written.
+import { packagePath } from "./paths.js";
+
+import type { Indexer, PreviewAnnotation } from "storybook/internal/types";
+
+const STORY_FILE = /\.(stories|story)\.(m?js|ts)x?$/;
 
 // Regex to strip the `accessor` keyword from class field declarations.
 // Storybook's internal babelParse uses `decorators-legacy` but omits
@@ -13,7 +17,7 @@ import type { Indexer } from "storybook/internal/types";
 const ACCESSOR_KEYWORD_RE = /\baccessor\s+(?=[a-zA-Z_$#])/g;
 
 const praxisCsfIndexer: Indexer = {
-  test: /(stories|story)\.(m?js|ts)x?$/,
+  test: STORY_FILE,
   createIndex: async (fileName, options) => {
     const rawCode = await readFile(fileName, "utf-8");
     if (!rawCode.trim()) return [];
@@ -31,18 +35,18 @@ function storySourcePlugin() {
   return {
     name: "praxisjs-story-source",
     enforce: "post" as const,
-    transform(code: string, id: string) {
-      if (!(/\.stories\.(tsx?|jsx?)($|\?)/.exec(id))) return null;
+    async transform(code: string, id: string) {
       const filePath = id.split("?")[0];
+      if (!STORY_FILE.test(filePath)) return null;
+      const exportMatch = /export default (\w+);/.exec(code);
+      if (!exportMatch) return null;
       let originalSource: string;
       try {
-        originalSource = readFileSync(filePath, "utf-8");
+        originalSource = await readFile(filePath, "utf-8");
       } catch {
         return null;
       }
       const source = JSON.stringify(originalSource);
-      const exportMatch = /export default (\w+);/.exec(code);
-      if (!exportMatch) return null;
       const metaVar = exportMatch[1];
       const injection = `\n${metaVar}.parameters = {\n  ...${metaVar}.parameters,\n  storySource: { source: ${source} },\n};`;
       return {
@@ -68,5 +72,10 @@ export const core = {
 };
 
 export function managerEntries(entries: string[] = []): string[] {
-  return [...entries, new URL("../manager.jsx", import.meta.url).pathname];
+  return [...entries, packagePath("../manager.jsx", import.meta.url)];
+}
+
+/** Registers `renderToCanvas` and the default `render`, so `.storybook/preview.ts` needs no setup. */
+export function previewAnnotations(entries: PreviewAnnotation[] = []): PreviewAnnotation[] {
+  return [...entries, packagePath("./preview.js", import.meta.url)];
 }
