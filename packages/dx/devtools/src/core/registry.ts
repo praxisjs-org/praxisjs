@@ -1,4 +1,5 @@
 import { EventBus } from "./event-bus";
+import { Profiler } from "./profiler";
 
 import type {
   ComponentEntry,
@@ -25,9 +26,12 @@ export class Registry {
   }
 
   readonly bus = new EventBus();
+  readonly profiler = new Profiler();
 
   private readonly instanceIds = new WeakMap<object, string>();
   private readonly signals = new Map<string, SignalEntry>();
+  // Signal ids per component, so unmounting one component drops its signals without scanning all.
+  private readonly signalsByComponent = new Map<string, Set<string>>();
   private readonly components = new Map<string, ComponentEntry>();
   private readonly timeline: TimelineEntry[] = [];
 
@@ -58,6 +62,12 @@ export class Registry {
     };
 
     this.signals.set(id, entry);
+    let ids = this.signalsByComponent.get(componentId);
+    if (ids === undefined) {
+      ids = new Set();
+      this.signalsByComponent.set(componentId, ids);
+    }
+    ids.add(id);
     this.bus.emit("signal:registered", entry);
   }
 
@@ -73,20 +83,13 @@ export class Registry {
     const entry = this.signals.get(id);
     if (!entry) return;
 
-    const history = [
-      ...entry.history,
-      { value: newValue, timestamp: Date.now() },
-    ].slice(-MAX_HISTORY);
+    const now = Date.now();
+    entry.history.push({ value: newValue, timestamp: now });
+    if (entry.history.length > MAX_HISTORY) entry.history.shift();
+    entry.value = newValue;
+    entry.changedAt = now;
 
-    const updated: SignalEntry = {
-      ...entry,
-      value: newValue,
-      history,
-      changedAt: Date.now(),
-    };
-
-    this.signals.set(id, updated);
-    this.bus.emit("signal:changed", { entry: updated, oldValue });
+    this.bus.emit("signal:changed", { entry, oldValue });
     this.pushTimeline({
       type: "signal:change",
       label: `${entry.componentName}.${key}`,
@@ -158,9 +161,8 @@ export class Registry {
       entry.status = "unmounted";
       this.bus.emit("component:unmount", { ...entry });
       this.components.delete(id);
-      for (const [sid, s] of this.signals) {
-        if (s.componentId === id) this.signals.delete(sid);
-      }
+      for (const sid of this.signalsByComponent.get(id) ?? []) this.signals.delete(sid);
+      this.signalsByComponent.delete(id);
     }
   }
 
@@ -198,7 +200,10 @@ export class Registry {
   }
 
   getSignalsByComponent(componentId: string): SignalEntry[] {
-    return this.getSignals().filter((s) => s.componentId === componentId);
+    const out: SignalEntry[] = [];
+    // The index and the signal map are updated together, so every id here has an entry.
+    for (const id of this.signalsByComponent.get(componentId) ?? []) out.push(this.signals.get(id) as SignalEntry);
+    return out;
   }
 
   private pushTimeline(data: Omit<TimelineEntry, "id" | "timestamp">): void {
@@ -209,10 +214,7 @@ export class Registry {
     };
 
     this.timeline.push(entry);
-
-    if (this.timeline.length > MAX_TIMELINE) {
-      this.timeline.shift();
-    }
+    if (this.timeline.length > MAX_TIMELINE) this.timeline.shift();
 
     this.bus.emit("timeline:push", entry);
   }

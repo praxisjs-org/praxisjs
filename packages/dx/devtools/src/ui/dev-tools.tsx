@@ -2,6 +2,7 @@ import logo from "@assets/logo.svg";
 import unoStyles from "@assets/uno.generated.css?inline";
 import { Registry } from "@core/registry";
 import { ComponentsPlugin } from "@plugins/components";
+import { PerformancePlugin } from "@plugins/performance";
 import { SignalsPlugin } from "@plugins/signals";
 import { TimelinePlugin } from "@plugins/timeline";
 import unoReset from "@unocss/reset/tailwind-v4.css?inline";
@@ -18,6 +19,7 @@ const DEFAULT_PLUGINS: DevtoolsPlugin[] = [
   SignalsPlugin,
   ComponentsPlugin,
   TimelinePlugin,
+  PerformancePlugin,
 ];
 
 export interface DevToolsOptions {
@@ -74,6 +76,9 @@ export const DevTools = {
     }
 
     this.plugins.forEach((p) => p.setup?.(Registry.instance));
+
+    // Reachable from the browser console: __PRAXIS_DEVTOOLS__.profiler.start(), .getSignals(), …
+    (globalThis as { __PRAXIS_DEVTOOLS__?: Registry }).__PRAXIS_DEVTOOLS__ = Registry.instance;
 
     const host = document.createElement("div");
     host.id = "praxisjs-devtools";

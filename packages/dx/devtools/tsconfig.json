@@ -17,5 +17,5 @@
       "@icons": ["./src/icons/index.ts"]
     }
   },
-  "include": ["src", "uno.config.ts", "vite.config.ts"]
+  "include": ["src", "uno.config.ts"]
 }

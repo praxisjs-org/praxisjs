@@ -198,3 +198,41 @@ describe("Trace — lifecycle hooks", () => {
     });
   }
 });
+
+describe("Trace — slow renders", () => {
+  it("warns when a render takes longer than the threshold, and only then", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    let busy = 0;
+    class Slow {
+      render() {
+        const end = performance.now() + busy;
+        while (performance.now() < end) { /* busy wait */ }
+        return null;
+      }
+    }
+    const Traced = Trace({ slow: 2 })(Slow as unknown as AnyConstructor, {} as ClassDecoratorContext);
+    const instance = new Traced() as { render: () => unknown };
+    instance.render();
+    expect(warn).not.toHaveBeenCalled();
+    busy = 5;
+    instance.render();
+    expect(warn).toHaveBeenCalledOnce();
+    expect(warn.mock.calls[0][0]).toMatch(/<Slow> rendered in .* ms \(over 2 ms\)/);
+    warn.mockRestore();
+  });
+});
+
+describe("production builds", () => {
+  it("leave classes and members untouched", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      const { Debug } = await import("../decorators/debug");
+      class Plain { render() { return null; } }
+      expect(Trace({ slow: 1 })(Plain as unknown as AnyConstructor, {} as ClassDecoratorContext)).toBe(Plain);
+      const method = () => 1;
+      expect(Debug()(method, { kind: "method", name: "m" } as unknown as ClassMethodDecoratorContext)).toBeUndefined();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});

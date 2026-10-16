@@ -292,6 +292,7 @@ describe("Registry.getSignalsByComponent", () => {
     const signals = registry.getSignalsByComponent(comp1Id);
     expect(signals).toHaveLength(1);
     expect(signals[0].label).toBe("a");
+    expect(registry.getSignalsByComponent("unknown")).toEqual([]);
   });
 });
 

@@ -245,12 +245,10 @@ describe("Debug — field decorator with computed value", () => {
 // ── Async method decorator ────────────────────────────────────────────────────
 
 describe("Debug — async method decorator", () => {
-  it("timing is recorded for the synchronous wrapper (documents limitation: async duration is not measured)", () => {
-    // @Debug wraps methods synchronously. For async methods, the recorded duration
-    // covers only until the Promise is returned, not until it resolves.
+  it("records the call when the returned promise settles, with its resolved value", async () => {
     const ctx = mockMethodCtx("fetchData");
     const original = vi.fn(async () => {
-      await new Promise((r) => setTimeout(r, 10));
+      await new Promise((r) => setTimeout(r, 5));
       return "done";
     });
 
@@ -261,18 +259,28 @@ describe("Debug — async method decorator", () => {
     ctx.runInitializers(instance);
     Registry.instance.registerComponent(instance, "Comp");
 
-    // Call and await
     const promise = (instance as unknown as Record<string, () => unknown>).fetchData() as Promise<unknown>;
-    expect(promise).toBeInstanceOf(Promise);
+    expect(Registry.instance.getTimeline().find((t) => t.type === "method:call")).toBeUndefined();
+    await promise;
+    await Promise.resolve();
 
-    // Timeline entry is recorded synchronously (before the promise resolves)
     const entry = Registry.instance.getTimeline().find((t) => t.type === "method:call");
-    expect(entry).toBeDefined();
     expect(entry?.label).toContain("fetchData");
-    // Duration is near-zero since it only measured until Promise was returned
-    expect(typeof entry?.data.duration).toBe("number");
+    expect(entry?.data.result).toBe("done");
+    expect(entry?.data.duration as number).toBeGreaterThanOrEqual(4);
+  });
 
-    return promise;
+  it("records a rejected promise", async () => {
+    const ctx = mockMethodCtx("fail");
+    const original = vi.fn(() => Promise.reject(new Error("nope")));
+    Debug()(original as never, ctx);
+    class Comp { fail() { return Promise.resolve(); } }
+    const instance = new Comp();
+    ctx.runInitializers(instance);
+    await expect((instance as unknown as Record<string, () => Promise<unknown>>).fail()).rejects.toThrow("nope");
+    await Promise.resolve();
+    const entry = Registry.instance.getTimeline().find((t) => t.type === "method:call");
+    expect(entry?.data.result).toBe("reject Error: nope");
   });
 });
 
@@ -329,5 +337,141 @@ describe("Debug — getter decorator", () => {
     // The computed updates: src() * 2 = 20
     await new Promise<void>((r) => setTimeout(r, 0));
     expect(signalsBefore).toBe(6); // 3 * 2 = 6
+  });
+});
+
+// ── Options and accessor observation ─────────────────────────────────────────
+
+function fieldCtx(name: string) {
+  const initializers: Array<(this: unknown) => void> = [];
+  return {
+    ctx: {
+      kind: "field" as const,
+      name,
+      addInitializer(fn: (this: unknown) => void) { initializers.push(fn); },
+    } as ClassFieldDecoratorContext,
+    init(instance: object) { initializers.forEach((fn) => { fn.call(instance); }); },
+  };
+}
+
+function accessorInstance<T>(name: string, initial: T) {
+  const s = signal(initial);
+  const instance = {} as Record<string, unknown> & { onMount?(): void; onUnmount?(): void };
+  Object.defineProperty(instance, name, {
+    get() { return s(); },
+    set(v: T) { s.set(v); },
+    enumerable: true,
+    configurable: true,
+  });
+  return { instance, s };
+}
+
+describe("Debug — options", () => {
+  it("reports changes made behind the accessor, such as a parent passing a new prop", () => {
+    const parent = signal("a");
+    const instance = {} as Record<string, unknown>;
+    Object.defineProperty(instance, "label", { get: () => parent(), enumerable: true, configurable: true });
+    const { ctx, init } = fieldCtx("label");
+    Debug()(undefined, ctx);
+    init(instance);
+
+    parent.set("b");
+    parent.set("b");
+    const entry = Registry.instance.getSignals()[0];
+    expect(entry.value).toBe("b");
+    expect(entry.history.map((h) => h.value)).toEqual(["a", "b"]);
+  });
+
+  it("ignores re-runs that produce the same value", () => {
+    const n = signal(1);
+    const instance = {} as Record<string, unknown>;
+    Object.defineProperty(instance, "positive", { get: () => n() > 0, enumerable: true, configurable: true });
+    const { ctx, init } = fieldCtx("positive");
+    Debug()(undefined, ctx);
+    init(instance);
+    n.set(2);
+    expect(Registry.instance.getSignals()[0].history).toHaveLength(1);
+  });
+
+  it("stops observing on unmount", () => {
+    const { instance, s } = accessorInstance("count", 0);
+    const { ctx, init } = fieldCtx("count");
+    Debug()(undefined, ctx);
+    init(instance);
+    instance.onUnmount?.();
+    s.set(5);
+    expect(Registry.instance.getSignals()[0].value).toBe(0);
+  });
+
+  it("logs changes, with a stack trace when asked", () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const trace = vi.spyOn(console, "trace").mockImplementation(() => undefined);
+    const a = accessorInstance("a", 1);
+    const b = accessorInstance("b", 1);
+    const ca = fieldCtx("a");
+    const cb = fieldCtx("b");
+    Debug({ log: true })(undefined, ca.ctx);
+    Debug({ log: "trace" })(undefined, cb.ctx);
+    ca.init(a.instance);
+    cb.init(b.instance);
+    a.s.set(2);
+    b.s.set(3);
+    expect(log).toHaveBeenCalledWith("[PraxisJS] Object.a", 2, 1);
+    expect(trace).toHaveBeenCalledWith("[PraxisJS] Object.b", 3, 1);
+    log.mockRestore();
+    trace.mockRestore();
+  });
+
+  it("asks the break predicate on every change", () => {
+    const pause = vi.fn(() => false);
+    const { instance, s } = accessorInstance("n", 0);
+    const { ctx, init } = fieldCtx("n");
+    Debug({ break: pause })(undefined, ctx);
+    init(instance);
+    s.set(1);
+    expect(pause).toHaveBeenCalledWith(1, 0);
+  });
+
+  it("reports method calls and computed changes through the same options", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const ctx = mockMethodCtx("go");
+    Debug({ log: true, break: () => false })((() => 1) as never, ctx);
+    class Comp { go() { return 1; } }
+    const instance = new Comp();
+    ctx.runInitializers(instance);
+    instance.go();
+    expect(log).toHaveBeenCalledWith("[PraxisJS] Comp.go()", [], undefined);
+
+    const source = signal(1);
+    const holder = { total: computed(() => source() * 2) } as Record<string, unknown>;
+    const { ctx: fctx, init } = fieldCtx("total");
+    Debug({ log: true })(undefined, fctx);
+    init(holder);
+    source.set(2);
+    await Promise.resolve();
+    expect(log).toHaveBeenCalledWith("[PraxisJS] Object.total", 4, 2);
+    log.mockRestore();
+  });
+});
+
+describe("Debug — break and cleanup", () => {
+  it("pauses on every change with break: true (a no-op without an attached debugger)", () => {
+    const { instance, s } = accessorInstance("v", 0);
+    const { ctx, init } = fieldCtx("v");
+    Debug({ break: true })(undefined, ctx);
+    init(instance);
+    expect(() => { s.set(1); }).not.toThrow();
+  });
+
+  it("unsubscribes a debugged computed field on unmount", async () => {
+    const source = signal(1);
+    const holder = { total: computed(() => source() * 2) } as Record<string, unknown> & { onUnmount?(): void };
+    const { ctx, init } = fieldCtx("total");
+    Debug()(undefined, ctx);
+    init(holder);
+    holder.onUnmount?.();
+    source.set(5);
+    await Promise.resolve();
+    expect(Registry.instance.getSignals()[0].value).toBe(2);
   });
 });
