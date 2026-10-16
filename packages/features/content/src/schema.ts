@@ -1,11 +1,24 @@
 import type { ContentSchema } from "./types";
 
+// The defaults are only compared against, never handed out, so one instance per schema class serves
+// every entry instead of constructing a second throwaway instance per entry.
+const _defaults = new WeakMap<new () => ContentSchema, ContentSchema>();
+
+function defaultsOf<S extends ContentSchema>(SchemaClass: new () => S): S {
+  let defaults = _defaults.get(SchemaClass) as S | undefined;
+  if (!defaults) {
+    defaults = new SchemaClass();
+    _defaults.set(SchemaClass, defaults);
+  }
+  return defaults;
+}
+
 export function applySchema<S extends ContentSchema>(
   SchemaClass: new () => S,
   data: Record<string, unknown>,
   slug: string,
 ): S {
-  const defaults = new SchemaClass();
+  const defaults = defaultsOf(SchemaClass);
   const result = new SchemaClass();
 
   for (const key of Object.keys(defaults as object) as Array<keyof S>) {

@@ -3,6 +3,12 @@ import { Component } from "@praxisjs/decorators";
 
 import { useRouter } from "../router";
 
+import type { RouteComponent } from "../types/route";
+
+function renderPage(RouteComponent: RouteComponent | null) {
+  return RouteComponent ? <RouteComponent /> : null;
+}
+
 @Component()
 export class RouterView extends StatelessComponent {
   render() {
@@ -11,13 +17,13 @@ export class RouterView extends StatelessComponent {
     return (
       <div data-router-view="true">
         {() => {
+          // Only the layout is read here: a navigation that keeps the layout swaps the page inside
+          // it instead of rebuilding the layout (and losing its state) as well.
           const Layout = router.currentLayout();
-          const RouteComponent = router.currentComponent();
-          if (!RouteComponent) return null;
           if (Layout) {
-            return <Layout>{() => <RouteComponent />}</Layout>;
+            return <Layout>{() => renderPage(router.currentComponent())}</Layout>;
           }
-          return <RouteComponent />;
+          return renderPage(router.currentComponent());
         }}
       </div>
     );

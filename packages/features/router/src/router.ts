@@ -1,4 +1,4 @@
-import { batch, computed, signal, trackPendingResource } from "@praxisjs/core/internal";
+import { batch, computed, selector, signal, trackPendingResource, type Selector } from "@praxisjs/core/internal";
 import type { Signal, Computed } from "@praxisjs/shared";
 
 import { compilePath, parseQuery } from "./utils";
@@ -26,6 +26,9 @@ const STATE_SY = "__praxis_sy";
 
 export class RouterInstance {
   private readonly compiled: CompiledRoute[] = [];
+  // Static paths are looked up by key; only routes with params or `**` need a regex scan.
+  private readonly _staticIndex = new Map<string, number>();
+  private readonly _dynamic: Array<{ index: number; route: CompiledRoute }> = [];
   private readonly _nameMap = new Map<string, CompiledRoute>();
   private readonly _location: Signal<RouteLocationInternal>;
   private _prevLocation: RouteLocationInternal | null = null;
@@ -38,7 +41,12 @@ export class RouterInstance {
   private readonly _afterEachHandlers: AfterEachHandler[] = [];
   private _lastMatchPath: string | undefined;
   private _lastMatch: CompiledRoute | undefined;
+  private _lastExec: RegExpExecArray | null = null;
   private readonly _scrollBehavior: RouterOptions["scrollBehavior"];
+  private _activePath: Selector<string> | undefined;
+  private readonly _onPopState = (): void => {
+    void this.syncFromBrowser();
+  };
 
   readonly location: Signal<RouteLocationInternal>;
   readonly currentComponent: Signal<RouteComponent | null>;
@@ -82,9 +90,7 @@ export class RouterInstance {
     // rejection against an already-closed module runner. No-op on the client.
     trackPendingResource(this.resolveAndSetComponent(initial.path));
 
-    window.addEventListener("popstate", () => {
-      void this.syncFromBrowser();
-    });
+    window.addEventListener("popstate", this._onPopState);
   }
 
   private addRoute(
@@ -96,8 +102,12 @@ export class RouterInstance {
     const { regex, paramNames } = compilePath(fullPath);
     const effectiveLayout = route.layout ?? inheritedLayout;
     const compiled: CompiledRoute = { definition: route, fullPath, regex, paramNames, layout: effectiveLayout };
-    this.compiled.push(compiled);
-    this._lastMatchPath = undefined;
+    const index = this.compiled.push(compiled) - 1;
+    if (paramNames.length === 0 && !fullPath.includes("**")) {
+      if (!this._staticIndex.has(fullPath)) this._staticIndex.set(fullPath, index);
+    } else {
+      this._dynamic.push({ index, route: compiled });
+    }
     if (route.name) this._nameMap.set(route.name, compiled);
 
     if (route.children) {
@@ -108,12 +118,24 @@ export class RouterInstance {
   }
 
   // A navigation matches the same path several times (location, component, layout, hooks); the
-  // regex scan runs once per path instead.
+  // lookup runs once per path instead. Declaration order still decides: a dynamic route declared
+  // before an identical static one wins, so only dynamic routes ahead of the static hit are tried.
   private matchRoute(path: string): CompiledRoute | undefined {
     if (path === this._lastMatchPath) return this._lastMatch;
-    const match = this.compiled.find((r) => r.regex.test(path));
+    const staticIndex = this._staticIndex.get(path) ?? this.compiled.length;
+    let match: CompiledRoute | undefined = this.compiled[staticIndex] as CompiledRoute | undefined;
+    let exec: RegExpExecArray | null = null;
+    for (const entry of this._dynamic) {
+      if (entry.index > staticIndex) break;
+      exec = entry.route.regex.exec(path);
+      if (exec !== null) {
+        match = entry.route;
+        break;
+      }
+    }
     this._lastMatchPath = path;
     this._lastMatch = match;
+    this._lastExec = exec;
     return match;
   }
 
@@ -124,11 +146,12 @@ export class RouterInstance {
   ): RouteLocationInternal {
     const matched = this.matchRoute(pathname);
     const params: RouteParamsInternal = {};
-    if (matched) {
-      const m = matched.regex.exec(pathname) as RegExpExecArray;
-      matched.paramNames.forEach((name, i) => {
-        params[name] = m[i + 1] ?? "";
-      });
+    const exec = this._lastExec;
+    if (matched && exec !== null) {
+      const { paramNames } = matched;
+      for (let i = 0; i < paramNames.length; i++) {
+        params[paramNames[i]] = exec[i + 1] ?? "";
+      }
     }
     return {
       path: pathname,
@@ -296,6 +319,20 @@ export class RouterInstance {
     };
   }
 
+  /**
+   * Whether `path` is the current location's path. Reactive: inside an effect it re-runs only when
+   * this path becomes or stops being the current one, not on every navigation.
+   */
+  isActive(path: string): boolean {
+    this._activePath ??= selector(() => this._location().path);
+    return this._activePath(path);
+  }
+
+  /** Stops listening to browser history. `createRouter()` calls it on the router it replaces. */
+  destroy(): void {
+    window.removeEventListener("popstate", this._onPopState);
+  }
+
   /** Resolve a named navigation target to a path string. */
   resolvePath(target: NamedNavigationTarget): string {
     const route = this._nameMap.get(target.name);
@@ -309,13 +346,11 @@ export class RouterInstance {
     );
   }
 
-  async push(target: NavigationInput, query?: RouteQueryInternal, hash?: string, _redirectDepth = 0): Promise<void> {
-    if (_redirectDepth > 10) {
-      const displayPath = typeof target === "string" ? target : target.name;
-      console.warn(`[Router] Maximum redirect depth exceeded navigating to "${displayPath}"`);
-      return;
-    }
-
+  private resolveTarget(
+    target: NavigationInput,
+    query: RouteQueryInternal | undefined,
+    hash: string | undefined,
+  ): { path: string; search: string; hashStr: string } {
     let path: string;
     let effectiveQuery = query;
     let effectiveHash = hash;
@@ -338,8 +373,21 @@ export class RouterInstance {
       }
     }
 
-    const search = effectiveQuery ? "?" + new URLSearchParams(effectiveQuery).toString() : "";
-    const hashStr = effectiveHash ? `#${effectiveHash}` : "";
+    return {
+      path,
+      search: effectiveQuery ? "?" + new URLSearchParams(effectiveQuery).toString() : "",
+      hashStr: effectiveHash ? `#${effectiveHash}` : "",
+    };
+  }
+
+  async push(target: NavigationInput, query?: RouteQueryInternal, hash?: string, _redirectDepth = 0): Promise<void> {
+    if (_redirectDepth > 10) {
+      const displayPath = typeof target === "string" ? target : target.name;
+      console.warn(`[Router] Maximum redirect depth exceeded navigating to "${displayPath}"`);
+      return;
+    }
+
+    const { path, search, hashStr } = this.resolveTarget(target, query, hash);
     const fullUrl = path + search + hashStr;
 
     const loc = this.buildLocation(path, search, hashStr);
@@ -367,30 +415,7 @@ export class RouterInstance {
   }
 
   async replace(target: NavigationInput, query?: RouteQueryInternal): Promise<void> {
-    let path: string;
-    let effectiveQuery = query;
-
-    let effectiveHash: string | undefined;
-
-    if (typeof target !== "string") {
-      path = this.resolvePath(target);
-      effectiveQuery = target.query ?? query;
-      effectiveHash = target.hash;
-    } else {
-      path = target;
-    }
-
-    // Extract an inline hash fragment from the path string.
-    if (!effectiveHash) {
-      const hashIdx = path.indexOf("#");
-      if (hashIdx !== -1) {
-        effectiveHash = path.slice(hashIdx + 1);
-        path = path.slice(0, hashIdx);
-      }
-    }
-
-    const search = effectiveQuery ? "?" + new URLSearchParams(effectiveQuery).toString() : "";
-    const hashStr = effectiveHash ? `#${effectiveHash}` : "";
+    const { path, search, hashStr } = this.resolveTarget(target, query, undefined);
     const loc = this.buildLocation(path, search, hashStr);
 
     const from = this._location();
@@ -424,6 +449,7 @@ export function lazy(
 }
 
 export function createRouter(routes: RouteDefinition[], options?: RouterOptions): RouterInstance {
+  _router?.destroy();
   _router = new RouterInstance(routes, options);
   return _router;
 }

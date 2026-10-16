@@ -121,3 +121,18 @@ describe("spring()", () => {
     expect(s.value()).toBe(valueAfterStop);
   });
 });
+
+describe("spring() — idle", () => {
+  it("does not schedule a frame until the target changes", () => {
+    const raf = vi.spyOn(globalThis, "requestAnimationFrame");
+    const s = spring(3);
+    expect(raf).not.toHaveBeenCalled();
+    s.target.set(3);
+    expect(raf).not.toHaveBeenCalled();
+    s.target.update((v) => v + 1);
+    expect(raf).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(2000);
+    expect(s.value()).toBe(4);
+    raf.mockRestore();
+  });
+});

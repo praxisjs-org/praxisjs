@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
+import { effect, signal } from "@praxisjs/core/internal";
+
 import { createMachine } from "../machine";
 
 type TrafficState = "red" | "green" | "yellow";
@@ -495,5 +497,57 @@ describe("createMachine historyLimit", () => {
     cycle(m, 2);
     expect(m.history()).toEqual([]);
     expect(m.state()).toBe("red");
+  });
+});
+
+describe("createMachine — reactivity", () => {
+  it("send() inside an effect does not subscribe the effect to the machine state", () => {
+    const m = trafficLight();
+    const trigger = signal(0);
+    let runs = 0;
+    const stop = effect(() => {
+      runs++;
+      if (trigger() > 0) m.send("GO");
+    });
+    trigger.set(1);
+    expect(runs).toBe(2);
+    expect(m.state()).toBe("green");
+    m.send("SLOW");
+    m.reset();
+    expect(runs).toBe(2);
+    stop();
+  });
+
+  it("can() and is() stay reactive", () => {
+    const m = trafficLight();
+    const seen: Array<[boolean, boolean]> = [];
+    const stop = effect(() => {
+      seen.push([m.can("GO"), m.is("green")]);
+    });
+    m.send("GO");
+    expect(seen).toEqual([[true, false], [false, true]]);
+    stop();
+  });
+
+  it("keeps only the most recent entries once the history limit is reached", () => {
+    const m = createMachine<TrafficState, TrafficEvent>({
+      initial: "red",
+      historyLimit: 2,
+      states: {
+        red: { on: { GO: "green" } },
+        green: { on: { SLOW: "yellow" } },
+        yellow: { on: { STOP: "red" } },
+      },
+    });
+    m.send("GO");
+    m.send("SLOW");
+    const before = m.history();
+    m.send("STOP");
+    expect(m.history()).toEqual([
+      { from: "green", event: "SLOW", to: "yellow" },
+      { from: "yellow", event: "STOP", to: "red" },
+    ]);
+    expect(before).toHaveLength(2);
+    expect(before[0].event).toBe("GO");
   });
 });

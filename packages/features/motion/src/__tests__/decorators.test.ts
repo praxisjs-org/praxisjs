@@ -299,3 +299,56 @@ describe("unmount cleanup", () => {
     vi.useRealTimers();
   });
 });
+
+describe("shared accessors", () => {
+  it("instances share one accessor and keep their own animation", () => {
+    vi.useFakeTimers();
+    const { ctx, run } = makeCtx("x");
+    Tween({ duration: 100 })(undefined, ctx);
+    const a: Record<string, unknown> = { x: 1 };
+    const b: Record<string, unknown> = { x: 2 };
+    run(a);
+    run(b);
+    expect(Object.getOwnPropertyDescriptor(a, "x")?.get).toBe(Object.getOwnPropertyDescriptor(b, "x")?.get);
+    expect([a.x, b.x]).toEqual([1, 2]);
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
+  it("an animated field does not start a frame loop on construction", () => {
+    const raf = vi.spyOn(globalThis, "requestAnimationFrame");
+    const tw = makeCtx("x");
+    const sp = makeCtx("y");
+    Tween()(undefined, tw.ctx);
+    Spring()(undefined, sp.ctx);
+    const instance: Record<string, unknown> = {};
+    tw.run(instance);
+    sp.run(instance);
+    expect(raf).not.toHaveBeenCalled();
+    raf.mockRestore();
+  });
+
+  it("unmount runs the instance's own onUnmount and stops every animated field", () => {
+    vi.useFakeTimers();
+    const tw = makeCtx("x");
+    const sp = makeCtx("y");
+    Tween({ duration: 1000 })(undefined, tw.ctx);
+    Spring()(undefined, sp.ctx);
+    const calls: string[] = [];
+    const instance: Record<string, unknown> & { onUnmount?: () => void } = {
+      onUnmount() { calls.push("own"); },
+    };
+    tw.run(instance);
+    sp.run(instance);
+    instance.x = 100;
+    instance.y = 100;
+    vi.advanceTimersByTime(50);
+    instance.onUnmount?.();
+    const frozen = [instance.x, instance.y];
+    vi.advanceTimersByTime(2000);
+    expect(calls).toEqual(["own"]);
+    expect([instance.x, instance.y]).toEqual(frozen);
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+});

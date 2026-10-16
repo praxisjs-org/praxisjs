@@ -1,205 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+import { effect, signal } from "@praxisjs/core/internal";
+import { State } from "@praxisjs/decorators";
+
 import { clearPlugins, useStorePlugin } from "../plugin-registry";
-import { createStore } from "../create-store";
 import { Storable, store, ReactiveStore } from "../decorators";
 import type { StorePlugin, StoreMutation, StoreActionResult } from "../plugin-types";
 
 // Isolate global plugins between tests
 beforeEach(() => clearPlugins());
-
-// ── createStore — per-store plugins ──────────────────────────────────────────
-
-describe("createStore — per-store plugins (options.plugins)", () => {
-  it("onInit receives storeName and store reference", () => {
-    const ctx: { storeName?: string; store?: unknown } = {};
-    const plugin: StorePlugin = {
-      name: "p",
-      onInit(context) { ctx.storeName = context.storeName; ctx.store = context.store; },
-    };
-
-    createStore({ count: 0 }, { name: "counter", plugins: [plugin] });
-    expect(ctx.storeName).toBe("counter");
-    expect(ctx.store).toBeDefined();
-  });
-
-  it("storeName defaults to 'anonymous' when not provided", () => {
-    let received = "";
-    createStore({ count: 0 }, { plugins: [{ name: "p", onInit({ storeName }) { received = storeName; } }] });
-    expect(received).toBe("anonymous");
-  });
-
-  it("onMutation fires when a signal is set", () => {
-    const mutations: StoreMutation[] = [];
-    const s = createStore({ count: 0 }, {
-      name: "counter",
-      plugins: [{ name: "p", onMutation(m) { mutations.push(m); } }],
-    })();
-
-    (s as unknown as { count: number }).count = 5;
-
-    expect(mutations).toHaveLength(1);
-    expect(mutations[0]).toMatchObject({ key: "count", value: 5, prevValue: 0, storeName: "counter" });
-  });
-
-  it("onMutation fires per key when $patch is called", () => {
-    const keys: string[] = [];
-    const s = createStore({ a: 1, b: 2 }, {
-      name: "s",
-      plugins: [{ name: "p", onMutation({ key }) { keys.push(key); } }],
-    })();
-
-    (s as unknown as { $patch: (p: Record<string, unknown>) => void }).$patch({ a: 10, b: 20 });
-    expect(keys).toContain("a");
-    expect(keys).toContain("b");
-  });
-
-  it("onMutation does NOT fire for $reset", () => {
-    const mutations: string[] = [];
-    const s = createStore({ count: 0 }, {
-      plugins: [{ name: "p", onMutation({ key }) { mutations.push(key); } }],
-    })();
-
-    (s as unknown as { count: number }).count = 99;
-    mutations.length = 0;
-    (s as unknown as { $reset: () => void }).$reset();
-    expect(mutations).toHaveLength(0);
-  });
-
-  it("onAction fires before the method; onActionDone fires after", () => {
-    const log: string[] = [];
-    const s = createStore({
-      count: 0,
-      increment() { log.push("run"); (this as unknown as { count: number }).count++; },
-    }, {
-      name: "s",
-      plugins: [{
-        name: "p",
-        onAction({ name }) { log.push(`before:${name}`); },
-        onActionDone({ name, result }) { log.push(`done:${name}:${String(result)}`); },
-      }],
-    })();
-
-    (s as unknown as { increment: () => void }).increment();
-    expect(log).toEqual(["before:increment", "run", "done:increment:undefined"]);
-  });
-
-  it("onActionDone resolves with value for async actions", async () => {
-    const results: StoreActionResult[] = [];
-    const s = createStore(
-      { async fetch() { return 42; } },
-      { plugins: [{ name: "p", onActionDone(r) { results.push(r); } }] },
-    )();
-
-    await (s as unknown as { fetch: () => Promise<number> }).fetch();
-    expect(results[0].result).toBe(42);
-    expect(results[0].error).toBeUndefined();
-  });
-
-  it("onActionDone receives error when async action rejects", async () => {
-    const results: StoreActionResult[] = [];
-    const boom = new Error("boom");
-    const s = createStore(
-      { async fail() { throw boom; } },
-      { plugins: [{ name: "p", onActionDone(r) { results.push(r); } }] },
-    )();
-
-    await expect((s as unknown as { fail: () => Promise<void> }).fail()).rejects.toThrow("boom");
-    expect(results[0].error).toBe(boom);
-    expect(results[0].result).toBeUndefined();
-  });
-
-  it("onInit extend() adds properties to the store", () => {
-    const s = createStore({ count: 0 }, {
-      plugins: [{
-        name: "p",
-        onInit({ extend }) { extend({ $version: "2.0" }); },
-      }],
-    })();
-
-    expect((s as unknown as { $version: string }).$version).toBe("2.0");
-  });
-
-  it("extended functions are bound to the store proxy", () => {
-    let capturedStore: unknown;
-    const s = createStore({ count: 0 }, {
-      plugins: [{
-        name: "p",
-        onInit({ extend }) {
-          extend({ $self(this: unknown) { capturedStore = this; } });
-        },
-      }],
-    })();
-
-    (s as unknown as { $self: () => void }).$self();
-    expect(capturedStore).toBe(s);
-  });
-
-  it("multiple per-store plugins run in order", () => {
-    const log: string[] = [];
-    const s = createStore({ x: 0 }, {
-      plugins: [
-        { name: "a", onMutation() { log.push("a"); } },
-        { name: "b", onMutation() { log.push("b"); } },
-      ],
-    })();
-
-    (s as unknown as { x: number }).x = 1;
-    expect(log).toEqual(["a", "b"]);
-  });
-
-  it("$subscribe, $reset, $patch, $state are NOT tracked as actions", () => {
-    const actions: string[] = [];
-    const s = createStore({ count: 0 }, {
-      plugins: [{ name: "p", onAction({ name }) { actions.push(name); } }],
-    })();
-
-    (s as unknown as { $state: () => unknown }).$state();
-    (s as unknown as { $patch: (p: Record<string, unknown>) => void }).$patch({ count: 1 });
-    (s as unknown as { $reset: () => void }).$reset();
-    expect(actions).toHaveLength(0);
-  });
-
-  it("no plugins — store behaves identically to baseline", () => {
-    const s = createStore({ count: 0, increment() { (this as unknown as { count: number }).count++; } })();
-    (s as unknown as { increment: () => void }).increment();
-    expect(s.count).toBe(1);
-  });
-});
-
-// ── createStore — global plugins ─────────────────────────────────────────────
-
-describe("createStore — global plugins (useStorePlugin)", () => {
-  it("global plugin fires for any store created after registration", () => {
-    const storenames: string[] = [];
-    useStorePlugin({ name: "g", onInit({ storeName }) { storenames.push(storeName); } });
-
-    createStore({ x: 0 }, { name: "alpha" });
-    createStore({ y: 0 }, { name: "beta" });
-    expect(storenames).toEqual(["alpha", "beta"]);
-  });
-
-  it("global + per-store plugins both fire: global first", () => {
-    const log: string[] = [];
-    useStorePlugin({ name: "global", onMutation() { log.push("global"); } });
-
-    const s = createStore({ x: 0 }, {
-      plugins: [{ name: "local", onMutation() { log.push("local"); } }],
-    })();
-
-    (s as unknown as { x: number }).x = 1;
-    expect(log).toEqual(["global", "local"]);
-  });
-
-  it("plugin registered after createStore does NOT receive events", () => {
-    const mutations: number[] = [];
-    const s = createStore({ x: 0 }, { name: "s" })();
-    useStorePlugin({ name: "late", onMutation() { mutations.push(1); } });
-
-    (s as unknown as { x: number }).x = 5;
-    expect(mutations).toHaveLength(0);
-  });
-});
 
 // ── class-based stores — per-store plugins ────────────────────────────────────
 
@@ -398,14 +207,15 @@ describe("built-in plugin patterns", () => {
       },
     };
 
-    const s = createStore({
-      count: 0,
-      increment() { (this as unknown as { count: number }).count++; },
-    }, { name: "counter", plugins: [logger] })();
+    @Storable({ plugins: [logger] })
+    class LoggedCounter extends ReactiveStore {
+      @State() count = 0;
+      increment() { this.count++; }
+    }
 
-    (s as unknown as { increment: () => void }).increment();
-    expect(log).toContain("[counter] increment()");
-    expect(log).toContain('[counter] count = 1');
+    store(LoggedCounter).increment();
+    expect(log).toContain("[LoggedCounter] increment()");
+    expect(log).toContain("[LoggedCounter] count = 1");
   });
 
   it("persistence plugin: restores state onInit and saves onMutation", () => {
@@ -415,8 +225,8 @@ describe("built-in plugin patterns", () => {
     const persistPlugin: StorePlugin = {
       name: "persist",
       onInit({ store: s, storeName }) {
-        if (storeName === "counter" && typeof storage.count === "number") {
-          (s as { count: number }).count = storage.count as number;
+        if (storeName === "PersistedCounter" && typeof storage.count === "number") {
+          (s as { count: number }).count = storage.count;
         }
       },
       onMutation({ key, value }) {
@@ -424,22 +234,117 @@ describe("built-in plugin patterns", () => {
       },
     };
 
-    const s = createStore({ count: 0 }, { name: "counter", plugins: [persistPlugin] })();
-    expect((s as unknown as { count: number }).count).toBe(99);
+    @Storable({ plugins: [persistPlugin] })
+    class PersistedCounter extends ReactiveStore {
+      @State() count = 0;
+    }
 
-    (s as unknown as { count: number }).count = 55;
+    const s = store(PersistedCounter);
+    expect(s.count).toBe(99);
+    s.count = 55;
     expect(savedCount).toBe(55);
   });
 
   it("spy plugin: action wrapping does not break return values", () => {
     const spy = vi.fn();
-    const s = createStore(
-      { double(n: unknown) { return (n as number) * 2; } },
-      { plugins: [{ name: "spy", onActionDone({ name, result }) { spy(name, result); } }] },
-    )();
 
-    const result = (s as unknown as { double: (n: number) => number }).double(5);
-    expect(result).toBe(10);
+    @Storable({ plugins: [{ name: "spy", onActionDone({ name, result }) { spy(name, result); } }] })
+    class Doubler extends ReactiveStore {
+      double(n: number) { return n * 2; }
+    }
+
+    expect(store(Doubler).double(5)).toBe(10);
     expect(spy).toHaveBeenCalledWith("double", 10);
+  });
+});
+
+describe("class-based store proxy — identity and tracking", () => {
+  it("returns the same wrapped action on every read", () => {
+    class IdStore extends ReactiveStore {
+      n = 0;
+      bump() { this.n++; }
+    }
+    Storable({ plugins: [{ name: "p", onAction() {} }] })(IdStore, {} as ClassDecoratorContext);
+    const s = store(IdStore);
+    expect(s.bump).toBe(s.bump);
+    s.bump();
+    expect(s.n).toBe(1);
+  });
+
+  it("wraps a method again when it is replaced on the instance", () => {
+    const actions: string[] = [];
+    class SwapStore extends ReactiveStore {
+      run() { return 1; }
+    }
+    Storable({ plugins: [{ name: "p", onAction({ name }) { actions.push(name); } }] })(
+      SwapStore, {} as ClassDecoratorContext,
+    );
+    const s = store(SwapStore);
+    const first = s.run;
+    s.run = () => 2;
+    expect(s.run).not.toBe(first);
+    expect(s.run()).toBe(2);
+    expect(actions).toEqual(["run"]);
+  });
+
+  it("returns the same bound extension on every read", () => {
+    class ExtStore extends ReactiveStore {}
+    Storable({
+      plugins: [{ name: "p", onInit({ extend }) { extend({ $hello() { return "hi"; } }); } }],
+    })(ExtStore, {} as ClassDecoratorContext);
+    const s = store(ExtStore) as unknown as { $hello(): string };
+    expect(s.$hello).toBe(s.$hello);
+    expect(s.$hello()).toBe("hi");
+  });
+
+  it("binds methods to the store when no plugin observes actions", () => {
+    const keys: string[] = [];
+    class PlainStore extends ReactiveStore {
+      n = 0;
+      bump() { this.n++; }
+    }
+    Storable({ plugins: [{ name: "p", onMutation({ key }) { keys.push(key); } }] })(
+      PlainStore, {} as ClassDecoratorContext,
+    );
+    const s = store(PlainStore);
+    const { bump } = s;
+    bump();
+    expect(s.n).toBe(1);
+    expect(keys).toEqual(["n"]);
+    expect(s.bump).toBe(bump);
+  });
+
+  it("extensions do not shadow inherited object members", () => {
+    class ProtoStore extends ReactiveStore {}
+    Storable({ plugins: [{ name: "p", onInit({ extend }) { extend({ $x: 1 }); } }] })(
+      ProtoStore, {} as ClassDecoratorContext,
+    );
+    const s = store(ProtoStore);
+    expect(s.constructor).toBe(ProtoStore);
+    expect(s.toString).toBe(Object.prototype.toString);
+  });
+
+  it("writing a field inside an effect does not subscribe the effect to it", () => {
+    const mutations: unknown[] = [];
+    class TrackStore extends ReactiveStore {
+      @State() value = 0;
+    }
+    Storable({ plugins: [{ name: "p", onMutation({ prevValue }) { mutations.push(prevValue); } }] })(
+      TrackStore, {} as ClassDecoratorContext,
+    );
+    const s = store(TrackStore);
+    const source = signal(1);
+    let runs = 0;
+    const stop = effect(() => {
+      runs++;
+      s.value = source();
+    });
+    s.value = 99;
+    expect(runs).toBe(1);
+    expect(s.value).toBe(99);
+    expect(mutations).toEqual([0, 1]);
+    source.set(2);
+    expect(runs).toBe(2);
+    stop();
   });
 });

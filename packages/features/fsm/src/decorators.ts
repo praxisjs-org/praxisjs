@@ -1,5 +1,7 @@
 import {
   createMethodDecorator,
+  addClaimableInitializer,
+  assertFieldContext,
 } from "@praxisjs/decorators";
 
 import { createMachine, type Machine, type MachineDefinition  } from "./machine";
@@ -37,31 +39,34 @@ export function StateMachine<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   definition: MachineDefinition<S, E, T> | ((this: any) => MachineDefinition<S, E, T>),
 ) {
-  const machines = new WeakMap<object, Machine<S, E>>();
-
   return function <U extends object>(
     _value: undefined,
     context: ClassFieldDecoratorContext<U, Machine<S, E>>,
   ): void {
-    context.addInitializer(function (this: object) {
-      const name = context.name;
-      Object.defineProperty(this, name, {
-        get(): Machine<S, E> {
-          const self = this as T;
-          if (!machines.has(self)) {
-            const def =
-              typeof definition === "function"
-                ? definition.call(self)
-                : definition;
-            machines.set(self, createMachine(def, self));
-          }
-          return machines.get(self) as Machine<S, E>;
-        },
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        set(): void {},
-        enumerable: true,
-        configurable: true,
-      });
+    assertFieldContext(context);
+    const name = context.name;
+    // Each instance's machine lives under this symbol, created on first read; the accessor itself
+    // is shared by every instance.
+    const slot = Symbol(`praxis.fsm.${String(name)}`);
+    const descriptor: PropertyDescriptor = {
+      get(this: Record<symbol, Machine<S, E> | undefined>): Machine<S, E> {
+        let machine = this[slot];
+        if (machine === undefined) {
+          const def = typeof definition === "function" ? definition.call(this) : definition;
+          machine = createMachine(def, this as unknown as T);
+          this[slot] = machine;
+        }
+        return machine;
+      },
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      set(): void {},
+      enumerable: true,
+      configurable: true,
+    };
+    addClaimableInitializer(context, function () {
+      // Reserving the slot up front keeps every instance of the class on the same shape.
+      (this as Record<symbol, unknown>)[slot] = undefined;
+      Object.defineProperty(this, name, descriptor);
     });
   };
 }

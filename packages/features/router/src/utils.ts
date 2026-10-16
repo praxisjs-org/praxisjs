@@ -1,5 +1,12 @@
 import type { RouteQueryInternal } from "./types/route";
 
+const TOKEN_RE = /\*\*|:([^/?]+)(\?)?/g;
+const REGEX_SPECIAL_RE = /[.*+?^${}()|[\]\\]/g;
+
+function escapeRegex(literal: string): string {
+  return literal.replace(REGEX_SPECIAL_RE, "\\$&");
+}
+
 export function compilePath(path: string): {
   regex: RegExp;
   paramNames: string[];
@@ -9,15 +16,24 @@ export function compilePath(path: string): {
   // /users/:id/posts/:postId  → /users/([^/]+)/posts/([^/]+)
   // /users/:id?               → /users/([^/]+)?  (optional segment)
   // /docs/**                  → /docs/(.*)
-  const regexStr = path
-    .replace(/\*\*/g, "(.*)")
-    .replace(/:([^/?]+)(\?)?/g, (_: string, name: string, optional: string | undefined) => {
+  // Everything else is literal, so a `.` or `(` in a path never acts as regex syntax.
+  let source = "";
+  let last = 0;
+  for (const match of path.matchAll(TOKEN_RE)) {
+    source += escapeRegex(path.slice(last, match.index));
+    const name = match[1] as string | undefined;
+    if (name === undefined) {
+      source += "(.*)";
+    } else {
       paramNames.push(name);
-      return optional ? "([^/]+)?" : "([^/]+)";
-    });
+      source += match[2] ? "([^/]+)?" : "([^/]+)";
+    }
+    last = match.index + match[0].length;
+  }
+  source += escapeRegex(path.slice(last));
 
   return {
-    regex: new RegExp(`^${regexStr}$`),
+    regex: new RegExp(`^${source}$`),
     paramNames,
   };
 }

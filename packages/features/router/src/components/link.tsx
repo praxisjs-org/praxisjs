@@ -43,8 +43,11 @@ export class Link extends StatelessComponent<LinkProps> {
       <a
         href={resolvedPath}
         class={() => {
-          const isActive = router.location().path === resolvedPath;
-          return [cls, isActive ? activeClass : ""].filter(Boolean).join(" ");
+          const value = !router.isActive(resolvedPath)
+            ? cls
+            : cls && activeClass ? `${cls} ${activeClass}` : cls || activeClass;
+          // null removes the attribute: an empty string would leave `class=""` on a link that was active.
+          return value === "" ? null : value;
         }}
         style={style}
         onClick={handleClick}

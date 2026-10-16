@@ -1,4 +1,5 @@
-import { signal, computed, effect } from "@praxisjs/core/internal";
+import { readSignal, signal, SignalNode, writeSignal } from "@praxisjs/core/internal";
+import type { Signal } from "@praxisjs/shared";
 
 export interface SpringOptions {
   stiffness?: number;
@@ -7,7 +8,13 @@ export interface SpringOptions {
   precision?: number;
 }
 
-export function spring(initial: number, options: SpringOptions = {}) {
+export interface Spring {
+  value: () => number;
+  target: Signal<number>;
+  stop(): void;
+}
+
+export function spring(initial: number, options: SpringOptions = {}): Spring {
   const {
     stiffness = 0.15,
     damping = 0.8,
@@ -19,40 +26,49 @@ export function spring(initial: number, options: SpringOptions = {}) {
     throw new Error("stiffness must be greater than 0");
   }
 
-  const _value = signal(initial);
-  const _target = signal(initial);
+  const value = new SignalNode(initial);
+  const target = signal(initial);
+  let goal = initial;
   let velocity = 0;
   let raf: number | undefined;
 
   function tick() {
-    const current = _value();
-    const target = _target();
-    const force = (target - current) * stiffness;
+    const current = value.value;
+    const force = (goal - current) * stiffness;
     velocity = (velocity + force / mass) * damping;
 
     const next = current + velocity;
-    _value.set(next);
 
-    if (Math.abs(target - next) > precision || Math.abs(velocity) > precision) {
+    if (Math.abs(goal - next) > precision || Math.abs(velocity) > precision) {
+      writeSignal(value, next);
       raf = requestAnimationFrame(tick);
     } else {
-      _value.set(target);
+      writeSignal(value, goal);
       velocity = 0;
       raf = undefined;
     }
   }
 
-  effect(() => {
-    void _target();
+  // Writes to the target restart the simulation directly: no effect has to watch it, and a value
+  // already at rest never schedules a frame.
+  const write = target.set.bind(target);
+  target.set = (next: number) => {
+    if (Object.is(goal, next)) return;
+    goal = next;
+    write(next);
     if (raf) cancelAnimationFrame(raf);
     raf = requestAnimationFrame(tick);
-  });
+  };
+  target.update = (fn: (prev: number) => number) => {
+    target.set(fn(goal));
+  };
 
   return {
-    value: computed(() => _value()),
-    target: _target,
+    value: () => readSignal(value),
+    target,
     stop() {
       if (raf) cancelAnimationFrame(raf);
+      raf = undefined;
     },
   };
 }

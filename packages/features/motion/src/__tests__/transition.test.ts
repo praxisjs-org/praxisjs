@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+import { createTransition as fromIndex } from "../index";
 import { createTransition } from "../transition";
 
 beforeEach(() => {
@@ -164,5 +165,11 @@ describe("createTransition()", () => {
     vi.advanceTimersByTime(0);
     await p;
     expect(el.classList.contains("fast-enter-to")).toBe(false);
+  });
+});
+
+describe("package entry", () => {
+  it("exports createTransition", () => {
+    expect(fromIndex).toBe(createTransition);
   });
 });

@@ -260,3 +260,49 @@ describe("getCollection caching", () => {
     expect(await getCollection(Cached)).toHaveLength(2);
   });
 });
+
+describe("entry cache shared across getCollection, getPage and getEntry", () => {
+  class Shared extends ContentSchema {
+    title = "";
+  }
+
+  it("loads, parses and renders each file once whichever API asks first", async () => {
+    const render = vi.fn((md: string) => `<p>${md}</p>`);
+    const loaders = {
+      "./a.md": vi.fn(() => Promise.resolve("---\ntitle: A\n---\nalpha")),
+      "./b.md": vi.fn(() => Promise.resolve("---\ntitle: B\n---\nbeta")),
+    };
+    registerCollection(Shared as unknown as typeof ContentSchema, { glob: loaders, render });
+
+    const entry = await getEntry(Shared, "b");
+    const page = await getPage(Shared, { page: 1, pageSize: 2 });
+    const all = await getCollection(Shared);
+    await getPage(Shared, { page: 1, pageSize: 2 });
+
+    expect(entry?.html).toBe("<p>beta</p>");
+    expect(page[1]).toBe(entry);
+    expect(all.map((e) => e.slug)).toEqual(["a", "b"]);
+    expect(loaders["./a.md"]).toHaveBeenCalledOnce();
+    expect(loaders["./b.md"]).toHaveBeenCalledOnce();
+    expect(render).toHaveBeenCalledTimes(2);
+  });
+
+  it("getEntry picks the first file when two share a slug", async () => {
+    registerCollection(Shared as unknown as typeof ContentSchema, {
+      glob: {
+        "./en/post.md": "---\ntitle: First\n---",
+        "./pt/post.md": "---\ntitle: Second\n---",
+      },
+    });
+    expect((await getEntry(Shared, "post"))?.data.title).toBe("First");
+  });
+
+  it("does not remember a failed entry", async () => {
+    let fail = true;
+    const loader = vi.fn(() => (fail ? Promise.reject(new Error("offline")) : Promise.resolve("---\ntitle: A\n---")));
+    registerCollection(Shared as unknown as typeof ContentSchema, { glob: { "./a.md": loader } });
+    await expect(getEntry(Shared, "a")).rejects.toThrow("offline");
+    fail = false;
+    expect((await getEntry(Shared, "a"))?.data.title).toBe("A");
+  });
+});

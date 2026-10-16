@@ -7,45 +7,42 @@ export interface TransitionOptions {
 
 export function createTransition(options: TransitionOptions = {}) {
   const { name = "transition", duration = 300, onEnter, onLeave } = options;
+  const enterFrom = `${name}-enter-from`;
+  const enterTo = `${name}-enter-to`;
+  const leaveFrom = `${name}-leave-from`;
+  const leaveTo = `${name}-leave-to`;
+
+  function play(
+    el: HTMLElement,
+    hook: ((el: HTMLElement) => void) | undefined,
+    fromClass: string,
+    toClass: string,
+  ): Promise<void> {
+    return new Promise((res, rej) => {
+      try {
+        hook?.(el);
+      } catch (err) {
+        rej(err instanceof Error ? err : new Error(String(err)));
+        return;
+      }
+      el.classList.add(fromClass);
+      requestAnimationFrame(() => {
+        el.classList.remove(fromClass);
+        el.classList.add(toClass);
+      });
+      setTimeout(() => {
+        el.classList.remove(toClass);
+        res();
+      }, duration);
+    });
+  }
 
   return {
     enter(el: HTMLElement): Promise<void> {
-      return new Promise((res, rej) => {
-        try {
-          onEnter?.(el);
-        } catch (err) {
-          rej(err instanceof Error ? err : new Error(String(err)));
-          return;
-        }
-        el.classList.add(`${name}-enter-from`);
-        requestAnimationFrame(() => {
-          el.classList.remove(`${name}-enter-from`);
-          el.classList.add(`${name}-enter-to`);
-        });
-        setTimeout(() => {
-          el.classList.remove(`${name}-enter-to`);
-          res();
-        }, duration);
-      });
+      return play(el, onEnter, enterFrom, enterTo);
     },
     leave(el: HTMLElement): Promise<void> {
-      return new Promise((res, rej) => {
-        try {
-          onLeave?.(el);
-        } catch (err) {
-          rej(err instanceof Error ? err : new Error(String(err)));
-          return;
-        }
-        el.classList.add(`${name}-leave-from`);
-        requestAnimationFrame(() => {
-          el.classList.remove(`${name}-leave-from`);
-          el.classList.add(`${name}-leave-to`);
-        });
-        setTimeout(() => {
-          el.classList.remove(`${name}-leave-to`);
-          res();
-        }, duration);
-      });
+      return play(el, onLeave, leaveFrom, leaveTo);
     },
   };
 }

@@ -151,6 +151,70 @@ describe("Router", () => {
     expect(r.location().path).toBe("/");
   });
 
+  it("a router replaced by createRouter() stops reacting to popstate", async () => {
+    const first = createRouter([
+      { path: "/", component: HomePage },
+      { path: "/about", component: AboutPage },
+    ]);
+    createRouter([{ path: "/", component: HomePage }]);
+    window.history.pushState(null, "", "/about");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    await Promise.resolve();
+    expect(first.location().path).toBe("/");
+  });
+
+  it("destroy() removes the popstate listener", async () => {
+    const r = makeRouter();
+    r.destroy();
+    window.history.pushState(null, "", "/about");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    await Promise.resolve();
+    expect(r.location().path).toBe("/");
+  });
+
+  it("matches routes in declaration order across static and dynamic paths", async () => {
+    const r = new RouterInstance([
+      { path: "/users/:id", component: UserPage },
+      { path: "/users/me", component: AboutPage },
+      { path: "/about", component: AboutPage },
+      { path: "/about", component: HomePage },
+      { path: "/:page", component: HomePage },
+    ]);
+    await r.push("/users/me");
+    expect(r.currentComponent()).toBe(UserPage);
+    expect(r.params()).toEqual({ id: "me" });
+    await r.push("/about");
+    expect(r.currentComponent()).toBe(AboutPage);
+    expect(r.params()).toEqual({});
+    await r.push("/contact");
+    expect(r.currentComponent()).toBe(HomePage);
+    expect(r.params()).toEqual({ page: "contact" });
+    await r.push("/a/b/c");
+    expect(r.currentComponent()).toBeNull();
+  });
+
+  it("isActive() tells whether a path is the current one", async () => {
+    const r = makeRouter();
+    expect(r.isActive("/")).toBe(true);
+    expect(r.isActive("/about")).toBe(false);
+    await r.push("/about");
+    expect(r.isActive("/about")).toBe(true);
+  });
+
+  it("isActive() re-runs an effect only when that path's state changes", async () => {
+    const r = makeRouter();
+    const runs: boolean[] = [];
+    const stop = effect(() => {
+      runs.push(r.isActive("/about"));
+    });
+    await r.push("/users/1");
+    await r.push("/users/2");
+    expect(runs).toEqual([false]);
+    await r.push("/about");
+    expect(runs).toEqual([false, true]);
+    stop();
+  });
+
   it("nested children routes are compiled", async () => {
     const r = new RouterInstance([
       {
@@ -687,6 +751,12 @@ describe("@Query", () => {
 });
 
 describe("@Route", () => {
+  it("returns the decorated class itself", () => {
+    class Plain { render() { return null; } }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(Route("/plain")(Plain as any, {} as ClassDecoratorContext)).toBe(Plain);
+  });
+
   it("sets __routePath on the enhanced class", () => {
     class Dashboard { render() { return null; } }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

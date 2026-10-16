@@ -98,13 +98,43 @@ describe("pushHead / removeHead", () => {
     expect(document.querySelectorAll("[data-praxis-head]").length).toBe(0);
   });
 
-  it("_apply restores title to '' when _initialTitle is undefined and stack is empty", () => {
-    // resetHeadState leaves _initialTitle = undefined; calling removeHead on a missing id
-    // triggers _apply with an empty stack and undefined _initialTitle → title = "" fallback.
-    const id = Symbol("missing");
-    document.title = "should-be-cleared";
-    removeHead(id);
-    expect(document.title).toBe("");
+  it("removeHead with an unknown id leaves the title and version untouched", () => {
+    document.title = "kept";
+    const version = headVersion();
+    removeHead(Symbol("missing"));
+    expect(document.title).toBe("kept");
+    expect(headVersion()).toBe(version);
+  });
+
+  it("updating an entry below the top one changes nothing in the document until it is on top", () => {
+    const outer = Symbol();
+    const inner = Symbol();
+    pushHead(outer, { title: "Outer", description: "outer" });
+    pushHead(inner, { title: "Inner", description: "inner" });
+    const tag = document.querySelector('meta[name="description"]');
+    const version = headVersion();
+
+    pushHead(outer, { title: "Outer 2", description: "outer 2" });
+    expect(document.title).toBe("Inner");
+    expect(document.querySelector('meta[name="description"]')).toBe(tag);
+    expect(headVersion()).toBe(version + 1);
+
+    removeHead(inner);
+    expect(document.title).toBe("Outer 2");
+    expect(document.querySelector<HTMLMetaElement>('meta[name="description"]')?.content).toBe("outer 2");
+  });
+
+  it("removing an entry below the top one keeps the top one's tags", () => {
+    const outer = Symbol();
+    const inner = Symbol();
+    pushHead(outer, { title: "Outer" });
+    pushHead(inner, { title: "Inner", description: "inner" });
+    const tag = document.querySelector('meta[name="description"]');
+    const version = headVersion();
+    removeHead(outer);
+    expect(document.title).toBe("Inner");
+    expect(document.querySelector('meta[name="description"]')).toBe(tag);
+    expect(headVersion()).toBe(version + 1);
   });
 
   it("adds preload link with href and as", () => {

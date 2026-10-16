@@ -10,6 +10,13 @@ describe("compilePath", () => {
     expect(paramNames).toEqual([]);
   });
 
+  it("matches regex metacharacters in a static path literally", () => {
+    const { regex } = compilePath("/v1.0/files+(draft)");
+    expect(regex.test("/v1.0/files+(draft)")).toBe(true);
+    expect(regex.test("/v1x0/files+(draft)")).toBe(false);
+    expect(regex.test("/v1.0/filesss(draft)")).toBe(false);
+  });
+
   it("compiles a path with a single param", () => {
     const { regex, paramNames } = compilePath("/users/:id");
     expect(paramNames).toEqual(["id"]);

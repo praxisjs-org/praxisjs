@@ -1,8 +1,5 @@
 import { resource } from "@praxisjs/core/internal";
-import {
-  createFieldDecorator,
-  type FieldBinding,
-} from "@praxisjs/decorators";
+import { addClaimableInitializer, assertFieldContext } from "@praxisjs/decorators";
 
 import { registerCollection, getCollection, getPage } from "./collection";
 import { ContentSchema, type CollectionConfig, type GlobImport  } from "./types";
@@ -11,6 +8,35 @@ import { ContentSchema, type CollectionConfig, type GlobImport  } from "./types"
 interface PageSource {
   page: number;
   pageSize: number;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ResourceFieldDecorator = (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
+
+type Host = Record<PropertyKey, unknown>;
+
+// Each instance's resource lives under a symbol and is created with the instance; the read-only
+// accessor is shared by every instance.
+function resourceField(create: (instance: Host) => unknown): ResourceFieldDecorator {
+  return function (_value, context) {
+    assertFieldContext(context);
+    const name = context.name;
+    const slot = Symbol(`praxis.content.${String(name)}`);
+    const descriptor: PropertyDescriptor = {
+      get(this: Host): unknown {
+        return this[slot];
+      },
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      set(): void {},
+      enumerable: true,
+      configurable: true,
+    };
+    addClaimableInitializer(context, function () {
+      const host = this as Host;
+      host[slot] = create(host);
+      Object.defineProperty(host, name, descriptor);
+    });
+  };
 }
 
 /**
@@ -30,24 +56,14 @@ interface PageSource {
 export function PagedCollection(
   SchemaClass: new () => ContentSchema,
   pagerField: string,
-) {
-  return createFieldDecorator({
-    bind(instance, _name, _initialValue): FieldBinding {
-      const pager = (instance as unknown as Record<string, PageSource>)[pagerField];
-      const res = resource(
-        () => getPage(SchemaClass, { page: pager.page, pageSize: pager.pageSize }),
-        { keepPreviousData: true },
-      );
-      return {
-        descriptor: {
-          get() { return res; },
-          // eslint-disable-next-line @typescript-eslint/no-empty-function
-          set(): void {},
-        },
-      };
-    },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
+): ResourceFieldDecorator {
+  return resourceField((instance) => {
+    const pager = instance[pagerField] as PageSource;
+    return resource(
+      () => getPage(SchemaClass, { page: pager.page, pageSize: pager.pageSize }),
+      { keepPreviousData: true },
+    );
+  });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,19 +71,7 @@ export function Collection(globOrSchema: GlobImport | string | (new () => Conten
   if (isSchemaClass(globOrSchema)) {
     // Field decorator: @Collection(Blog) on a component field
     const SchemaClass = globOrSchema;
-    return createFieldDecorator({
-      bind(_instance, _name, _initialValue): FieldBinding {
-        const res = resource(() => getCollection(SchemaClass));
-        return {
-          descriptor: {
-            get() { return res; },
-            // eslint-disable-next-line @typescript-eslint/no-empty-function
-            set(): void {},
-          },
-        };
-      },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
+    return resourceField(() => resource(() => getCollection(SchemaClass)));
   }
 
   // Class decorator: @Collection(globResult) — after Vite plugin transforms the string

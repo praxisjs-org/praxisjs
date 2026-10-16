@@ -3,8 +3,8 @@ import {
   createClassDecorator,
   ClassBehavior,
   type ClassEnhancement,
-  createFieldDecorator,
-  type FieldBinding,
+  addClaimableInitializer,
+  assertFieldContext,
 } from "@praxisjs/decorators";
 
 import { createRouter, useRouter, lazy, useMeta } from "./router";
@@ -19,44 +19,54 @@ export interface RouteOptions {
   meta?: RouteMeta;
 }
 
-class RouteBehavior extends ClassBehavior {
-  constructor(private readonly options: RouteOptions) {
-    super();
-  }
-
-  create(_instance: RootComponent): ClassEnhancement {
-    return {};
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialize(Enhanced: new (...args: any[]) => unknown): void {
-    Object.defineProperty(Enhanced, "__routePath", {
-      value: this.options.path,
-      writable: false,
-      configurable: false,
-    });
-    if (this.options.name !== undefined) {
-      Object.defineProperty(Enhanced, "__routeName", {
-        value: this.options.name,
-        writable: false,
-        configurable: false,
-      });
-    }
-    if (this.options.meta !== undefined) {
-      Object.defineProperty(Enhanced, "__routeMeta", {
-        value: this.options.meta,
-        writable: false,
-        configurable: false,
-      });
-    }
-  }
+function defineStatic(target: object, key: string, value: unknown): void {
+  Object.defineProperty(target, key, { value, writable: false, configurable: false });
 }
 
+// Only static metadata for `normalizeRoute`: the class is returned as is, without the per-instance
+// subclass a ClassBehavior would add.
 export function Route(options: string | RouteOptions) {
   const normalized: RouteOptions = typeof options === "string" ? { path: options } : options;
-  const decorator = createClassDecorator(new RouteBehavior(normalized));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return decorator as unknown as (value: new (...args: any[]) => any, context: ClassDecoratorContext) => void;
+  return function <C extends new (...args: any[]) => any>(value: C, _context: ClassDecoratorContext): C {
+    defineStatic(value, "__routePath", normalized.path);
+    if (normalized.name !== undefined) defineStatic(value, "__routeName", normalized.name);
+    if (normalized.meta !== undefined) defineStatic(value, "__routeMeta", normalized.meta);
+    return value;
+  };
+}
+
+// ── Shared field accessors ────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RouterFieldDecorator = (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
+
+// One read-only accessor per kind of field, shared by every instance of every class using it.
+function readOnly(get: () => unknown): PropertyDescriptor {
+  return {
+    get,
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    set(): void {},
+    enumerable: true,
+    configurable: true,
+  };
+}
+
+const routerDescriptor = readOnly(() => useRouter());
+const paramsDescriptor = readOnly(() => useRouter().params);
+const queryDescriptor = readOnly(() => useRouter().query);
+const locationDescriptor = readOnly(() => useRouter().location);
+const layoutDescriptor = readOnly(() => useRouter().currentLayout);
+const metaDescriptor = readOnly(() => useMeta());
+
+function routerField(descriptor: PropertyDescriptor): RouterFieldDecorator {
+  return function (_value, context) {
+    assertFieldContext(context);
+    const name = context.name;
+    addClaimableInitializer(context, function () {
+      Object.defineProperty(this, name, descriptor);
+    });
+  };
 }
 
 // ── @Router ───────────────────────────────────────────────────────────────────
@@ -106,18 +116,7 @@ export function Router(routes?: Array<RouteDefinition | (new (...args: any[]) =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return createClassDecorator(new RouterBehavior(normalizedRoutes, options)) as unknown as (cls: new (...args: any[]) => any, ctx: ClassDecoratorContext) => void;
   }
-  return createFieldDecorator({
-    bind(_instance, _name, _initialValue): FieldBinding {
-      return {
-        descriptor: {
-          get() { return useRouter(); },
-          // eslint-disable-next-line @typescript-eslint/no-empty-function
-          set(): void {},
-        },
-      };
-    },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
+  return routerField(routerDescriptor);
 }
 
 // ── @Lazy ─────────────────────────────────────────────────────────────────────
@@ -133,79 +132,24 @@ export function Lazy(loader: () => Promise<{ default: new (...args: any[]) => an
 
 // ── Field decorators ──────────────────────────────────────────────────────────
 
-export function Params() {
-  return createFieldDecorator({
-    bind(_instance, _name, _initialValue): FieldBinding {
-      return {
-        descriptor: {
-          get() { return useRouter().params; },
-          // eslint-disable-next-line @typescript-eslint/no-empty-function
-          set(): void {},
-        },
-      };
-    },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
+export function Params(): RouterFieldDecorator {
+  return routerField(paramsDescriptor);
 }
 
-export function Query() {
-  return createFieldDecorator({
-    bind(_instance, _name, _initialValue): FieldBinding {
-      return {
-        descriptor: {
-          get() { return useRouter().query; },
-          // eslint-disable-next-line @typescript-eslint/no-empty-function
-          set(): void {},
-        },
-      };
-    },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
+export function Query(): RouterFieldDecorator {
+  return routerField(queryDescriptor);
 }
 
-export function Location() {
-  return createFieldDecorator({
-    bind(_instance, _name, _initialValue): FieldBinding {
-      return {
-        descriptor: {
-          get() { return useRouter().location; },
-          // eslint-disable-next-line @typescript-eslint/no-empty-function
-          set(): void {},
-        },
-      };
-    },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
+export function Location(): RouterFieldDecorator {
+  return routerField(locationDescriptor);
 }
 
-export function InjectLayout() {
-  return createFieldDecorator({
-    bind(_instance, _name, _initialValue): FieldBinding {
-      return {
-        descriptor: {
-          get() { return useRouter().currentLayout; },
-          // eslint-disable-next-line @typescript-eslint/no-empty-function
-          set(): void {},
-        },
-      };
-    },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
+export function InjectLayout(): RouterFieldDecorator {
+  return routerField(layoutDescriptor);
 }
 
-export function Meta() {
-  return createFieldDecorator({
-    bind(_instance, _name, _initialValue): FieldBinding {
-      return {
-        descriptor: {
-          get() { return useMeta(); },
-          // eslint-disable-next-line @typescript-eslint/no-empty-function
-          set(): void {},
-        },
-      };
-    },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
+export function Meta(): RouterFieldDecorator {
+  return routerField(metaDescriptor);
 }
 
 export type { RouteDefinition, RouterOptions };

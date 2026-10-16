@@ -1,5 +1,5 @@
-import { signal, computed, effect, untrack } from "@praxisjs/core/internal";
-import type { Computed, Signal } from "@praxisjs/shared";
+import { endBatch, readSignal, signal, SignalNode, startBatch, writeSignal } from "@praxisjs/core/internal";
+import type { Signal } from "@praxisjs/shared";
 
 import { resolveEasing, type Easing } from "./easings";
 
@@ -10,10 +10,10 @@ export interface TweenOptions {
 }
 
 export interface Tween {
-  value: Computed<number>;
+  value: () => number;
   target: Signal<number>;
-  playing: Computed<boolean>;
-  progress: Computed<number>;
+  playing: () => boolean;
+  progress: () => number;
   stop(): void;
   reset(): void;
 }
@@ -27,10 +27,11 @@ export function tween(
   const duration = Math.max(1, rawDuration);
   const easeFn = resolveEasing(easing);
 
-  const _value = signal(from);
-  const _target = signal(to);
-  const _progress = signal(0);
-  const _playing = signal(false);
+  const value = new SignalNode(from);
+  const progress = new SignalNode(0);
+  const playing = new SignalNode(false);
+  const target = signal(to);
+  let goal = to;
 
   let raf: number | undefined;
   let startTime: number | undefined;
@@ -41,44 +42,63 @@ export function tween(
     const elapsed = Math.max(0, timestamp - startTime);
     const t = Math.min(elapsed / duration, 1);
 
-    _progress.set(t);
-    _value.set(startValue + (_target() - startValue) * easeFn(t));
-
+    startBatch();
+    writeSignal(progress, t);
     if (t < 1) {
+      writeSignal(value, startValue + (goal - startValue) * easeFn(t));
       raf = requestAnimationFrame(animate);
     } else {
-      _value.set(_target());
-      _playing.set(false);
+      writeSignal(value, goal);
+      writeSignal(playing, false);
       raf = undefined;
     }
+    endBatch();
   }
 
   function start() {
     if (raf) cancelAnimationFrame(raf);
-    startValue = untrack(() => _value());
+    startValue = value.value;
     startTime = undefined;
-    _playing.set(true);
+    writeSignal(playing, true);
     raf = requestAnimationFrame(animate);
   }
 
-  effect(() => {
-    void _target();
+  function cancel() {
+    if (raf) cancelAnimationFrame(raf);
+    raf = undefined;
+  }
+
+  // Writes to the target start the animation directly: no effect has to watch it, and a value
+  // already at its target never schedules a frame.
+  const write = target.set.bind(target);
+  target.set = (next: number) => {
+    if (Object.is(goal, next)) return;
+    goal = next;
+    write(next);
     start();
-  });
+  };
+  target.update = (fn: (prev: number) => number) => {
+    target.set(fn(goal));
+  };
+
+  if (!Object.is(from, to)) start();
 
   return {
-    value: computed(() => _value()),
-    target: _target,
-    playing: computed(() => _playing()),
-    progress: computed(() => _progress()),
+    value: () => readSignal(value),
+    target,
+    playing: () => readSignal(playing),
+    progress: () => readSignal(progress),
     stop() {
-      if (raf) cancelAnimationFrame(raf);
-      _playing.set(false);
+      cancel();
+      writeSignal(playing, false);
     },
     reset() {
-      if (raf) cancelAnimationFrame(raf);
-      _value.set(from);
-      _progress.set(0);
+      cancel();
+      startBatch();
+      writeSignal(value, from);
+      writeSignal(progress, 0);
+      writeSignal(playing, false);
+      endBatch();
     },
   };
 }

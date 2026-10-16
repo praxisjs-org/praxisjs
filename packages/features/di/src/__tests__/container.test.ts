@@ -203,6 +203,30 @@ describe("Container", () => {
     expect(second).not.toBe(first);
   });
 
+  it("detects a cycle through resolve() calls made inside constructors", () => {
+    const c = new Container();
+    class A { b: unknown = c.resolve(B); }
+    class B { a: unknown = c.resolve(A); }
+    c.register(A);
+    c.register(B);
+    expect(() => c.resolve(A)).toThrow("[DI] Circular dependency detected: A → B → A");
+    // The failed resolution leaves nothing behind for the next one.
+    c.register(B, { scope: "transient" });
+    class C {}
+    c.register(C);
+    expect(c.resolve(C)).toBeInstanceOf(C);
+  });
+
+  it("a child container delegating to its parent is not mistaken for a cycle", () => {
+    const parent = new Container();
+    class Shared {}
+    parent.register(Shared);
+    const child = parent.createChild();
+    class Local { shared = child.resolve(Shared); }
+    child.register(Local);
+    expect(child.resolve(Local).shared).toBe(parent.resolve(Shared));
+  });
+
   it("circular dependency chain including a Token shows the Token name in the error", () => {
     const MY_TOKEN = token<unknown>("MyToken");
     const c = new Container();

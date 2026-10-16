@@ -1,8 +1,4 @@
-import {
-  createFieldDecorator,
-  reactiveHostType,
-  type FieldBinding,
-} from "@praxisjs/decorators";
+import { reactiveHostType, addClaimableInitializer, assertFieldContext } from "@praxisjs/decorators";
 
 import { applyPluginsToStore } from "./apply-plugins.js";
 import { getGlobalPlugins } from "./plugin-registry.js";
@@ -37,28 +33,33 @@ export function Storable(options: StorableOptions = {}) {
 }
 
 export function store<T extends ReactiveStore>(StoreClass: new () => T): T {
-  if (!storeRegistry.has(StoreClass) || storeRegistry.get(StoreClass) === null) {
-    const instance = new StoreClass();
-    const perStore =
-      storePluginsMap.get(StoreClass as new (...args: unknown[]) => ReactiveStore) ?? [];
-    const plugins = [...getGlobalPlugins(), ...perStore];
-    const wrapped = applyPluginsToStore(instance, StoreClass.name, plugins);
-    storeRegistry.set(StoreClass, wrapped);
-  }
-  return storeRegistry.get(StoreClass) as T;
+  const existing = storeRegistry.get(StoreClass);
+  if (existing != null) return existing as T;
+  const instance = new StoreClass();
+  const perStore =
+    storePluginsMap.get(StoreClass as new (...args: unknown[]) => ReactiveStore) ?? [];
+  const plugins = [...getGlobalPlugins(), ...perStore];
+  const wrapped = applyPluginsToStore(instance, StoreClass.name, plugins);
+  storeRegistry.set(StoreClass, wrapped);
+  return wrapped;
 }
 
 export function Store(StoreConstructor: new () => unknown) {
-  return createFieldDecorator({
-    bind(_instance, _name, _initialValue): FieldBinding {
-      return {
-        descriptor: {
-          get(this: object): unknown {
-            return store(StoreConstructor as new () => ReactiveStore);
-          },
-        },
-      };
+  // A store is a singleton that is never replaced, so the first lookup is kept for every later read.
+  let cached: unknown;
+  const descriptor: PropertyDescriptor = {
+    get(): unknown {
+      return (cached ??= store(StoreConstructor as new () => ReactiveStore));
     },
+    enumerable: true,
+    configurable: true,
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as unknown as (_value: undefined, context: ClassFieldDecoratorContext<any>) => void;
+  return function (_value: undefined, context: ClassFieldDecoratorContext<any>): void {
+    assertFieldContext(context);
+    const name = context.name;
+    addClaimableInitializer(context, function () {
+      Object.defineProperty(this, name, descriptor);
+    });
+  };
 }

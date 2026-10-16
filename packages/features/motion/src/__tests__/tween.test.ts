@@ -156,3 +156,39 @@ describe("tween()", () => {
     }
   });
 });
+
+describe("tween() — idle and reset", () => {
+  it("does not schedule a frame when from === to", () => {
+    const raf = vi.spyOn(globalThis, "requestAnimationFrame");
+    const t = tween(5, 5);
+    expect(raf).not.toHaveBeenCalled();
+    expect(t.playing()).toBe(false);
+    raf.mockRestore();
+  });
+
+  it("reset() during an animation stops playing", () => {
+    const t = tween(0, 100, { duration: 1000 });
+    vi.advanceTimersByTime(100);
+    t.reset();
+    expect(t.playing()).toBe(false);
+    const value = t.value();
+    vi.advanceTimersByTime(1000);
+    expect(t.value()).toBe(value);
+  });
+
+  it("target.update() animates toward the updated value", () => {
+    const t = tween(0, 0, { duration: 100, easing: "linear" });
+    t.target.update((v) => v + 10);
+    expect(t.playing()).toBe(true);
+    vi.advanceTimersByTime(300);
+    expect(t.value()).toBe(10);
+  });
+
+  it("writing the current target again does not restart the animation", () => {
+    const t = tween(0, 100, { duration: 100 });
+    vi.advanceTimersByTime(300);
+    expect(t.playing()).toBe(false);
+    t.target.set(100);
+    expect(t.playing()).toBe(false);
+  });
+});

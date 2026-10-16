@@ -1,4 +1,4 @@
-import { signal, computed } from "@praxisjs/core/internal";
+import { computed, readSignal, SignalNode, writeSignal } from "@praxisjs/core/internal";
 import type { Computed } from "@praxisjs/shared";
 
 export interface TransitionTarget<S extends string, T extends object = object> {
@@ -41,18 +41,16 @@ export interface Machine<S extends string, E extends string> {
   reset(): void;
 }
 
-function resolveTransition<S extends string, T extends object>(
-  config: S | TransitionTarget<S, T> | undefined,
-  instance: T,
-): { target: S; guard?: () => boolean; action?: () => void } | null {
-  if (config == null) return null;
-  if (typeof config === "string") return { target: config };
-  const { target, guard, action } = config;
-  return {
-    target,
-    guard: guard ? () => guard(instance) : undefined,
-    action: action ? () => { action(instance); } : undefined,
-  };
+interface HistoryEntry<S extends string, E extends string> {
+  from: S;
+  event: E;
+  to: S;
+}
+
+function normalize<S extends string, T extends object>(
+  config: S | TransitionTarget<S, T>,
+): TransitionTarget<S, T> {
+  return typeof config === "string" ? { target: config } : config;
 }
 
 const DEFAULT_HISTORY_LIMIT = 100;
@@ -62,53 +60,53 @@ export function createMachine<
   E extends string,
   T extends object = object,
 >(definition: MachineDefinition<S, E, T>, instance: T = {} as T): Machine<S, E> {
-  const _state = signal(definition.initial);
-  const _history = signal<Array<{ from: S; event: E; to: S }>>([]);
+  const stateNode = new SignalNode(definition.initial);
+  const historyNode = new SignalNode<Array<HistoryEntry<S, E>>>([]);
   const limit = definition.historyLimit ?? DEFAULT_HISTORY_LIMIT;
 
-  function send(event: E): boolean {
-    const current = _state();
-    const resolved = resolveTransition(
-      definition.states[current].on?.[event],
-      instance,
-    );
-    if (!resolved) return false;
-    if (resolved.guard && !resolved.guard()) return false;
+  function transitionFor(state: S, event: E): TransitionTarget<S, T> | null {
+    const config = definition.states[state].on?.[event];
+    return config == null ? null : normalize(config);
+  }
 
-    const { target: nextState } = resolved;
+  // Reads the current state without tracking: sending is a write, so an effect that sends must not
+  // re-run because the state it just changed moved.
+  function send(event: E): boolean {
+    const current = stateNode.value;
+    const transition = transitionFor(current, event);
+    if (!transition) return false;
+    if (transition.guard && !transition.guard(instance)) return false;
+
+    const nextState = transition.target;
 
     definition.states[current].onExit?.({ event, to: nextState });
-    _state.set(nextState);
+    writeSignal(stateNode, nextState);
     if (limit !== 0) {
-      _history.update((h) => {
-        const entry = { from: current, event, to: nextState };
-        if (h.length < limit) return [...h, entry];
-        return [...h.slice(h.length - limit + 1), entry];
-      });
+      const prev = historyNode.value;
+      const next = prev.length < limit ? prev.slice() : prev.slice(prev.length - limit + 1);
+      next.push({ from: current, event, to: nextState });
+      writeSignal(historyNode, next);
     }
     definition.onTransition?.(current, event, nextState);
-    resolved.action?.();
+    transition.action?.(instance);
     definition.states[nextState].onEnter?.({ event, from: current });
     return true;
   }
 
   return {
-    state: computed(() => _state()),
-    history: computed(() => _history()),
+    state: computed(() => readSignal(stateNode)),
+    history: computed(() => readSignal(historyNode)),
     send,
     can: (event) => {
-      const resolved = resolveTransition(
-        definition.states[_state()].on?.[event],
-        instance,
-      );
-      if (!resolved) return false;
-      return !resolved.guard || resolved.guard();
+      const transition = transitionFor(readSignal(stateNode), event);
+      if (!transition) return false;
+      return !transition.guard || transition.guard(instance);
     },
-    is: (state) => _state() === state,
+    is: (state) => readSignal(stateNode) === state,
     reset: () => {
-      definition.states[_state()].onExit?.(undefined);
-      _state.set(definition.initial);
-      _history.set([]);
+      definition.states[stateNode.value].onExit?.(undefined);
+      writeSignal(stateNode, definition.initial);
+      writeSignal(historyNode, []);
       definition.states[definition.initial].onEnter?.(undefined);
     },
   };

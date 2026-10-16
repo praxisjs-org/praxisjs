@@ -27,6 +27,10 @@ export function token<T>(description: string): Token<T> {
   return new Token<T>(description);
 }
 
+// Shared by every resolution: a constructor that calls `inject()` starts a new resolve() call, and a
+// cycle running through it must still be caught instead of overflowing the stack.
+const resolving = new Set<Constructor | Token<unknown>>();
+
 export class Container {
   private readonly services = new Map<Constructor | Token<unknown>, unknown>();
   private readonly parent?: Container;
@@ -58,42 +62,43 @@ export class Container {
 
   resolve<T>(
     target: Constructor<T> | Token<T>,
-    resolutionStack = new Set<Constructor | Token<unknown>>(),
+    resolutionStack: Set<Constructor | Token<unknown>> = resolving,
   ): T {
     const key = target as Constructor | Token<unknown>;
 
-    if (resolutionStack.has(key)) {
+    if (resolutionStack.size !== 0 && resolutionStack.has(key)) {
       const chain = [...resolutionStack, key]
         .map((k) => (k instanceof Token ? k.toString() : k.name))
         .join(" → ");
       throw new Error(`[DI] Circular dependency detected: ${chain}`);
     }
 
+    const entry = this.services.get(key);
+
+    if (target instanceof Token) {
+      if (entry !== undefined) return entry as T;
+      if (this.parent) return this.parent.resolve(target, resolutionStack);
+      throw new Error(`[DI] Token not registered: ${target.toString()}`);
+    }
+
+    if (!entry) {
+      if (this.parent) return this.parent.resolve(target, resolutionStack);
+      throw new Error(
+        `[DI] Service not registered: ${(target as Constructor).name}`,
+      );
+    }
+
+    const descriptor = entry as ServiceDescriptor;
+    const singleton = descriptor.scope === "singleton";
+    if (singleton && descriptor.instance !== undefined) return descriptor.instance as T;
+
+    // Only a key that is being constructed goes on the stack, so delegating to a parent is never
+    // mistaken for a cycle.
     resolutionStack.add(key);
     try {
-      const entry = this.services.get(key);
-
-      if (target instanceof Token) {
-        if (entry !== undefined) return entry as T;
-        if (this.parent) return this.parent.resolve(target);
-        throw new Error(`[DI] Token not registered: ${target.toString()}`);
-      }
-
-      if (!entry) {
-        if (this.parent) return this.parent.resolve(target);
-        throw new Error(
-          `[DI] Service not registered: ${(target as Constructor).name}`,
-        );
-      }
-
-      const descriptor = entry as ServiceDescriptor;
-
-      if (descriptor.scope === "singleton") {
-        descriptor.instance ??= this.instantiate(descriptor.target);
-        return descriptor.instance as T;
-      }
-
-      return this.instantiate(descriptor.target) as T;
+      const instance = this.instantiate(descriptor.target);
+      if (singleton) descriptor.instance = instance;
+      return instance as T;
     } finally {
       resolutionStack.delete(key);
     }

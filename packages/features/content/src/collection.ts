@@ -9,120 +9,123 @@ import type {
   PageOptions,
 } from "./types";
 
-const _registry = new WeakMap<typeof ContentSchema, CollectionConfig>();
+type SchemaClassOf<S extends ContentSchema> = new () => S;
+
+// Parsing and rendering an entry is the expensive part, and a collection's files don't change while
+// the page lives (an edited file triggers a full reload that resets this module), so each entry is
+// loaded once and shared by getCollection, getPage and getEntry. Registering a collection again
+// replaces its state, so it starts clean.
+interface CollectionState {
+  config: CollectionConfig;
+  entries: Map<string, Promise<Entry<ContentSchema>>>;
+  all: Promise<Array<Entry<ContentSchema>>> | undefined;
+  sortedPaths: string[] | undefined;
+  slugToPath: Map<string, string> | undefined;
+}
+
+const _registry = new WeakMap<typeof ContentSchema, CollectionState>();
 
 export function registerCollection(
   SchemaClass: typeof ContentSchema,
   config: CollectionConfig,
 ): void {
-  _registry.set(SchemaClass, config);
+  _registry.set(SchemaClass, {
+    config,
+    entries: new Map(),
+    all: undefined,
+    sortedPaths: undefined,
+    slugToPath: undefined,
+  });
 }
 
-// Parsing and rendering every entry is the expensive part, and a collection's files don't change
-// while the page lives (an edited file triggers a full reload that resets this module). Keyed by
-// config so re-registering a collection starts clean.
-const _collectionCache = new WeakMap<CollectionConfig, Promise<unknown[]>>();
+function stateOf(SchemaClass: SchemaClassOf<ContentSchema>): CollectionState {
+  const state = _registry.get(SchemaClass as unknown as typeof ContentSchema);
+  if (!state) {
+    throw new Error(
+      `[content] ${SchemaClass.name} is not registered. Did you forget @Collection('./path/*.md')?`,
+    );
+  }
+  return state;
+}
+
+// A failed load is not remembered, or one transient import error would stick.
+function remember<T>(promise: Promise<T>, forget: () => void): Promise<T> {
+  promise.catch(forget);
+  return promise;
+}
+
+function loadEntry<S extends ContentSchema>(
+  SchemaClass: SchemaClassOf<S>,
+  state: CollectionState,
+  path: string,
+): Promise<Entry<S>> {
+  let pending = state.entries.get(path);
+  if (!pending) {
+    const { glob, render = defaultRender } = state.config;
+    pending = remember(
+      loadRaw(glob[path]).then((raw) => {
+        const slug = pathToSlug(path);
+        const { data, body } = parseFrontmatter(raw);
+        const validated = applySchema(SchemaClass, data, slug);
+        return { slug, data: validated, body, html: render(body) };
+      }),
+      () => { state.entries.delete(path); },
+    );
+    state.entries.set(path, pending);
+  }
+  return pending as Promise<Entry<S>>;
+}
 
 export async function getCollection<S extends ContentSchema>(
-  SchemaClass: new () => S,
+  SchemaClass: SchemaClassOf<S>,
 ): Promise<Array<Entry<S>>> {
-  const config = _registry.get(SchemaClass as unknown as typeof ContentSchema);
-  if (!config) {
-    throw new Error(
-      `[content] ${SchemaClass.name} is not registered. Did you forget @Collection('./path/*.md')?`,
-    );
-  }
-
-  let pending = _collectionCache.get(config);
-  if (!pending) {
-    pending = loadCollection(SchemaClass, config);
-    _collectionCache.set(config, pending);
-    // A failed load must not be remembered, or one transient import error would stick.
-    pending.catch(() => { _collectionCache.delete(config); });
-  }
-
-  // Copy so a caller sorting or mutating the array doesn't affect the next caller.
-  return [...((await pending) as Array<Entry<S>>)];
-}
-
-async function loadCollection<S extends ContentSchema>(
-  SchemaClass: new () => S,
-  config: CollectionConfig,
-): Promise<Array<Entry<S>>> {
-  const { glob, render = defaultRender } = config;
-
-  const settled = await Promise.all(
-    Object.entries(glob).map(async ([path, loader]) => {
-      const raw = await loadRaw(loader as GlobImport[string]);
-      const slug = pathToSlug(path);
-      const { data, body } = parseFrontmatter(raw);
-      const validated = applySchema(SchemaClass, data, slug);
-      return { slug, data: validated, body, html: render(body) } as Entry<S>;
-    }),
+  const state = stateOf(SchemaClass);
+  state.all ??= remember(
+    Promise.all(
+      Object.keys(state.config.glob).map((path) => loadEntry(SchemaClass, state, path)),
+    ).then((entries) => entries.sort((a, b) => a.slug.localeCompare(b.slug))),
+    () => { state.all = undefined; },
   );
 
-  return settled.sort((a, b) => a.slug.localeCompare(b.slug));
+  // Copy so a caller sorting or mutating the array doesn't affect the next caller.
+  return [...((await state.all) as Array<Entry<S>>)];
 }
 
-export function getTotal(SchemaClass: new () => ContentSchema): number {
-  const config = _registry.get(SchemaClass as unknown as typeof ContentSchema);
-  if (!config) {
-    throw new Error(
-      `[content] ${SchemaClass.name} is not registered. Did you forget @Collection('./path/*.md')?`,
-    );
-  }
-  return Object.keys(config.glob).length;
+export function getTotal(SchemaClass: SchemaClassOf<ContentSchema>): number {
+  return Object.keys(stateOf(SchemaClass).config.glob).length;
 }
 
 export async function getPage<S extends ContentSchema>(
-  SchemaClass: new () => S,
+  SchemaClass: SchemaClassOf<S>,
   options: PageOptions,
 ): Promise<Array<Entry<S>>> {
-  const config = _registry.get(SchemaClass as unknown as typeof ContentSchema);
-  if (!config) {
-    throw new Error(
-      `[content] ${SchemaClass.name} is not registered. Did you forget @Collection('./path/*.md')?`,
-    );
-  }
-
-  const { glob, render = defaultRender } = config;
+  const state = stateOf(SchemaClass);
   const { page, pageSize } = options;
 
-  const sortedKeys = Object.keys(glob).sort();
+  state.sortedPaths ??= Object.keys(state.config.glob).sort();
   const start = (page - 1) * pageSize;
-  const slice = sortedKeys.slice(start, start + pageSize);
+  const slice = state.sortedPaths.slice(start, start + pageSize);
 
-  return Promise.all(
-    slice.map(async (path) => {
-      const raw = await loadRaw(glob[path]);
-      const slug = pathToSlug(path);
-      const { data, body } = parseFrontmatter(raw);
-      const validated = applySchema(SchemaClass, data, slug);
-      return { slug, data: validated, body, html: render(body) } as Entry<S>;
-    }),
-  );
+  return Promise.all(slice.map((path) => loadEntry(SchemaClass, state, path)));
 }
 
 export async function getEntry<S extends ContentSchema>(
-  SchemaClass: new () => S,
+  SchemaClass: SchemaClassOf<S>,
   slug: string,
 ): Promise<Entry<S> | null> {
-  const config = _registry.get(SchemaClass as unknown as typeof ContentSchema);
-  if (!config) {
-    throw new Error(
-      `[content] ${SchemaClass.name} is not registered. Did you forget @Collection('./path/*.md')?`,
-    );
+  const state = stateOf(SchemaClass);
+
+  if (!state.slugToPath) {
+    state.slugToPath = new Map();
+    for (const path of Object.keys(state.config.glob)) {
+      const key = pathToSlug(path);
+      // The first file wins when two share a slug, as a front-to-back search would pick it.
+      if (!state.slugToPath.has(key)) state.slugToPath.set(key, path);
+    }
   }
-
-  const { glob, render = defaultRender } = config;
-  const match = Object.entries(glob).find(([path]) => pathToSlug(path) === slug);
-  if (!match) return null;
-
-  const [, loader] = match as [string, GlobImport[string]];
-  const raw = await loadRaw(loader);
-  const { data, body } = parseFrontmatter(raw);
-  const validated = applySchema(SchemaClass, data, slug);
-  return { slug, data: validated, body, html: render(body) };
+  const path = state.slugToPath.get(slug);
+  if (path === undefined) return null;
+  return loadEntry(SchemaClass, state, path);
 }
 
 export function pathToSlug(path: string): string {

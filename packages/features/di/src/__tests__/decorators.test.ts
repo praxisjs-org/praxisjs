@@ -43,6 +43,14 @@ describe("Injectable", () => {
     expect(container.resolve(MyService).greet()).toBe("hello");
   });
 
+  it("registers the class itself, without a wrapping subclass", () => {
+    class Base {}
+    @Injectable()
+    class Plain extends Base {}
+    expect(Object.getPrototypeOf(Plain)).toBe(Base);
+    expect("onMount" in container.resolve(Plain)).toBe(false);
+  });
+
   it("registers with transient scope — each resolve returns a new instance", () => {
     @Injectable({ scope: "transient" })
     class TmpService {}
