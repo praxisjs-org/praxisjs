@@ -1,7 +1,7 @@
 {
   "name": "@praxisjs/mcp",
   "version": "0.3.1",
-  "description": "PraxisJS MCP server for Claude Code — live documentation tools via the Model Context Protocol",
+  "description": "PraxisJS MCP server — docs, API reference, project inspection, validation and a versioned project memory for AI assistants",
   "type": "module",
   "bin": {
     "praxisjs-mcp": "./dist/index.mjs"

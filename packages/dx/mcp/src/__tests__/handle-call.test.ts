@@ -262,6 +262,32 @@ describe('handleCall — praxisjs_get_install_command', () => {
     expect(result.content[0]?.text).toBe('pnpm add create-praxisjs')
   })
 
+  it('rejects names that only start with @praxisjs/', async () => {
+    const result = await handleCall('praxisjs_get_install_command', {
+      packages: ['@praxisjs/router; rm -rf .', '@praxisjs/', '@praxisjs/Router'],
+    })
+
+    expect(result.isError).toBe(true)
+    expect(result.content[0]?.text).toContain('@praxisjs/router; rm -rf .')
+  })
+
+  it('accepts Morphos packages and the kosmesis CLI', async () => {
+    const result = await handleCall('praxisjs_get_install_command', {
+      packages: ['@morphos/overlays', 'kosmesis'],
+      dev: false,
+    })
+
+    expect(result.content[0]?.text).toBe('npm install @morphos/overlays kosmesis')
+  })
+
+  it('allows the praxisjs CLI and drops duplicate names', async () => {
+    const result = await handleCall('praxisjs_get_install_command', {
+      packages: ['praxisjs', '@praxisjs/router', '@praxisjs/router'],
+    })
+
+    expect(result.content[0]?.text).toBe('npm install -D praxisjs @praxisjs/router')
+  })
+
   it('does not call fetchDocs', async () => {
     await handleCall('praxisjs_get_install_command', {
       packages: ['@praxisjs/router'],

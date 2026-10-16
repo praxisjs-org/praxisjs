@@ -1,68 +1,52 @@
+import { readFileSync } from 'node:fs'
+
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { z } from 'zod'
+import { RootsListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js'
 
-import { handleCall } from './handle-call.js'
+import { handleCall, type CallContext } from './handle-call.js'
+import { resolveProjectRoot } from './project/files.js'
+import { TOOL_DEFINITIONS } from './tool-definitions.js'
 
-const server = new McpServer({ name: 'praxisjs', version: '0.1.0' })
+const { version } = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+) as { version: string }
 
-server.registerTool(
-  'praxisjs_overview',
-  {
-    description:
-      'Returns the PraxisJS documentation index. Use this first to discover available docs pages and get a concise overview of all APIs, decorators, and packages.',
-  },
-  () => handleCall('praxisjs_overview', {}),
-)
+const server = new McpServer({ name: 'praxisjs', version })
 
-server.registerTool(
-  'praxisjs_get_page',
-  {
-    description:
-      'Returns a specific PraxisJS documentation page as Markdown. Use after praxisjs_overview to fetch the page relevant to the current task. Never guess at decorator options or import paths — always fetch the page first.',
-    inputSchema: {
-      page: z
-        .string()
-        .describe(
-          'Page slug relative to /docs — e.g. "essentials/components", "decorators/state", "ecosystem/router". Do not include a leading slash.',
-        ),
-    },
-  },
-  ({ page }) => handleCall('praxisjs_get_page', { page }),
-)
+let clientRoots: string[] = []
+const context: CallContext = {
+  root: () => resolveProjectRoot(process.env, process.cwd(), clientRoots),
+}
 
-server.registerTool(
-  'praxisjs_full_docs',
-  {
-    description:
-      'Returns the complete PraxisJS documentation — all pages concatenated. Use when cross-topic context is needed or the specific page is unknown.',
-  },
-  () => handleCall('praxisjs_full_docs', {}),
-)
+for (const tool of TOOL_DEFINITIONS) {
+  const config = { description: tool.description, annotations: tool.annotations }
+  // Without an input schema the SDK passes only the request context, never arguments.
+  if (tool.inputSchema) {
+    server.registerTool(tool.name, { ...config, inputSchema: tool.inputSchema }, (args: Record<string, unknown>) =>
+      handleCall(tool.name, args, context),
+    )
+  } else {
+    server.registerTool(tool.name, config, () => handleCall(tool.name, {}, context))
+  }
+}
 
-server.registerTool(
-  'praxisjs_get_install_command',
-  {
-    description:
-      'Returns the correct CLI command to install @praxisjs/* packages without version constraints. Always use this tool to generate install commands — never write version numbers directly into package.json.',
-    inputSchema: {
-      packages: z
-        .array(z.string())
-        .min(1)
-        .describe('List of @praxisjs/* package names to install, e.g. ["@praxisjs/router", "@praxisjs/store"]'),
-      manager: z
-        .enum(['npm', 'pnpm', 'yarn', 'bun'])
-        .optional()
-        .describe('Package manager to use. Defaults to npm.'),
-      dev: z
-        .boolean()
-        .optional()
-        .describe('Install as devDependency. Defaults to true.'),
-    },
-  },
-  ({ packages, manager, dev }) =>
-    handleCall('praxisjs_get_install_command', { packages, manager, dev }),
-)
+// Clients that support roots (VS Code, Claude Code…) say which folder is open; it is the fallback
+// project root when neither PRAXISJS_PROJECT_ROOT nor CLAUDE_PROJECT_DIR is set.
+async function refreshRoots(): Promise<void> {
+  if (!server.server.getClientCapabilities()?.roots) return
+  try {
+    const { roots } = await server.server.listRoots()
+    clientRoots = roots.map((root) => root.uri)
+  } catch {
+    clientRoots = []
+  }
+}
+
+server.server.oninitialized = () => {
+  void refreshRoots()
+}
+server.server.setNotificationHandler(RootsListChangedNotificationSchema, () => refreshRoots())
 
 const transport = new StdioServerTransport()
 await server.connect(transport)
