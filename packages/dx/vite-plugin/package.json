@@ -10,9 +10,17 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "files": [
+    "dist",
+    "src",
+    "!dist/**/__tests__",
+    "!src/**/__tests__",
+    "CHANGELOG.md"
+  ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch"
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
     "@praxisjs/css": "workspace:*",

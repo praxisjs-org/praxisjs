@@ -3,6 +3,8 @@ import { describe, it, expect, vi } from "vitest";
 
 import { praxisjs, decoratorLoweringPlugin } from "../index";
 
+import { inlineHelpers } from "./inline-helpers";
+
 // `ts.transpileModule`'s own types mark `diagnostics` and `sourceMapText` as
 // optional regardless of the options passed in — wrapping it lets a couple
 // of tests below simulate that contract even though it never happens with
@@ -30,7 +32,6 @@ interface NamedPlugin {
   enforce?: string;
   config?: () => unknown;
   transform?: (code: string, id: string) => string | TransformResult | null | undefined;
-  handleHotUpdate?: (ctx: { file: string; server: unknown }) => void;
 }
 
 function transformedCode(result: string | TransformResult | null | undefined): string | null | undefined {
@@ -45,14 +46,38 @@ function findPlugin(plugins: ReturnType<typeof praxisjs>, name: string): NamedPl
 }
 
 describe("praxisjs() plugin factory", () => {
-  it("returns three plugins by default (decorators + core + hmr)", () => {
+  it("returns five plugins by default (keyed lists + hmr + decorators + templates + core)", () => {
     const plugins = praxisjs();
-    expect(plugins).toHaveLength(3);
+    expect(plugins).toHaveLength(5);
   });
 
-  it("returns two plugins when hmr is disabled", () => {
+  it("returns four plugins when hmr is disabled", () => {
     const plugins = praxisjs({ hmr: false });
-    expect(plugins).toHaveLength(2);
+    expect(plugins).toHaveLength(4);
+  });
+
+  it("runs the template compiler after decorator lowering, and can be turned off", () => {
+    const plugins = praxisjs() as NamedPlugin[];
+    expect(plugins[3].name).toBe("praxisjs:templates");
+    expect((praxisjs({ templates: false }) as NamedPlugin[]).some((p) => p.name === "praxisjs:templates")).toBe(false);
+    expect((praxisjs({ templates: { include: /\.tsx$/ } }) as NamedPlugin[])[3].name).toBe("praxisjs:templates");
+  });
+
+  it("runs the keyed-list rewrite first, before decorator lowering", () => {
+    const plugins = praxisjs() as NamedPlugin[];
+    expect(plugins[0].name).toBe("praxisjs:keyed-lists");
+    expect(plugins[1].name).toBe("praxisjs:hmr");
+    expect(plugins[2].name).toBe("praxisjs:decorators");
+  });
+
+  it("omits the keyed-list rewrite when keyedLists is false", () => {
+    const plugins = praxisjs({ keyedLists: false }) as NamedPlugin[];
+    expect(plugins.find((p) => p.name === "praxisjs:keyed-lists")).toBeUndefined();
+  });
+
+  it("passes keyedLists options to the rewrite", () => {
+    const plugins = praxisjs({ keyedLists: { warn: false } }) as NamedPlugin[];
+    expect(plugins[0].name).toBe("praxisjs:keyed-lists");
   });
 
   it("core plugin has the correct name", () => {
@@ -70,9 +95,13 @@ describe("praxisjs() plugin factory", () => {
     expect(hmr.name).toBe("praxisjs:hmr");
   });
 
-  it("hmr plugin enforces 'post'", () => {
-    const hmr = findPlugin(praxisjs(), "praxisjs:hmr");
-    expect(hmr.enforce).toBe("post");
+  it("hmr plugin runs before the decorator lowering, in the dev server only", () => {
+    const all = praxisjs();
+    const plugins = all as NamedPlugin[];
+    const hmr = findPlugin(all, "praxisjs:hmr");
+    expect(hmr.enforce).toBe("pre");
+    expect((hmr as { apply?: string }).apply).toBe("serve");
+    expect(plugins.indexOf(hmr)).toBeLessThan(plugins.findIndex((p) => p.name === "praxisjs:decorators"));
   });
 
   it("omits the hmr plugin when hmr is disabled", () => {
@@ -218,7 +247,7 @@ describe("praxisjs:decorators transform()", () => {
     const result = transformedCode(decorators.transform?.(code, "component.ts"));
     expect(result).toBeTruthy();
     // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const factory = new Function(`${result as string}\nreturn Comp;`);
+    const factory = new Function(`${inlineHelpers(result as string)}\nreturn Comp;`);
     const Comp = factory() as new (order: string[]) => unknown;
     const order: string[] = [];
     new Comp(order);
@@ -247,6 +276,17 @@ describe("praxisjs:decorators transform()", () => {
     const decorators = findPlugin(praxisjs(), "praxisjs:decorators");
     const result = decorators.transform?.("class Foo { @Dec() x = 1; }", "component.ts");
     expect(result).toEqual({ code: "class Foo {}", map: null });
+  });
+
+  it("returns a null map for claimed fields when ts.transpileModule omits sourceMapText", () => {
+    const transpileModule = ts.transpileModule as unknown as ReturnType<typeof vi.fn>;
+    const actual = (ts.transpileModule as unknown as { getMockImplementation(): typeof ts.transpileModule }).getMockImplementation();
+    const lowered = actual?.("class Foo { @Dec() x = 1; }", { compilerOptions: { target: ts.ScriptTarget.ES2022, useDefineForClassFields: true } });
+    transpileModule.mockReturnValueOnce({ outputText: lowered?.outputText, diagnostics: [], sourceMapText: undefined });
+    const decorators = findPlugin(praxisjs(), "praxisjs:decorators");
+    const result = decorators.transform?.("class Foo { @Dec() x = 1; }", "component.ts") as TransformResult;
+    expect(result.code).toContain("__pxField(");
+    expect(result.map).toBeNull();
   });
 
   it("does not throw when ts.transpileModule omits diagnostics", () => {
@@ -304,48 +344,3 @@ describe("praxisjs:core transform()", () => {
   });
 });
 
-describe("praxisjs:hmr handleHotUpdate()", () => {
-  function makeMockServer() {
-    return {
-      ws: {
-        send: vi.fn(),
-      },
-    };
-  }
-
-  it("sends custom event for .ts files", () => {
-    const hmr = findPlugin(praxisjs({ hmr: true }), "praxisjs:hmr");
-    const server = makeMockServer();
-    hmr.handleHotUpdate?.({ file: "src/app.ts", server });
-    expect(server.ws.send).toHaveBeenCalledWith({
-      type: "custom",
-      event: "praxisjs:component-update",
-      data: { file: "src/app.ts" },
-    });
-  });
-
-  it("sends custom event for .tsx files", () => {
-    const hmr = findPlugin(praxisjs({ hmr: true }), "praxisjs:hmr");
-    const server = makeMockServer();
-    hmr.handleHotUpdate?.({ file: "src/component.tsx", server });
-    expect(server.ws.send).toHaveBeenCalledWith({
-      type: "custom",
-      event: "praxisjs:component-update",
-      data: { file: "src/component.tsx" },
-    });
-  });
-
-  it("does not send event for non-.ts/.tsx files", () => {
-    const hmr = findPlugin(praxisjs({ hmr: true }), "praxisjs:hmr");
-    const server = makeMockServer();
-    hmr.handleHotUpdate?.({ file: "src/style.css", server });
-    expect(server.ws.send).not.toHaveBeenCalled();
-  });
-
-  it("does not send event for .js files", () => {
-    const hmr = findPlugin(praxisjs({ hmr: true }), "praxisjs:hmr");
-    const server = makeMockServer();
-    hmr.handleHotUpdate?.({ file: "src/utils.js", server });
-    expect(server.ws.send).not.toHaveBeenCalled();
-  });
-});
