@@ -13,12 +13,16 @@ const mockExecFileSync = vi.fn();
 const mockFetch = vi.fn();
 const mockSpinnerStop = vi.fn();
 const mockRmSync = vi.fn();
-const runtime = vi.hoisted(() => ({ platform: "darwin" }));
+const mockRun = vi.fn();
+const mockConfirm = vi.fn();
+const mockIsInteractive = vi.fn();
 
 vi.mock("@clack/prompts", () => ({
   intro: mockIntro,
   outro: mockOutro,
   note: mockNote,
+  confirm: mockConfirm,
+  isCancel: (value: unknown) => typeof value === "symbol",
   spinner: vi.fn(() => ({ start: vi.fn(), stop: mockSpinnerStop })),
 }));
 vi.mock("picocolors", () => ({
@@ -28,9 +32,6 @@ vi.mock("node:process", () => ({
   cwd: () => "/project",
   execPath: "/usr/bin/node",
   exit: mockExit,
-  get platform() {
-    return runtime.platform;
-  },
 }));
 vi.mock("node:fs", () => ({
   default: {
@@ -44,7 +45,17 @@ vi.mock("node:child_process", () => ({
   execFileSync: mockExecFileSync,
 }));
 const mockOfferAiSync = vi.hoisted(() => vi.fn());
-vi.mock("../commands/ai/sync", () => ({ offerAiSync: mockOfferAiSync }));
+vi.mock("../commands/ai/sync", () => ({ offerAiSync: mockOfferAiSync, isInteractive: mockIsInteractive }));
+vi.mock("../kosmesis", async (importOriginal) => ({ ...(await importOriginal<typeof import("../kosmesis")>()), run: mockRun }));
+
+/** `npm --version` answers `npm`; every install exits with `install`. */
+function mockCommands({ npm = "11.6.0", install = [{ code: 0, output: "" }] }: { npm?: string; install?: Array<{ code: number; output: string }> } = {}): void {
+  const installs = [...install];
+  mockRun.mockImplementation((invocation: { command: string; args: string[] }) => {
+    if (invocation.args[0] === "--version") return Promise.resolve({ code: 0, output: `${npm}\n` });
+    return Promise.resolve(installs.length > 1 ? installs.shift() : installs[0]);
+  });
+}
 
 vi.stubGlobal("fetch", mockFetch);
 vi.stubEnv("npm_config_registry", "https://registry.npmjs.org/");
@@ -99,7 +110,10 @@ beforeEach(() => {
   mockFetch.mockReset();
   mockSpinnerStop.mockClear();
   mockRmSync.mockReset();
-  runtime.platform = "darwin";
+  mockRun.mockReset();
+  mockCommands();
+  mockConfirm.mockReset();
+  mockIsInteractive.mockReset().mockReturnValue(false);
 });
 
 afterEach(() => {
@@ -150,7 +164,7 @@ describe("upgrade — already up to date", () => {
     await upgrade();
 
     expect(mockWriteFileSync).not.toHaveBeenCalled();
-    expect(mockExecFileSync).not.toHaveBeenCalled();
+    expect(mockRun).not.toHaveBeenCalled();
     expect(mockOutro).toHaveBeenCalledWith("Nothing to upgrade.");
   });
 
@@ -183,7 +197,7 @@ describe("upgrade — updates available", () => {
     const [noteBody] = mockNote.mock.calls[0] as [string];
     expect(noteBody).toContain("@praxisjs/core: ^1.0.0 → ^2.0.0");
 
-    expect(mockExecFileSync).toHaveBeenCalledWith("pnpm", ["install"], expect.objectContaining({ cwd: "/project" }));
+    expect(mockRun).toHaveBeenCalledWith({ command: "pnpm", args: ["install"] }, "/project", "pipe");
   });
 
   it("falls back to npm install when no lockfile is detected", async () => {
@@ -193,7 +207,7 @@ describe("upgrade — updates available", () => {
 
     await upgrade();
 
-    expect(mockExecFileSync).toHaveBeenCalledWith("npm", ["install"], expect.objectContaining({ cwd: "/project" }));
+    expect(mockRun).toHaveBeenCalledWith({ command: "npm", args: ["install"] }, "/project", "pipe");
   });
 
   it("uses yarn when yarn.lock is detected", async () => {
@@ -203,7 +217,7 @@ describe("upgrade — updates available", () => {
 
     await upgrade();
 
-    expect(mockExecFileSync).toHaveBeenCalledWith("yarn", [], expect.objectContaining({ cwd: "/project" }));
+    expect(mockRun).toHaveBeenCalledWith({ command: "yarn", args: [] }, "/project", "pipe");
   });
 
   it("uses bun when the text bun.lock is detected", async () => {
@@ -213,7 +227,7 @@ describe("upgrade — updates available", () => {
 
     await upgrade();
 
-    expect(mockExecFileSync).toHaveBeenCalledWith("bun", ["install"], expect.objectContaining({ cwd: "/project" }));
+    expect(mockRun).toHaveBeenCalledWith({ command: "bun", args: ["install"] }, "/project", "pipe");
   });
 
   it("uses bun when bun.lockb is detected", async () => {
@@ -223,7 +237,7 @@ describe("upgrade — updates available", () => {
 
     await upgrade();
 
-    expect(mockExecFileSync).toHaveBeenCalledWith("bun", ["install"], expect.objectContaining({ cwd: "/project" }));
+    expect(mockRun).toHaveBeenCalledWith({ command: "bun", args: ["install"] }, "/project", "pipe");
   });
 
   it("upgrades an exact (unprefixed) version without adding a range prefix", async () => {
@@ -332,12 +346,11 @@ describe("upgrade — updates available", () => {
     mockExistsSync.mockImplementation((p: unknown) => String(p).endsWith("package.json"));
     mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { "@praxisjs/core": "^1.0.0" } }));
     mockRegistry({ "@praxisjs/core": "2.0.0" });
-    mockExecFileSync.mockImplementation(() => {
-      throw new Error("install failed");
-    });
+    mockCommands({ install: [{ code: 1, output: "install failed" }] });
 
     await expect(upgrade()).resolves.toBeUndefined();
-    expect(mockSpinnerStop).toHaveBeenCalledWith("Install failed — run `npm install` manually.");
+    expect(mockSpinnerStop).toHaveBeenCalledWith("Install failed.");
+    expect(noteBody("Install failed")).toBe("Run `npm install` manually.");
   });
 });
 
@@ -420,7 +433,7 @@ describe("upgrade — ecosystem packages", () => {
     await upgrade();
 
     expect(mockWriteFileSync).not.toHaveBeenCalled();
-    expect(mockExecFileSync).not.toHaveBeenCalled();
+    expect(mockRun).not.toHaveBeenCalled();
     expect(mockFetch).toHaveBeenCalledTimes(7);
     expect(noteBody("PraxisJS")).toBe(
       "@praxisjs/core: held back at ^2.3.0 (@morphos/inputs@1.0.3 needs @praxisjs/core >=2.0.0 <3.0.0)\n" +
@@ -648,7 +661,7 @@ describe("upgrade — installing over an existing lockfile", () => {
       "/project/node_modules/.package-lock.json",
     ]);
     expect(mockWriteFileSync.mock.calls[0][0]).toBe("/project/package.json");
-    expect(mockExecFileSync).toHaveBeenCalledWith("npm", ["install"], expect.objectContaining({ cwd: "/project" }));
+    expect(mockRun).toHaveBeenCalledWith({ command: "npm", args: ["install"] }, "/project", "pipe");
   });
 
   it.each([
@@ -662,7 +675,7 @@ describe("upgrade — installing over an existing lockfile", () => {
 
     expect(mockWriteFileSync.mock.calls.map(([file]) => file)).toEqual(["/project/package.json"]);
     expect(mockRmSync).not.toHaveBeenCalled();
-    expect(mockExecFileSync).toHaveBeenCalled();
+    expect(mockRun).toHaveBeenCalled();
   });
 
   it("does not touch package-lock.json for other package managers", async () => {
@@ -676,26 +689,14 @@ describe("upgrade — installing over an existing lockfile", () => {
     await upgrade();
 
     expect(mockRmSync).not.toHaveBeenCalled();
-    expect(mockExecFileSync).toHaveBeenCalledWith("pnpm", ["install"], expect.anything());
-  });
-
-  it("runs the package manager through a shell on Windows, where it is a .cmd script", async () => {
-    runtime.platform = "win32";
-    mockFiles({ "/project/package.json": manifest });
-    mockRegistry({ "@praxisjs/core": "2.0.0" });
-
-    await upgrade();
-
-    expect(mockExecFileSync).toHaveBeenCalledWith("npm", ["install"], expect.objectContaining({ shell: true }));
+    expect(mockRun).toHaveBeenCalledWith({ command: "pnpm", args: ["install"] }, "/project", "pipe");
   });
 
   it("shows the end of the package manager's output when the install fails", async () => {
     mockFiles({ "/project/package.json": manifest });
     mockRegistry({ "@praxisjs/core": "2.0.0" });
     const lines = Array.from({ length: 15 }, (_, i) => `line ${String(i + 1)}`);
-    mockExecFileSync.mockImplementation(() => {
-      throw Object.assign(new Error("failed"), { stdout: Buffer.from("added 0\n"), stderr: lines.join("\n") });
-    });
+    mockCommands({ install: [{ code: 1, output: `added 0\n${lines.join("\r\n")}\n` }] });
 
     await upgrade();
 
@@ -705,14 +706,11 @@ describe("upgrade — installing over an existing lockfile", () => {
   it("shows no output note when the failed install printed nothing", async () => {
     mockFiles({ "/project/package.json": manifest });
     mockRegistry({ "@praxisjs/core": "2.0.0" });
-    mockExecFileSync.mockImplementation(() => {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
-      throw undefined;
-    });
+    mockCommands({ install: [{ code: 1, output: "  \n" }] });
 
     await upgrade();
 
-    expect(mockSpinnerStop).toHaveBeenCalledWith("Install failed — run `npm install` manually.");
+    expect(noteBody("Install failed")).toBe("Run `npm install` manually.");
     expect(mockNote.mock.calls.some(([, title]) => title === "npm output")).toBe(false);
   });
 });
@@ -733,16 +731,14 @@ describe("upgrade — repairing an upgrade whose install did not finish", () => 
 
     expect(mockWriteFileSync.mock.calls.map(([file]) => file)).toEqual(["/project/package-lock.json"]);
     expect(noteBody("Installed versions out of date")).toContain("@praxisjs/core\n@morphos/inputs");
-    expect(mockExecFileSync).toHaveBeenCalledWith("npm", ["install"], expect.anything());
+    expect(mockRun).toHaveBeenCalledWith({ command: "npm", args: ["install"] }, "/project", "pipe");
     expect(mockOutro).toHaveBeenCalledWith("Dependencies repaired.");
   });
 
   it("says the install is still needed when the repair install fails", async () => {
     mockFiles({ "/project/package.json": manifest, "/project/node_modules": "" });
     mockRegistry({ "@praxisjs/core": "2.3.0", "@morphos/inputs": "1.1.1" });
-    mockExecFileSync.mockImplementation(() => {
-      throw new Error("failed");
-    });
+    mockCommands({ install: [{ code: 1, output: "failed" }] });
 
     await upgrade();
 
@@ -758,11 +754,125 @@ describe("upgrade — repairing an upgrade whose install did not finish", () => 
     });
     mockRegistry({ "@praxisjs/core": "2.3.0", "@morphos/inputs": "1.1.1" });
     await upgrade();
-    expect(mockExecFileSync).not.toHaveBeenCalled();
+    expect(mockRun).not.toHaveBeenCalled();
     expect(mockOutro).toHaveBeenCalledWith("Nothing to upgrade.");
 
     mockFiles({ "/project/package.json": manifest });
     await upgrade();
-    expect(mockExecFileSync).not.toHaveBeenCalled();
+    expect(mockRun).not.toHaveBeenCalled();
+  });
+});
+
+describe("upgrade — npm's peer resolution crash", () => {
+  const manifest = { dependencies: { "@praxisjs/core": "^1.0.0" } };
+  const crash = { code: 1, output: "npm error Cannot read properties of null (reading 'edgesOut')\n" };
+  const update = { command: "npm", args: ["install", "--global", "npm@latest"] };
+
+  function crashingProject(npm: string, afterUpdate = "11.21.1"): void {
+    mockFiles({ "/project/package.json": manifest });
+    mockRegistry({ "@praxisjs/core": "2.0.0" });
+    let updated = false;
+    mockRun.mockImplementation((invocation: { command: string; args: string[] }) => {
+      if (invocation.args[0] === "--version") return Promise.resolve({ code: 0, output: `${updated ? afterUpdate : npm}\n` });
+      if (invocation.args[1] === "--global") {
+        updated = true;
+        return Promise.resolve({ code: 0, output: "" });
+      }
+      return Promise.resolve(updated ? { code: 0, output: "" } : crash);
+    });
+  }
+
+  it("asks to update npm, updates it and installs again", async () => {
+    crashingProject("10.8.2");
+    mockIsInteractive.mockReturnValue(true);
+    mockConfirm.mockResolvedValue(true);
+
+    await upgrade();
+
+    expect(noteBody("npm crashed")).toBe("npm 10.8.2 has a bug that crashes while resolving peer dependencies, fixed in npm 11.6.0.");
+    expect(mockConfirm).toHaveBeenCalledWith(expect.objectContaining({ message: "Update npm to the latest version and install again?" }));
+    expect(mockRun).toHaveBeenCalledWith(update, "/project", "pipe");
+    expect(mockSpinnerStop).toHaveBeenCalledWith("npm updated to 11.21.1.");
+    expect(mockRun.mock.calls.filter(([invocation]) => (invocation as { args: string[] }).args[0] === "install")).toHaveLength(3);
+    expect(noteBody("Install failed")).toBeUndefined();
+    expect(mockOutro).toHaveBeenCalledWith("Upgrade complete!");
+  });
+
+  it("says npm was updated even when its new version can't be read", async () => {
+    crashingProject("10.8.2", "unknown");
+    mockIsInteractive.mockReturnValue(true);
+    mockConfirm.mockResolvedValue(true);
+
+    await upgrade();
+
+    expect(mockSpinnerStop).toHaveBeenCalledWith("npm updated to the latest version.");
+  });
+
+  it.each([
+    ["declined", false],
+    ["cancelled", Symbol("cancel")],
+  ])("leaves npm alone when the update is %s", async (_label, answer) => {
+    crashingProject("10.8.2");
+    mockIsInteractive.mockReturnValue(true);
+    mockConfirm.mockResolvedValue(answer);
+
+    await upgrade();
+
+    expect(mockRun).not.toHaveBeenCalledWith(update, "/project", "pipe");
+    expect(noteBody("Install failed")).toBe("Run `npm install` manually.");
+  });
+
+  it("prints the update command outside a terminal", async () => {
+    crashingProject("10.8.2");
+
+    await upgrade();
+
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(noteBody("Update npm")).toBe(
+      "npm 10.8.2 has a bug that crashes while resolving peer dependencies, fixed in npm 11.6.0.\n" +
+        "Update it with `npm install --global npm@latest`, then run `npm install`.",
+    );
+  });
+
+  it.each([["already has the fix", "11.6.0"], ["reports no version", "not a version"]])(
+    "offers nothing when npm %s",
+    async (_label, npm) => {
+      crashingProject(npm);
+      mockIsInteractive.mockReturnValue(true);
+
+      await upgrade();
+
+      expect(mockConfirm).not.toHaveBeenCalled();
+      expect(noteBody("Update npm")).toBeUndefined();
+    },
+  );
+
+  it("reports an npm update that fails and keeps the failed install", async () => {
+    mockFiles({ "/project/package.json": manifest });
+    mockRegistry({ "@praxisjs/core": "2.0.0" });
+    mockRun.mockImplementation((invocation: { command: string; args: string[] }) => {
+      if (invocation.args[0] === "--version") return Promise.resolve({ code: 0, output: "10.8.2\n" });
+      if (invocation.args[1] === "--global") return Promise.resolve({ code: 1, output: "EACCES: permission denied\n" });
+      return Promise.resolve(crash);
+    });
+    mockIsInteractive.mockReturnValue(true);
+    mockConfirm.mockResolvedValue(true);
+
+    await upgrade();
+
+    expect(mockSpinnerStop).toHaveBeenCalledWith("npm could not be updated.");
+    expect(noteBody("npm update")).toBe("`npm install --global npm@latest` exited with code 1.\nEACCES: permission denied");
+    expect(noteBody("Install failed")).toBe("Run `npm install` manually.");
+  });
+
+  it("does not offer the update for other install failures", async () => {
+    mockFiles({ "/project/package.json": manifest });
+    mockRegistry({ "@praxisjs/core": "2.0.0" });
+    mockCommands({ npm: "10.8.2", install: [{ code: 1, output: "npm error ERESOLVE" }] });
+    mockIsInteractive.mockReturnValue(true);
+
+    await upgrade();
+
+    expect(mockConfirm).not.toHaveBeenCalled();
   });
 });

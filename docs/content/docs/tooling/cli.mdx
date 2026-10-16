@@ -207,6 +207,8 @@ When `package.json` is already up to date but the versions installed in `node_mo
 
 If the install fails, `upgrade` reports it without crashing, shows the end of the package manager's output and the command to run manually.
 
+npm releases before 11.6.0 can crash with `Cannot read properties of null (reading 'edgesOut')` while resolving peer dependencies, a bug fixed in npm 11.6.0 (vite 8's optional peers reach the `vitest` packages, which pin each other at exact versions). When the install fails that way, `upgrade` says which npm you have and asks to update it (`npm install --global npm@latest`), then installs again. Outside a terminal it prints the command instead.
+
 <Callout type="info" title="A project an older upgrade left broken">
   Run `npx praxisjs@latest upgrade` again: it finds the packages that don't match `package.json`, clears their stale lockfile entries and installs. Deleting `node_modules` and `package-lock.json` and running `npm install` works too, but it also unlocks every other dependency.
 </Callout>

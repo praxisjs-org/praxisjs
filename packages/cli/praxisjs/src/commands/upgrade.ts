@@ -1,13 +1,14 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { cwd, execPath, exit, platform } from "node:process";
+import { cwd, execPath, exit } from "node:process";
 
-import { intro, note, outro, spinner } from "@clack/prompts";
+import { confirm, intro, isCancel, note, outro, spinner } from "@clack/prompts";
 import pc from "picocolors";
 
+import { describeFailure, run, type Invocation, type RunResult } from "../kosmesis";
 import { compareVersions, fetchManifest, satisfies, splitRange, type PublishedManifest } from "../versions";
-import { offerAiSync } from "./ai/sync";
+import { isInteractive, offerAiSync } from "./ai/sync";
 
 const DEPENDENCY_FIELDS = ["dependencies", "devDependencies", "peerDependencies"] as const;
 type DependencyField = (typeof DEPENDENCY_FIELDS)[number];
@@ -38,6 +39,15 @@ const EXEC_COMMANDS: Record<PackageManager, string> = {
   bun: "bunx",
   npm: "npx",
 };
+
+/**
+ * npm releases before this one crash with "Cannot read properties of null (reading 'edgesOut')" when
+ * a peer they placed is swapped for another version while resolving a peer set (vite 8's optional
+ * peers reach the vitest packages, which pin each other exactly).
+ */
+const NPM_PEER_SET_FIX = "11.6.0";
+
+const NPM_UPDATE: Invocation = { command: "npm", args: ["install", "--global", "npm@latest"] };
 
 // A package-lock.json entry of an ecosystem package, at any depth.
 const ECOSYSTEM_LOCK_PATH = /(?:^|\/)node_modules\/(?:@praxisjs\/[^/]+|@morphos\/[^/]+|kosmesis)$/;
@@ -296,29 +306,57 @@ function staleInstalls(root: string, candidates: Candidate[]): string[] {
 }
 
 /** Runs the package manager's install, freeing npm from the ecosystem's stale lockfile entries first. */
-function install(root: string, pm: PackageManager): boolean {
-  const [cmd, args] = INSTALL_COMMANDS[pm];
+async function install(root: string, pm: PackageManager): Promise<boolean> {
+  const [command, args] = INSTALL_COMMANDS[pm];
+  const invocation: Invocation = { command, args };
   if (pm === "npm") releaseLockedEcosystem(root);
-  const installSpinner = spinner();
-  installSpinner.start(`Running ${cmd} install...`);
-  try {
-    // On Windows the package managers are .cmd scripts, which only run through a shell.
-    execFileSync(cmd, args, { cwd: root, stdio: "pipe", shell: platform === "win32" });
-    installSpinner.stop("Dependencies installed.");
-    return true;
-  } catch (error) {
-    installSpinner.stop(`Install failed — run \`${[cmd, ...args].join(" ")}\` manually.`);
-    const output = installOutput(error);
-    if (output !== "") note(output, `${cmd} output`);
-    return false;
+  let result = await runInstall(invocation, root);
+  if (result.code !== 0 && pm === "npm" && result.output.includes("reading 'edgesOut'") && (await updateNpm(root))) {
+    result = await runInstall(invocation, root);
   }
+  if (result.code === 0) return true;
+  note(`Run \`${[command, ...args].join(" ")}\` manually.`, "Install failed");
+  const output = result.output.trim().split(/\r?\n/).slice(-12).join("\n");
+  if (output !== "") note(output, `${command} output`);
+  return false;
 }
 
-/** The last lines a failed install printed, for the error note. */
-function installOutput(error: unknown): string {
-  const { stderr, stdout } = (error ?? {}) as { stderr?: Buffer | string | null; stdout?: Buffer | string | null };
-  const text = `${stdout?.toString() ?? ""}${stderr?.toString() ?? ""}`.trim();
-  return text.split(/\r?\n/).slice(-12).join("\n");
+/** Runs asynchronously so the spinner keeps moving while the package manager works. */
+async function runInstall(invocation: Invocation, root: string): Promise<RunResult> {
+  const installSpinner = spinner();
+  installSpinner.start(`Running ${invocation.command} install...`);
+  const result = await run(invocation, root, "pipe");
+  installSpinner.stop(result.code === 0 ? "Dependencies installed." : "Install failed.");
+  return result;
+}
+
+async function npmVersion(root: string): Promise<string | undefined> {
+  const version = (await run({ command: "npm", args: ["--version"] }, root, "pipe")).output.trim();
+  return splitRange(version) ? version : undefined;
+}
+
+/** Offers to update an npm that has the peer resolution crash. True when npm was updated. */
+async function updateNpm(root: string): Promise<boolean> {
+  const version = await npmVersion(root);
+  if (version === undefined || compareVersions(version, NPM_PEER_SET_FIX) >= 0) return false;
+  const problem = `npm ${version} has a bug that crashes while resolving peer dependencies, fixed in npm ${NPM_PEER_SET_FIX}.`;
+  if (!isInteractive()) {
+    note(`${problem}\nUpdate it with \`${[NPM_UPDATE.command, ...NPM_UPDATE.args].join(" ")}\`, then run \`npm install\`.`, "Update npm");
+    return false;
+  }
+  note(problem, "npm crashed");
+  const answer = await confirm({ message: "Update npm to the latest version and install again?", initialValue: true });
+  if (isCancel(answer) || !answer) return false;
+  const updateSpinner = spinner();
+  updateSpinner.start("Updating npm...");
+  const result = await run(NPM_UPDATE, root, "pipe");
+  if (result.code !== 0) {
+    updateSpinner.stop("npm could not be updated.");
+    note(describeFailure(NPM_UPDATE, result), "npm update");
+    return false;
+  }
+  updateSpinner.stop(`npm updated to ${(await npmVersion(root)) ?? "the latest version"}.`);
+  return true;
 }
 
 export async function upgrade(): Promise<void> {
@@ -384,7 +422,7 @@ export async function upgrade(): Promise<void> {
       "Installed versions out of date",
     );
   }
-  const installed = updates.length > 0 || repair.length > 0 ? install(root, pm) : undefined;
+  const installed = updates.length > 0 || repair.length > 0 ? await install(root, pm) : undefined;
 
   if (kosmesis) reportKosmesisComponents(root, pm);
   await offerAiSync(root);
