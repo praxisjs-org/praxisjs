@@ -1,6 +1,6 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import * as nodeModule from "node:module";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import { createServer, type Plugin, type ResolvedConfig } from "vite";
 
@@ -161,11 +161,8 @@ async function loadEntry(
     optimizeDeps: { noDiscovery: true, include: [] },
   });
   try {
-    // @Router([...])'s class decorator calls createRouter() at
-    // module-evaluation time — ssrLoadModule() below runs that as a side
-    // effect of importing the root module, so it needs *a* window in place
-    // already, even though nothing is actually being rendered yet (the real,
-    // per-route window gets installed later, in prerender()).
+    // @Router([...]) calls createRouter() at module-evaluation time, so importing the root module
+    // needs a window even though nothing is rendered yet. prerender() installs its own.
     const mod = await withDomGlobals("<!doctype html><html><head></head><body></body></html>", "http://localhost/", async () => {
       return (await server.ssrLoadModule(root)) as RootModule;
     });
@@ -187,6 +184,25 @@ async function loadEntry(
   }
 }
 
+// Enough to keep the disk busy on large sites without running into the open-file limit.
+const WRITE_CONCURRENCY = 16;
+
+async function writePages(outDir: string, pages: PrerenderModule.PrerenderedPage[]): Promise<void> {
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    while (next < pages.length) {
+      const page = pages[next++];
+      const outFile = join(outDir, page.file);
+      await mkdir(dirname(outFile), { recursive: true });
+      await writeFile(outFile, page.html, "utf-8");
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(WRITE_CONCURRENCY, pages.length) }, worker));
+}
+
+/** The script ssgPlugin() puts in front of the app's entry when hydration is on. */
+const HYDRATION_ENTRY = 'import { enableHydration } from "@praxisjs/runtime";\nenableHydration();';
+
 export function ssgPlugin(config: SSGConfig): Plugin {
   let resolvedConfig: ResolvedConfig;
 
@@ -200,15 +216,29 @@ export function ssgPlugin(config: SSGConfig): Plugin {
     configResolved(c) {
       resolvedConfig = c;
     },
+    // render() hydrates only once enableHydration() has run, which keeps the hydration code out of
+    // apps that never prerender. A module script in the head runs before the app's own entry, and
+    // "pre" lets Vite bundle it with that entry instead of leaving a bare import in the HTML.
+    transformIndexHtml: {
+      order: "pre",
+      handler() {
+        if (config.hydrate === false) return [];
+        return [{
+          tag: "script",
+          attrs: { type: "module" },
+          children: HYDRATION_ENTRY,
+          injectTo: "head-prepend",
+        }];
+      },
+    },
     async closeBundle() {
-      const { prerender, withDomGlobals } = (await import("./prerender"));
+      const { prerender, withDomGlobals } = await import("./prerender");
 
-      const outDir = resolvedConfig.build.outDir;
-      const templatePath = join(resolvedConfig.root, outDir, "index.html");
-      const template = await readFile(templatePath, "utf-8");
+      const outDir = resolve(resolvedConfig.root, resolvedConfig.build.outDir);
+      const template = await readFile(join(outDir, "index.html"), "utf-8");
       const { root, routes, getStaticPaths, close } = await loadEntry(resolvedConfig, config.root, withDomGlobals);
 
-      let pages;
+      let pages: PrerenderModule.PrerenderedPage[];
       try {
         pages = await prerender({
           root,
@@ -223,11 +253,7 @@ export function ssgPlugin(config: SSGConfig): Plugin {
         await close();
       }
 
-      for (const page of pages) {
-        const outFile = join(resolvedConfig.root, outDir, page.file);
-        await mkdir(dirname(outFile), { recursive: true });
-        await writeFile(outFile, page.html, "utf-8");
-      }
+      await writePages(outDir, pages);
     },
   };
 }

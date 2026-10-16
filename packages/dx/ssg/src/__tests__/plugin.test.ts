@@ -142,6 +142,64 @@ describe("ssgPlugin()", () => {
     expect(close).toHaveBeenCalledOnce();
   });
 
+  it("resolves an absolute build.outDir instead of nesting it under root", async () => {
+    dir = await mkdtemp(join(tmpdir(), "praxisjs-ssg-"));
+    const outDir = join(dir, "elsewhere", "out");
+    await mkdir(outDir, { recursive: true });
+    await writeFile(join(outDir, "index.html"), "<html><body><div id=\"app\"></div></body></html>");
+
+    ssrLoadModule.mockResolvedValue({ default: RootComponent, routes });
+    vi.mocked(prerender).mockResolvedValue([{ path: "/about", file: "about/index.html", html: "<html>about</html>" }]);
+
+    const plugin = ssgPlugin({ root: "./src/app.tsx" });
+    const configResolved = plugin.configResolved as (c: ResolvedConfig) => void | Promise<void>;
+    await configResolved(fakeResolvedConfig(join(dir, "project"), outDir));
+    const closeBundle = plugin.closeBundle as () => Promise<void>;
+    await closeBundle();
+
+    expect(await readFile(join(outDir, "about", "index.html"), "utf-8")).toBe("<html>about</html>");
+  });
+
+  it("writes every page when there are more pages than parallel writers", async () => {
+    dir = await mkdtemp(join(tmpdir(), "praxisjs-ssg-"));
+    await mkdir(join(dir, "dist"), { recursive: true });
+    await writeFile(join(dir, "dist", "index.html"), "<html><body><div id=\"app\"></div></body></html>");
+
+    const many = Array.from({ length: 40 }, (_, i) => ({
+      path: `/p/${String(i)}`,
+      file: `p/${String(i)}/index.html`,
+      html: `<html>${String(i)}</html>`,
+    }));
+    ssrLoadModule.mockResolvedValue({ default: RootComponent, routes });
+    vi.mocked(prerender).mockResolvedValue(many);
+
+    const plugin = ssgPlugin({ root: "./src/app.tsx" });
+    const configResolved = plugin.configResolved as (c: ResolvedConfig) => void | Promise<void>;
+    await configResolved(fakeResolvedConfig(dir));
+    const closeBundle = plugin.closeBundle as () => Promise<void>;
+    await closeBundle();
+
+    const written = await Promise.all(many.map((p) => readFile(join(dir, "dist", p.file), "utf-8")));
+    expect(written).toEqual(many.map((p) => p.html));
+  });
+
+  it("closes the server when prerender() fails", async () => {
+    dir = await mkdtemp(join(tmpdir(), "praxisjs-ssg-"));
+    await mkdir(join(dir, "dist"), { recursive: true });
+    await writeFile(join(dir, "dist", "index.html"), "<html><body><div id=\"app\"></div></body></html>");
+
+    ssrLoadModule.mockResolvedValue({ default: RootComponent, routes });
+    vi.mocked(prerender).mockRejectedValue(new Error("render failed"));
+
+    const plugin = ssgPlugin({ root: "./src/app.tsx" });
+    const configResolved = plugin.configResolved as (c: ResolvedConfig) => void | Promise<void>;
+    await configResolved(fakeResolvedConfig(dir));
+    const closeBundle = plugin.closeBundle as () => Promise<void>;
+
+    await expect(closeBundle()).rejects.toThrow("render failed");
+    expect(close).toHaveBeenCalledOnce();
+  });
+
   it("passes hydrate: false through to prerender()", async () => {
     dir = await mkdtemp(join(tmpdir(), "praxisjs-ssg-"));
     await mkdir(join(dir, "dist"), { recursive: true });
@@ -157,5 +215,19 @@ describe("ssgPlugin()", () => {
     await closeBundle();
 
     expect(prerender).toHaveBeenCalledWith(expect.objectContaining({ hydrate: false }));
+  });
+
+  it("puts enableHydration() in front of the client entry, unless hydration is off", () => {
+    type HtmlHook = { order: string; handler: () => unknown[] };
+    const hook = ssgPlugin({ root: "./src/app.tsx" }).transformIndexHtml as HtmlHook;
+    expect(hook.order).toBe("pre");
+    expect(hook.handler()).toEqual([{
+      tag: "script",
+      attrs: { type: "module" },
+      children: 'import { enableHydration } from "@praxisjs/runtime";\nenableHydration();',
+      injectTo: "head-prepend",
+    }]);
+    const off = ssgPlugin({ root: "./src/app.tsx", hydrate: false }).transformIndexHtml as HtmlHook;
+    expect(off.handler()).toEqual([]);
   });
 });

@@ -1,18 +1,8 @@
 import type { ResolveFnOutput, ResolveHookContext } from "node:module";
 
-// Loaded as a standalone hook module via module.register() (see register.ts)
-// — only used as a fallback on Node versions without the newer, in-thread
-// module.registerHooks() API, so it must have zero relative imports of its
-// own: this file needs to work *before* the extensionless-import problem it
-// exists to fix has been worked around. See register.ts for the full story.
-//
-// Every other @praxisjs/* package is built with tsc, which emits relative
-// specifiers exactly as written in source ("./router", not "./router.js") —
-// harmless for every consumer so far, since they're all resolved through a
-// bundler (Vite/esbuild/rollup), which resolves extensionless specifiers
-// fine. Node's own ESM resolver does not: it's spec-strict and requires an
-// explicit extension on relative specifiers. This hook retries with ".js" /
-// "/index.js" on the two failure modes that produces.
+// Asynchronous twin of `resolveSync` in index.ts, loaded through module.register() on Node versions
+// without module.registerHooks(). It must have no relative imports of its own: it has to work before
+// the extensionless-import problem it fixes is worked around. See index.ts for the full story.
 const RETRYABLE_CODES = new Set(["ERR_MODULE_NOT_FOUND", "ERR_UNSUPPORTED_DIR_IMPORT"]);
 
 type NextResolve = (
