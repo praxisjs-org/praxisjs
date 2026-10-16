@@ -10,3 +10,4 @@ export { Resource, invalidateResource, type ResourceInstance, type ResourceOptio
 export { Synced } from "./synced";
 export { DeepState } from "./deep-state";
 export { Ref, createRef } from "./ref";
+export { Selector, type SelectorOptions } from "./selector";

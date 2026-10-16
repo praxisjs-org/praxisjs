@@ -1,9 +1,9 @@
 import type { StatefulComponent } from "@praxisjs/core";
-import { effect, batch } from "@praxisjs/core/internal";
+import { batch, createEffect } from "@praxisjs/core/internal";
 import type { Computed } from "@praxisjs/shared";
 import { isComputed } from "@praxisjs/shared/internal";
 
-import { createLifecycleMethodDecorator } from "../create-lifecycle-method-decorator";
+import { lifecycleMethodDecorator } from "../create-lifecycle-method-decorator";
 
 type BaseComponentKeys = keyof StatefulComponent;
 
@@ -58,43 +58,44 @@ export function Watch<
 >(...propNames: ValidateKeys<T, Keys>) {
   const props = propNames as unknown as string[];
 
-  return createLifecycleMethodDecorator<T>({
-    register(callback, instance) {
+  if (props.length === 1) {
+    const key = props[0];
+    return lifecycleMethodDecorator<T>((instance, method) => {
       const inst = instance as T & Record<string, unknown>;
-
-      if (props.length === 1) {
-        let oldVal = readValue(inst, props[0]);
-        return effect(() => {
-          const newVal = readValue(inst, props[0]);
-          if (!Object.is(newVal, oldVal)) {
-            callback(newVal, oldVal);
-            oldVal = newVal;
-          }
-        });
-      }
-
-      const read = () =>
-        Object.fromEntries(props.map((p) => [p, readValue(inst, p)]));
-      let oldVals = read();
-      let latestVals = oldVals;
-      let scheduled = false;
-      return effect(() => {
-        const newVals = read();
-        if (props.some((p) => !Object.is(newVals[p], oldVals[p]))) {
-          latestVals = newVals;
-          if (!scheduled) {
-            scheduled = true;
-            const prevVals = oldVals;
-            queueMicrotask(() => {
-              scheduled = false;
-              oldVals = latestVals;
-              batch(() => {
-                callback(latestVals, prevVals);
-              });
-            });
-          }
+      let oldVal = readValue(inst, key);
+      return createEffect(() => {
+        const newVal = readValue(inst, key);
+        if (!Object.is(newVal, oldVal)) {
+          method.call(inst, newVal, oldVal);
+          oldVal = newVal;
         }
       });
-    },
+    });
+  }
+
+  return lifecycleMethodDecorator<T>((instance, method) => {
+    const inst = instance as T & Record<string, unknown>;
+    const read = () =>
+      Object.fromEntries(props.map((p) => [p, readValue(inst, p)]));
+    let oldVals = read();
+    let latestVals = oldVals;
+    let scheduled = false;
+    return createEffect(() => {
+      const newVals = read();
+      if (props.some((p) => !Object.is(newVals[p], oldVals[p]))) {
+        latestVals = newVals;
+        if (!scheduled) {
+          scheduled = true;
+          const prevVals = oldVals;
+          queueMicrotask(() => {
+            scheduled = false;
+            oldVals = latestVals;
+            batch(() => {
+              method.call(inst, latestVals, prevVals);
+            });
+          });
+        }
+      }
+    });
   });
 }

@@ -1,6 +1,7 @@
-import type { StatefulComponent, Composable } from "@praxisjs/core";
+import type { Composable } from "@praxisjs/core";
 
-import { createFieldDecorator } from "../create-field-decorator";
+import { type FieldDecorator, type FieldHost, sharedField } from "../field";
+import { addLifecycleHooks } from "../lifecycle";
 
 interface ComposeFactory { __isComposeFactory: true; resolve: (instance: object) => unknown }
 
@@ -43,24 +44,36 @@ export function Compose(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ComposableClass: new (...args: any[]) => Composable,
   ...ctorArgs: unknown[]
-) {
-  return createFieldDecorator({
-    bind(instance: StatefulComponent, _name: string, _initialValue: unknown) {
-      const resolvedArgs = ctorArgs.map((arg) => {
-        if (isFactory(arg)) return arg.resolve(instance);
-        if (typeof arg !== "string") return arg;
-        const prop = (instance as unknown as Record<string, unknown>)[arg];
-        return prop !== undefined ? prop : arg;
-      });
+): FieldDecorator {
+  return sharedField((name) => {
+    const composableSlot = Symbol(`praxis.composable.${name}`);
+    const viewSlot = Symbol(`praxis.compose.${name}`);
+    const composableOf = (instance: object) => (instance as FieldHost)[composableSlot] as Composable;
+    const mount = (instance: object) => { composableOf(instance).onMount?.(); };
+    const unmount = (instance: object) => { composableOf(instance).onUnmount?.(); };
+    return {
+      descriptor: {
+        get(this: FieldHost) {
+          return this[viewSlot];
+        },
+      },
+      init(instance) {
+        const resolvedArgs = ctorArgs.map((arg) => {
+          if (isFactory(arg)) return arg.resolve(instance);
+          if (typeof arg !== "string") return arg;
+          const prop = instance[arg];
+          return prop !== undefined ? prop : arg;
+        });
 
-      const composable = new ComposableClass(...resolvedArgs);
-      const view = buildView(composable.setup());
-
-      return {
-        descriptor: { get: () => view },
-        onMount: composable.onMount?.bind(composable),
-        onUnmount: composable.onUnmount?.bind(composable),
-      };
-    },
+        const composable = new ComposableClass(...resolvedArgs);
+        instance[composableSlot] = composable;
+        instance[viewSlot] = buildView(composable.setup());
+        const hasMount = typeof composable.onMount === "function";
+        const hasUnmount = typeof composable.onUnmount === "function";
+        if (hasMount || hasUnmount) {
+          addLifecycleHooks(instance, hasMount ? mount : undefined, hasUnmount ? unmount : undefined);
+        }
+      },
+    };
   });
 }

@@ -1,55 +1,45 @@
-import { computed } from "@praxisjs/core/internal";
+import { ComputedNode, readComputed } from "@praxisjs/core/internal";
 
-import { createAccessorDecorator } from "../create-accessor-decorator";
-import { createWritableGetterDecorator } from "../create-getter-decorator";
+import { createGetterDecorator, type GetterDecorator } from "../create-getter-decorator";
 
-export interface ComputedOptions<T = unknown> {
-  get?: (this: object) => T;
-  set?: (this: object, value: T) => void;
+export interface ComputedOptions {
+  /**
+   * Handles writes to the property. A `set` accessor declared next to the getter in the class
+   * does the same, and TypeScript sees it.
+   */
+  set?(this: object, value: unknown): void;
 }
 
-// Accessor form — @Computed({ get, set }) on an `accessor` field.
-// TypeScript sees the accessor as writable; no cast needed when assigning.
-// The `Owner` generic is inferred from the `this` type of the provided functions.
-export function Computed<T, Owner extends object = object>(options: {
-  get: (this: Owner) => T;
-  set: (this: Owner, value: T) => void;
-}): <This extends object>(
-  target: ClassAccessorDecoratorTarget<This, T>,
-  context: ClassAccessorDecoratorContext<This, T>,
-) => ClassAccessorDecoratorResult<This, T>;
+type Host = Record<symbol, ComputedNode | undefined>;
 
-// Getter form — @Computed() or @Computed({ set }) on a `get` accessor.
-export function Computed(options?: {
-  set?: (this: object, value: unknown) => void;
-}): <This, R>(
-  target: (this: This) => R,
-  context: ClassGetterDecoratorContext<This, R>,
-) => (this: This) => R;
+// Kept out of the getter: a closure created inside it would make every read allocate a context.
+function computedFor<T>(instance: T, getter: (this: T) => unknown): ComputedNode {
+  return new ComputedNode(() => getter.call(instance));
+}
 
-export function Computed<T = unknown>(options?: ComputedOptions<T>): unknown {
-  const optionsGet = options?.get as ((this: object) => unknown) | undefined;
-  const optionsSet = options?.set as ((this: object, value: unknown) => void) | undefined;
-
-  if (optionsGet) {
-    return createAccessorDecorator({
-      bind(instance, _name, _initialValue) {
-        const c = computed(() => optionsGet.call(instance));
-        return {
-          get: c,
-          set: optionsSet ? (value) => { optionsSet.call(instance, value); } : undefined,
-        };
-      },
-    });
-  }
-
-  return createWritableGetterDecorator({
-    bind(instance, _name, original) {
-      const c = computed(() => original.call(instance));
+/**
+ * Caches a getter as a reactive computed. A `set` accessor declared next to the getter makes the
+ * property writable.
+ */
+export function Computed(options?: ComputedOptions): GetterDecorator {
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- installed on the class, which calls it with the instance as `this`
+  const set = options?.set;
+  return createGetterDecorator<Host>({
+    label: "@Computed()",
+    setup(original, context) {
+      const node = Symbol(`praxis.computed.${String(context.name)}`);
       return {
-        get: c,
-        set: optionsSet ? (value) => { optionsSet.call(instance, value); } : undefined,
+        // Shared by every instance; the computed itself is only created the first time it is read,
+        // so a getter that a component never reads costs nothing beyond its slot.
+        get(this: Host) {
+          return readComputed((this[node] ??= computedFor(this, original)));
+        },
+        set,
+        init(instance) {
+          // The slot is created up front so every instance keeps the same shape.
+          instance[node] = undefined;
+        },
       };
     },
-  });
+  }) as GetterDecorator;
 }

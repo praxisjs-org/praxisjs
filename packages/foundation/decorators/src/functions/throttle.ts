@@ -1,16 +1,15 @@
-import { createMethodDecorator } from "../create-method-decorator";
+import { type AnyMethod, type MethodContext, sharedMethod } from "../shared-method";
 
 export function Throttle(ms: number) {
-  return createMethodDecorator({
-    wrap(original, instance) {
-      const clampedMs = Math.max(0, ms);
-      let last = 0;
-      return (...args: unknown[]) => {
-        const now = Date.now();
-        if (now - last < clampedMs) return;
-        last = now;
-        return original.apply(instance, args) as unknown;
-      };
-    },
-  });
+  const clampedMs = Math.max(0, ms);
+  return function (value: AnyMethod, context: MethodContext): AnyMethod {
+    const last = Symbol(`praxis.throttle.${String(context.name)}`);
+    type Host = Record<symbol, number | undefined>;
+    return sharedMethod(context, value, function (this: Host, ...args: unknown[]): unknown {
+      const now = Date.now();
+      if (now - (this[last] ?? 0) < clampedMs) return;
+      this[last] = now;
+      return value.apply(this, args);
+    });
+  };
 }

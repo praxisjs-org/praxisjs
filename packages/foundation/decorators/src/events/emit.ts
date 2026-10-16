@@ -1,31 +1,25 @@
 import type { StatefulComponent } from "@praxisjs/core";
 
-import { createMethodDecorator } from "../create-method-decorator";
+import { type AnyMethod, type MethodContext, sharedMethod } from "../shared-method";
 import { readProp } from "./helper";
 
 export function Emit(propName: string) {
-  return createMethodDecorator({
-    wrap(original, instance) {
-      const comp = instance as StatefulComponent;
-      return (...args: unknown[]) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const result = original.apply(instance, args);
+  return function (value: AnyMethod, context: MethodContext): AnyMethod {
+    return sharedMethod(context, value, function (this: StatefulComponent, ...args: unknown[]): unknown {
+      const result = value.apply(this, args) as unknown;
 
-        const callback = readProp(comp, propName);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        if (typeof callback !== "function") return result;
+      const callback = readProp(this, propName);
+      if (typeof callback !== "function") return result;
 
-        if (result !== undefined) {
-          (callback as (v: unknown) => void)(result);
-        } else if (args.length > 0) {
-          (callback as (...a: unknown[]) => void)(...args);
-        } else {
-          (callback as () => void)();
-        }
+      if (result !== undefined) {
+        (callback as (v: unknown) => void)(result);
+      } else if (args.length > 0) {
+        (callback as (...a: unknown[]) => void)(...args);
+      } else {
+        (callback as () => void)();
+      }
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return result;
-      };
-    },
-  });
+      return result;
+    });
+  };
 }

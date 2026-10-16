@@ -1,7 +1,9 @@
 import {
   getComponentAnchor,
+  readSignal,
   type RootComponent,
-  signal,
+  SignalNode,
+  writeSignal,
 } from "@praxisjs/core/internal";
 
 import { ClassBehavior, createClassDecorator, type ClassEnhancement } from "../create-class-decorator";
@@ -19,56 +21,64 @@ export interface LazyOptions {
   rootMargin?: string;
 }
 
+// One object per instance whose methods live on the prototype, instead of three closures.
+class LazyEnhancement implements ClassEnhancement {
+  private readonly visible = new SignalNode(false);
+  private observer: IntersectionObserver | undefined = undefined;
+
+  constructor(
+    private readonly instance: RootComponent,
+    private readonly options: LazyOptions,
+  ) {}
+
+  onMount(): void {
+    const el = getComponentAnchor(this.instance)?.parentElement ?? null;
+    if (!el) return;
+
+    if (!("IntersectionObserver" in window)) {
+      writeSignal(this.visible, true);
+      return;
+    }
+
+    const { placeholder = 200, root, rootMargin = "100px" } = this.options;
+    if (!this.visible.value) el.style.minHeight = `${String(placeholder)}px`;
+
+    const rootEl =
+      root === undefined || root === null ? null : root.current ?? null;
+
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          writeSignal(this.visible, true);
+          el.style.minHeight = "";
+          this.observer?.disconnect();
+        }
+      },
+      { root: rootEl, rootMargin },
+    );
+
+    this.observer.observe(el);
+  }
+
+  onUnmount(): void {
+    this.observer?.disconnect();
+  }
+
+  render(originalRender: () => Node | Node[] | null): Node | Node[] | null {
+    return (() => {
+      if (!readSignal(this.visible)) return null;
+      return originalRender();
+    }) as unknown as Node;
+  }
+}
+
 class LazyBehavior extends ClassBehavior {
   constructor(private readonly options: LazyOptions) {
     super();
   }
 
   create(instance: RootComponent): ClassEnhancement {
-    const { placeholder = 200, root, rootMargin = "100px" } = this.options;
-    const visible = signal(false);
-    let observer: IntersectionObserver | undefined;
-
-    return {
-      onMount() {
-        const el = getComponentAnchor(instance)?.parentElement ?? null;
-        if (!el) return;
-
-        if (!("IntersectionObserver" in window)) {
-          visible.set(true);
-          return;
-        }
-
-        if (!visible()) el.style.minHeight = `${String(placeholder)}px`;
-
-        const rootEl =
-          root === undefined || root === null ? null : root.current ?? null;
-
-        observer = new IntersectionObserver(
-          (entries) => {
-            if (entries[0]?.isIntersecting) {
-              visible.set(true);
-              el.style.minHeight = "";
-              observer?.disconnect();
-            }
-          },
-          { root: rootEl, rootMargin },
-        );
-
-        observer.observe(el);
-      },
-
-      onUnmount() {
-        observer?.disconnect();
-      },
-
-      render(originalRender) {
-        return (() => {
-          if (!visible()) return null;
-          return originalRender();
-        }) as unknown as Node;
-      },
-    };
+    return new LazyEnhancement(instance, this.options);
   }
 }
 

@@ -50,12 +50,13 @@ describe("Component decorator", () => {
     expect(instance).toBeInstanceOf(Counter);
   });
 
-  it("returns a subclass of the original constructor", () => {
+  it("marks the original constructor instead of wrapping it", () => {
     class Base extends StatefulComponent {
       render() { return null; }
     }
-    const Enhanced = Component()(Base, {} as ClassDecoratorContext);
-    expect(Enhanced.prototype).toBeInstanceOf(Base);
+    const marked = Component()(Base, {} as ClassDecoratorContext);
+    expect(marked).toBe(Base);
+    expect((Base as unknown as { __isComponent: boolean }).__isComponent).toBe(true);
   });
 
   // ── Happy paths ──────────────────────────────────────────────────────────────
@@ -147,12 +148,14 @@ describe("Component decorator", () => {
     expect(Sub.__isStateless).toBe(false);
   });
 
-  it("Enhanced is a different reference from the original constructor", () => {
+  it("keeps the class name and lets subclasses inherit the marks", () => {
     class MyComp extends StatefulComponent {
       render() { return null; }
     }
-    const Enhanced = Component()(MyComp, {} as ClassDecoratorContext);
-    expect(Enhanced).not.toBe(MyComp);
+    Component()(MyComp, {} as ClassDecoratorContext);
+    class Child extends MyComp {}
+    expect(MyComp.name).toBe("MyComp");
+    expect("__isComponent" in Child).toBe(true);
   });
 
   it("render() falls through to originalRender when enhancement has no render override", () => {

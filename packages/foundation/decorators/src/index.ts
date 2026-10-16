@@ -34,12 +34,17 @@ export {
   DeepState,
   Ref,
   createRef,
+  Selector,
+  type SelectorOptions,
 } from "./properties";
 export { Command, createCommand, Emit, OnCommand } from "./events";
+export { addClaimableInitializer, assertFieldContext, type FieldDecorator } from "./field";
 export {
   createFieldDecorator,
   type FieldBehavior,
   type FieldBinding,
+  type FieldSetup,
+  type SharedFieldBehavior,
 } from "./create-field-decorator";
 export { reactiveHostType, type ReactiveHost } from "./reactive-host";
 export {
@@ -50,6 +55,9 @@ export {
 export {
   createMethodDecorator,
   type MethodBehavior,
+  type MethodDecorator,
+  type MethodSetup,
+  type SharedMethodBehavior,
 } from "./create-method-decorator";
 export {
   createLifecycleMethodDecorator,
@@ -58,14 +66,13 @@ export {
 export {
   createGetterDecorator,
   type GetterBehavior,
+  type GetterDecorator,
+  type GetterSetup,
+  type SharedGetterBehavior,
   createWritableGetterDecorator,
   type WritableGetterBehavior,
   type WritableGetterBinding,
+  type SharedWritableGetterBehavior,
   createGetterObserverDecorator,
   type GetterObserverBehavior,
 } from "./create-getter-decorator";
-export {
-  createAccessorDecorator,
-  type AccessorBehavior,
-  type AccessorBinding,
-} from "./create-accessor-decorator";

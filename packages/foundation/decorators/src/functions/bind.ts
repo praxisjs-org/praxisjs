@@ -1,7 +1,7 @@
-import { createMethodDecorator } from "../create-method-decorator";
+import { type AnyMethod, type MethodContext, sharedMethod } from "../shared-method";
 
 export function Bind() {
-  return createMethodDecorator({
-    wrap: (original, instance) => original.bind(instance),
-  });
+  return function (value: AnyMethod, context: MethodContext): AnyMethod {
+    return sharedMethod(context, value);
+  };
 }

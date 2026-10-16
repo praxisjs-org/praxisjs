@@ -4,34 +4,32 @@ import {
   setComponentDefault,
 } from "@praxisjs/core/internal";
 
-import { createFieldDecorator } from "../create-field-decorator";
+import { type FieldDecorator, type FieldHost, sharedField } from "../field";
 
-export function FunctionProp() {
-  return createFieldDecorator({
-    bind(instance, name, initialValue) {
-      setComponentDefault(instance, name, initialValue);
-      return {
-        descriptor: {
-          get() {
-            const fromParent = getComponentRawProp(instance, name);
-            if (fromParent !== undefined) {
-              if (
-                process.env.NODE_ENV !== "production" &&
-                typeof fromParent !== "function"
-              ) {
-                console.warn(
-                  `[FunctionProp] "${name}" received a non-function value (${typeof fromParent}). @FunctionProp() expects a function.`,
-                );
-              }
-              return fromParent;
-            }
-            return getComponentDefault(instance, name);
-          },
-          set(value: unknown) {
-            setComponentDefault(instance, name, value);
-          },
-        },
-      };
+export function FunctionProp(): FieldDecorator {
+  return sharedField((name) => ({
+    descriptor: {
+      get(this: FieldHost) {
+        const fromParent = getComponentRawProp(this, name);
+        if (fromParent !== undefined) {
+          if (
+            process.env.NODE_ENV !== "production" &&
+            typeof fromParent !== "function"
+          ) {
+            console.warn(
+              `[FunctionProp] "${name}" received a non-function value (${typeof fromParent}). @FunctionProp() expects a function.`,
+            );
+          }
+          return fromParent;
+        }
+        return getComponentDefault(this, name);
+      },
+      set(this: FieldHost, value: unknown) {
+        setComponentDefault(this, name, value);
+      },
     },
-  });
+    init(instance, initialValue) {
+      setComponentDefault(instance, name, initialValue);
+    },
+  }));
 }

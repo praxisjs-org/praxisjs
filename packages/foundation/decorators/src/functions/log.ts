@@ -1,4 +1,4 @@
-import { createMethodDecorator } from "../create-method-decorator";
+import { type AnyMethod, type MethodContext, sharedMethod } from "../shared-method";
 
 export interface LogOptions {
   level?: "log" | "warn" | "error" | "debug";
@@ -17,49 +17,47 @@ export function Log(options: LogOptions = {}) {
     devOnly = true,
   } = options;
 
-  return createMethodDecorator({
-    wrap(original, instance, name) {
-      return (...args: unknown[]) => {
-        if (
-          devOnly &&
-          typeof process !== "undefined" &&
-          process.env.NODE_ENV === "production"
-        ) {
-          return original.apply(instance, args) as unknown;
-        }
+  return function (value: AnyMethod, context: MethodContext): AnyMethod {
+    const name = String(context.name);
+    return sharedMethod(context, value, function (this: object, ...args: unknown[]): unknown {
+      if (
+        devOnly &&
+        typeof process !== "undefined" &&
+        process.env.NODE_ENV === "production"
+      ) {
+        return value.apply(this, args) as unknown;
+      }
 
-        const className =
-          (instance.constructor as { name?: string }).name ?? "Unknown";
-        const label = `[${className}.${name}]`;
-        const logger = console[level].bind(console);
+      const className =
+        (this.constructor as { name?: string }).name ?? "Unknown";
+      const label = `[${className}.${name}]`;
 
-        if (logArgs) logger(`${label} args:`, args);
+      if (logArgs) console[level](`${label} args:`, args);
 
-        const start = time ? performance.now() : 0;
-        const output: unknown = original.apply(instance, args) as unknown;
+      const start = time ? performance.now() : 0;
+      const output: unknown = value.apply(this, args) as unknown;
 
-        if (output instanceof Promise) {
-          return (output as Promise<unknown>)
-            .then((resolved) => {
-              const elapsed = time
-                ? ` (${(performance.now() - start).toFixed(2)}ms)`
-                : "";
-              if (result) logger(`${label} resolved:`, resolved, elapsed);
-              return resolved;
-            })
-            .catch((e: unknown) => {
-              logger(`${label} rejected:`, e);
-              throw e;
-            });
-        }
+      if (output instanceof Promise) {
+        return (output as Promise<unknown>)
+          .then((resolved) => {
+            const elapsed = time
+              ? ` (${(performance.now() - start).toFixed(2)}ms)`
+              : "";
+            if (result) console[level](`${label} resolved:`, resolved, elapsed);
+            return resolved;
+          })
+          .catch((e: unknown) => {
+            console[level](`${label} rejected:`, e);
+            throw e;
+          });
+      }
 
-        const elapsed = time
-          ? ` (${(performance.now() - start).toFixed(2)}ms)`
-          : "";
-        if (result) logger(`${label} returned:`, output, elapsed);
+      const elapsed = time
+        ? ` (${(performance.now() - start).toFixed(2)}ms)`
+        : "";
+      if (result) console[level](`${label} returned:`, output, elapsed);
 
-        return output;
-      };
-    },
-  });
+      return output;
+    });
+  };
 }

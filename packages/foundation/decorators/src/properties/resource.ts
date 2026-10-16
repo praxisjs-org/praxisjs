@@ -4,7 +4,8 @@ import {
   type ResourceOptions,
 } from "@praxisjs/core/internal";
 
-import { createFieldDecorator, type FieldBinding } from "../create-field-decorator";
+import { type FieldHost, sharedField } from "../field";
+import { addLifecycleHooks } from "../lifecycle";
 
 export { invalidateResource } from "@praxisjs/core/internal";
 export type { ResourceInstance, ResourceOptions };
@@ -30,22 +31,26 @@ export function Resource<T>(
   fetcher: (() => Promise<T>) | ((self: any) => Promise<T>),
   options: ResourceOptions<T> = {},
 ): FieldDecoratorReturn {
-  return createFieldDecorator({
-    bind(instance, _name, _initialValue): FieldBinding {
-      const bound =
-        fetcher.length > 0
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ? () => (fetcher as (self: any) => Promise<T>)(instance)
-          : (fetcher as () => Promise<T>);
-      const r = resource(bound, options);
-      return {
-        descriptor: {
-          get(): ResourceInstance<T> { return r; },
-          // eslint-disable-next-line @typescript-eslint/no-empty-function
-          set(): void {},
+  return sharedField((name) => {
+    const slot = Symbol(`praxis.resource.${name}`);
+    const destroy = (instance: object) => { ((instance as FieldHost)[slot] as ResourceInstance<T>).destroy(); };
+    return {
+      descriptor: {
+        get(this: FieldHost): ResourceInstance<T> {
+          return this[slot] as ResourceInstance<T>;
         },
-        onUnmount() { r.destroy(); },
-      };
-    },
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        set(): void {},
+      },
+      init(instance) {
+        const bound =
+          fetcher.length > 0
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ? () => (fetcher as (self: any) => Promise<T>)(instance)
+            : (fetcher as () => Promise<T>);
+        instance[slot] = resource(bound, options);
+        addLifecycleHooks(instance, undefined, destroy);
+      },
+    };
   }) as unknown as FieldDecoratorReturn;
 }

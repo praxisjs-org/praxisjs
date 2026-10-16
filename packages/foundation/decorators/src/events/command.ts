@@ -1,4 +1,4 @@
-import { createFieldDecorator } from "../create-field-decorator";
+import { type FieldDecorator, type FieldHost, sharedField } from "../field";
 
 export interface Command<T = void> {
   trigger(arg: T): void;
@@ -19,13 +19,15 @@ export function createCommand<T = void>(): Command<T> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-export function Command<T = void>() {
-  return createFieldDecorator({
-    bind(_instance, _name, _initialValue) {
-      const command = createCommand<T>();
-      return {
-        descriptor: { get: () => command },
-      };
-    },
+export function Command<T = void>(): FieldDecorator {
+  return sharedField((name) => {
+    const command = Symbol(`praxis.command.${name}`);
+    return {
+      descriptor: {
+        get(this: FieldHost) {
+          return (this[command] ??= createCommand<T>());
+        },
+      },
+    };
   });
 }

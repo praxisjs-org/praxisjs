@@ -1,40 +1,21 @@
 import { StatelessComponent } from "@praxisjs/core";
-import type { RootComponent } from "@praxisjs/core/internal";
 import type {
   ComponentConstructor,
   ComponentInstance,
 } from "@praxisjs/shared/internal";
 
-import {
-  ClassBehavior,
-  createClassDecorator,
-  type ClassEnhancement,
-} from "../create-class-decorator";
-
-class ComponentBehavior extends ClassBehavior {
-  create(_instance: RootComponent): ClassEnhancement {
-    return {};
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialize(Enhanced: new (...args: any[]) => unknown, original: new (...args: any[]) => unknown): void {
-    const isStateless = (original.prototype as object) instanceof StatelessComponent;
-    Object.defineProperty(Enhanced, "__isComponent", { value: true, configurable: true });
-    Object.defineProperty(Enhanced, "__isStateless", { value: isStateless, configurable: true });
-  }
-}
-
-const behavior = new ComponentBehavior();
-
+// @Component only marks the class for the runtime. It adds no behavior, so it marks the class itself
+// instead of wrapping it in an enhanced subclass: every instance would otherwise pay for the
+// wrapper's per-instance object and per-render closure.
 export function Component() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function <T extends new (...args: any[]) => ComponentInstance>(
     constructor: T,
-    context: ClassDecoratorContext,
+    _context: ClassDecoratorContext,
   ): T & ComponentConstructor {
-    return createClassDecorator(behavior)(
-      constructor as unknown as T & (new(...args: unknown[]) => RootComponent<Record<string, unknown>>),
-      context,
-    ) as unknown as T & ComponentConstructor;
+    const isStateless = (constructor.prototype as object) instanceof StatelessComponent;
+    Object.defineProperty(constructor, "__isComponent", { value: true, configurable: true });
+    Object.defineProperty(constructor, "__isStateless", { value: isStateless, configurable: true });
+    return constructor as T & ComponentConstructor;
   };
 }

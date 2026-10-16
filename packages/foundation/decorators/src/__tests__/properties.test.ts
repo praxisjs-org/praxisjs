@@ -10,7 +10,6 @@ import {
 
 import { createFieldDecorator } from "../create-field-decorator";
 import { createGetterDecorator } from "../create-getter-decorator";
-import { createAccessorDecorator } from "../create-accessor-decorator";
 import { Watch } from "../functions/watch";
 import { When } from "../functions/when";
 import { Compose } from "../properties/compose";
@@ -234,244 +233,118 @@ describe("FunctionProp decorator", () => {
 // ── Computed ──────────────────────────────────────────────────────────────────
 
 describe("Computed decorator", () => {
-  it("wraps a getter in a computed — result is memoized", () => {
-    const s = signal(5);
-    const fn = vi.fn(function (this: object) { return s() * 2; });
-
-    const { ctx, run } = getterCtx("doubled");
-    Computed()(fn, ctx);
-    const instance = {} as unknown as StatefulComponent;
-    run(instance);
-
-    const result1 = (instance as unknown as Record<string, unknown>).doubled;
-    const result2 = (instance as unknown as Record<string, unknown>).doubled;
-    expect(result1).toBe(10);
-    expect(result2).toBe(10);
-    expect(fn).toHaveBeenCalledTimes(1);
+  it("caches the getter in a computed that recomputes when its signals change", () => {
+    const read = vi.fn();
+    class Cart extends StatefulComponent {
+      @State() price = 5;
+      @Computed() get doubled() { read(); return this.price * 2; }
+      render() { return null; }
+    }
+    const cart = new Cart();
+    expect(cart.doubled).toBe(10);
+    expect(cart.doubled).toBe(10);
+    expect(read).toHaveBeenCalledOnce();
+    cart.price = 7;
+    expect(cart.doubled).toBe(14);
   });
 
-  it("recomputes when underlying signal changes", () => {
-    const s = signal(3);
-    const getter = function (this: object) { return s() * 2; };
-    const { ctx, run } = getterCtx("val");
-    Computed()(getter, ctx);
-    const obj = {} as unknown as StatefulComponent;
-    run(obj);
-
-    expect((obj as unknown as Record<string, unknown>).val).toBe(6);
-    s.set(5);
-    expect((obj as unknown as Record<string, unknown>).val).toBe(10);
-  });
-
-  it("is per-instance — separate computed per object", () => {
+  it("keeps a computed per instance, created on first read, and stays on the prototype", () => {
     const s = signal(1);
-    const getter = function (this: object) { return s(); };
-    const { ctx, run } = getterCtx("val");
-    Computed()(getter, ctx);
-    const a = {} as unknown as StatefulComponent;
-    const b = {} as unknown as StatefulComponent;
-    run(a);
-    run(b);
+    class Box extends StatefulComponent {
+      @Computed() get val() { return s(); }
+      render() { return null; }
+    }
+    const a = new Box();
+    const b = new Box();
+    expect(Object.getOwnPropertyDescriptor(a, "val")).toBeUndefined();
+    const slots = Object.getOwnPropertySymbols(a).filter((key) => key.description === "praxis.computed.val");
+    expect(slots.map((key) => (a as unknown as Record<symbol, unknown>)[key])).toEqual([undefined]);
+    expect(a.val).toBe(1);
+    s.set(2);
+    expect(b.val).toBe(2);
+    expect(a.val).toBe(2);
+  });
 
-    expect((a as unknown as Record<string, unknown>).val).toBe(1);
-    expect((b as unknown as Record<string, unknown>).val).toBe(1);
+  it("makes the property writable through a set accessor declared next to the getter", () => {
+    class Converter extends StatefulComponent {
+      @State() celsius = 0;
+      @Computed() get fahrenheit(): number { return (this.celsius * 9) / 5 + 32; }
+      set fahrenheit(value: number) { this.celsius = ((value - 32) * 5) / 9; }
+      render() { return null; }
+    }
+    const converter = new Converter();
+    expect(converter.fahrenheit).toBe(32);
+    converter.fahrenheit = 212;
+    expect(converter.celsius).toBe(100);
+    expect(converter.fahrenheit).toBe(212);
+  });
+
+  it("lets a subclass override a computed getter and read it through super", () => {
+    class Base extends StatefulComponent {
+      @State() n = 1;
+      @Computed() get label() { return `n=${String(this.n)}`; }
+      render() { return null; }
+    }
+    class Loud extends Base {
+      override get label() { return super.label.toUpperCase(); }
+    }
+    const loud = new Loud();
+    expect(loud.label).toBe("N=1");
+    loud.n = 2;
+    expect(loud.label).toBe("N=2");
+  });
+
+  it("throws when assigned without a setter, like any getter", () => {
+    class ReadOnly extends StatefulComponent {
+      @Computed() get total() { return 1; }
+      render() { return null; }
+    }
+    expect(() => { (new ReadOnly() as { total: number }).total = 2; }).toThrow(TypeError);
+  });
+
+  it("rejects members other than getters", () => {
+    expect(() => {
+      class Wrong extends StatefulComponent {
+        // @ts-expect-error -- @Computed() decorates getters
+        @Computed() total() { return 1; }
+        render() { return null; }
+      }
+      return Wrong;
+    }).toThrow('@Computed() decorates getters only, not the method "total".');
   });
 });
 
-// ── Computed (writable) ───────────────────────────────────────────────────────
+// ── Computed (set option) ─────────────────────────────────────────────────────
 
-function getterCtx(name: string) {
-  const initializers: Array<(this: unknown) => void> = [];
-  return {
-    ctx: {
-      name,
-      kind: "getter" as const,
-      addInitializer(fn: (this: unknown) => void) {
-        initializers.push(fn);
-      },
-    } as unknown as ClassGetterDecoratorContext,
-    run(instance: unknown) {
-      initializers.forEach((fn) => { fn.call(instance); });
-    },
-  };
-}
-
-describe("Computed decorator — writable (set option)", () => {
-  it("setter is called when property is assigned", () => {
-    const written: number[] = [];
-    const { ctx, run } = getterCtx("double");
-
-    const s = signal(3);
-    const getter = function (this: object) { return s() * 2; };
-    Computed({ set: (v: unknown) => { written.push(v as number); } })(getter, ctx);
-
-    const instance = {} as unknown as StatefulComponent;
-    run(instance);
-
-    (instance as unknown as Record<string, unknown>).double = 42;
-    expect(written).toEqual([42]);
+describe("Computed decorator — set option", () => {
+  it("calls set with the instance as this and the assigned value", () => {
+    const written: Array<[unknown, number]> = [];
+    class Gauge extends StatefulComponent {
+      @State() raw = 3;
+      @Computed({ set(this: Gauge, value: number) { written.push([this, value]); this.raw = value / 2; } })
+      get double() { return this.raw * 2; }
+      render() { return null; }
+    }
+    const gauge = new Gauge();
+    (gauge as { double: number }).double = 42;
+    expect(written).toEqual([[gauge, 42]]);
+    expect(gauge.double).toBe(42);
   });
 
-  it("setter receives the component instance as this", () => {
-    let capturedThis: unknown;
-    const { ctx, run } = getterCtx("val");
-
-    const getter = function (this: object) { return 0; };
-    Computed({ set(this: unknown, _v: unknown) { capturedThis = this; } })(getter, ctx);
-
-    const instance = { id: "target" } as unknown as StatefulComponent;
-    run(instance);
-
-    (instance as unknown as Record<string, unknown>).val = 99;
-    expect(capturedThis).toBe(instance);
-  });
-
-  it("getter still returns the computed value after set option is added", () => {
-    const s = signal(5);
-    const { ctx, run } = getterCtx("doubled");
-
-    const getter = function (this: object) { return s() * 2; };
-    Computed({ set: (_v: unknown) => { /* no-op */ } })(getter, ctx);
-
-    const instance = {} as unknown as StatefulComponent;
-    run(instance);
-
-    expect((instance as unknown as Record<string, unknown>).doubled).toBe(10);
-    s.set(7);
-    expect((instance as unknown as Record<string, unknown>).doubled).toBe(14);
-  });
-
-  it("setter writes through to underlying signals, updating the getter", () => {
-    const s = signal(0);
-    const { ctx, run } = getterCtx("celsius");
-
-    const getter = function (this: object) { return s(); };
-    Computed({ set: (v: unknown) => { s.set(v as number); } })(getter, ctx);
-
-    const instance = {} as unknown as StatefulComponent;
-    run(instance);
-
-    (instance as unknown as Record<string, unknown>).celsius = 100;
-    expect((instance as unknown as Record<string, unknown>).celsius).toBe(100);
-  });
-});
-
-// ── Computed (accessor form) ──────────────────────────────────────────────────
-
-describe("Computed decorator — accessor form ({ get, set })", () => {
-  function applyAccessorDecorator<T>(
-    options: { get: (this: object) => T; set: (this: object, value: T) => void },
-    instance: object,
-  ): { get: () => T; set: (v: T) => void } {
-    const target = {
-      get(this: object) { return undefined as T; },
-      set(_v: T) { /* original */ },
-    };
-    const ctx = { kind: "accessor", name: "value" } as unknown as ClassAccessorDecoratorContext<object, T>;
-    const result = Computed(options)(target, ctx);
-    result.init!.call(instance, undefined as unknown as T);
-    return {
-      get: () => result.get!.call(instance),
-      set: (v: T) => result.set!.call(instance, v),
-    };
-  }
-
-  it("get function is wrapped in a computed — result is memoized", () => {
-    const s = signal(3);
-    const getFn = vi.fn(function (this: object) { return s() * 2; });
-    const instance = {};
-    const { get } = applyAccessorDecorator({ get: getFn, set: () => { /* no-op */ } }, instance);
-
-    expect(get()).toBe(6);
-    expect(get()).toBe(6);
-    expect(getFn).toHaveBeenCalledTimes(1);
-  });
-
-  it("recomputes when underlying signal changes", () => {
-    const s = signal(10);
-    const instance = {};
-    const { get } = applyAccessorDecorator({
-      get(this: object) { return s() + 1; },
-      set() { /* no-op */ },
-    }, instance);
-
-    expect(get()).toBe(11);
-    s.set(20);
-    expect(get()).toBe(21);
-  });
-
-  it("set function is called when the setter is invoked", () => {
-    const written: number[] = [];
-    const instance = {};
-    const { set } = applyAccessorDecorator({
-      get(this: object) { return 0; },
-      set(_v: number) { written.push(_v); },
-    }, instance);
-
-    set(42);
-    expect(written).toEqual([42]);
-  });
-
-  it("set function receives the component instance as this", () => {
-    let capturedThis: unknown;
-    const instance = { id: "target" };
-    const { set } = applyAccessorDecorator({
-      get(this: object) { return 0; },
-      set(this: unknown) { capturedThis = this; },
-    }, instance);
-
-    set(1);
-    expect(capturedThis).toBe(instance);
-  });
-
-  it("set writes through to underlying signals, updating the getter", () => {
-    const s = signal(0);
-    const instance = {};
-    const { get, set } = applyAccessorDecorator({
-      get(this: object) { return s(); },
-      set(this: object, v: number) { s.set(v); },
-    }, instance);
-
-    set(100);
-    expect(get()).toBe(100);
-  });
-
-  it("is per-instance — separate computed per object", () => {
-    const s = signal(5);
-    const options = {
-      get(this: object) { return s() * 2; },
-      set() { /* no-op */ },
-    };
-    const a = {};
-    const b = {};
-    const decA = applyAccessorDecorator(options, a);
-    const decB = applyAccessorDecorator(options, b);
-
-    expect(decA.get()).toBe(10);
-    expect(decB.get()).toBe(10);
-    s.set(7);
-    expect(decA.get()).toBe(14);
-    expect(decB.get()).toBe(14);
-  });
-
-  it("accessor form without set — setter is a no-op", () => {
-    const s = signal(5);
-    const instance = {};
-    const target = { get() { return undefined as unknown as number; }, set() { /* original */ } };
-    const ctx = { kind: "accessor", name: "value" } as unknown as ClassAccessorDecoratorContext<object, number>;
-    // Bypass overload constraint — optionsSet is undefined at runtime
-    type AccessorDecoFactory = (opts: { get: (this: object) => number }) => (
-      t: typeof target,
-      c: typeof ctx,
-    ) => ClassAccessorDecoratorResult<object, number>;
-    const result = (Computed as unknown as AccessorDecoFactory)(
-      { get(this: object) { return s() * 2; } },
-    )(target, ctx);
-    result.init!.call(instance, 0);
-
-    expect(result.get!.call(instance)).toBe(10);
-    expect(() => { result.set!.call(instance, 99); }).not.toThrow();
-    expect(result.get!.call(instance)).toBe(10); // unchanged — no setter
+  it("installs the setter once, on the class that declares the getter", () => {
+    const set = vi.fn();
+    class Base extends StatefulComponent {
+      @Computed({ set }) get value() { return 1; }
+      render() { return null; }
+    }
+    class Sub extends Base {}
+    const sub = new Sub();
+    const base = new Base();
+    (sub as { value: number }).value = 1;
+    (base as { value: number }).value = 2;
+    expect(set).toHaveBeenCalledTimes(2);
+    expect(Object.getOwnPropertyDescriptor(Base.prototype, "value")?.set).toBe(set);
+    expect(Object.hasOwn(Sub.prototype, "value")).toBe(false);
   });
 });
 
@@ -1477,51 +1350,6 @@ describe("createGetterDecorator", () => {
     const instance = { id: "test-instance" };
     wrapped.call(instance);
     expect(capturedInstance).toBe(instance);
-  });
-});
-
-// ── createAccessorDecorator — init ────────────────────────────────────────────
-
-describe("createAccessorDecorator — init", () => {
-  it("init stores the initial value that bind receives on first get", () => {
-    let capturedInitialValue: unknown = "NOT_SET";
-    const behavior = {
-      bind(_inst: object, _name: string | symbol, initialValue: unknown) {
-        capturedInitialValue = initialValue;
-        return { get: () => initialValue };
-      },
-    };
-    const decorator = createAccessorDecorator(behavior);
-    const target = {
-      get() { return 0; },
-      set() { /* original */ },
-    } as ClassAccessorDecoratorTarget<object, number>;
-    const ctx = { kind: "accessor", name: "val" } as unknown as ClassAccessorDecoratorContext<object, number>;
-    const result = decorator(target, ctx);
-
-    const instance = {};
-    const returned = result.init!.call(instance, 42);
-    result.get!.call(instance); // triggers bind
-    expect(returned).toBe(42);
-    expect(capturedInitialValue).toBe(42);
-  });
-
-  it("init returns the initial value unchanged", () => {
-    const behavior = {
-      bind(_inst: object, _name: string | symbol, initialValue: unknown) {
-        return { get: () => initialValue };
-      },
-    };
-    const decorator = createAccessorDecorator(behavior);
-    const target = {
-      get() { return ""; },
-      set() { /* original */ },
-    } as ClassAccessorDecoratorTarget<object, string>;
-    const ctx = { kind: "accessor", name: "s" } as unknown as ClassAccessorDecoratorContext<object, string>;
-    const result = decorator(target, ctx);
-
-    const instance = {};
-    expect(result.init!.call(instance, "hello")).toBe("hello");
   });
 });
 

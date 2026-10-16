@@ -1,39 +1,61 @@
 import type { StatefulComponent } from "@praxisjs/core";
 
-export interface LifecycleMethodBehavior<
-  T extends StatefulComponent = StatefulComponent,
-> {
-  register(
-    callback: (...args: unknown[]) => void,
-    instance: T,
-  ): (() => void) | undefined;
+import { assertMemberKind } from "./field";
+import { addMountRegistration, type LifecycleCleanup } from "./lifecycle";
+
+export type { LifecycleCleanup };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface LifecycleMethodBehavior<T extends object = StatefulComponent, Args extends unknown[] = any[]> {
+  /** Names the decorator in error messages, e.g. `"@OnResize()"`. */
+  label?: string;
+  /**
+   * Runs on every mount of each instance with the method bound to it. Returns what undoes the
+   * registration on unmount, if anything.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  register(callback: (...args: Args) => void, instance: T, name: string): (() => void) | undefined | void;
 }
 
-export function createLifecycleMethodDecorator<
-  T extends StatefulComponent = StatefulComponent,
->(behavior: LifecycleMethodBehavior<T>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyMethod = (this: any, ...args: any[]) => void;
+
+/**
+ * Builds a method decorator that calls `start` on every mount and undoes what it returned on
+ * unmount.
+ */
+export function lifecycleMethodDecorator<T extends object>(
+  start: (instance: T, method: AnyMethod, name: string) => LifecycleCleanup,
+  label = "This lifecycle method decorator",
+) {
   return function (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     value: (this: T, ...args: any[]) => void,
-    _context: ClassMethodDecoratorContext<T>,
+    context: ClassMethodDecoratorContext<T>,
   ): void {
-    _context.addInitializer(function (this: unknown) {
-      const instance = this as T;
-      const prevMount = instance.onMount?.bind(instance);
-      const prevUnmount = instance.onUnmount?.bind(instance);
-      let cleanup: (() => void) | undefined;
-
-      instance.onMount = function (this: T) {
-        prevMount?.call(this);
-        const result = behavior.register(value.bind(this), this);
-        if (result) cleanup = result;
-      };
-
-      instance.onUnmount = function (this: T) {
-        prevUnmount?.call(this);
-        cleanup?.();
-        cleanup = undefined;
-      };
+    assertMemberKind(context, "method", label);
+    if (context.static) {
+      throw new TypeError(`${label} decorates instance methods only, not the static method "${String(context.name)}".`);
+    }
+    const name = String(context.name);
+    const run = (instance: T, method: AnyMethod) => start(instance, method, name);
+    context.addInitializer(function (this: T) {
+      addMountRegistration(this, run, value);
     });
   };
+}
+
+/**
+ * Builds a method decorator that registers the method somewhere on every mount (an event listener,
+ * a subscription) and undoes it on unmount.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createLifecycleMethodDecorator<T extends object = StatefulComponent, Args extends unknown[] = any[]>(
+  behavior: LifecycleMethodBehavior<T, Args>,
+): <This extends T>(value: (this: This, ...args: Args) => void, context: ClassMethodDecoratorContext<This>) => void {
+  const label = behavior.label ?? "This lifecycle method decorator";
+  return lifecycleMethodDecorator<T>(
+    (instance, method, name) => behavior.register(method.bind(instance) as (...args: Args) => void, instance, name),
+    label,
+  ) as never;
 }
