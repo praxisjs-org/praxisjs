@@ -46,14 +46,21 @@ function findPlugin(plugins: ReturnType<typeof praxisjs>, name: string): NamedPl
 }
 
 describe("praxisjs() plugin factory", () => {
-  it("returns five plugins by default (keyed lists + hmr + decorators + templates + core)", () => {
+  it("returns six plugins by default (keyed lists + hmr + decorators + templates + libraries + core)", () => {
     const plugins = praxisjs();
+    expect(plugins).toHaveLength(6);
+  });
+
+  it("returns five plugins when hmr is disabled", () => {
+    const plugins = praxisjs({ hmr: false });
     expect(plugins).toHaveLength(5);
   });
 
-  it("returns four plugins when hmr is disabled", () => {
-    const plugins = praxisjs({ hmr: false });
-    expect(plugins).toHaveLength(4);
+  it("runs the libraries plugin after the templates, and omits it when libraries is false", () => {
+    const names = (praxisjs() as NamedPlugin[]).map((p) => p.name);
+    expect(names.indexOf("praxisjs:libraries")).toBe(names.indexOf("praxisjs:templates") + 1);
+    expect((praxisjs({ libraries: false }) as NamedPlugin[]).some((p) => p.name === "praxisjs:libraries")).toBe(false);
+    expect((praxisjs({ libraries: { "@acme/ui": true } }) as NamedPlugin[]).some((p) => p.name === "praxisjs:libraries")).toBe(true);
   });
 
   it("runs the template compiler after decorator lowering, and can be turned off", () => {

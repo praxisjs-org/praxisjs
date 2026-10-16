@@ -14,7 +14,7 @@ import type { Plugin } from "vite";
 // `children` attribute, unknown HTML entities or `await`/`yield` inside an expression are left to
 // jsx().
 
-const JSX_FILE = /\.[jt]sx(?:$|\?)/;
+export const JSX_FILE = /\.[jt]sx(?:$|\?)/;
 const P = "_$px";
 const HELPERS = [
   "template", "html", "element", "prop", "reactive", "insert", "reactiveOnly", "insertOnly", "scope", "event",
@@ -711,17 +711,21 @@ function prepend(header: TemplateResult, body: TemplateResult): TemplateResult {
 }
 
 export interface TemplatesPluginOptions {
-  /** Restricts the transform to matching module ids. Default: every .jsx/.tsx outside node_modules. */
+  /**
+   * Restricts the transform to matching module ids. Default: every .jsx/.tsx outside node_modules,
+   * and those of the libraries that opt in.
+   */
   include?: RegExp;
 }
 
-export function templatesPlugin(options: TemplatesPluginOptions = {}): Plugin {
+/** `isLibrary` tells the files of the dependencies compiled like the app's own code. */
+export function templatesPlugin(options: TemplatesPluginOptions = {}, isLibrary?: (id: string) => boolean): Plugin {
   const include = options.include ?? JSX_FILE;
   return {
     name: "praxisjs:templates",
     enforce: "pre",
     transform(code, id) {
-      if (!include.test(id) || id.includes("/node_modules/")) return null;
+      if (!include.test(id) || (id.includes("/node_modules/") && isLibrary?.(id) !== true)) return null;
       const result = transformTemplates(code, id.split("?")[0]);
       return result === null ? null : { code: result.code, map: result.map };
     },

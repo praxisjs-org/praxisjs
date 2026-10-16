@@ -1,6 +1,6 @@
 // @vitest-environment node
 import ts from "typescript";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // Decorators that follow @praxisjs/decorators' claim protocol: the initializer they add carries,
 // under CLAIM, the function that defines the field from its initial value.
@@ -343,5 +343,66 @@ describe("claimed fields", () => {
   it("throws when the step after the last field cannot be found", () => {
     const broken = lower("class A { @State() a = 1; }").replace(/__runInitializers\(this, _a_extraInitializers\);/, "");
     expect(() => claimFields(broken, "/a.ts")).toThrow("could not find where the fields of a class finish initializing");
+  });
+});
+
+describe("claimed fields in a library's compiled files", () => {
+  const isLibrary = (id: string) => id.includes("/node_modules/ui/");
+  const transform = (code: string, id: string, warn = (_message: string) => undefined) =>
+    (decoratorLoweringPlugin(isLibrary) as unknown as {
+      transform: (this: { warn: (message: string) => void }, c: string, id: string) => TransformResult | null;
+    }).transform.call({ warn }, code, id);
+
+  const model = `
+    export class Model {
+      @State() count = 1;
+      plain = 2;
+      @keep kept = 3;
+      @doubled twice = 4;
+    }
+    export function run() {
+      const m = new Model();
+      m.count++;
+      return [Object.keys(m), m.count, m.plain, m.kept, m.twice];
+    }
+  `;
+
+  it("claims what tsc lowered, behaving the same, one line down", () => {
+    const published = lower(model);
+    const result = transform(published, "/app/node_modules/ui/dist/model.js") as TransformResult;
+    expect(result.code).toContain("__pxField(this, \"count\"");
+    expect(result.code.split("\n")).toHaveLength(published.split("\n").length + 1);
+    expect(result.map?.mappings.startsWith(";AAAA;AACA")).toBe(true);
+    const exec = (js: string) =>
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval
+      (new Function("State", "keep", "doubled", `${js.replace(/^export /gm, "")}\nreturn run();`) as (...args: unknown[]) => unknown)(State, keep, doubled);
+    expect(exec(inlineHelpers(result.code))).toEqual(exec(published));
+  });
+
+  it("only claims the files of a library that opts in", () => {
+    const result = transform(lower(model), "/app/node_modules/other/dist/model.js") as TransformResult;
+    expect(result.code).not.toContain("__pxField(");
+    expect(result.map).toBeNull();
+  });
+
+  it("keeps the helpers inline in a script, which can't import them", () => {
+    const script = lower("class Model { @State() count = 1; }");
+    const result = transform(script, "/app/node_modules/ui/dist/model.js") as TransformResult;
+    expect(result.code.startsWith("const __pxClaim")).toBe(true);
+  });
+
+  it("shares the helpers of a library that imports TypeScript's from tslib", () => {
+    const tslib = lower(model).replace(/^var __\w+ = \(this && this\.__\w+\) \|\| function[\s\S]*?\n};\n/gm, "");
+    expect(tslib).not.toContain("(this && this.__");
+    const result = transform(`import { __esDecorate, __runInitializers } from "tslib";\n${tslib}`, "/app/node_modules/ui/dist/model.js") as TransformResult;
+    expect(result.code).toMatch(/^import \{ __pxField, __pxTake, __pxValue \} from "virtual:praxisjs\/decorators";/);
+  });
+
+  it("warns and leaves the fields as published when a class can't be claimed", () => {
+    const broken = lower("export class A { @State() a = 1; }").replace(/__runInitializers\(this, _a_extraInitializers\);/, "");
+    const warn = vi.fn();
+    const result = transform(broken, "/app/node_modules/ui/dist/a.js", warn) as TransformResult;
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("could not find where the fields of a class finish initializing"));
+    expect(result.code).not.toContain("__pxField(");
   });
 });

@@ -321,6 +321,13 @@ describe("templatesPlugin", () => {
     const custom = templatesPlugin({ include: /\.ts$/ }) as { transform: (code: string, id: string) => unknown };
     expect(custom.transform(source, "/src/a.ts")).not.toBeNull();
   });
+
+  it("transforms the node_modules modules of a library that opts in", () => {
+    const plugin = templatesPlugin({}, (id) => id.includes("/node_modules/ui/")) as { transform: (code: string, id: string) => unknown };
+    const source = "const v = <div><span /></div>;";
+    expect(plugin.transform(source, "/node_modules/ui/src/a.tsx")).not.toBeNull();
+    expect(plugin.transform(source, "/node_modules/other/src/a.tsx")).toBeNull();
+  });
 });
 
 describe("transformTemplates — lone elements", () => {

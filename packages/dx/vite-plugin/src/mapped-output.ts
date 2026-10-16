@@ -114,3 +114,15 @@ export class MappedOutput {
   }
 }
 
+/** A map of `source` moved down by `lines` generated lines, each of its lines otherwise in place. */
+export function shiftedLines(source: string, file: string, lines: number): SourceMapV3 {
+  const count = source.split("\n").length;
+  return {
+    version: 3,
+    file,
+    sources: [file],
+    sourcesContent: [source],
+    names: [],
+    mappings: ";".repeat(lines) + ["AAAA", ...Array<string>(count - 1).fill("AACA")].join(";"),
+  };
+}

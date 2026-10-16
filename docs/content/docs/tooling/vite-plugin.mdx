@@ -34,6 +34,7 @@ praxisjs({
   autoImport: true,  // auto-import common decorators (default: false)
   keyedLists: true,  // rewrite keyed .map() lists into <For> (default: true)
   templates: true,   // compile static JSX trees into cloned templates (default: true)
+  libraries: true,   // compile the PraxisJS libraries that opt in like your own code (default: true)
 })
 ```
 
@@ -43,6 +44,7 @@ praxisjs({
 | `autoImport` | `boolean` | `false` | Auto-imports `@Component`, `@State`, `@Prop`, and other commonly used decorators so you don't have to import them in every file. |
 | `keyedLists` | `boolean \| { warn?: boolean }` | `true` | Rewrites `{() => list.map((item) => <Row key={…} />)}` into [`For`](/docs/essentials/lists#map-with-key) so rows are kept between updates. Keyed `.map()` calls it can't rewrite are reported as build warnings; `{ warn: false }` silences them, `false` turns the rewrite off. |
 | `templates` | `boolean \| { include?: RegExp }` | `true` | Compiles JSX trees of HTML/SVG elements into templates that are built once and cloned per render (see [Compiled templates](#compiled-templates)). `false` leaves every element to `jsx()`; `include` restricts which modules are compiled. |
+| `libraries` | `boolean \| Record<string, boolean \| { rootDir?: string; outDir?: string }>` | `true` | Compiles dependencies that are PraxisJS libraries like your own code (see [Libraries](#libraries)). By default, the packages whose `package.json` opts in. An object opts packages in or out by name (`"@scope/*"` for a whole scope); `false` compiles no dependency. |
 
 ---
 
@@ -53,6 +55,7 @@ praxisjs({
 - **Keyed lists** — rewrites keyed `.map()` children into `For` (see [Lists](/docs/essentials/lists#map-with-key)). It parses with the TypeScript compiler the plugin already ships with and emits a source map
 - **Compiled templates** — turns trees of host elements into cloned templates (see below), with a source map
 - **HMR** — in the dev server, re-renders the mounted instances of an edited component in place (see below)
+- **Libraries** — applies the same work to the dependencies that are PraxisJS libraries and opt in (see below)
 
 ---
 
@@ -97,6 +100,44 @@ In the dev server (`vite`), every top-level class of your app's modules is regis
 - **Dev DOM** — while HMR is active, every registered component is bounded by two comments (`<!--[Name]-->…<!--[/Name]-->`), also when it renders a single node, so it can be replaced between them. Production builds are unaffected: the plugin adds nothing to them.
 
 Dependencies (anything under `node_modules`, or linked from outside the project root) are left alone.
+
+---
+
+## Libraries
+
+A component library built with `tsc` (such as `@morphos/*`) reaches your app as plain JavaScript, so by default none of the work above happens to it: its decorated fields are defined and then replaced by their decorator, which puts every instance in V8's slow dictionary mode, and its elements are built by `jsx()` calls. A library can opt in to be compiled like your own code:
+
+```json
+// the library's package.json
+{
+  "praxisjs": { "optimize": true, "rootDir": "./src", "outDir": "./dist" }
+}
+```
+
+- **`optimize: true`** — the decorated fields of its compiled files are defined directly by their decorator, as in your own components, so instances keep fast properties. This works on what `tsc` publishes, nothing else is needed.
+- **`rootDir` and `outDir`** — when the package also ships its sources, every import of a compiled file (`dist/button/button.js`) loads the source it comes from (`src/button/button.tsx`) instead, which is compiled like your own files: compiled templates, keyed lists and claimed fields. The folders are the `rootDir` and `outDir` of the library's tsconfig, relative to its `package.json`.
+
+An app can opt packages in or out itself, by name, which also gives the folders of a library that doesn't declare them:
+
+```ts
+praxisjs({
+  libraries: {
+    '@morphos/*': { rootDir: 'src', outDir: 'dist' }, // every package of the scope, from its sources
+    '@acme/widgets': true,                           // compiled files only
+    '@acme/legacy': false,                           // as published, even if it opts in
+  },
+})
+```
+
+In a test of five `@morphos/inputs` components (1,000 instances each, production build, Chromium), every stateful component went from dictionary to fast properties, and mounting took 16 to 37% less time with `optimize` alone, 23 to 44% with the sources. Packages that don't opt in are compiled exactly as before.
+
+**What a library must be.** The plugin compiles a library with the settings it compiles your app with, so the library must be built the way a PraxisJS app is: an ES module package, TC39 decorators (not `experimentalDecorators`), `target` ES2022 or later with `useDefineForClassFields`, and `jsxImportSource: "@praxisjs/jsx"`. Its sources must compile one file at a time (`isolatedModules`) and import nothing its build resolves differently (no `paths` aliases). A compiled class the plugin can't claim is left as published, with a build warning.
+
+**Dev server.** Vite pre-bundles dependencies before any plugin runs, so the plugin also runs inside Vite's dependency optimizer: libraries stay pre-bundled (one request each, one copy of the framework), and come out of it compiled. The optimizer's cache depends on the `libraries`, `templates` and `keyedLists` options, so changing them pre-bundles again. A library you add to `optimizeDeps.exclude` is compiled by the regular plugin pipeline instead, with Vite's usual caveats for excluded dependencies.
+
+**SSR.** Libraries that opt in are added to `ssr.noExternal`, so the server runs the same compiled code as the browser instead of importing the published files with Node. A package you list in `ssr.external` stays external.
+
+**Trade-offs.** Claimed fields and compiled templates make the output larger, as they do for your own code (here, +2.4 kB gzip with `optimize`, +7.6 kB with the sources, part of it `For` used by a rewritten list), and compiling from sources adds build time. Hot module replacement still leaves dependencies alone. Source maps point at the library's compiled files, or at its sources when it is compiled from them.
 
 ---
 

@@ -184,6 +184,17 @@ describe("keyedListsPlugin", () => {
     expect(transform(keyed, "/src/a.tsx?v=1")?.code).toContain("__PraxisFor");
   });
 
+  it("handles the node_modules files of a library that opts in, without warning about its code", () => {
+    const warn = vi.fn();
+    const plugin = keyedListsPlugin({}, (id) => id.includes("/node_modules/ui/"));
+    const transform = (code: string, id: string) =>
+      (plugin.transform as unknown as (this: { warn: typeof warn }, code: string, id: string) => { code: string } | null).call({ warn }, code, id);
+    expect(transform(keyed, "/node_modules/ui/src/a.tsx")?.code).toContain("__PraxisFor");
+    expect(transform(keyed, "/node_modules/other/src/a.tsx")).toBeNull();
+    expect(transform(unsafe, "/node_modules/ui/src/a.tsx")).toBeNull();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("forwards warnings with their location, unless disabled", () => {
     const { transform, warn } = hook();
     expect(transform(unsafe, "/src/a.tsx")).toBeNull();

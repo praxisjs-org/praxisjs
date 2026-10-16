@@ -1,5 +1,7 @@
 import ts from "typescript";
 
+import { shiftedLines } from "./mapped-output.js";
+
 import type { Plugin } from "vite";
 
 const JS_LIKE_FILE = /\.[cm]?[jt]sx?(?:$|\?)/;
@@ -37,7 +39,7 @@ function hasRealDecorator(code: string, fileName: string): boolean {
   return found;
 }
 
-interface RawSourceMap {
+export interface RawSourceMap {
   version: number;
   file?: string;
   sourceRoot?: string;
@@ -488,6 +490,58 @@ export function shareHelpers(code: string, fileName: string, kind = ts.ScriptKin
   return result;
 }
 
+// A file of a library built with tsc may hold the same helpers. Only an ES module can take an import.
+function shareCompiledHelpers(code: string, fileName: string): string | null {
+  if (!code.includes("(this && this.__") && !code.startsWith(PX_FIELD_HELPER)) return null;
+  const kind = scriptKindFor(fileName);
+  if (!ts.isExternalModule(ts.createSourceFile(fileName, code, ts.ScriptTarget.Latest, false, kind))) return null;
+  return shareHelpers(code, fileName, kind);
+}
+
+/**
+ * Lowers the decorators of a module, or for a module already lowered by tsc, shares its helpers
+ * and, in a library that opts in (`isLibrary`), claims its decorated fields. Null when there is
+ * nothing to change.
+ */
+export function transformDecorators(
+  code: string,
+  id: string,
+  isLibrary: ((id: string) => boolean) | undefined,
+  warn: (message: string) => void,
+): { code: string; map: RawSourceMap | null } | null {
+  if (!JS_LIKE_FILE.test(id)) return null;
+  const fileName = cleanFileName(id);
+  if (!code.includes("@") || !hasRealDecorator(code, fileName)) {
+    // Already lowered, by tsc: a library that opts in gets its fields claimed all the same.
+    let claimed: string | null = null;
+    if (code.includes("__esDecorate(") && isLibrary?.(id) === true) {
+      try {
+        claimed = claimFields(code, fileName);
+      } catch (error) {
+        warn(`${(error as Error).message}; its decorated fields are left as published`);
+      }
+    }
+    const shared = shareCompiledHelpers(claimed ?? code, fileName);
+    if (claimed === null) return shared === null ? null : { code: shared, map: null };
+    return { code: shared ?? claimed, map: shiftedLines(code, fileName, PX_FIELD_HELPER_LINES) };
+  }
+
+  const { outputText, sourceMapText, diagnostics } = lowerDecorators(code, fileName);
+
+  const errors = diagnostics?.filter((d) => d.category === ts.DiagnosticCategory.Error) ?? [];
+  if (errors.length > 0) {
+    throw new Error(`[praxisjs:decorators] ${fileName}:\n${formatDiagnostics(errors)}`);
+  }
+
+  const claimed = claimFields(outputText, fileName);
+  const map = sourceMapText ? (JSON.parse(sourceMapText) as RawSourceMap) : null;
+  const output = claimed ?? outputText;
+  return {
+    code: shareHelpers(output, fileName) ?? output,
+    map: claimed === null || map === null ? map : { ...map, mappings: ";".repeat(PX_FIELD_HELPER_LINES) + map.mappings },
+  };
+}
+
 // oxc doesn't lower TC39 (non-legacy) decorators yet — `@Decorator()`
 // syntax passes through unchanged and no JS runtime executes it directly:
 // https://github.com/oxc-project/oxc/issues/9170
@@ -498,7 +552,7 @@ export function shareHelpers(code: string, fileName: string, kind = ts.ScriptKin
 // so its initializer runs after `super()` automatically — no separate
 // ordering fix-up is needed. JSX is left untouched (`jsx: "preserve"`) for
 // oxc's own JSX pipeline to handle.
-export function decoratorLoweringPlugin(): Plugin {
+export function decoratorLoweringPlugin(isLibrary?: (id: string) => boolean): Plugin {
   return {
     name: "praxisjs:decorators",
     // Must run before Vite's built-in esbuild TS transform: esbuild's TC39
@@ -516,32 +570,7 @@ export function decoratorLoweringPlugin(): Plugin {
       return id === RESOLVED_HELPERS_ID ? helpersModule() : null;
     },
     transform(code, id) {
-      if (!JS_LIKE_FILE.test(id)) return null;
-      const fileName = cleanFileName(id);
-      if (!code.includes("@") || !hasRealDecorator(code, fileName)) {
-        // A file of a library built with tsc may hold the same helpers. Only an ES module can take
-        // an import.
-        if (!code.includes("(this && this.__")) return null;
-        const kind = scriptKindFor(fileName);
-        if (!ts.isExternalModule(ts.createSourceFile(fileName, code, ts.ScriptTarget.Latest, false, kind))) return null;
-        const shared = shareHelpers(code, fileName, kind);
-        return shared === null ? null : { code: shared, map: null };
-      }
-
-      const { outputText, sourceMapText, diagnostics } = lowerDecorators(code, fileName);
-
-      const errors = diagnostics?.filter((d) => d.category === ts.DiagnosticCategory.Error) ?? [];
-      if (errors.length > 0) {
-        throw new Error(`[praxisjs:decorators] ${fileName}:\n${formatDiagnostics(errors)}`);
-      }
-
-      const claimed = claimFields(outputText, fileName);
-      const map = sourceMapText ? (JSON.parse(sourceMapText) as RawSourceMap) : null;
-      const output = claimed ?? outputText;
-      return {
-        code: shareHelpers(output, fileName) ?? output,
-        map: claimed === null || map === null ? map : { ...map, mappings: ";".repeat(PX_FIELD_HELPER_LINES) + map.mappings },
-      };
+      return transformDecorators(code, id, isLibrary, (message) => { this.warn(message); });
     },
   };
 }

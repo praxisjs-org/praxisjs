@@ -262,17 +262,20 @@ export interface KeyedListsPluginOptions {
   warn?: boolean;
 }
 
-export function keyedListsPlugin(options: KeyedListsPluginOptions = {}): Plugin {
+/** `isLibrary` tells the files of the dependencies compiled like the app's own code. */
+export function keyedListsPlugin(options: KeyedListsPluginOptions = {}, isLibrary?: (id: string) => boolean): Plugin {
   const { warn = true } = options;
   return {
     name: "praxisjs:keyed-lists",
     enforce: "pre",
     transform(code, id) {
-      if (!JSX_FILE.test(id) || id.includes("/node_modules/")) return null;
+      const dependency = id.includes("/node_modules/");
+      if (!JSX_FILE.test(id) || (dependency && isLibrary?.(id) !== true)) return null;
       const fileName = id.split("?")[0];
       const result = transformKeyedLists(code, fileName);
       if (result === null) return null;
-      if (warn) {
+      // A dependency's code is not the app's to change.
+      if (warn && !dependency) {
         for (const w of result.warnings) this.warn(`${fileName}:${String(w.line)}:${String(w.column)} ${w.message}`);
       }
       if (result.map === null) return null;
