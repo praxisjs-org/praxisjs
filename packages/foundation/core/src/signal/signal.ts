@@ -1,84 +1,21 @@
 import type { Signal } from "@praxisjs/shared";
 
-import { isBatching, enqueueEffect } from "./batch";
-import {
-  activeEffect,
-  recordDependency,
-  removeSub,
-  SUBS_SET_THRESHOLD,
-  type Effect,
-  type SubList,
-  type SubscriberHolder,
-} from "./effect";
-
-export type { SubList } from "./effect";
-
-export function addSub(holder: SubscriberHolder, eff: Effect): void {
-  const subs = holder.subs;
-  if (subs === null) {
-    holder.subs = eff;
-  } else if (typeof subs === "function") {
-    if (subs !== eff) holder.subs = [subs, eff];
-  } else if (subs instanceof Set) {
-    subs.add(eff);
-  } else if (!subs.includes(eff)) {
-    subs.push(eff);
-    if (subs.length > SUBS_SET_THRESHOLD) holder.subs = new Set(subs);
-  }
-  recordDependency(eff, holder);
-}
-
-export { removeSub };
-
-export function notifySubs(subs: Exclude<SubList, null>, batching: boolean): void {
-  if (typeof subs === "function") {
-    if (batching) enqueueEffect(subs); else subs();
-    return;
-  }
-  const snapshot = [...subs];
-  if (batching) {
-    for (const sub of snapshot) enqueueEffect(sub);
-    return;
-  }
-  let lastError: unknown;
-  let hasError = false;
-  for (const sub of snapshot) {
-    try {
-      sub();
-    } catch (e) {
-      lastError = e;
-      hasError = true;
-    }
-  }
-  if (hasError) throw lastError;
-}
+import { untrack } from "./effect";
+import { createEffect, disposeEffect, readSignal, SignalNode, writeSignal } from "./graph";
 
 export function signal<T>(initialValue: T): Signal<T> {
-  let value = initialValue;
-  const holder = { subs: null as SubList };
+  const node = new SignalNode(initialValue);
 
-  function read(): T {
-    if (activeEffect !== null) addSub(holder, activeEffect);
-    return value;
-  }
-
-  const s = read as Signal<T>;
-
-  s.set = (newValue: T) => {
-    if (Object.is(value, newValue)) return;
-    value = newValue;
-    if (holder.subs !== null) notifySubs(holder.subs, isBatching());
-  };
-
-  s.update = (fn: (prev: T) => T) => { s.set(fn(value)); };
-
+  const s = (() => readSignal(node)) as Signal<T>;
+  s.set = (newValue: T) => { writeSignal(node, newValue); };
+  s.update = (fn: (prev: T) => T) => { writeSignal(node, fn(node.value)); };
   s.subscribe = (fn: (value: T) => void) => {
-    const wrapped: Effect = () => { fn(value); };
-    addSub(holder, wrapped);
-    wrapped();
-    return () => { removeSub(holder, wrapped); };
+    const sub = createEffect(() => {
+      const value = readSignal(node);
+      untrack(() => { fn(value); });
+    });
+    return () => { disposeEffect(sub); };
   };
-
   s.__isSignal = true;
   return s;
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
+import { batch } from "../signal/batch";
 import { computed, writableComputed } from "../signal/computed";
 import { effect } from "../signal/effect";
 import { signal } from "../signal/signal";
@@ -67,14 +68,35 @@ describe("computed", () => {
 
     const calls: string[] = [];
     fullName.subscribe((v) => calls.push(v));
-    expect(calls).toEqual(["John Doe"]); // immediate on subscribe
+    expect(calls).toEqual(["John Doe"]);
 
     first.set("Jane");
     last.set("Smith");
     await Promise.resolve();
 
-    // Both changes in the same tick → single notification with final value
     expect(calls).toEqual(["John Doe", "Jane Smith"]);
+  });
+
+  it("skips the notification of a subscriber removed before the tick ends", async () => {
+    const s = signal(0);
+    const c = computed(() => s() * 2);
+    const results: number[] = [];
+    const unsub = c.subscribe((v) => results.push(v));
+    s.set(1);
+    unsub();
+    await Promise.resolve();
+    expect(results).toEqual([0]);
+  });
+
+  it("never lets an effect see a computed out of step with its sources", () => {
+    const first = signal("John");
+    const fullName = computed(() => `${first()}!`);
+    const seen: string[] = [];
+    effect(() => { seen.push(`${first()} / ${fullName()}`); });
+
+    first.set("Jane");
+
+    expect(seen).toEqual(["John / John!", "Jane / Jane!"]);
   });
 
   it("subscribe fires immediately with computed value", () => {
@@ -206,20 +228,6 @@ describe("computed", () => {
     bVal = b();
     expect(aVal).toBeGreaterThanOrEqual(1);
     expect(bVal).toBeGreaterThanOrEqual(1);
-  });
-
-  it("microtask guard: skips notifySubs when leaf subscriber unsubscribes before microtask fires", async () => {
-    const s = signal(0);
-    const c = computed(() => s() * 2);
-    const results: number[] = [];
-    const unsub = c.subscribe((v) => results.push(v));
-    // results = [0]
-
-    s.set(1); // markDirty: queues microtask (scheduled = true)
-    unsub();  // removes leaf subscriber BEFORE microtask fires → leafHolder.subs = null
-
-    await Promise.resolve(); // microtask: if (leafHolder.subs !== null) → FALSE → no notify
-    expect(results).toEqual([0]); // no update received after unsubscribe
   });
 
   it("skips re-scheduling leaf notification when already scheduled (!scheduled false branch)", async () => {

@@ -1,10 +1,8 @@
 import { describe, it, expect } from "vitest";
 
 import { batch } from "../signal/batch";
-import { SUBS_SET_THRESHOLD } from "../signal/effect";
 import { effect } from "../signal/effect";
-import { signal, addSub, removeSub, type SubList } from "../signal/signal";
-import type { Effect } from "../signal/effect";
+import { signal } from "../signal/signal";
 
 describe("signal", () => {
   it("returns initial value", () => {
@@ -170,36 +168,6 @@ describe("signal", () => {
     expect(b).toContain(1);
   });
 
-  it("removeSub with non-matching single-function subscriber is a no-op", () => {
-    // When subs is a single function and we try to remove a different function,
-    // the holder must remain unchanged (subs !== eff → false branch).
-    const holder: { subs: SubList } = { subs: null };
-    const fn1: Effect = () => {};
-    const fn2: Effect = () => {};
-    addSub(holder, fn1); // subs = fn1 (single function)
-    removeSub(holder, fn2); // fn2 !== fn1 → no-op
-    expect(holder.subs).toBe(fn1);
-  });
-
-  it("addSub does not add a duplicate subscriber to an array holder", () => {
-    const fn1: Effect = () => {};
-    const fn2: Effect = () => {};
-    const holder: { subs: SubList } = { subs: [fn1, fn2] };
-
-    addSub(holder, fn2);
-
-    expect(holder.subs).toEqual([fn1, fn2]);
-  });
-
-  it("removeSub normalizes an emptied array holder back to null", () => {
-    const fn: Effect = () => {};
-    const holder: { subs: SubList } = { subs: [fn] };
-
-    removeSub(holder, fn);
-
-    expect(holder.subs).toBeNull();
-  });
-
   it("set() with mutated object reference (same ref) does NOT notify — Object.is semantics", () => {
     const obj = { count: 0 };
     const s = signal(obj);
@@ -219,41 +187,8 @@ describe("large subscriber lists", () => {
     return Array.from({ length: count }, () => () => {});
   }
 
-  it("keeps an array up to the threshold and promotes to a Set past it, preserving order", () => {
-    const holder: { subs: SubList } = { subs: null };
-    const list = fns(SUBS_SET_THRESHOLD);
-    for (const fn of list) addSub(holder, fn);
-    expect(Array.isArray(holder.subs)).toBe(true);
-
-    const extra = () => {};
-    addSub(holder, extra);
-    expect(holder.subs).toBeInstanceOf(Set);
-    expect([...(holder.subs as Set<() => void>)]).toEqual([...list, extra]);
-  });
-
-  it("addSub on a Set holder adds new subscribers and ignores duplicates", () => {
-    const list = fns(SUBS_SET_THRESHOLD + 1);
-    const holder: { subs: SubList } = { subs: new Set(list) };
-    addSub(holder, list[0]);
-    expect((holder.subs as Set<() => void>).size).toBe(list.length);
-    const extra = () => {};
-    addSub(holder, extra);
-    expect((holder.subs as Set<() => void>).size).toBe(list.length + 1);
-  });
-
-  it("removeSub on a Set holder removes one subscriber, ignores unknown ones, and normalizes to null when emptied", () => {
-    const [a, b, stranger] = fns(3);
-    const holder: { subs: SubList } = { subs: new Set([a, b]) };
-    removeSub(holder, stranger);
-    expect((holder.subs as Set<() => void>).size).toBe(2);
-    removeSub(holder, a);
-    expect([...(holder.subs as Set<() => void>)]).toEqual([b]);
-    removeSub(holder, b);
-    expect(holder.subs).toBeNull();
-  });
-
   it("many effects on one signal all re-run once per change, in subscription order", () => {
-    const count = SUBS_SET_THRESHOLD * 3;
+    const count = 16 * 3;
     const s = signal(0);
     const order: number[] = [];
     const stops = Array.from({ length: count }, (_, i) =>
@@ -274,10 +209,10 @@ describe("large subscriber lists", () => {
     expect(order).toEqual([]);
   });
 
-  it("an effect stopped while the signal holds a Set no longer runs, the others still do", () => {
+  it("an effect stopped among many subscribers no longer runs, the others still do", () => {
     const s = signal(0);
     const runs = new Map<number, number>();
-    const stops = Array.from({ length: SUBS_SET_THRESHOLD + 4 }, (_, i) =>
+    const stops = Array.from({ length: 20 }, (_, i) =>
       effect(() => {
         void s();
         runs.set(i, (runs.get(i) ?? 0) + 1);

@@ -1,13 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-import {
-  effect,
-  track,
-  activeEffect,
-  cleanupEffectDeps,
-  recordDependency,
-  type SubscriberHolder,
-} from "../signal/effect";
+import { effect } from "../signal/effect";
 import { batch } from "../signal/batch";
 import { signal } from "../signal/signal";
 
@@ -170,72 +163,4 @@ describe("effect", () => {
     expect(values).toEqual([0]);
   });
 
-  it("cleanupEffectDeps handles empty, single, and array dependency holders", () => {
-    const tracked = vi.fn();
-    const other = vi.fn();
-    const emptyHolder: SubscriberHolder = { subs: null };
-    const singleHolder: SubscriberHolder = { subs: tracked };
-    const arrayHolder: SubscriberHolder = { subs: [tracked, other] };
-    const unmatchedSingleHolder: SubscriberHolder = { subs: other };
-    const unmatchedArrayHolder: SubscriberHolder = { subs: [other] };
-
-    recordDependency(tracked, emptyHolder);
-    recordDependency(tracked, singleHolder);
-    recordDependency(tracked, arrayHolder);
-    recordDependency(tracked, unmatchedSingleHolder);
-    recordDependency(tracked, unmatchedArrayHolder);
-
-    cleanupEffectDeps(tracked);
-
-    expect(emptyHolder.subs).toBeNull();
-    expect(singleHolder.subs).toBeNull();
-    expect(arrayHolder.subs).toEqual([other]);
-    expect(unmatchedSingleHolder.subs).toBe(other);
-    expect(unmatchedArrayHolder.subs).toEqual([other]);
-  });
-
-  it("cleanupEffectDeps handles Set dependency holders, emptying them to null", () => {
-    const tracked = vi.fn();
-    const other = vi.fn();
-    const sharedHolder: SubscriberHolder = { subs: new Set([tracked, other]) };
-    const soleHolder: SubscriberHolder = { subs: new Set([tracked]) };
-
-    recordDependency(tracked, sharedHolder);
-    recordDependency(tracked, soleHolder);
-
-    cleanupEffectDeps(tracked);
-
-    expect([...(sharedHolder.subs as Set<() => void>)]).toEqual([other]);
-    expect(soleHolder.subs).toBeNull();
-  });
-
-  it("exception inside nested track() restores outer activeEffect", () => {
-    const s = signal(0);
-    const outer = vi.fn();
-    let outerEffectRef: unknown;
-
-    effect(() => {
-      outer();
-      s(); // track
-      outerEffectRef = activeEffect;
-    });
-
-    // Now do a track that throws — outer activeEffect must be restored
-    try {
-      track(() => { throw new Error("inner throws"); });
-    } catch {
-      // expected
-    }
-
-    expect(activeEffect).toBeNull();
-  });
-
-  it("activeEffect is null after a track() that throws", () => {
-    try {
-      track(() => { throw new Error("boom"); });
-    } catch {
-      // expected
-    }
-    expect(activeEffect).toBeNull();
-  });
 });

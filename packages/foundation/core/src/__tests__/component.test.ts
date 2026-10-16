@@ -7,6 +7,7 @@ import {
   getComponentDefaults,
   getComponentProps,
   getComponentRawProp,
+  getComponentStart,
   isComponentMounted,
   isStateDirty,
   markStateDirty,
@@ -14,6 +15,7 @@ import {
   setComponentDefault,
   setComponentMounted,
   setComponentProps,
+  setComponentStart,
   setStateDirty,
 } from "../component/internals";
 import { StatefulComponent } from "../component/stateful";
@@ -78,6 +80,28 @@ describe("StatefulComponent", () => {
     const props = getComponentProps(c) as Record<string, unknown>;
     expect(props.x).toBeUndefined();
     expect(props.y).toBe(2);
+  });
+
+  it("stores the start comment next to the anchor", () => {
+    const c = new ConcreteStateful();
+    const start = {} as Comment;
+    expect(getComponentStart(c)).toBeUndefined();
+    setComponentStart(c, start);
+    expect(getComponentStart(c)).toBe(start);
+  });
+
+  it("marks a component's state dirty", () => {
+    const c = new ConcreteStateful();
+    markStateDirty(c);
+    expect(isStateDirty(c)).toBe(true);
+  });
+
+  it("leaves objects that are not components alone when marking state dirty", () => {
+    const store = {};
+    expect(() => { markStateDirty(store); }).not.toThrow();
+    expect(isStateDirty(store)).toBe(false);
+    setStateDirty(store, true);
+    expect(isStateDirty(store)).toBe(false);
   });
 
   it("updates anchor, mounted, defaults, and dirty state through helpers", () => {

@@ -1,102 +1,22 @@
+import { activeSub, createEffect, disposeEffect, setActiveSub, type EffectCleanup } from "./graph";
+
 export type Effect = () => void;
-export type SubList = Effect | Effect[] | Set<Effect> | null;
-export interface SubscriberHolder {
-  subs: SubList;
-}
-
-// Past this many subscribers an array makes unsubscribing O(n) per effect re-run, which turns one
-// signal with thousands of bindings into a quadratic update; a Set keeps removal O(1).
-export const SUBS_SET_THRESHOLD = 16;
-
-type TrackedEffect = Effect & { __deps?: Set<SubscriberHolder> };
-
-export let activeEffect: Effect | null = null;
-const effectStack: Effect[] = [];
-
-export function removeSub(holder: SubscriberHolder, eff: Effect): void {
-  const subs = holder.subs;
-  if (subs === null) return;
-  if (typeof subs === "function") {
-    if (subs === eff) holder.subs = null;
-    return;
-  }
-  if (subs instanceof Set) {
-    subs.delete(eff);
-    if (subs.size === 0) holder.subs = null;
-    return;
-  }
-  const idx = subs.indexOf(eff);
-  if (idx >= 0) subs.splice(idx, 1);
-  if (subs.length === 0) holder.subs = null;
-}
-
-export function recordDependency(eff: Effect, holder: SubscriberHolder): void {
-  const tracked = eff as TrackedEffect;
-  tracked.__deps ??= new Set();
-  tracked.__deps.add(holder);
-}
-
-export function cleanupEffectDeps(eff: Effect): void {
-  const tracked = eff as TrackedEffect;
-  const deps = tracked.__deps;
-  if (!deps) return;
-  for (const holder of deps) removeSub(holder, eff);
-  deps.clear();
-}
-
-export function track(effect: Effect) {
-  cleanupEffectDeps(effect);
-  effectStack.push(effect);
-  activeEffect = effect;
-  try {
-    effect();
-  } finally {
-    effectStack.pop();
-    activeEffect = effectStack[effectStack.length - 1] ?? null;
-  }
-}
-
-export function runEffect(effect: Effect | null) {
-  activeEffect = effect;
-}
 
 export function untrack<T>(fn: () => T): T {
-  const prev = activeEffect;
-  activeEffect = null;
+  if (activeSub === undefined) return fn();
+  const prev = setActiveSub(undefined);
   try {
     return fn();
   } finally {
-    activeEffect = prev;
+    setActiveSub(prev);
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-type Cleanup = (() => void) | void;
-
-export function effect(fn: () => Cleanup) {
-  let cleanup: Cleanup;
-  let stopped = false;
-
-  function run(): void {
-    if (stopped) return;
-    cleanupEffectDeps(run);
-    cleanup?.();
-    const prev = activeEffect;
-    activeEffect = run;
-    try {
-      cleanup = fn();
-    } finally {
-      activeEffect = prev;
-    }
-  }
-
-  run();
-
-  return function stop(): void {
-    if (stopped) return;
-    stopped = true;
-    cleanupEffectDeps(run);
-    cleanup?.();
-    cleanup = undefined;
-  };
+/**
+ * Runs `fn` now and again whenever a signal or computed it read changes. A returned function is
+ * called before each re-run and on stop. Returns the stop function.
+ */
+export function effect(fn: () => EffectCleanup): () => void {
+  const node = createEffect(fn);
+  return () => { disposeEffect(node); };
 }

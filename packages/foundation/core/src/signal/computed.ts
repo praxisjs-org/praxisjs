@@ -1,82 +1,29 @@
 import type { Computed, WritableComputed } from "@praxisjs/shared";
 
-import { activeEffect, cleanupEffectDeps, runEffect, type Effect, type SubList } from "./effect";
-import { addSub, removeSub, notifySubs } from "./signal";
-
-type ComputedRecompute = Effect & { __isComputedRecompute: true };
-
-function isComputedRecompute(eff: Effect): boolean {
-  return (eff as Partial<ComputedRecompute>).__isComputedRecompute === true;
-}
+import { untrack } from "./effect";
+import { ComputedNode, createEffect, DIRTY, disposeEffect, readComputed, unlinkDeps } from "./graph";
 
 export function computed<T>(getter: () => T): Computed<T> {
-  let cachedValue: T | undefined;
-  let dirty = true;
+  const node = new ComputedNode(getter);
 
-  const computedHolder = { subs: null as SubList };
-  const leafHolder = { subs: null as SubList };
-  let scheduled = false;
-
-  let recompute: ComputedRecompute | null = null;
-
-  function getRecompute(): ComputedRecompute {
-    if (recompute !== null) return recompute;
-    recompute = function markDirty(): void {
-      if (dirty) return;
-      dirty = true;
-      if (computedHolder.subs !== null) notifySubs(computedHolder.subs, false);
-      if (leafHolder.subs !== null && !scheduled) {
-        scheduled = true;
-        queueMicrotask(() => {
-          scheduled = false;
-          if (leafHolder.subs !== null) notifySubs(leafHolder.subs, false);
-        });
-      }
-    } as ComputedRecompute;
-    recompute.__isComputedRecompute = true;
-    return recompute;
-  }
-
-  function read(): T {
-    if (activeEffect !== null) {
-      if (isComputedRecompute(activeEffect)) {
-        addSub(computedHolder, activeEffect);
-      } else {
-        addSub(leafHolder, activeEffect);
-      }
-    }
-    if (dirty) {
-      const prevEffect = activeEffect;
-      const recomputeEffect = getRecompute();
-      cleanupEffectDeps(recomputeEffect);
-      runEffect(recomputeEffect);
-      try {
-        cachedValue = getter();
-        dirty = false;
-      } finally {
-        runEffect(prevEffect);
-      }
-    }
-    return cachedValue as T;
-  }
-
-  const c = read as Computed<T> & { dispose(): void };
+  const c = (() => readComputed(node)) as Computed<T> & { dispose(): void };
 
   // Drops this computed's subscriptions to its sources so an unreachable one (e.g. an evicted
   // @Memo entry) isn't kept alive by the signals it read. Does nothing while anything still
   // depends on it: detaching then would leave those dependents silently stale.
   c.dispose = () => {
-    if (leafHolder.subs !== null || computedHolder.subs !== null) return;
-    if (recompute !== null) cleanupEffectDeps(recompute);
-    dirty = true;
-    cachedValue = undefined;
+    if (node.subs !== undefined) return;
+    unlinkDeps(node);
+    node.flags |= DIRTY;
+    node.value = undefined;
   };
 
   c.subscribe = (fn: (value: T) => void) => {
-    const wrapped: Effect = () => { fn(read()); };
-    addSub(leafHolder, wrapped);
-    wrapped();
-    return () => { removeSub(leafHolder, wrapped); };
+    const sub = createEffect(() => {
+      const value = readComputed(node);
+      untrack(() => { fn(value); });
+    });
+    return () => { disposeEffect(sub); };
   };
 
   c.__isComputed = true;
