@@ -2,7 +2,8 @@
 import { describe, it, expect } from "vitest";
 
 import { StatefulComponent } from "@praxisjs/core";
-import { Scope, runInScope  } from "@praxisjs/runtime";
+import { signal } from "@praxisjs/core/internal";
+import { For, Scope, runInScope } from "@praxisjs/runtime";
 
 import { jsx, jsxs, jsxDEV, Fragment } from "../jsx-runtime";
 
@@ -53,6 +54,80 @@ describe("Fragment", () => {
     for (const child of result) container.appendChild(child);
     expect(container.textContent).toBe("count: 0");
     expect(container.querySelector("strong")).toBe(node);
+  });
+
+  it("mounts a function child as a reactive region", () => {
+    const count = signal(1);
+    const result = withScope(() =>
+      jsx(Fragment, { children: ["count: ", () => count()] }),
+    ) as Node[];
+    const container = document.createElement("div");
+    for (const child of result) container.appendChild(child);
+    expect(container.textContent).toBe("count: 1");
+
+    count.set(2);
+    expect(container.textContent).toBe("count: 2");
+  });
+
+  it("keeps a function child reactive when the fragment is mounted inside an element", () => {
+    const show = signal(true);
+    const el = withScope(() =>
+      jsx("div", {
+        children: jsx(Fragment, {
+          children: () => (show() ? jsx("b", { children: "on" }) : "off"),
+        }),
+      }),
+    ) as HTMLElement;
+    expect(el.textContent).toBe("on");
+
+    show.set(false);
+    expect(el.textContent).toBe("off");
+    show.set(true);
+    expect(el.querySelector("b")?.textContent).toBe("on");
+  });
+
+  it("disposes a fragment's reactive child with the scope that mounted it", () => {
+    const count = signal(1);
+    const scope = new Scope();
+    const result = runInScope(scope, () =>
+      jsx(Fragment, { children: () => count() }),
+    ) as Node[];
+    const container = document.createElement("div");
+    for (const child of result) container.appendChild(child);
+
+    scope.dispose();
+    count.set(2);
+    expect(container.textContent).toBe("1");
+  });
+
+  it("moves a fragment row's reactive child together with its For row", () => {
+    interface Entry { id: number; label: string }
+    const list = signal<Entry[]>([
+      { id: 1, label: "a" },
+      { id: 2, label: "b" },
+      { id: 3, label: "c" },
+    ]);
+    const dl = withScope(() =>
+      jsx("dl", {
+        children: jsx(For as never, {
+          each: () => list(),
+          by: "id",
+          children: (item: () => Entry) =>
+            jsx(Fragment, {
+              children: [jsx("dt", { children: String(item().id) }), () => jsx("dd", { children: item().label })],
+            }),
+        } as never),
+      }),
+    ) as HTMLElement;
+    const text = () => Array.from(dl.children, (el) => el.textContent).join(",");
+    expect(text()).toBe("1,a,2,b,3,c");
+
+    const [a, b, c] = list();
+    list.set([c, b, a]);
+    expect(text()).toBe("3,c,2,b,1,a");
+
+    list.set([{ ...c, label: "C" }, b, a]);
+    expect(text()).toBe("3,C,2,b,1,a");
   });
 
   it("returns [] when children is a non-Node non-Array value (e.g. plain object)", () => {

@@ -1,5 +1,6 @@
 import type { componentPropsType } from "@praxisjs/core/internal";
 import {
+  mountChildren,
   mountElement,
   mountComponent,
   getCurrentScope,
@@ -64,21 +65,6 @@ import type {
 
 export const Fragment = Symbol("Fragment");
 
-function collectFragmentChildren(children: unknown, out: Node[]): void {
-  if (children === null || children === undefined || children === false) return;
-  if (Array.isArray(children)) {
-    for (const child of children) collectFragmentChildren(child, out);
-    return;
-  }
-  if (children instanceof Node) {
-    out.push(children);
-    return;
-  }
-  if (typeof children === "string" || typeof children === "number") {
-    out.push(document.createTextNode(String(children)));
-  }
-}
-
 type PropsOf<T> = T extends string
   ? T extends keyof JSX.IntrinsicElements
     ? JSX.IntrinsicElements[T]
@@ -94,10 +80,11 @@ export function jsx<T extends string | ComponentConstructor | symbol>(
   const scope = getCurrentScope();
 
   if (type === Fragment) {
-    const { children } = props;
-    const nodes: Node[] = [];
-    collectFragmentChildren(children, nodes);
-    return nodes;
+    // Mounted like an element's children so function children become reactive regions. Their
+    // end anchors travel with the returned nodes, so updates follow them into the real parent.
+    const fragment = document.createDocumentFragment();
+    mountChildren(fragment, props.children, scope);
+    return Array.from(fragment.childNodes);
   }
 
   if (typeof type === "string") {
@@ -160,13 +147,19 @@ export namespace JSX {
     ? (instance: I | null) => void
     : (instance: object | null) => void;
 
+  // Components that set `static __jsxRawProps = true` (generic runtime primitives such as For) are
+  // typed by their constructor's props as written: TypeScript infers their type arguments from the
+  // attributes, which reading props off the prototype would erase to `any`, and callback props stay
+  // callbacks instead of being widened to Reactive<…>.
   export type LibraryManagedAttributes<C, P> = C extends string
     ? P & { key?: string | number | symbol }
-    : [InstancePropsOf<C>] extends [never]
-      ? C extends new (props: infer CtorProps) => unknown
-        ? { [K in keyof CtorProps]?: Reactive<CtorProps[K]> } & ComponentExtras & { ref?: ComponentRef<C> }
-        : Record<string, unknown> & ComponentExtras & { ref?: ComponentRef<C> }
-      : InstancePropsOf<C> & ComponentExtras & { ref?: ComponentRef<C> };
+    : C extends { readonly __jsxRawProps: true }
+      ? P & { key?: string | number | symbol }
+      : [InstancePropsOf<C>] extends [never]
+        ? C extends new (props: infer CtorProps) => unknown
+          ? { [K in keyof CtorProps]?: Reactive<CtorProps[K]> } & ComponentExtras & { ref?: ComponentRef<C> }
+          : Record<string, unknown> & ComponentExtras & { ref?: ComponentRef<C> }
+        : InstancePropsOf<C> & ComponentExtras & { ref?: ComponentRef<C> };
 
   export interface IntrinsicElements {
     // --- Metadata ---

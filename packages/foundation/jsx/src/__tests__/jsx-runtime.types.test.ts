@@ -25,6 +25,7 @@ import type {
   DelHTMLAttributes,
   TimeHTMLAttributes,
 } from "../dom-types";
+import type { JSX } from "../jsx-runtime";
 
 describe("Reactive<T>", () => {
   it("accepts a plain value", () => {
@@ -368,5 +369,21 @@ describe("SVGAttributes", () => {
     type Handler = NonNullable<SVGAttributes<SVGCircleElement>["onClick"]>;
     type Evt = Parameters<Handler>[0];
     expectTypeOf<SVGCircleElement>().toMatchTypeOf<Evt["currentTarget"]>();
+  });
+});
+
+
+describe("JSX.LibraryManagedAttributes — raw-props components", () => {
+  interface ListProps { each: readonly number[]; children: (item: () => number) => Node }
+  interface RawPropsComponent {
+    readonly __jsxRawProps: true;
+    new (props: ListProps): object;
+  }
+
+  it("keeps the constructor props as written, so callback props stay callbacks", () => {
+    type Attrs = JSX.LibraryManagedAttributes<RawPropsComponent, ListProps>;
+    expectTypeOf<Attrs["children"]>().toEqualTypeOf<(item: () => number) => Node>();
+    expectTypeOf<Attrs["each"]>().toEqualTypeOf<readonly number[]>();
+    expectTypeOf<{ each: number[]; children: (item: () => number) => Node; key: string }>().toMatchTypeOf<Attrs>();
   });
 });
