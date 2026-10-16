@@ -1,0 +1,102 @@
+---
+title: Writing fast PraxisJS
+description: Practical rules for fast PraxisJS apps — arrow-function bindings, For and Index, @Selector, @Computed, keeping work out of bindings, and finding slow parts with the DevTools profiler and @Trace.
+icon: Rocket
+---
+
+# Writing fast PraxisJS
+
+Most PraxisJS code is fast without effort, because updates already go straight to the DOM nodes involved. The rules below cover the cases where your code decides how much work an update does.
+
+---
+
+## Bind only what changes
+
+An arrow function in JSX creates a binding. A plain expression is read once at render time and costs nothing afterwards.
+
+```tsx
+<td>{row.id}</td>              {/* never changes: static, no binding */}
+<td>{() => row.label}</td>     {/* changes: one binding, updated in place */}
+```
+
+Wrap a value in an arrow only when it can change while the component is mounted. Keep bindings narrow: `{() => this.user.name}` on the one node that shows it, rather than one arrow that rebuilds a whole block.
+
+## Render lists with `For` or `Index`
+
+```tsx
+<For each={() => this.todos} by="id">
+  {(todo) => <li>{() => todo().title}</li>}
+</For>
+```
+
+- **`For`** keeps rows by key. Give it a stable `by` (an id, not the index). Rows are created once, moved when the order changes and removed when their key goes away.
+- **`Index`** keeps rows by position. Use it for primitives, lists with repeated values and inputs edited in place.
+- A keyed `.map()` inside an arrow is rewritten to `For` by the Vite plugin, but writing `For` directly is better: its row function runs once, while the rewritten form re-renders a row whenever anything it reads changes.
+
+To update one row, either replace its object under the same key (bindings reading `item()` update, the row stays), or make rows stores with `@State` fields and write the field (`row.label = '…'`), which updates only that field's bindings.
+
+See [Lists](/docs/essentials/lists).
+
+## Use `@Selector` for "one of many"
+
+When many rows compare themselves to one value (the selected id, the active tab, the hovered item), use [`@Selector`](/docs/decorators/performance#selectorfield-options):
+
+```tsx
+@State() selected = 0
+@Selector('selected') isSelected!: Selector<number>
+
+// in the row
+<tr class={() => (this.isSelected(row().id) ? 'active' : '')}>
+```
+
+A change then updates two rows instead of all of them.
+
+## Keep work out of bindings
+
+A binding re-runs every time a signal it reads changes. Anything expensive inside it runs that often too.
+
+- **Derive with `@Computed`.** A filtered, sorted or summed value belongs in a `@Computed()` getter: it is cached and recomputes only when its sources change. A plain getter recomputes on every read.
+- **Don't build lists inside a binding.** `{() => this.items.filter(...).map(...)}` rebuilds every row on each change. Put the filter in a `@Computed` and render it with `For`.
+- **Keep `render()` and row functions plain.** They run once, so a slow one slows down every mount. Fetch data in [`@Resource`](/docs/decorators/state) or `onMount`, not in `render()`.
+- **Read without subscribing when you only need the current value**, with `peek()` or `untrack()` from `@praxisjs/core`. See [Reading without tracking](/docs/essentials/reactivity#reading-without-tracking).
+
+## Write state in one go
+
+Writes inside a JSX event handler are batched: effects run once when the handler returns. Outside handlers (timers, sockets, promise callbacks), group related writes with `batch()` from `@praxisjs/core` so the DOM updates once.
+
+Replace arrays and objects with new references (`this.items = [...this.items, item]`). Prefer `@State` with immutable updates over [`@DeepState`](/docs/decorators/state#deepstate) on hot paths: any nested change to a `@DeepState` field re-runs everything that reads it.
+
+## Render less
+
+- **Long lists**: render only the visible window with [`VirtualList`](/docs/composables/list).
+- **Below the fold**: defer heavy components with [`@Lazy`](/docs/decorators/performance) until they scroll into view.
+
+## Find the slow parts
+
+Measure before changing code.
+
+1. **DevTools Performance panel.** Press **Record**, use the app, then **Stop**. It lists signal writes, effect runs and computed recomputations, and ranks components by how much work their bindings did. See [DevTools](/docs/tooling/devtools#performance).
+2. **`@Trace()`** on a component shows its render count and render time in the Components panel. `@Trace({ slow: 4 })` warns in the console when a render takes more than 4 ms. See [`@Trace`](/docs/decorators/dx#traceoptions).
+3. **The browser profiler** (Chrome DevTools → Performance) shows whether time goes to JavaScript or to layout and paint. If it is layout and paint, the fix is less DOM, not faster code.
+
+```tsx
+@Trace({ slow: 4 })
+@Component()
+class DataGrid extends StatefulComponent { /* ... */ }
+```
+
+The profiler is also available from code and from the console:
+
+```ts
+const { profiler } = DevTools.registry   // or __PRAXIS_DEVTOOLS__.profiler in the console
+profiler.start()
+// … interact …
+profiler.stop()
+console.table(profiler.snapshot().owners)
+```
+
+`@Debug` and `@Trace` cost nothing in a production build: they return the class or member unchanged.
+
+<Callout type="info" title="Measure production builds">
+  Development builds include warnings and DevTools hooks. Compare performance with `vite build` and `vite preview`, not with the dev server.
+</Callout>

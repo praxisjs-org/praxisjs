@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { HomeBenchmark } from "@/components/benchmark/home-benchmark";
 
 export const metadata: Metadata = {
   openGraph: {
@@ -135,6 +136,7 @@ const FOOTER_LINKS = [
       { label: "Decorators", href: "/docs/decorators" },
       { label: "Composables", href: "/docs/composables" },
       { label: "Packages", href: "/docs/packages" },
+      { label: "Performance", href: "/docs/performance" },
       { label: "Changelog", href: "/docs/changelog" },
     ],
   },
@@ -376,6 +378,54 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* ── Performance ── */}
+        <section className="relative z-10 border-t border-fd-border px-6 py-24">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-12 flex flex-wrap items-end justify-between gap-6">
+              <div className="max-w-xl">
+                <p className="mb-3 font-mono text-[11px] font-bold uppercase tracking-widest text-violet-500 dark:text-violet-400">
+                  Performance
+                </p>
+                <h2
+                  className="mb-3 text-2xl font-bold tracking-tight text-fd-foreground sm:text-3xl"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Close to hand-written DOM.
+                </h2>
+                <p className="text-sm leading-relaxed text-fd-muted-foreground dark:text-fd-foreground/80">
+                  Measured with js-framework-benchmark against Solid, Svelte,
+                  Vue, Lit, Preact and React. Same app, same browser, same
+                  machine.
+                </p>
+              </div>
+              <Link
+                href="/docs/performance"
+                className="group inline-flex items-center gap-2 rounded-xl border border-fd-border bg-fd-background px-5 py-2.5 text-sm font-semibold text-fd-foreground transition-all hover:border-violet-300 hover:text-violet-700 active:scale-[0.97] dark:hover:border-violet-700 dark:hover:text-violet-300"
+              >
+                See the benchmarks
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  aria-hidden
+                  className="transition-transform group-hover:translate-x-0.5"
+                >
+                  <path
+                    d="M1 6h10M6.5 1.5l4.5 4.5-4.5 4.5"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Link>
+            </div>
+
+            <HomeBenchmark />
           </div>
         </section>
 

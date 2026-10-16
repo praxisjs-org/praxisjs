@@ -9,7 +9,8 @@ Follow the `praxisjs` skill's rules. Measure first, change one thing at a time, 
 
 ## 1. Read
 
-`praxisjs_get_page` for `decorators/performance`, `decorators/dx`, `tooling/devtools`, and `essentials/lists` for lists.
+`praxisjs_get_page` for `performance/writing-fast-code`, `performance/why-it-is-fast`,
+`decorators/performance`, `decorators/dx`, `tooling/devtools`, and `essentials/lists` for lists.
 
 ## 2. Measure
 

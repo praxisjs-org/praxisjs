@@ -1,0 +1,64 @@
+---
+title: Why it is fast
+description: The techniques behind PraxisJS performance — fine-grained signals, compiled templates, keyed lists with minimal moves, delegated events, O(1) selection and V8-friendly objects.
+icon: Zap
+---
+
+# Why it is fast
+
+No single trick makes PraxisJS fast. Each layer avoids work the others would otherwise repeat: the reactive graph decides *what* changed, the compiler decides *how* to build DOM, and the runtime touches only the nodes involved. Everything below is on by default; you get it without writing anything special.
+
+---
+
+## Fine-grained signals
+
+Every `@State` field is a signal, and every arrow function in JSX (`{() => this.count}`) is a binding subscribed to exactly the signals it reads. A write updates those bindings and nothing else. `render()` runs once per component, so there is no re-render and no virtual DOM to compare.
+
+The graph behind it is **push-pull**:
+
+- A write **pushes** a "dirty" mark to the bindings and computeds that depend on it, and a lighter "maybe" mark further down.
+- A read **pulls**: a `@Computed` recomputes only if one of its sources actually changed. A computed that recomputes to the same value stops the update there.
+- Dependencies are stored as linked lists that are **reused on every run**. A binding that reads the same signals each time allocates nothing and never unsubscribes.
+
+## Compiled templates
+
+`@praxisjs/vite-plugin` splits each JSX tree into a static part and a dynamic part at build time. The static part (tags, literal attributes, literal text) is built once, and each render starts from **one `cloneNode(true)`** of it, which the browser does far faster than creating elements one by one. The dynamic parts are then reached by walking the clone and bound directly. Templates are built in an inert document and adopted on insert, which is cheaper than cloning inside the live page.
+
+A text binding that is the only child of its element writes straight into a text node already in the template, with no extra marker node. Reactive `class` and event props compile to dedicated helpers, so the runtime does no lookups for them per row.
+
+See [Compiled templates](/docs/tooling/vite-plugin#compiled-templates).
+
+## Keyed lists with minimal moves
+
+[`For`](/docs/essentials/lists) compares old and new keys **before** touching the DOM:
+
+- A row's function runs **once per key**. Unchanged rows keep their DOM, state and bindings.
+- Swapping two rows costs two DOM moves. Other reorders move only the rows outside the longest increasing subsequence, which is the minimum number of moves.
+- Common cases take a shortcut: filling an empty list inserts one fragment, appending renders only the new rows, and clearing a list that fills its parent is a single `textContent = ""`.
+
+## Delegated events
+
+An `onClick` in a compiled template attaches **no listener** when the row is created. The handler is stored on the element, and one capture listener per event type, on the document, attaches the element's own listener the first time an event heads its way. Creating 10,000 rows with two click handlers each costs no `addEventListener` call. When the event does arrive, it behaves exactly like a normal listener: same order, `this`, `currentTarget` and `stopPropagation()`.
+
+Removing a row needs no per-handler cleanup either: disposing its scope turns every handler it bound off at once. Each handler also runs as one batch, so several writes in one click update the DOM once.
+
+## O(1) selection with `@Selector`
+
+Highlighting the selected row the naive way subscribes every row to the `selected` field, so one click re-runs 1,000 bindings. [`@Selector`](/docs/decorators/performance#selectorfield-options) gives each key its own subscriber list: a change re-runs only the bindings of the previous key and the next key. Two updates instead of a thousand.
+
+## Fast properties for decorated fields
+
+V8 keeps objects fast when every instance of a class has the same shape, built the same way. A decorator that replaces a class field with an accessor after the fact pushes every instance into slow "dictionary mode". The Vite plugin avoids that: the innermost decorator (`@State`, `@Prop`, every built-in field decorator and custom ones made with `createFieldDecorator`) **defines the property directly** with its initial value. Field order, stacked decorators, `Object.keys()` and spread behave as before.
+
+Method decorators follow the same idea: one shared replacement on the prototype, with per-instance state in symbol slots, instead of a new closure per instance.
+
+## Shape keepers
+
+The engine creates many small internal objects: graph nodes and links, selector buckets, reactive regions, list rows, scopes. When a list is cleared and a full garbage collection runs, V8 can drop the hidden classes of those objects along with the optimized code built for them, and the next render starts cold. PraxisJS keeps **one inert instance of each** alive, so their shapes, and the code optimized for them, survive. Internal objects are also always initialized in the same field order, so each class keeps a single shape.
+
+---
+
+<Cards>
+  <Card title="Benchmarks" description="The numbers these techniques produce, compared to other frameworks." href="/docs/performance" />
+  <Card title="Writing fast PraxisJS" description="What you can do in your own code to keep it fast." href="/docs/performance/writing-fast-code" />
+</Cards>

@@ -13,6 +13,11 @@ export default function Layout({ children }: LayoutProps<"/docs">) {
           url: "/docs",
         },
         {
+          title: "Performance",
+          description: "Benchmarks and how to keep apps fast",
+          url: "/docs/performance",
+        },
+        {
           title: "Changelog",
           description: "Release history across all packages",
           url: "/docs/changelog",

@@ -1,0 +1,53 @@
+---
+title: Benchmarks
+description: How PraxisJS compares to Solid, Svelte, Vue, Lit, Preact and React in js-framework-benchmark, with the full results table and methodology.
+icon: Gauge
+---
+
+# Benchmarks
+
+PraxisJS is measured with [js-framework-benchmark](https://github.com/krausest/js-framework-benchmark), the standard suite for comparing frontend frameworks. Every entry renders the same table of rows and runs the same operations in Chrome. Results below are from the **keyed** table: rows keep their identity, so a moved row is moved, not rewritten.
+
+<ProvisionalNote />
+
+<BenchmarkChart />
+
+## How to read this
+
+- **Lower is better.** Every number is the median of the measured runs.
+- **Total time is mostly the browser.** A benchmark's duration runs from the click to the end of the next paint. Most of it is style, layout and paint, which costs the same for every framework that produces the same DOM. Framework differences live in the remaining few milliseconds, so small gaps in total time are real gaps in framework work.
+- **vanillajs is hand-written DOM code**, written for this benchmark only. It is the reference for what the browser alone costs, not a framework you would build an app with. It can be beaten when a framework does less DOM work than the hand-written version.
+- **Slowdown** (`1.05x`) is a framework's time divided by the fastest entry in that benchmark. The overall score is the geometric mean of those slowdowns.
+
+## Results
+
+<BenchmarkTable />
+
+<BenchmarkTable group="memory" />
+
+<BenchmarkTable group="startup" />
+
+PraxisJS is not first on memory and size: it holds a little more memory than Solid, and its runtime (signals, decorators, components, keyed lists) ships more JavaScript than Solid's or Svelte's. First paint is ahead of Svelte, Vue and React, and behind Solid, Lit and Preact.
+
+### Script time
+
+Script time is the JavaScript part of a benchmark: the framework's own work, without layout and paint.
+
+<ScriptTable />
+
+The runner starts the V8 CPU profiler and forces a full garbage collection right before each measured click. Code then runs colder than in a normal page, so script times are higher than what you would measure by hand. The conditions are the same for every framework.
+
+## Methodology
+
+<RunDetails />
+
+- Each benchmark runs on a fresh page after warm-up runs. The suite slows the CPU down for some operations, the same way for every framework.
+- Every entry is the suite's own app for that framework, built for production. The PraxisJS entry is plain idiomatic code: a component with `@State` fields, rows as stores with an `@State() label`, `For` for the list and `@Selector` for the selected row.
+- All frameworks run in the same session on the same machine.
+
+<BenchmarkRepoLinks />
+
+<Cards>
+  <Card title="Why it is fast" description="The techniques behind these numbers, in plain language." href="/docs/performance/why-it-is-fast" />
+  <Card title="Writing fast PraxisJS" description="Practical rules for keeping your own app fast, and how to find slow parts." href="/docs/performance/writing-fast-code" />
+</Cards>

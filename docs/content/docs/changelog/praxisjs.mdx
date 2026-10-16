@@ -6,6 +6,10 @@ icon: Wrench
 
 # praxisjs
 
+## 1.1.1
+
+The AI skills list the new [Performance](/docs/performance) pages (benchmarks, why PraxisJS is fast, writing fast PraxisJS code), and the performance skill points agents to them.
+
 ## 1.1.0
 
 **`ai add` now sets up the MCP server where Claude Code reads it.** It used to write the server into `.claude/settings.json`, which Claude Code ignores for MCP servers, so the skills' docs tools never started. It now adds it to `.mcp.json` and approves it in `.claude/settings.json` (`enabledMcpjsonServers`), and for Codex it adds `[mcp_servers.praxisjs]` to the project's `.codex/config.toml`. Existing configs are merged instead of overwritten, a leftover `mcpServers.praxisjs` in `.claude/settings.json` is removed, and a config that isn't valid JSON is left alone with a warning. `ai remove` removes only the PraxisJS skills and server and keeps your other settings. `doctor` reports a missing MCP server configuration and missing skills. See [ai add](/docs/tooling/cli#ai-add).

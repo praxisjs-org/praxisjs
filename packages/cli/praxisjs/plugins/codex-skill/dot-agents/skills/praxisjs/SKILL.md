@@ -199,6 +199,9 @@ Slug reference (pass without a leading slash):
 | Storybook adapter | `tooling/storybook` |
 | MCP server | `tooling/mcp` |
 | `praxisjs` CLI reference | `tooling/cli` |
+| Benchmarks vs other frameworks | `performance` |
+| Why PraxisJS is fast | `performance/why-it-is-fast` |
+| Writing fast PraxisJS code | `performance/writing-fast-code` |
 | Package list & versions | `packages` |
 | Internal APIs (framework authors only) | `internal/core`, `internal/shared` |
 

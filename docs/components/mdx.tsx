@@ -5,6 +5,14 @@ import { Cards, Card } from 'fumadocs-ui/components/card';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { StorybookLink } from './storybook-link';
 import { PackageInstall } from './package-install';
+import { BenchmarkChart } from './benchmark/benchmark-chart';
+import {
+  BenchmarkRepoLinks,
+  BenchmarkTable,
+  ProvisionalNote,
+  RunDetails,
+  ScriptTable,
+} from './benchmark/benchmark-tables';
 import type { MDXComponents } from 'mdx/types';
 
 export function getMDXComponents(components?: MDXComponents) {
@@ -19,6 +27,12 @@ export function getMDXComponents(components?: MDXComponents) {
     Step,
     StorybookLink,
     PackageInstall,
+    BenchmarkChart,
+    BenchmarkTable,
+    ScriptTable,
+    RunDetails,
+    ProvisionalNote,
+    BenchmarkRepoLinks,
     ...components,
   } satisfies MDXComponents;
 }

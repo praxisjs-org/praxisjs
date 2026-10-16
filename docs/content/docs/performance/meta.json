@@ -1,0 +1,11 @@
+{
+  "title": "Performance",
+  "description": "Benchmarks and how to keep PraxisJS apps fast",
+  "root": true,
+  "icon": "Gauge",
+  "pages": [
+    "index",
+    "why-it-is-fast",
+    "writing-fast-code"
+  ]
+}
