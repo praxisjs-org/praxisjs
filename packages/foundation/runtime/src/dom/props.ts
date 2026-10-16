@@ -1,4 +1,4 @@
-import { untrack } from "@praxisjs/core/internal";
+import { untrack, type EffectNode } from "@praxisjs/core/internal";
 
 import { EVENT_MAP } from "./constants";
 import { addEvent } from "./events";
@@ -8,7 +8,15 @@ import type { Scope } from "../scope";
 function applyClass(el: Element, value: unknown): void {
   if (value === null || value === undefined) {
     el.removeAttribute("class");
+  } else if (el instanceof HTMLElement) {
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+    const next = String(value);
+    // Reading is cheap; writing invalidates the element's style even when nothing changes, which
+    // is what a first binding run does on every element whose class starts empty.
+    if (el.className !== next) el.className = next;
   } else {
+    // SVG elements expose className as an SVGAnimatedString, so the attribute is the way in (as
+    // for any element of another kind, or of another window).
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
     el.setAttribute("class", String(value));
   }
@@ -62,7 +70,7 @@ function lookupWritable(proto: object, key: string): boolean {
 // must be excluded here or assignment below throws. The prototype walk is cached per
 // prototype because every element of a given tag repeats the same lookups; a property defined on
 // a prototype after its first lookup (e.g. a late polyfill) is therefore not picked up.
-function hasWritableProperty(el: Element, key: string): boolean {
+export function hasWritableProperty(el: Element, key: string): boolean {
   const own = Object.getOwnPropertyDescriptor(el, key);
   if (own) return own.set !== undefined || own.writable === true;
 
@@ -80,7 +88,7 @@ function hasWritableProperty(el: Element, key: string): boolean {
   return writable;
 }
 
-function setProp(el: Element, key: string, value: unknown): void {
+export function setProp(el: Element, key: string, value: unknown): void {
   if (key === "class" || key === "className") {
     applyClass(el, value);
   } else if (key === "style") {
@@ -110,17 +118,66 @@ export function applyProp(
     return;
   }
 
-  if (normalizedKey in EVENT_MAP) {
-    addEvent(el, EVENT_MAP[normalizedKey], value as EventListener, scope);
+  // Every event prop starts with "on": checking that first keeps other props off the map lookup.
+  const type = normalizedKey.startsWith("on") ? EVENT_MAP.get(normalizedKey) : undefined;
+  if (type !== undefined) {
+    addEvent(el, type, value as EventListener, scope);
     return;
   }
 
   if (typeof value === "function") {
-    scope.effect(() => {
-      setProp(el, normalizedKey, (value as () => unknown)());
-    });
+    bindProp(el, normalizedKey, value as () => unknown, scope);
     return;
   }
 
   setProp(el, normalizedKey, value);
+}
+
+// State the user can change behind a binding's back (typing, toggling a <details>, the media
+// controls, scrolling): always written, so a re-run puts the bound value back exactly as before.
+const LIVE_PROPS = new Set([
+  "value", "checked", "selected", "indeterminate", "selectedIndex", "open",
+  "muted", "volume", "currentTime", "playbackRate", "scrollTop", "scrollLeft",
+]);
+const UNSET = Symbol("unset");
+
+interface PropBinding {
+  el: Element;
+  key: string;
+  read: () => unknown;
+  last: unknown;
+}
+
+// One function for every binding, reading its state from the effect: no closure per binding.
+function runBinding(this: EffectNode<PropBinding>): void {
+  const binding = this.ctx;
+  const value = binding.read();
+  // A binding re-runs when anything it read changes; most re-runs produce the same primitive,
+  // and skipping that write saves a DOM call and the style or attribute work behind it.
+  if (value === binding.last && (typeof value !== "object" || value === null)) return;
+  binding.last = value;
+  setProp(binding.el, binding.key, value);
+}
+
+function runLiveBinding(this: EffectNode<PropBinding>): void {
+  const binding = this.ctx;
+  setProp(binding.el, binding.key, binding.read());
+}
+
+function bindProp(el: Element, key: string, read: () => unknown, scope: Scope): void {
+  scope.contextEffect(LIVE_PROPS.has(key) ? runLiveBinding : runBinding, { el, key, read, last: UNSET });
+}
+
+function runClassBinding(this: EffectNode<PropBinding>): void {
+  const binding = this.ctx;
+  const value = binding.read();
+  if (value === binding.last && (typeof value !== "object" || value === null)) return;
+  binding.last = value;
+  applyClass(binding.el, value);
+}
+
+/** A reactive `class` prop, bound like any other reactive prop but with no key dispatch per run. */
+export function bindClass(el: Element, read: () => unknown, scope: Scope): void {
+  // Same record shape as bindProp's, so the effects of both kinds stay one shape.
+  scope.contextEffect(runClassBinding, { el, key: "class", read, last: UNSET });
 }

@@ -3,11 +3,27 @@ import { describe, it, expect, vi } from "vitest";
 
 import { signal } from "@praxisjs/core/internal";
 
+import { EVENT_MAP } from "../dom/constants";
 import { createElement } from "../dom/create";
-import { addEvent } from "../dom/events";
+import { addEvent, removeListener } from "../dom/events";
 import { applyProp } from "../dom/props";
 import { Scope } from "../scope";
 
+
+// ── EVENT_MAP ────────────────────────────────────────────────────────────────
+
+describe("EVENT_MAP", () => {
+  it("maps each event prop to its DOM event, written in lowercase", () => {
+    expect(EVENT_MAP.size).toBe(80);
+    expect(EVENT_MAP.get("onClick")).toBe("click");
+    expect(EVENT_MAP.get("onDblClick")).toBe("dblclick");
+    expect(EVENT_MAP.get("onGotPointerCapture")).toBe("gotpointercapture");
+    expect(EVENT_MAP.get("onBeforeToggle")).toBe("beforetoggle");
+    expect(EVENT_MAP.get("onWaiting")).toBe("waiting");
+    expect(EVENT_MAP.get("onclick")).toBeUndefined();
+    for (const [prop, type] of EVENT_MAP) expect(prop.slice(2).toLowerCase()).toBe(type);
+  });
+});
 
 // ── createElement ────────────────────────────────────────────────────────────
 
@@ -479,5 +495,125 @@ describe("ref prop without a callback", () => {
   it.each([undefined, null])("applyProp ignores a ref whose value is %s", (value) => {
     const el = document.createElement("div");
     expect(() => { applyProp(el, "ref", value, new Scope()); }).not.toThrow();
+  });
+});
+
+describe("shared event dispatch", () => {
+  it("runs several handlers for one event type in order, and removes them one by one", () => {
+    const el = document.createElement("button");
+    const scope = new Scope();
+    const other = new Scope();
+    const order: string[] = [];
+    const a = () => { order.push("a"); };
+    const b = () => { order.push("b"); };
+    const c = () => { order.push("c"); };
+    const add = vi.spyOn(el, "addEventListener");
+    addEvent(el, "click", a, scope);
+    addEvent(el, "click", b, other);
+    addEvent(el, "click", c, other);
+    addEvent(el, "click", b, other);
+    expect(add).toHaveBeenCalledOnce();
+    el.dispatchEvent(new MouseEvent("click"));
+    expect(order).toEqual(["a", "b", "c"]);
+
+    other.dispose();
+    order.length = 0;
+    el.dispatchEvent(new MouseEvent("click"));
+    expect(order).toEqual(["a"]);
+  });
+
+  it("re-binds after a disposed scope without registering the listener again", () => {
+    const el = document.createElement("button");
+    const fn = vi.fn();
+    const add = vi.spyOn(el, "addEventListener");
+    const first = new Scope();
+    addEvent(el, "click", fn, first);
+    first.dispose();
+    addEvent(el, "click", fn, new Scope());
+    expect(add).toHaveBeenCalledOnce();
+    el.dispatchEvent(new MouseEvent("click"));
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it("ignores removals that do not match a bound handler", () => {
+    const el = document.createElement("button");
+    const fn = vi.fn();
+    const g = vi.fn();
+    removeListener(el, "click", fn);
+    addEvent(el, "click", fn, new Scope());
+    removeListener(el, "click", g);
+    removeListener(el, "keydown", fn);
+    addEvent(el, "click", g, new Scope());
+    removeListener(el, "click", () => undefined);
+    el.dispatchEvent(new MouseEvent("click"));
+    expect(fn).toHaveBeenCalledOnce();
+    expect(g).toHaveBeenCalledOnce();
+  });
+
+  it("does nothing for an event type whose handlers were all removed", () => {
+    const el = document.createElement("button");
+    const fn = vi.fn();
+    const scope = new Scope();
+    addEvent(el, "click", fn, scope);
+    scope.dispose();
+    expect(() => el.dispatchEvent(new MouseEvent("click"))).not.toThrow();
+    expect(fn).not.toHaveBeenCalled();
+  });
+});
+
+describe("prop writes", () => {
+  it("sets the class attribute on SVG elements, whose className is not a string", () => {
+    const el = createElement("svg");
+    applyProp(el, "class", "icon", new Scope());
+    expect(el.getAttribute("class")).toBe("icon");
+  });
+
+  it("skips writing a reactive prop whose value did not change", () => {
+    const el = document.createElement("div");
+    const a = signal(1);
+    const b = signal(1);
+    const set = vi.spyOn(el, "setAttribute");
+    applyProp(el, "data-x", () => (a() > 0 ? "on" : "off") + String(b() > 0), new Scope());
+    a.set(2);
+    expect(set).toHaveBeenCalledOnce();
+    b.set(-1);
+    expect(set).toHaveBeenCalledTimes(2);
+  });
+
+  it("re-applies an object value even when the binding returns the same object", () => {
+    const el = document.createElement("div");
+    const style = { color: "red" };
+    const tick = signal(0);
+    const nothing = signal(0);
+    applyProp(el, "style", () => { tick(); return style; }, new Scope());
+    applyProp(el, "title", () => { nothing(); return null; }, new Scope());
+    el.style.color = "blue";
+    tick.set(1);
+    nothing.set(1);
+    expect(el.style.color).toBe("red");
+    expect(el.hasAttribute("title")).toBe(false);
+  });
+
+  it("always writes live form state, so a binding re-run restores what the user changed", () => {
+    const input = document.createElement("input");
+    const value = signal("a");
+    const other = signal(0);
+    applyProp(input, "value", () => { other(); return value(); }, new Scope());
+    input.value = "typed";
+    other.set(1);
+    expect(input.value).toBe("a");
+  });
+
+  it("always writes the open state of a <details> and the state of media controls", () => {
+    const details = document.createElement("details");
+    const video = document.createElement("video");
+    const other = signal(0);
+    applyProp(details, "open", () => { other(); return false; }, new Scope());
+    applyProp(video, "muted", () => { other(); return true; }, new Scope());
+    details.open = true;
+    video.muted = false;
+    other.set(1);
+    expect(details.open).toBe(false);
+    expect(video.muted).toBe(true);
   });
 });

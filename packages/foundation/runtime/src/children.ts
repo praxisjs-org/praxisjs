@@ -10,7 +10,8 @@ export function mountChildren(
   if (children === null || children === undefined || children === false) return;
 
   if (typeof children === "string" || typeof children === "number") {
-    parent.appendChild(document.createTextNode(String(children)));
+    // append() builds the text node natively: no JS wrapper is created for it.
+    (parent as ParentNode).append(String(children));
     return;
   }
 

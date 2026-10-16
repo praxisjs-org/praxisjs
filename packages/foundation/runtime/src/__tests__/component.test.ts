@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 import { StatefulComponent } from "@praxisjs/core";
-import { getComponentProps } from "@praxisjs/core/internal";
+import { getComponentAnchor, getComponentProps } from "@praxisjs/core/internal";
 
 import { mountComponent } from "../component";
 import { getCurrentScope } from "../context";
@@ -71,11 +71,24 @@ describe("mountComponent", () => {
     scope.dispose();
   });
 
-  it("wraps output with start/end comment anchors", () => {
+  it("returns a single root node as is, as the component's anchor", () => {
     const scope = new Scope();
-    const nodes = mountComponent(SimpleComp, {}, scope);
-    expect(nodes[0].nodeType).toBe(Node.COMMENT_NODE);
-    expect(nodes[nodes.length - 1].nodeType).toBe(Node.COMMENT_NODE);
+    let instance: object | null = null;
+    const nodes = mountComponent(SimpleComp, { ref: (i: object | null) => { instance ??= i; } }, scope);
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].textContent).toBe("hello");
+    return Promise.resolve().then(() => {
+      expect(getComponentAnchor(instance as object)).toBe(nodes[0]);
+      scope.dispose();
+    });
+  });
+
+  it("wraps other output in named start/end comments, the end one being the anchor", () => {
+    const scope = new Scope();
+    const nodes = mountComponent(LifecycleComp, {}, scope);
+    expect(nodes[0]).toBeInstanceOf(Comment);
+    expect((nodes[0] as Comment).data).toBe("[LifecycleComp]");
+    expect((nodes[nodes.length - 1] as Comment).data).toBe("[/LifecycleComp]");
     scope.dispose();
   });
 
@@ -377,5 +390,25 @@ describe("mountComponent with optional event handlers", () => {
     const nodes = mountComponent(OptionalHandlers, {}, new Scope());
     const form = nodes.find((n) => n instanceof HTMLFormElement);
     expect(form?.textContent).toBe("content");
+  });
+});
+
+describe("mountComponent props", () => {
+  it("drops a ref that is not a function without forwarding it", () => {
+    class Probe extends StatefulComponent {
+      render() {
+        return null;
+      }
+    }
+    const instance: { current?: Probe } = {};
+    const Spy = class extends Probe {
+      constructor(props: Record<string, unknown>) {
+        super(props);
+        instance.current = this;
+      }
+    };
+    Object.defineProperty(Spy, "__isComponent", { value: true });
+    mountComponent(Spy as never, { ref: null, label: "x" }, new Scope());
+    expect(getComponentProps(instance.current as object)).toEqual({ label: "x" });
   });
 });

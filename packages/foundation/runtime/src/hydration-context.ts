@@ -1,6 +1,11 @@
 import type { Scope } from "./scope";
 
-let _recording = false;
+/**
+ * True during a hydration build pass (see runInRecording). Exported as a live binding so the hot
+ * render paths read a variable instead of calling isRecording() for every binding.
+ */
+ 
+export let recording = false;
 
 /**
  * Marks the synchronous "build" pass of a hydration attempt: `factory()` runs
@@ -11,17 +16,17 @@ let _recording = false;
  * element instead of the fresh one. No-op / zero cost outside a build pass.
  */
 export function runInRecording<T>(fn: () => T): T {
-  const prev = _recording;
-  _recording = true;
+  const prev = recording;
+  recording = true;
   try {
     return fn();
   } finally {
-    _recording = prev;
+    recording = prev;
   }
 }
 
 export function isRecording(): boolean {
-  return _recording;
+  return recording;
 }
 
 interface PropRecord {
@@ -35,19 +40,35 @@ export function recordProps(el: Element, props: Record<string, unknown>, scope: 
   _propRecords.set(el, { props, scope });
 }
 
+/** Adds one prop to an element's record, for elements whose props are applied one at a time. */
+export function recordProp(el: Element, key: string, value: unknown, scope: Scope): void {
+  const record = _propRecords.get(el);
+  if (record === undefined) _propRecords.set(el, { props: { [key]: value }, scope });
+  else record.props[key] = value;
+}
+
 export function getRecordedProps(el: Element): PropRecord | undefined {
   return _propRecords.get(el);
 }
 
-// mountReactive() keeps a `currentNodes` array (by reference) for diffing its
-// *next* update. If reconcile() replaces one of those fresh nodes with a real
-// one, it needs to overwrite that array in place so the closure sees the swap.
-const _reactiveOwners = new WeakMap<Node, Node[]>();
+// Code that keeps references to fresh nodes for its *next* update (mountReactive's
+// `currentNodes`, a list row's boundaries) registers how to repoint them, so reconcile()
+// can tell it when it keeps a real element in place of a fresh one. One node can have several
+// owners (a list row's element is also part of the nodes an enclosing reactive child returned).
+const _replacers = new WeakMap<Node, (real: Node) => void>();
 
-export function registerReactiveNode(node: Node, owner: Node[]): void {
-  _reactiveOwners.set(node, owner);
+export function onHydrationReplace(node: Node, replace: (real: Node) => void): void {
+  const prev = _replacers.get(node);
+  _replacers.set(node, prev === undefined ? replace : (real) => { prev(real); replace(real); });
 }
 
-export function getReactiveOwner(node: Node): Node[] | undefined {
-  return _reactiveOwners.get(node);
+export function getHydrationReplacer(node: Node): ((real: Node) => void) | undefined {
+  return _replacers.get(node);
+}
+
+export function registerReactiveNode(node: Node, owner: Node[]): void {
+  onHydrationReplace(node, (real) => {
+    const idx = owner.indexOf(node);
+    if (idx !== -1) owner[idx] = real;
+  });
 }

@@ -29,99 +29,42 @@ export const SVG_TAGS = new Set([
   "foreignObject",
 ]);
 
-export const EVENT_MAP: Record<string, string> = {
+// Event props and the DOM event each one listens to. Every prop is "on" + the event name in camel
+// case and listens to that name in lowercase, so only the camel-case names are spelled out, which
+// keeps the table small in bundles. A Map: looking a prop up is a single probe.
+export const EVENT_MAP: ReadonlyMap<string, string> = /* @__PURE__ */ eventMap(
   // Mouse
-  onClick: "click",
-  onDblClick: "dblclick",
-  onMouseDown: "mousedown",
-  onMouseUp: "mouseup",
-  onMouseEnter: "mouseenter",
-  onMouseLeave: "mouseleave",
-  onMouseMove: "mousemove",
-  onMouseOver: "mouseover",
-  onMouseOut: "mouseout",
-  onContextMenu: "contextmenu",
+  "Click DblClick MouseDown MouseUp MouseEnter MouseLeave MouseMove MouseOver MouseOut ContextMenu " +
   // Keyboard
-  onKeyDown: "keydown",
-  onKeyUp: "keyup",
-  onKeyPress: "keypress",
+  "KeyDown KeyUp KeyPress " +
   // Focus
-  onFocus: "focus",
-  onBlur: "blur",
+  "Focus Blur " +
   // Pointer
-  onPointerDown: "pointerdown",
-  onPointerUp: "pointerup",
-  onPointerMove: "pointermove",
-  onPointerEnter: "pointerenter",
-  onPointerLeave: "pointerleave",
-  onPointerOver: "pointerover",
-  onPointerOut: "pointerout",
-  onPointerCancel: "pointercancel",
-  onGotPointerCapture: "gotpointercapture",
-  onLostPointerCapture: "lostpointercapture",
+  "PointerDown PointerUp PointerMove PointerEnter PointerLeave PointerOver PointerOut PointerCancel " +
+  "GotPointerCapture LostPointerCapture " +
   // Touch
-  onTouchStart: "touchstart",
-  onTouchEnd: "touchend",
-  onTouchMove: "touchmove",
+  "TouchStart TouchEnd TouchMove " +
   // Drag
-  onDrag: "drag",
-  onDragStart: "dragstart",
-  onDragEnd: "dragend",
-  onDragEnter: "dragenter",
-  onDragLeave: "dragleave",
-  onDragOver: "dragover",
-  onDrop: "drop",
+  "Drag DragStart DragEnd DragEnter DragLeave DragOver Drop " +
   // Scroll / Wheel
-  onScroll: "scroll",
-  onScrollEnd: "scrollend",
-  onWheel: "wheel",
+  "Scroll ScrollEnd Wheel " +
   // Form
-  onChange: "change",
-  onInput: "input",
-  onBeforeInput: "beforeinput",
-  onSubmit: "submit",
-  onReset: "reset",
-  onSelect: "select",
-  onInvalid: "invalid",
+  "Change Input BeforeInput Submit Reset Select Invalid " +
   // Clipboard
-  onCopy: "copy",
-  onCut: "cut",
-  onPaste: "paste",
+  "Copy Cut Paste " +
   // Composition (IME)
-  onCompositionStart: "compositionstart",
-  onCompositionUpdate: "compositionupdate",
-  onCompositionEnd: "compositionend",
+  "CompositionStart CompositionUpdate CompositionEnd " +
   // Resource
-  onLoad: "load",
-  onError: "error",
+  "Load Error " +
   // Animation / Transition
-  onAnimationEnd: "animationend",
-  onTransitionEnd: "transitionend",
+  "AnimationEnd TransitionEnd " +
   // Element-specific (details, dialog, popover)
-  onToggle: "toggle",
-  onBeforeToggle: "beforetoggle",
-  onClose: "close",
-  onCancel: "cancel",
+  "Toggle BeforeToggle Close Cancel " +
   // Media
-  onAbort: "abort",
-  onCanPlay: "canplay",
-  onCanPlayThrough: "canplaythrough",
-  onDurationChange: "durationchange",
-  onEmptied: "emptied",
-  onEnded: "ended",
-  onLoadedData: "loadeddata",
-  onLoadedMetadata: "loadedmetadata",
-  onLoadStart: "loadstart",
-  onPause: "pause",
-  onPlay: "play",
-  onPlaying: "playing",
-  onProgress: "progress",
-  onRateChange: "ratechange",
-  onSeeked: "seeked",
-  onSeeking: "seeking",
-  onStalled: "stalled",
-  onSuspend: "suspend",
-  onTimeUpdate: "timeupdate",
-  onVolumeChange: "volumechange",
-  onWaiting: "waiting",
-};
+  "Abort CanPlay CanPlayThrough DurationChange Emptied Ended LoadedData LoadedMetadata LoadStart Pause Play " +
+  "Playing Progress RateChange Seeked Seeking Stalled Suspend TimeUpdate VolumeChange Waiting",
+);
+
+function eventMap(names: string): Map<string, string> {
+  return new Map(names.split(" ").map((name) => [`on${name}`, name.toLowerCase()]));
+}

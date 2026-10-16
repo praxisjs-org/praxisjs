@@ -3,6 +3,7 @@ import { isServerRenderPass } from "@praxisjs/core/internal";
 
 import { mountChildren } from "./children";
 import { getCurrentScope } from "./context";
+import { addEventRoot } from "./dom/events";
 import { removeNodes } from "./dom/remove";
 
 export interface PortalProps {
@@ -34,6 +35,8 @@ export class Portal extends StatelessComponent<PortalProps> {
     mountChildren(fragment, this.props.children, scope);
     fragment.appendChild(end);
     target.appendChild(fragment);
+    // The portal's content is outside the render container, so its target relays delegated events.
+    scope.add(addEventRoot(target));
 
     scope.add(() => {
       if (!start.parentNode || start.parentNode !== end.parentNode) return;

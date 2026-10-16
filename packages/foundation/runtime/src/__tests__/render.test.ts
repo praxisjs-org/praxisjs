@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 
 import { signal } from "@praxisjs/core/internal";
 
-import { render, mountElement } from "../index";
+import { enableHydration, render, mountElement } from "../index";
 import { Scope } from "../scope";
 
 // ── mountElement ─────────────────────────────────────────────────────────────
@@ -54,6 +54,25 @@ describe("render", () => {
 
     expect(container.textContent).toBe("Hello");
     document.body.removeChild(container);
+  });
+
+  it("mounts fresh over prerendered HTML until hydration is enabled, then hydrates it", () => {
+    const container = document.createElement("div");
+    container.setAttribute("data-praxis-ssg", "");
+    container.innerHTML = "<p>old</p>";
+    const real = container.firstChild;
+    const factory = () => mountElement("p", { children: "new" }, new Scope());
+    const unmount = render(factory, container);
+    expect(container.innerHTML).toBe("<p>new</p>");
+    expect(container.firstChild).not.toBe(real);
+    unmount();
+
+    container.innerHTML = "<p>old</p>";
+    const kept = container.firstChild;
+    enableHydration();
+    render(factory, container);
+    expect(container.firstChild).toBe(kept);
+    expect(container.innerHTML).toBe("<p>new</p>");
   });
 
   it("clears container on unmount", () => {

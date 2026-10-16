@@ -2,17 +2,20 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 import { StatefulComponent } from "@praxisjs/core";
-import { isServerRenderPass, setServerRenderPass, signal } from "@praxisjs/core/internal";
+import { getComponentAnchor, isServerRenderPass, setServerRenderPass, signal } from "@praxisjs/core/internal";
 
 import { mountComponent } from "../component";
 import { getCurrentScope } from "../context";
 import { mountElement } from "../element";
 import { reconcile } from "../hydration";
 import { registerReactiveNode } from "../hydration-context";
-import { render, Portal } from "../index";
+import { enableHydration, render, Portal } from "../index";
+import { reactiveOnly } from "../template";
 import { Scope } from "../scope";
 
 const SSG_MARKER = "data-praxis-ssg";
+
+enableHydration();
 
 /** Renders `factory` into a throwaway container and returns the resulting markup, simulating SSR output. */
 function ssrHTML(factory: () => Node | Node[] | null): string {
@@ -34,6 +37,26 @@ function hydratable(factory: () => Node | Node[] | null): HTMLElement {
 afterEach(() => { setServerRenderPass(false); });
 
 describe("render() — hydration (build + reconcile)", () => {
+  it("points a single-root component's anchor at the real element it keeps", async () => {
+    let instance: object | null = null;
+    class Card extends StatefulComponent {
+      static __isComponent = true as const;
+      static __isStateless = false;
+      render() {
+        instance = this;
+        return mountElement("article", { id: "card" }, getCurrentScope());
+      }
+    }
+    const factory = () => mountComponent(Card, {}, getCurrentScope());
+    const container = hydratable(factory);
+    const serverEl = container.querySelector("#card");
+    render(factory, container);
+    await Promise.resolve();
+    expect(getComponentAnchor(instance as unknown as object)).toBe(serverEl);
+    expect(getComponentAnchor(instance as unknown as object)?.parentElement).toBe(container);
+    document.body.removeChild(container);
+  });
+
   it("adopts a flat element instead of recreating it", () => {
     const factory = () => mountElement("p", { id: "greet", children: "hello" }, new Scope());
     const container = hydratable(factory);
@@ -315,6 +338,33 @@ describe("render() — hydration (build + reconcile)", () => {
     expect(() => { reconcile(container, [fresh]); }).not.toThrow();
     expect(bogusOwner).toEqual([]);
     expect(container.firstChild).toBe(real);
+  });
+
+  it("keeps updating the real element through a reactive child that fills it alone", () => {
+    const show = signal<unknown>(["a", "b"]);
+    const factory = () => {
+      const ul = document.createElement("ul");
+      reactiveOnly(ul, () => {
+        const value = show();
+        return Array.isArray(value) ? value.map((v: string) => mountElement("li", { children: v }, getCurrentScope())) : value;
+      }, getCurrentScope());
+      return ul;
+    };
+    const container = hydratable(factory);
+    const realList = container.querySelector("ul");
+    render(factory, container);
+    expect(container.querySelector("ul")).toBe(realList);
+    expect(container.innerHTML).toBe("<ul><li>a</li><li>b</li></ul>");
+
+    show.set(["a", "b", "c"]);
+    expect(container.innerHTML).toBe("<ul><li>a</li><li>b</li><li>c</li></ul>");
+    show.set(null);
+    expect(container.innerHTML).toBe("<ul></ul>");
+    show.set("text");
+    expect(container.innerHTML).toBe("<ul>text</ul>");
+    show.set("more");
+    expect(container.innerHTML).toBe("<ul>more</ul>");
+    container.remove();
   });
 
   it("plain client render (no SSG marker) is completely unaffected", () => {

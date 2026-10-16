@@ -1,5 +1,5 @@
 import { applyProp } from "./dom/props";
-import { getReactiveOwner, getRecordedProps } from "./hydration-context";
+import { getHydrationReplacer, getRecordedProps } from "./hydration-context";
 
 function replayProps(real: Element, fresh: Element): void {
   const record = getRecordedProps(fresh);
@@ -10,15 +10,10 @@ function replayProps(real: Element, fresh: Element): void {
   }
 }
 
-// mountReactive()'s `currentNodes` array holds fresh node references for its
-// *next* diff. If we're keeping `real` instead of `fresh` here, that array
-// needs to see the swap too — it's registered by reference, so this mutation
-// is visible to whichever effect closure owns it.
+// mountReactive()'s `currentNodes` and list rows keep fresh node references for their
+// *next* update. If we're keeping `real` instead of `fresh` here, they need to see the swap.
 function notifyReplacement(fresh: Node, real: Node): void {
-  const owner = getReactiveOwner(fresh);
-  if (!owner) return;
-  const idx = owner.indexOf(fresh);
-  if (idx !== -1) owner[idx] = real;
+  getHydrationReplacer(fresh)?.(real);
 }
 
 /**
