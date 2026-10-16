@@ -9,6 +9,7 @@ import {
   emptyDir,
   formatTargetDir,
   isEmpty,
+  parseArgs,
   pkgManagerFromAgent,
   resolveLatestVersion,
   resolveWorkspaceVersions,
@@ -415,5 +416,24 @@ describe("resolveWorkspaceVersions", () => {
     };
 
     await expect(resolveWorkspaceVersions(pkg)).rejects.toThrow(/HTTP 500/);
+  });
+});
+
+// ── parseArgs ─────────────────────────────────────────────────────────────────
+
+describe("parseArgs", () => {
+  it("takes the first positional argument as the formatted target dir", () => {
+    expect(parseArgs(["my-app/", "other"])).toEqual({ targetDir: "my-app", tauri: undefined });
+    expect(parseArgs([])).toEqual({ targetDir: "", tauri: undefined });
+  });
+
+  it("reads --tauri and --no-tauri anywhere, the last one winning", () => {
+    expect(parseArgs(["--tauri", "app"])).toEqual({ targetDir: "app", tauri: true });
+    expect(parseArgs(["app", "--no-tauri"])).toEqual({ targetDir: "app", tauri: false });
+    expect(parseArgs(["--no-tauri", "--tauri"]).tauri).toBe(true);
+  });
+
+  it("rejects unknown options", () => {
+    expect(() => parseArgs(["-t"])).toThrow('Unknown option "-t". Supported: --tauri, --no-tauri.');
   });
 });

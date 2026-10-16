@@ -34,6 +34,7 @@ function makeClack(overrides: Record<string, unknown> = {}) {
     confirm: vi.fn().mockResolvedValue(true),
     isCancel: vi.fn().mockReturnValue(false),
     spinner: vi.fn(() => ({ start: vi.fn(), stop: vi.fn(), message: vi.fn() })),
+    log: { warn: vi.fn() },
     ...overrides,
   };
 }
@@ -86,8 +87,15 @@ function makeFs({
 
 // ─── Setup / Teardown ─────────────────────────────────────────────────────────
 
+const addTauri = vi.fn();
+
 beforeEach(() => {
   vi.resetModules();
+  addTauri.mockReset().mockResolvedValue({ ok: true, warnings: [], rust: "ready" });
+  vi.doMock("../tauri/setup", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("../tauri/setup")>()),
+    addTauri,
+  }));
 });
 
 afterEach(() => {
@@ -344,7 +352,8 @@ describe("create-praxisjs index – existing non-empty directory", () => {
 
     await runMain();
 
-    expect(clack.confirm).toHaveBeenCalledOnce();
+    const firstConfirm = clack.confirm.mock.calls[0]?.[0] as { message: string };
+    expect(firstConfirm.message).toContain("is not empty");
     expect(clack.outro).toHaveBeenCalledOnce();
   });
 
@@ -826,5 +835,118 @@ describe("create-praxisjs index – error handling", () => {
     expect(mockExit).toHaveBeenCalledWith(1);
 
     consoleSpy.mockRestore();
+  });
+});
+
+describe("create-praxisjs index – Tauri v2", () => {
+  function mockRun(argv: string[], clack = makeClack()) {
+    vi.doMock("picocolors", () => makePc());
+    vi.doMock("@clack/prompts", () => clack);
+    vi.doMock("node:fs", () => makeFs());
+    const mockExit = vi.fn();
+    vi.doMock("node:process", () => ({
+      argv: ["node", "create-praxisjs", ...argv],
+      cwd: () => "/fake/cwd",
+      exit: mockExit,
+    }));
+    return { clack, mockExit };
+  }
+
+  function nextSteps(clack: ReturnType<typeof makeClack>): string {
+    return (clack.note.mock.calls[0] as [string, string])[0];
+  }
+
+  it("asks after the template, defaulting to no, and skips Tauri when declined", async () => {
+    const { clack } = mockRun(["my-app"], makeClack({ confirm: vi.fn().mockResolvedValue(false) }));
+
+    await runMain();
+
+    expect(clack.confirm).toHaveBeenCalledWith({ message: "Desktop app with Tauri v2?", initialValue: false });
+    expect(addTauri).not.toHaveBeenCalled();
+    expect(nextSteps(clack)).not.toContain("tauri:dev");
+  });
+
+  it("exits when the Tauri prompt is cancelled", async () => {
+    const CANCEL = Symbol("cancel");
+    const { clack, mockExit } = mockRun(
+      ["my-app"],
+      makeClack({
+        confirm: vi.fn().mockResolvedValue(CANCEL),
+        isCancel: vi.fn().mockImplementation((v) => v === CANCEL),
+      }),
+    );
+
+    await runMain();
+
+    expect(clack.cancel).toHaveBeenCalledWith("Operation cancelled");
+    expect(mockExit).toHaveBeenCalledWith(0);
+    expect(addTauri).not.toHaveBeenCalled();
+  });
+
+  it("adds Tauri without asking when --tauri is passed, in any position", async () => {
+    process.env.npm_config_user_agent = "pnpm/10.0.0 node/v22";
+    const spinnerHandle = { start: vi.fn(), stop: vi.fn(), message: vi.fn() };
+    const { clack } = mockRun(["--tauri", "desk"], makeClack({ spinner: vi.fn(() => spinnerHandle) }));
+
+    await runMain();
+
+    expect(clack.confirm).not.toHaveBeenCalled();
+    expect(spinnerHandle.message).toHaveBeenCalledWith("Adding Tauri v2 (downloads the Tauri CLI)");
+    expect(addTauri).toHaveBeenCalledWith({
+      root: expect.stringMatching(/desk$/) as unknown,
+      name: "desk",
+      template: "minimal",
+      packageManager: "pnpm",
+      userAgent: "pnpm/10.0.0 node/v22",
+    });
+    expect(nextSteps(clack)).toContain("pnpm run tauri:dev");
+    expect(clack.log.warn).not.toHaveBeenCalled();
+  });
+
+  it("skips the prompt and Tauri with --no-tauri", async () => {
+    const { clack } = mockRun(["my-app", "--no-tauri"]);
+
+    await runMain();
+
+    expect(clack.confirm).not.toHaveBeenCalled();
+    expect(addTauri).not.toHaveBeenCalled();
+  });
+
+  it("keeps the web project and explains how to add Tauri later when the setup fails", async () => {
+    addTauri.mockResolvedValue({ ok: false, reason: "`npx` exited with code 1." });
+    const { clack, mockExit } = mockRun(["my-app", "--tauri"]);
+
+    await runMain();
+
+    const warning = clack.log.warn.mock.calls[0]?.[0] as string;
+    expect(warning).toContain("Tauri v2 was not added. The web project is ready to use.");
+    expect(warning).toContain("`npx` exited with code 1.");
+    expect(warning).toContain("`npx --yes @tauri-apps/cli@2 init`");
+    expect(nextSteps(clack)).not.toContain("tauri:dev");
+    expect(clack.outro).toHaveBeenCalledOnce();
+    expect(mockExit).not.toHaveBeenCalled();
+  });
+
+  it("prints patch warnings and Rust install help", async () => {
+    addTauri.mockResolvedValue({ ok: true, warnings: ["first", "second"], rust: "missing" });
+    const { clack } = mockRun(["my-app", "--tauri"]);
+
+    await runMain();
+
+    expect(clack.log.warn.mock.calls).toEqual([["first"], ["second"]]);
+    const rustNote = clack.note.mock.calls[1] as [string, string];
+    expect(rustNote[1]).toBe("Rust toolchain");
+    expect(rustNote[0]).toContain("https://v2.tauri.app/start/prerequisites/");
+  });
+
+  it("rejects unknown options", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { clack, mockExit } = mockRun(["my-app", "--taur"]);
+
+    await runMain();
+
+    expect(String(consoleSpy.mock.calls[0]?.[0])).toContain('Unknown option "--taur"');
+    expect(mockExit).toHaveBeenCalledWith(1);
+    expect(clack.intro).not.toHaveBeenCalled();
   });
 });

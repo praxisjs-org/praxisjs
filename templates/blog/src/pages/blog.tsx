@@ -1,7 +1,7 @@
 import { StatefulComponent } from "@praxisjs/core";
 import { Component } from "@praxisjs/decorators";
-import { Route } from "@praxisjs/router";
-import { Link } from "@praxisjs/router";
+import { Link, Route } from "@praxisjs/router";
+import { For } from "@praxisjs/runtime";
 import { Collection } from "@praxisjs/content";
 import type { Entry, Resource } from "@praxisjs/content";
 
@@ -19,11 +19,10 @@ export default class BlogPage extends StatefulComponent {
         <h1 class="page-title">Blog</h1>
         <div class="post-list">
           {() => this.posts.pending() && <p class="loading">Loading posts…</p>}
-          {() =>
-            this.posts
-              .data()
-              ?.filter((p) => !p.data.draft)
-              .map((p) => (
+          <For each={() => this.posts.data()?.filter((p) => !p.data.draft)} by="slug">
+            {(post) => {
+              const p = post();
+              return (
                 <article class="post-card">
                   <h2 class="post-card-title">
                     <Link to={`/blog/${p.slug}`}>{p.data.title}</Link>
@@ -38,8 +37,9 @@ export default class BlogPage extends StatefulComponent {
                     ))}
                   </div>
                 </article>
-              ))
-          }
+              );
+            }}
+          </For>
         </div>
       </div>
     );

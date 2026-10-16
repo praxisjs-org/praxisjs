@@ -136,3 +136,21 @@ export async function resolveWorkspaceVersions(
     deps[name] = `^${versions[i]}`;
   });
 }
+
+export interface CliArgs {
+  targetDir: string;
+  /** `undefined` when neither `--tauri` nor `--no-tauri` was passed, so the prompt asks. */
+  tauri: boolean | undefined;
+}
+
+export function parseArgs(args: readonly string[]): CliArgs {
+  let targetDir = "";
+  let tauri: boolean | undefined;
+  for (const arg of args) {
+    if (arg === "--tauri") tauri = true;
+    else if (arg === "--no-tauri") tauri = false;
+    else if (arg.startsWith("-")) throw new Error(`Unknown option "${arg}". Supported: --tauri, --no-tauri.`);
+    else targetDir ||= arg;
+  }
+  return { targetDir: formatTargetDir(targetDir), tauri };
+}

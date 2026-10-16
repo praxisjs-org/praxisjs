@@ -8,6 +8,7 @@ import {
   confirm,
   intro,
   isCancel,
+  log,
   note,
   outro,
   select,
@@ -18,11 +19,14 @@ import pc from "picocolors";
 import { applyPlugin, notePlugin, PLUGINS, type PluginName } from "praxisjs";
 
 import { RENAME_MAP, TEMPLATES, type TemplateName } from "../constants";
+import { dlxCommand, runScriptCommand } from "../tauri/patches";
+import { addTauri, rustHelp, type AddTauriResult } from "../tauri/setup";
 import {
   copy,
   emptyDir,
   formatTargetDir,
   isEmpty,
+  parseArgs,
   pkgManagerFromAgent,
   resolveWorkspaceVersions,
   toValidPackageName,
@@ -31,7 +35,8 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export async function main(): Promise<void> {
-  const argTargetDir = formatTargetDir(argv[2] ?? "");
+  const args = parseArgs(argv.slice(2));
+  const argTargetDir = args.targetDir;
 
   intro(
     pc.bgCyan(pc.bold(pc.black(" PraxisJS "))) +
@@ -92,6 +97,22 @@ export async function main(): Promise<void> {
   }
 
   const template = templateResult;
+
+  let tauri = args.tauri;
+  if (tauri === undefined) {
+    const tauriResult = await confirm({
+      message: "Desktop app with Tauri v2?",
+      initialValue: false,
+    });
+
+    if (isCancel(tauriResult)) {
+      cancel("Operation cancelled");
+      exit(0);
+      return;
+    }
+
+    tauri = tauriResult;
+  }
 
   const pluginResult = await select<PluginName>({
     message: "Add an AI integration?",
@@ -174,25 +195,59 @@ export async function main(): Promise<void> {
     applyPlugin(plugin, root);
   }
 
+  const pkgManager = pkgManagerFromAgent();
+  const userAgent = process.env.npm_config_user_agent ?? "";
+
+  let tauriSetup: AddTauriResult | undefined;
+  if (tauri) {
+    s.message("Adding Tauri v2 (downloads the Tauri CLI)");
+    tauriSetup = await addTauri({
+      root,
+      name: pkgName,
+      template,
+      packageManager: pkgManager,
+      userAgent,
+    });
+  }
+
   s.stop(pc.green("Project scaffolded!"));
 
-  const pkgManager = pkgManagerFromAgent();
+  if (tauriSetup?.ok === false) {
+    const init = dlxCommand(pkgManager, userAgent, "@tauri-apps/cli@2", ["init"]);
+    log.warn(
+      [
+        "Tauri v2 was not added. The web project is ready to use.",
+        tauriSetup.reason,
+        `To add it later, run \`${[init.command, ...init.args].join(" ")}\` in the project: https://v2.tauri.app/start/frontend/vite/`,
+      ].join("\n"),
+    );
+  }
+
+  for (const warning of tauriSetup?.ok ? tauriSetup.warnings : []) {
+    log.warn(warning);
+  }
+
   const relPath = path.relative(cwd(), root);
   const displayPath = relPath !== "" ? relPath : ".";
 
   const installCmd = pkgManager === "yarn" ? "yarn" : `${pkgManager} install`;
-  const devCmd = pkgManager === "yarn" ? "yarn dev" : `${pkgManager} run dev`;
 
   const steps = [
     relPath !== "" ? `cd ${displayPath}` : null,
     installCmd,
-    devCmd,
+    runScriptCommand(pkgManager, "dev"),
+    tauriSetup?.ok ? runScriptCommand(pkgManager, "tauri:dev") : null,
   ]
     .filter(Boolean)
     .map((cmd) => pc.cyan(cmd))
     .join("\n");
 
   note(steps, "Next steps");
+
+  const rust = tauriSetup?.ok ? rustHelp(tauriSetup.rust, process.platform) : null;
+  if (rust !== null) {
+    note(rust, "Rust toolchain");
+  }
 
   notePlugin(plugin);
 

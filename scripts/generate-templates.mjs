@@ -32,19 +32,22 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = resolve(fileURLToPath(import.meta.url), "../../");
 const sourceDir = join(root, "templates");
 const outputDir = join(root, "packages/cli/create-praxisjs/templates");
 
-const SKIP = new Set(["node_modules", "dist", ".vite", ".turbo"]);
+export const SKIP = new Set(["node_modules", "dist", ".vite", ".turbo"]);
+// Skipped at the top of a template only: the workspace package's release history (written by
+// changesets) is not the generated project's.
+export const SKIP_AT_ROOT = new Set(["CHANGELOG.md"]);
 const DEP_FIELDS = ["dependencies", "devDependencies", "peerDependencies"];
 
 // Minimal parser for the flat `catalog:` block in pnpm-workspace.yaml — no
 // need for a full YAML parser for a handful of "name: range" lines.
-function readCatalog() {
-  const text = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");
+export function readCatalog(workspaceRoot = root) {
+  const text = readFileSync(join(workspaceRoot, "pnpm-workspace.yaml"), "utf8");
   const catalog = {};
   let inCatalog = false;
 
@@ -63,7 +66,7 @@ function readCatalog() {
   return catalog;
 }
 
-function resolveCatalogRefs(pkg, catalog) {
+export function resolveCatalogRefs(pkg, catalog) {
   for (const field of DEP_FIELDS) {
     const deps = pkg[field];
     if (!deps) continue;
@@ -80,46 +83,64 @@ function resolveCatalogRefs(pkg, catalog) {
   }
 }
 
-const catalog = readCatalog();
+/** Copies every template of `from` into `to`, ready to ship. Returns the template names. */
+export function generateTemplates(from = sourceDir, to = outputDir, catalog = readCatalog()) {
+  const generated = [];
+  mkdirSync(to, { recursive: true });
 
-mkdirSync(outputDir, { recursive: true });
+  for (const name of readdirSync(from)) {
+    const templateSourceDir = join(from, name);
+    if (!statSync(templateSourceDir).isDirectory()) continue
 
-for (const name of readdirSync(sourceDir)) {
-  const templateSourceDir = join(sourceDir, name);
-  if (!statSync(templateSourceDir).isDirectory()) continue
+    const templateOutDir = join(to, name);
+    rmSync(templateOutDir, { recursive: true, force: true });
+    mkdirSync(templateOutDir, { recursive: true });
 
-  const templateOutDir = join(outputDir, name);
-  rmSync(templateOutDir, { recursive: true, force: true });
-  mkdirSync(templateOutDir, { recursive: true });
+    cpSync(templateSourceDir, templateOutDir, {
+      recursive: true,
+      filter: (src) => {
+        const base = src.split("/").pop() ?? "";
+        return !SKIP.has(base) && !(SKIP_AT_ROOT.has(base) && src === join(templateSourceDir, base));
+      },
+    });
 
-  cpSync(templateSourceDir, templateOutDir, {
-    recursive: true,
-    filter: (src) => !SKIP.has(src.split("/").pop() ?? ""),
-  });
+    // package.json -> _package.json (npm strips top-level "private" packages
+    // out of `files`-based tarballs in some tooling; renaming avoids that plus
+    // stops it being mistaken for the CLI's own manifest before it's copied).
+    const pkgPath = join(templateOutDir, "package.json");
+    if (existsSync(pkgPath)) {
+      const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+      delete pkg.private;
+      pkg.version = "0.1.0";
+      resolveCatalogRefs(pkg, catalog);
+      // pnpm 10 skips dependencies' install scripts unless the project allows them, and warns
+      // "Ignored build scripts: esbuild" on every install. @praxisjs/vite-plugin depends on esbuild,
+      // whose script only swaps its JS shim for the native binary (it works either way), so the
+      // generated project allows it. Added here rather than in templates/*: pnpm ignores (and warns
+      // about) the field in a package of this workspace. npm and yarn ignore it.
+      pkg.pnpm = { ...pkg.pnpm, onlyBuiltDependencies: ["esbuild"] };
+      writeFileSync(
+        join(templateOutDir, "_package.json"),
+        JSON.stringify(pkg, null, 2) + "\n",
+      );
+      rmSync(pkgPath);
+    }
 
-  // package.json -> _package.json (npm strips top-level "private" packages
-  // out of `files`-based tarballs in some tooling; renaming avoids that plus
-  // stops it being mistaken for the CLI's own manifest before it's copied).
-  const pkgPath = join(templateOutDir, "package.json");
-  if (existsSync(pkgPath)) {
-    const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
-    delete pkg.private;
-    pkg.version = "0.1.0";
-    resolveCatalogRefs(pkg, catalog);
-    writeFileSync(
-      join(templateOutDir, "_package.json"),
-      JSON.stringify(pkg, null, 2) + "\n",
-    );
-    rmSync(pkgPath);
+    // .gitignore -> _gitignore (published npm tarballs drop nested .gitignore
+    // files; create-praxisjs restores the real name when scaffolding).
+    const gitignorePath = join(templateOutDir, ".gitignore");
+    if (existsSync(gitignorePath)) {
+      cpSync(gitignorePath, join(templateOutDir, "_gitignore"));
+      rmSync(gitignorePath);
+    }
+
+    generated.push(name);
   }
+  return generated;
+}
 
-  // .gitignore -> _gitignore (published npm tarballs drop nested .gitignore
-  // files; create-praxisjs restores the real name when scaffolding).
-  const gitignorePath = join(templateOutDir, ".gitignore");
-  if (existsSync(gitignorePath)) {
-    cpSync(gitignorePath, join(templateOutDir, "_gitignore"));
-    rmSync(gitignorePath);
+if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  for (const name of generateTemplates()) {
+    console.log(`Generated templates/${name} -> packages/cli/create-praxisjs/templates/${name}`);
   }
-
-  console.log(`Generated templates/${name} -> packages/cli/create-praxisjs/templates/${name}`);
 }

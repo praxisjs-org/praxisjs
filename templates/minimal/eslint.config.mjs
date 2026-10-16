@@ -8,6 +8,7 @@ export default defineConfig([
     ignores: ['dist/**', 'node_modules/**'],
   },
   {
+    files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parserOptions: {
         project: "./tsconfig.json",
