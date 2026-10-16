@@ -10,7 +10,8 @@ const mockNote = vi.fn();
 const mockSelect = vi.fn().mockResolvedValue("claude-skill");
 const mockIsCancel = vi.fn().mockReturnValue(false);
 const mockExit = vi.fn();
-const mockRemovePlugin = vi.fn();
+const mockRemovePlugin = vi.fn().mockReturnValue([]);
+const mockWarn = vi.fn();
 const mockNoteRemovedPlugin = vi.fn();
 
 vi.mock("@clack/prompts", () => ({
@@ -18,6 +19,7 @@ vi.mock("@clack/prompts", () => ({
   confirm: mockConfirm,
   intro: mockIntro,
   isCancel: mockIsCancel,
+  log: { warn: mockWarn },
   note: mockNote,
   outro: mockOutro,
   select: mockSelect,
@@ -50,7 +52,8 @@ beforeEach(() => {
   mockSelect.mockClear().mockResolvedValue("claude-skill");
   mockIsCancel.mockClear().mockReturnValue(false);
   mockExit.mockClear();
-  mockRemovePlugin.mockClear();
+  mockRemovePlugin.mockClear().mockReturnValue([]);
+  mockWarn.mockClear();
   mockNoteRemovedPlugin.mockClear();
 });
 
@@ -64,5 +67,15 @@ describe("remove — display name fallback", () => {
 
     const [{ message }] = mockConfirm.mock.calls[0] as [{ message: string }];
     expect(message).toContain("claude-skill");
+  });
+});
+
+describe("remove — warnings", () => {
+  it("prints what could not be updated", async () => {
+    mockRemovePlugin.mockReturnValueOnce([".mcp.json is not valid JSON: left it unchanged"]);
+
+    await remove();
+
+    expect(mockWarn).toHaveBeenCalledWith(".mcp.json is not valid JSON: left it unchanged");
   });
 });

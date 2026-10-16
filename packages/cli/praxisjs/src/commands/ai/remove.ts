@@ -1,6 +1,6 @@
 import { cwd, exit } from "node:process";
 
-import { cancel, confirm, intro, isCancel, outro, select, spinner } from "@clack/prompts";
+import { cancel, confirm, intro, isCancel, log, outro, select, spinner } from "@clack/prompts";
 import pc from "picocolors";
 
 import { PLUGINS, type PluginName } from "../../constants";
@@ -45,8 +45,9 @@ export async function remove(): Promise<void> {
 
   const s = spinner();
   s.start("Removing integration...");
-  removePlugin(plugin, root);
+  const warnings = removePlugin(plugin, root);
   s.stop(pc.green("Done!"));
+  for (const warning of warnings) log.warn(warning);
 
   noteRemovedPlugin(plugin);
 

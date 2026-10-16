@@ -47,6 +47,8 @@ function makeFs() {
       statSync: vi.fn().mockReturnValue({ isDirectory: () => false }),
       copyFileSync: vi.fn(),
       rmSync: vi.fn(),
+      readFileSync: vi.fn().mockReturnValue("{}"),
+      writeFileSync: vi.fn(),
     },
   };
 }
@@ -102,9 +104,30 @@ describe("praxisjs index — ai add command", () => {
 
     await runCli();
 
-    expect(fsMock.default.copyFileSync).toHaveBeenCalled();
+    expect(fsMock.default.writeFileSync).toHaveBeenCalled();
     const noteArgs = clack.note.mock.calls[0] as [string, string];
     expect(noteArgs[1]).toBe("Claude Code");
+  });
+
+  it("warns about configs it could not update", async () => {
+    const warn = vi.fn();
+    const clack = makeClack({ log: { warn } });
+    const fsMock = makeFs();
+    fsMock.default.existsSync.mockImplementation((p: unknown) => String(p).endsWith(".mcp.json"));
+    fsMock.default.readFileSync.mockImplementation((p: unknown) => (String(p).endsWith(".mcp.json") ? "{ not json" : "{}"));
+
+    vi.doMock("picocolors", () => makePc());
+    vi.doMock("@clack/prompts", () => clack);
+    vi.doMock("node:fs", () => fsMock);
+    vi.doMock("node:process", () => ({
+      argv: ["node", "praxisjs", "ai", "add"],
+      cwd: () => "/fake/cwd",
+      exit: vi.fn(),
+    }));
+
+    await runCli();
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining(".mcp.json is not valid JSON"));
   });
 
   it("exits when ai add plugin select is cancelled", async () => {

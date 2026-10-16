@@ -1,10 +1,11 @@
 import { cwd, exit } from "node:process";
 
-import { cancel, intro, isCancel, outro, select, spinner } from "@clack/prompts";
+import { cancel, intro, isCancel, log, outro, select, spinner } from "@clack/prompts";
 import pc from "picocolors";
 
+import { isInteractive, syncIntegration } from "./sync";
 import { PLUGINS, type PluginName } from "../../constants";
-import { applyPlugin, notePlugin } from "../../plugins";
+import { applyPlugin, installedIntegrations, notePlugin } from "../../plugins";
 
 export async function add(): Promise<void> {
   intro(
@@ -31,10 +32,17 @@ export async function add(): Promise<void> {
   const plugin = pluginResult;
   const root = cwd();
 
+  if (plugin !== "none" && installedIntegrations(root).includes(plugin)) {
+    await syncIntegration(plugin, root, { dryRun: false, interactive: isInteractive() });
+    outro(pc.green("Updated the existing integration."));
+    return;
+  }
+
   const s = spinner();
   s.start("Adding integration...");
-  applyPlugin(plugin, root);
+  const warnings = applyPlugin(plugin, root);
   s.stop(pc.green("Done!"));
+  for (const warning of warnings) log.warn(warning);
 
   notePlugin(plugin);
 

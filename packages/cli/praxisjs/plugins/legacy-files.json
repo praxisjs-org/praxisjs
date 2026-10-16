@@ -1,0 +1,35 @@
+{
+  "description": "SHA-256 of every skill file earlier praxisjs and create-praxisjs releases installed, so `praxisjs ai sync` can replace an unedited old file without asking.",
+  "files": {
+    ".agents/skills/praxisjs/SKILL.md": [
+      "sha256-01db9c72a2caeda6f3b689cd1a1a528cf0a82dc4f8bfbabeaa4e1eb9272fe53f",
+      "sha256-46c996670b6b110bb6e8352d4d9bf594208a3bc5f123b3f77122a9279ad8eac7",
+      "sha256-5731175828801c2cae3dff055b66b9ede440b153a9c573ac766708b06b8c5c0c"
+    ],
+    ".agents/skills/praxisjs/references/agents-md.md": [
+      "sha256-04a1f7ed473559c21c8dcdd40e3c113152d33062239ab5ce8d46b222574dc8e7",
+      "sha256-73a118e44256e24d6bfc61678d2e0a856c16ffb9d105f36fbea9e8524ff5af4d",
+      "sha256-7ff4b8e2843154ce006318804882d42cf74d64e7690eb11ca1806fc9029d682b"
+    ],
+    ".agents/skills/praxisjs/references/project-config.md": [
+      "sha256-5dde0c7c1ceaab834a5aa2f9a87510f13d883f8eac3250f46676f6357a50ec93",
+      "sha256-eebd79f23bf667f4fb0f32d28f2c0303e3927a078a9ee06fe616600e1492735b",
+      "sha256-f606cd8cc4a3f3e630a3dfcc69d19c119239ada58fccc52550d7110cd26f5138"
+    ],
+    ".claude/skills/praxisjs/SKILL.md": [
+      "sha256-1a546d696542db4b7481b7b1e786efaf19ed49f167a078bfe8e6e254e7230783",
+      "sha256-b5b86952bf6aa9c1a33c3286aa80192038f961fe2545ddb3d01fe2e3e5adba4a",
+      "sha256-be72050eaab94dbfee1886ee632dfc82c40e41feeed8641dabd5b6cd978767c5"
+    ],
+    ".claude/skills/praxisjs/references/claude-md.md": [
+      "sha256-3e5c687344e18941feb9e4fb98889900887c4a5bd8006171d380953a6822db61",
+      "sha256-e5401a4b3e37cb9b2b292f735b8d931b12828e7c3c577df76886ff886a00f8f2",
+      "sha256-f347aec0cd06249e066001c97549bfaf77fff0f0f58ab4e99ae636b10f1511fe"
+    ],
+    ".claude/skills/praxisjs/references/project-config.md": [
+      "sha256-5dde0c7c1ceaab834a5aa2f9a87510f13d883f8eac3250f46676f6357a50ec93",
+      "sha256-6584e4fd2e375ffb501349b138ee957fa2f449e1c9aba7af1fc56f6f36274c95",
+      "sha256-9cee8c553b574ef7e8d77f9f3aada6c446dbef2c260d0f58d45e8f9675057259"
+    ]
+  }
+}

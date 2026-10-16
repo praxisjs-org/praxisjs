@@ -1,31 +1,55 @@
 ---
 name: praxisjs
-description: PraxisJS development skill for Claude Code. Invoke whenever working on a PraxisJS project — creating components, managing state, setting up routing, using decorators, fetching async data, styling, prerendering, or debugging reactivity. Trigger on any mention of @praxisjs/ packages, @State, @Component, StatefulComponent, StatelessComponent, @Resource, @Watch, @Emit, @Compose, @Styled, or when the user wants to build reactive UI with TypeScript. This skill enforces three non-negotiable practices: consult praxisjs.org docs before writing code, keep CLAUDE.md updated so every future session has full project context, and follow PraxisJS conventions exactly — no workarounds.
+description: PraxisJS development skill for Claude Code. Invoke whenever working on a PraxisJS project — creating components, managing state, setting up routing, using decorators, fetching async data, styling, prerendering, extending the framework, or debugging reactivity. Trigger on any mention of @praxisjs/ packages, @State, @Component, StatefulComponent, StatelessComponent, @Resource, @Watch, @Emit, @Compose, @Styled, @Selector, For, Index, .praxis/, or when the user wants to build reactive UI with TypeScript. It requires the PraxisJS MCP server, looks every API up in the docs instead of guessing, reuses what the project and the framework already have, keeps the project's folder structure, and keeps the project memory (.praxis/, through the MCP) and CLAUDE.md current.
 ---
 
 # PraxisJS Development
 
-PraxisJS is a signal-driven TypeScript frontend framework. APIs evolve — **never guess at decorator options, argument shapes, or import paths**. Always confirm against the live documentation before writing code.
+PraxisJS is a signal-driven TypeScript frontend framework. APIs evolve: **look them up, never guess.**
 
-## The three rules (never skip)
+## Rules (never skip)
 
-1. **Docs first** — call `praxisjs_overview`, then `praxisjs_get_page` for the relevant topic, before writing any PraxisJS code. This includes checking whether PraxisJS already ships what you're about to build — see [Check for a native path first](#check-for-a-native-path-first).
-2. **CLAUDE.md always** — read it at the start of every session; update it whenever you make a decision that future sessions need to know.
-3. **No workarounds** — if the idiomatic path isn't clear, fetch the docs page. Hacks break as the framework evolves.
+1. **Docs before code.** Look up every PraxisJS API you use in the docs through the MCP server: `praxisjs_search_docs` → `praxisjs_get_page`, and `praxisjs_api_reference` for one symbol. The praxisjs.org website is only the fallback while the server is not connected. Never guess decorator options, signatures or import paths.
+2. **MCP connected.** The PraxisJS MCP server (`@praxisjs/mcp`) must be available. If the `praxisjs_*` tools are missing, help the developer connect it first: `references/mcp.md`.
+3. **Reuse, don't duplicate.** Before creating any component, composable, store, service, decorator or helper, run `praxisjs_memory_check_duplicate`: it searches PraxisJS itself, the project memory and the code. Reuse or extend what it finds.
+4. **UI from Morphos and Kosmesis first.** Before building a UI piece, check installed Kosmesis components and the registry (`praxisjs_ui_components`) and Morphos primitives; add Kosmesis components with the `kosmesis` CLI, wrap Morphos primitives, never edit `@morphos/*` in `node_modules` (`praxisjs-ui` skill).
+5. **Extend PraxisJS its own way.** Custom behavior goes through the Extending PraxisJS APIs: decorator builders (`setup` form), `Composable`, store plugins, devtools plugins (`references/extending.md`). No monkeypatching, no ad-hoc wrappers.
+6. **Never the `accessor` keyword.** Field decorators throw on it; PraxisJS needs plain fields.
+7. **Keep the structure.** Put every file where `conventions/project-structure` says (`praxisjs_scaffold` gives the path); never in an ad-hoc place. Reorganize misplaced code you touch, asking first for large moves (`references/project-structure.md`).
+8. **Project memory through the MCP only.** Never read or write `.praxis/` files yourself; use the `praxisjs_memory_*` tools, and record the reusable code, rules and decisions you add (`references/project-memory.md`).
+9. **Validate.** Run `praxisjs_validate_file` on every file you create or change, and keep CLAUDE.md current.
+10. **No workarounds.** If the idiomatic path isn't clear, read the docs page. Hacks break as the framework evolves.
 
 ---
 
 ## Session start checklist (run every time)
 
-Before doing any work, run through this in order:
-
-1. **Check for `.praxisjs-ai.json`** at the project root.
-   - If it **doesn't exist**: run the [init flow](#project-config-praxisjs-aijson) before anything else — do not skip it and do not ask questions inline during the task.
+1. **MCP**: the `praxisjs_*` tools are available; if not, stop and follow `references/mcp.md`.
+2. **`.praxisjs-ai.json`** at the project root:
+   - If it **doesn't exist**: run the [init flow](#project-config-praxisjs-aijson) before anything else.
    - If it **exists**: read it silently and let it govern all decisions for this session.
-2. **Read `CLAUDE.md`** — understand the current project state.
-3. **Fetch docs** for the task at hand.
+3. **`CLAUDE.md`**: read it for the stack and constraints.
+4. **`praxisjs_inspect_project`**: versions, pages, components, stores, routes, folder layout, UI libraries. If it says the project memory is not set up, run the `praxisjs-memory-bootstrap` skill (a full analysis recorded through the MCP) and tell the developer. If a memory tool says `.praxis/` is in an older format, or `npx praxisjs doctor` reports an outdated AI setup, follow the `praxisjs-ai-setup` skill.
+5. **`praxisjs_memory_search`** with the task's words: reusable code, business rules and conventions that apply.
+6. **Docs** for the task: `praxisjs_search_docs`, then `praxisjs_get_page`.
 
-If the developer reports something feels broken (wrong TypeScript config, missing memory files, a stale integration), run `npx praxisjs doctor` — it checks `package.json`, `tsconfig.json` (`jsx`, `jsxImportSource`, `useDefineForClassFields`), and whether this Claude Code integration is fully initialized (skill, `.claude/settings.json`, `CLAUDE.md`, `.praxisjs-ai.json`).
+If the developer reports something feels broken (wrong TypeScript config, missing memory files, a stale integration), run `npx praxisjs doctor`: it checks `package.json`, whether the installed `@praxisjs/*` versions work together, `tsconfig.json` (`jsx`, `jsxImportSource`, `useDefineForClassFields`), and whether this Claude Code integration is complete (skills, MCP server configuration, `CLAUDE.md`, `.praxisjs-ai.json`).
+
+## Other PraxisJS skills
+
+| Task | Skill |
+|---|---|
+| Create or change a component or page | `praxisjs-component` |
+| Create a custom decorator | `praxisjs-decorator` |
+| Create a composable | `praxisjs-composable` |
+| Shared state, stores, services | `praxisjs-store` |
+| Write or fix tests | `praxisjs-testing` |
+| Something is slow | `praxisjs-performance` |
+| Upgrade PraxisJS, migrate removed APIs | `praxisjs-upgrade` |
+| Read or maintain the project memory | `praxisjs-memory` |
+| First full analysis of the project into the memory | `praxisjs-memory-bootstrap` |
+| Morphos primitives, Kosmesis components | `praxisjs-ui` |
+| Update an older project's skills, MCP config, memory format | `praxisjs-ai-setup` |
 
 ---
 
@@ -61,7 +85,7 @@ After the developer answers, write `.praxisjs-ai.json` immediately, confirm the 
 ### Reading the config
 
 At the start of every session after init:
-- `tests: true` → write a test file alongside every new component; tests live in `src/__tests__/`
+- `tests: true` → write a test file for every new component and behavior (`praxisjs-testing`)
 - `codeLocale` → use this locale for identifiers, comments, and variable names
 - `uiLocale` → use this locale for all user-facing strings in templates
 - `i18n: true` → use the i18n integration pattern from `references/project-config.md`
@@ -69,13 +93,17 @@ At the start of every session after init:
 
 ---
 
-## CLAUDE.md — persistent project memory
+## CLAUDE.md and the project memory
 
-Without CLAUDE.md, every new Claude session starts completely blind about the project. With it, sessions are immediately productive.
+Two places hold project knowledge, with different jobs:
 
-**If CLAUDE.md doesn't exist: create it before writing any code.**
+| | `CLAUDE.md` | `.praxis/` (project memory) |
+|---|---|---|
+| Holds | stack, entry points, how to run things, constraints, a pointer to the project memory | reusable components and utilities, business rules, architecture decisions, conventions, glossary |
+| Read/write | directly | only through the `praxisjs_memory_*` MCP tools |
+| Size | one page | as many entries as the project needs |
 
-Use `references/claude-md.md` for the full template. Minimum required sections:
+**If CLAUDE.md doesn't exist: create it before writing any code** (template: `references/claude-md.md`). Minimum sections:
 
 ```markdown
 # [Project name]
@@ -88,35 +116,35 @@ Use `references/claude-md.md` for the full template. Minimum required sections:
 - Styling: [@praxisjs/css / plain / modules / tailwind / unocss / none]
 
 ## Architecture
-[2–4 sentences: what the app does, how it's organized, main entry points]
+[2–4 sentences: what the app does, main entry points]
 
-## Conventions
-[Project-specific patterns — e.g. "all forms extend FormBase", "stores are singletons injected via @Store"]
+## Project memory
+Reusable code, business rules, decisions and conventions live in `.praxis/`, read and changed only
+through the PraxisJS MCP server (`praxisjs_memory_*` tools).
 
 ## Known constraints
 [Anything that would surprise a developer — auth, browser targets, env vars, etc.]
 ```
 
-**Update CLAUDE.md whenever you:**
-- Add or remove a `@praxisjs/*` package
-- Establish a new architectural pattern (base class, shared composable, store shape, stylesheet class)
-- Make a decision that affects how future code should be written
-- Change how routing, DI, the store, styling, or prerendering is configured
-
-CLAUDE.md is a living document, not a log. Remove stale entries when conventions change. Keep it under one page — precision beats completeness.
+**Update CLAUDE.md** when the stack, entry points or constraints change. **Update the project memory** (not CLAUDE.md) when you add, change, move or remove reusable code, and when a business rule, architecture decision or convention is established. Don't copy memory entries into CLAUDE.md.
 
 ---
 
 ## Consulting the docs (required before every implementation)
 
-Four MCP tools are available from `@praxisjs/mcp`:
-
 | Tool | When to call it |
 |---|---|
-| `praxisjs_overview` | First call of the session — index of every docs page |
-| `praxisjs_get_page(page)` | Before implementing anything — full Markdown for one slug |
-| `praxisjs_full_docs` | Only when the task spans many topics and the right page isn't obvious |
+| `praxisjs_search_docs({ query })` | First: find the page and section for a topic, or whether PraxisJS already covers something |
+| `praxisjs_get_page({ page })` | Before implementing anything — full Markdown for one slug |
+| `praxisjs_api_reference({ symbol })` | One export: package, kind, signature of the installed version, docs section |
+| `praxisjs_list_apis({ kind, package })` | All decorators / composables / components of a kind |
+| any docs tool with `library: "morphos"` / `"kosmesis"` | The Morphos and Kosmesis docs |
+| `praxisjs_ui_components({ query })` | Kosmesis components: registry, installed, outdated |
+| `praxisjs_overview` | The index of every docs page |
+| `praxisjs_full_docs` | Only when the task spans many topics (large) |
 | `praxisjs_get_install_command(...)` | Whenever a `@praxisjs/*` package needs installing |
+
+Every other tool (project inspection, validation, scaffolding, project memory) is listed in `references/mcp.md`.
 
 Slug reference (pass without a leading slash):
 
@@ -128,6 +156,7 @@ Slug reference (pass without a leading slash):
 | Components (`StatefulComponent`, `StatelessComponent`) | `essentials/components` |
 | Reactivity & signals | `essentials/reactivity` |
 | JSX syntax | `essentials/jsx` |
+| Lists (`For`, `Index`, keyed `.map()`) | `essentials/lists` |
 | Lifecycle hooks | `essentials/lifecycle` |
 | Async data (`@Resource`) | `essentials/async-data` |
 | Portal | `essentials/portal` |
@@ -138,12 +167,13 @@ Slug reference (pass without a leading slash):
 | Events & Slots | `decorators/events` |
 | Timing (`@Debounce`, `@Throttle`) | `decorators/timing` |
 | Utilities (`@Bind`, `@Log`, `@Once`, `@Memo`, `@Retry`) | `decorators/utilities` |
-| Performance (`@Lazy`, `VirtualList`) | `decorators/performance` |
+| Performance (`@Lazy`, `@Selector`, `VirtualList`) | `decorators/performance` |
 | DevTools decorators (`@Debug`, `@Trace`) | `decorators/dx` |
 | Composables overview (`@Compose`) | `composables` |
 | DOM composables | `composables/dom` |
 | Browser composables | `composables/browser` |
 | List composables (`VirtualList`) | `composables/list` |
+| File upload composables (`FileSelection`, `DropZone`, `FileUpload`, `FilePreview`) | `composables/upload` |
 | CSS overview | `css` |
 | Stylesheet classes | `css/stylesheets` |
 | Fluent builder (`this.css({})`) | `css/builder` |
@@ -156,15 +186,15 @@ Slug reference (pass without a leading slash):
 | Router | `ecosystem/router` |
 | Store | `ecosystem/store` |
 | Dependency injection | `ecosystem/di` |
-| Motion | `ecosystem/motion` |
+| Motion (`@Tween`, `@Spring`, `createTransition`) | `ecosystem/motion` |
 | State machines | `ecosystem/fsm` |
 | Concurrency (`@Task`, `@Queue`, `@Pool`) | `ecosystem/concurrency` |
 | UI libraries (Morphos, Kosmesis) | `ecosystem/ui` |
 | Custom decorators | `advanced/custom-decorators` |
 | Custom composables | `advanced/custom-composables` |
-| Vite plugin | `tooling/vite-plugin` |
+| Vite plugin (compiled templates, keyed lists) | `tooling/vite-plugin` |
 | Static site generation | `tooling/ssg` |
-| DevTools panel | `tooling/devtools` |
+| DevTools panel (Performance tab, profiler) | `tooling/devtools` |
 | DevTools plugins | `tooling/devtools-plugins` |
 | Storybook adapter | `tooling/storybook` |
 | MCP server | `tooling/mcp` |
@@ -187,9 +217,9 @@ This applies to three situations, every time:
 How to check:
 
 ```
-1. praxisjs_overview             — scan the index for a page that sounds relevant
-2. praxisjs_get_page(slug)       — read the most likely page(s)
-3. praxisjs_full_docs            — only if the first two turned up nothing and you still suspect it exists
+1. praxisjs_memory_check_duplicate({ description }) — PraxisJS, the project memory and the code at once
+2. praxisjs_search_docs({ query })                  — the docs sections that match
+3. praxisjs_get_page({ page })                       — read the most likely page(s)
 ```
 
 Common cases — if you're about to hand-roll the left column, read the right one first:
@@ -207,10 +237,16 @@ Common cases — if you're about to hand-roll the left column, read the right on
 | Retry loop with backoff, run-once guard | `@Retry`, `@Once` — `decorators/utilities` |
 | `resize` / `scroll` listeners, `IntersectionObserver`, `ResizeObserver`, focus tracking | `@Compose` + `composables/dom` |
 | `matchMedia`, dark mode, mouse position, key combos, idle detection, clipboard, geolocation, relative time, pagination math | `composables/browser` |
+| Re-rendering a whole list on every change, or diffing rows by hand | `For` / `Index` — `essentials/lists` |
+| Every row comparing itself against a `selected` field | `@Selector` — `decorators/performance` |
+| Adding/removing CSS classes to animate list rows in and out | `createTransition()` + `For`'s `transition` prop — `ecosystem/motion`, `essentials/lists` |
 | Virtualizing a long list | `VirtualList` — `composables/list` |
+| File inputs, drag-and-drop, upload progress, image previews | `FileSelection`, `DropZone`, `FileUpload`, `FilePreview` — `composables/upload` |
 | Deferring mount of an off-screen component | `@Lazy` — `decorators/performance` |
 | `document.title` / meta tag updates | `@Head` — `essentials/head` |
 | Rendering a modal or tooltip outside the current DOM subtree | `Portal` — `essentials/portal` |
+| A dialog, menu, select, tabs, tooltip, accordion, slider… with keyboard and ARIA handling | A Morphos primitive or a Kosmesis component — `praxisjs-ui` skill, `praxisjs_ui_components` |
+| A styled button, input, card, table, form field from scratch | An installed or registry Kosmesis component (`npx kosmesis add <name>`) — `ecosystem/ui` |
 | Status enum plus a chain of transition `if`s | `@StateMachine`, `@Transition` — `ecosystem/fsm` |
 | `requestAnimationFrame` loop to animate a value | `@Tween`, `@Spring` — `ecosystem/motion` |
 | Module-level singleton object holding shared state | `@Storable`, `@Store`, `store()` — `ecosystem/store` |
@@ -219,14 +255,39 @@ Common cases — if you're about to hand-roll the left column, read the right on
 | Loading markdown files and parsing frontmatter | `@Collection`, `getCollection` — `ecosystem/content` |
 | Composing class name strings conditionally | `cx()` — `css/cx` |
 | Scoped CSS, CSS variables driven by state, design tokens | `@Styled`, `@Param`, `@Style`, `TokenSheet` — `css`, `css/reactive`, `css/tokens` |
-| A decorator or composable of your own | The `create*Decorator` factories and the `Composable` base class — `advanced/custom-decorators`, `advanced/custom-composables` |
+| A decorator or composable of your own | The decorator builders (`setup` form) and the `Composable` base class — `advanced/custom-decorators`, `advanced/custom-composables`, `references/extending.md` |
+| Code copied into every store (logging, persistence) | A store plugin, `useStorePlugin` — `ecosystem/store` |
+| A debugging panel of your own | A devtools plugin, `DevTools.registerPlugin` — `tooling/devtools-plugins` |
 | Prerendering routes to static HTML | `@praxisjs/ssg` — `tooling/ssg` |
+| `console.log` / `debugger` in a setter or method to see what changed and why | `@Debug({ log, break })` — `decorators/dx` |
+| `performance.now()` around renders to find slow components | `@Trace({ slow })`, the devtools profiler and Performance tab — `decorators/dx`, `tooling/devtools` |
 
 The table is a starting point, not the full inventory — when the case isn't listed, still check the docs before assuming nothing exists.
 
-If the package isn't installed yet, that's not a reason to hand-roll it: resolve the install with `praxisjs_get_install_command`, mention the added dependency to the developer, and record it in CLAUDE.md.
+If the package isn't installed yet, that's not a reason to hand-roll it: resolve the install with `praxisjs_get_install_command`, mention the added dependency to the developer, and add it to the Stack section of CLAUDE.md.
 
-Only after the docs confirm there is no native path should you write it yourself — and when you do, note in CLAUDE.md what you built and why nothing built-in fit, so the next session doesn't repeat the search.
+Only after PraxisJS, the project memory and the code have nothing that fits should you write it yourself — and when you do, record it in the project memory (`praxisjs_memory_add`), with why nothing existing fit, so the next session reuses it instead of writing it again.
+
+---
+
+## Extending PraxisJS
+
+When nothing fits, extend the framework with the APIs it is built on (full guide: `references/extending.md`; docs: `advanced/custom-decorators`, `advanced/custom-composables`):
+
+| Need | API |
+|---|---|
+| Field, method, getter or class behavior | `createFieldDecorator`, `createMethodDecorator`, `createLifecycleMethodDecorator`, `createGetterDecorator`, `createWritableGetterDecorator`, `createGetterObserverDecorator`, `createClassDecorator` + `ClassBehavior` |
+| Reusable reactive logic with state | `class X extends Composable` + `@Compose(X)` |
+| Behavior for every store | `useStorePlugin` |
+| A devtools tab | a `DevtoolsPlugin` with `DevTools.init({ plugins })` / `DevTools.registerPlugin` |
+
+Prefer the builders' `setup` form (shared per member, state in symbol slots), give each decorator a `label`, and never use or require the `accessor` keyword.
+
+---
+
+## Project structure
+
+Follow the layout the project already has: `conventions/project-structure` in the project memory, applied by `praxisjs_scaffold`. `references/project-structure.md` shows two example layouts — by kind (the templates' default: `src/pages`, `src/components`, `src/stores`, `src/composables`, `src/services`, `src/decorators`, `src/utils`, `src/styles`, tests in `src/__tests__`) and feature slices (`src/app`, `src/features/<feature>/` with an `index.ts` public API, `src/shared/`). They are examples: propose one only for a new project or when the developer asks to reorganize; in a feature-slice project, import other features only through their `index.ts` and never import features from `shared/`. File names are kebab-case after the main export. When you find misplaced code, propose where it belongs; move small things as part of the task, ask before large moves, then run `praxisjs_memory_map` and update moved entries.
 
 ---
 
@@ -248,24 +309,28 @@ pnpm create praxisjs@latest
 
 Immediately after scaffolding:
 1. Create `CLAUDE.md` at the project root (use the template in `references/claude-md.md`)
-2. Add any additional packages using the `praxisjs_get_install_command` tool — never hand-write the install command or a version number
-3. Update `CLAUDE.md` with installed packages
-4. Run `praxisjs_get_page('tooling/vite-plugin')` to verify the Vite plugin configuration
+2. Run `praxisjs_memory_init` to set up the project memory (`.praxis/`, committed with the code)
+3. Add any additional packages using the `praxisjs_get_install_command` tool — never hand-write the install command or a version number
+4. Update `CLAUDE.md` with installed packages
+5. Run `praxisjs_get_page('tooling/vite-plugin')` to verify the Vite plugin configuration
 
 ### Existing project maintenance
 
 Three CLI commands cover the cases the skill itself can't fix by editing files:
 
-- `npx praxisjs doctor` — diagnoses the project: missing `@praxisjs/*` dependencies, tsconfig options required by PraxisJS (`jsxImportSource`, `useDefineForClassFields`, `jsx`), and whether this AI integration is fully initialized (skill, config, memory file all present).
+- `npx praxisjs doctor` — diagnoses the project: missing `@praxisjs/*` dependencies, `@praxisjs/*` versions that don't work together (e.g. `@praxisjs/vite-plugin` 4.1+ with a `@praxisjs/runtime` older than 0.8), tsconfig options required by PraxisJS (`jsxImportSource`, `useDefineForClassFields`, `jsx`), and whether this AI integration is complete (skills, MCP server configuration, memory file).
 - `npx praxisjs upgrade` — bumps every `@praxisjs/*` dependency in `package.json` to its latest published version and reinstalls. Prefer this over manually editing version ranges.
-- `npx praxisjs ai remove` — uninstalls an AI integration (prompts for which one). Deletes the skill directory and, for Claude Code, `.claude/settings.json`; leaves `CLAUDE.md` and `.praxisjs-ai.json` untouched.
+- `npx praxisjs ai remove` — uninstalls an AI integration (prompts for which one). Deletes the PraxisJS skills and removes the `praxisjs` MCP server from the project configuration; leaves `CLAUDE.md`, `.praxisjs-ai.json` and `.praxis/` untouched.
 
 **Never write version numbers directly into `package.json`.** Always resolve the install command through the `praxisjs_get_install_command` tool (or `praxisjs upgrade` for existing dependencies) so the package manager pins the current compatible version:
 
 ```
-praxisjs_get_install_command({ packages: ["@praxisjs/router"] })
-praxisjs_get_install_command({ packages: ["@praxisjs/store", "@praxisjs/di"], manager: "pnpm" })
+praxisjs_get_install_command({ packages: ["@praxisjs/router"], dev: false })
+praxisjs_get_install_command({ packages: ["@praxisjs/store", "@praxisjs/di"], manager: "pnpm", dev: false })
+praxisjs_get_install_command({ packages: ["@praxisjs/ssg"], manager: "pnpm" })
 ```
+
+`dev` defaults to `true`. Pass `dev: false` for packages the app imports at runtime (core, decorators, jsx, runtime, router, store, …); leave it for build tooling (vite-plugin, ssg, storybook, devtools, mcp).
 
 The same rule applies when scaffolding files or editing `package.json` directly — never add a `@praxisjs/*` dependency with an explicit version constraint by hand.
 
@@ -361,6 +426,20 @@ this.items.push(next)                       // ❌ no update
 
 Use `@DeepState()` when deep mutation tracking is genuinely needed.
 
+### Lists
+
+Render arrays with `For` (rows kept per key) or `Index` (rows kept per position) from `@praxisjs/runtime`. Each row renders once; `item()` and `index()` are accessors, reactive inside arrows like any other value:
+
+```tsx
+import { For } from '@praxisjs/runtime'
+
+<For each={() => this.todos} by="id" fallback={<li>Nothing to do</li>}>
+  {(todo, index) => <li>{() => `${index() + 1}. ${todo().title}`}</li>}
+</For>
+```
+
+A keyed `{() => list.map((item) => <Row key={item.id} />)}` is rewritten into `For` by the Vite plugin, but writing `For` directly is better: it updates bindings in place instead of re-rendering a changed row. When every row checks `this.selected === row.id`, use `@Selector('selected') isSelected!: Selector<number>` and read `this.isSelected(row.id)`, so a selection change only re-runs two rows. Fetch `essentials/lists` and `decorators/performance` for the details.
+
 ### Decorator ordering
 
 Field decorators: **inner-first**. `@State()` / `@Prop()` must be closest to the field.
@@ -391,11 +470,11 @@ Fetch the matching docs page before using anything below — this list is for kn
 import { StatefulComponent, StatelessComponent, Composable, peek, untrack } from '@praxisjs/core'
 ```
 
-That is the whole public export list. `signal`, `computed`, `effect`, `batch`, `resource`, `persistedSignal`, `RootComponent` and friends live in `@praxisjs/core/internal` and are **not** application API — reach for the decorator instead (`@State`, `@Computed`, `@Resource`, `@Persisted`, `@Watch`). Only use `/internal` when authoring a framework package, a custom decorator, or a custom composable, and say so in CLAUDE.md when you do.
+That is the whole public export list. `signal`, `computed`, `effect`, `batch`, `selector`, `resource`, `persistedSignal`, `RootComponent` and friends live in `@praxisjs/core/internal` and are **not** application API — reach for the decorator instead (`@State`, `@Computed`, `@Selector`, `@Resource`, `@Persisted`, `@Watch`). Only use `/internal` when authoring a framework package, a custom decorator, or a custom composable, and say so in CLAUDE.md when you do.
 
 ### `@praxisjs/runtime`
 
-`render`, `Portal`, `Scope`, `runInScope`, `getCurrentScope`, `mountElement`, `mountComponent`.
+`render`, `enableHydration`, `For`, `Index`, `Portal`, `Scope`, `runInScope`, `getCurrentScope`, `mountElement`, `mountChildren`, `mountComponent`. The `_$`-prefixed exports (`_$template`, `_$insert`, …) are what the Vite plugin's compiled templates call — never use them by hand.
 
 ### `@praxisjs/decorators`
 
@@ -403,13 +482,14 @@ That is the whole public export list. `signal`, `computed`, `effect`, `batch`, `
 |---|---|
 | Class | `@Component()`, `@Lazy()` |
 | State & props | `@State`, `@Prop`, `@FunctionProp`, `@Computed`, `@DeepState`, `@Persisted`, `@History`, `@Synced`, `@Resource`, `@Ref` |
+| Performance | `@Lazy` (class), `@Selector` (field, typed with the `Selector<K>` type) |
 | Watchers | `@Watch`, `@When`, `@Until` |
 | Events & slots | `@Emit`, `@OnCommand`, `@Command`, `@Slot` |
 | Timing | `@Debounce`, `@Throttle` |
 | Utilities | `@Bind`, `@Log`, `@Once`, `@Memo`, `@Retry` |
 | Composition | `@Compose` |
 | Helpers | `invalidateResource`, `createRef`, `createCommand`, `getter`, `initSlots` |
-| Decorator factories | `createFieldDecorator`, `createMethodDecorator`, `createLifecycleMethodDecorator`, `createGetterDecorator`, `createWritableGetterDecorator`, `createGetterObserverDecorator`, `createAccessorDecorator`, `createClassDecorator` |
+| Decorator builders | `createFieldDecorator`, `createMethodDecorator`, `createLifecycleMethodDecorator`, `createGetterDecorator`, `createWritableGetterDecorator`, `createGetterObserverDecorator`, `createClassDecorator` + `ClassBehavior`; `assertFieldContext`, `addClaimableInitializer` for TC39-API decorators (prefer the shared `setup` form; no `accessor` fields) |
 
 **Name collision to watch for:** `Lazy` is exported by **both** `@praxisjs/decorators` (defers mounting a component until it enters the viewport) and `@praxisjs/router` (wraps a dynamically imported route component). Check which package the import comes from before using it.
 
@@ -420,12 +500,12 @@ That is the whole public export list. `signal`, `computed`, `effect`, `batch`, `
 | `@praxisjs/router` | `@Router`, `@Route`, `@Params`, `@Query`, `@Location`, `@Meta`, `@InjectLayout`, `Lazy()`, `RouterView`, `RouterOutlet`, `Link`, `RouterInstance`, `useMeta` |
 | `@praxisjs/store` | `@Storable`, `@Store`, `store()`, `ReactiveStore`, `useStorePlugin` |
 | `@praxisjs/di` | `@Injectable`, `@Inject`, `@InjectContainer`, `@Scope`, `inject()`, `Container`, `container`, `Token`, `token` |
-| `@praxisjs/motion` | `@Tween`, `@Spring` |
+| `@praxisjs/motion` | `@Tween`, `@Spring`, `createTransition()` (enter/leave hooks for `For`/`Index`) |
 | `@praxisjs/fsm` | `@StateMachine`, `@Transition` |
 | `@praxisjs/content` | `@Collection`, `@PagedCollection`, `ContentSchema`, `getCollection`, `getEntry`, `getTotal`, `getPage`, `collectionStaticPaths` |
 | `@praxisjs/head` | `@Head` |
 | `@praxisjs/concurrent` | `@Task`, `@Queue`, `@Pool`, `QueueClearedError` |
-| `@praxisjs/composables` | Composable classes used through `@Compose`: `WindowSize`, `ScrollPosition`, `ElementSize`, `Intersection`, `Focus`, `MediaQuery`, `ColorScheme`, `Mouse`, `KeyCombo`, `Idle`, `Clipboard`, `Geolocation`, `TimeAgo`, `Pagination`, `VirtualList` |
+| `@praxisjs/composables` | Composable classes used through `@Compose`: `WindowSize`, `ScrollPosition`, `ElementSize`, `Intersection`, `Focus`, `MediaQuery`, `ColorScheme`, `Mouse`, `KeyCombo`, `Idle`, `Clipboard`, `Geolocation`, `TimeAgo`, `Pagination`, `VirtualList`, `FileSelection`, `DropZone`, `FileUpload`, `FilePreview`; helpers `formatFileSize`, `validateFiles` |
 | `@praxisjs/css` | `Stylesheet`, `ReactiveStylesheet`, `@Styled`, `@Style`, `@Param`, `TokenSheet`, `ThemeInstance`, `theme`, `@Themed`, `@Theme`, `tokenVars`, `cx`, `keyframes`, `globalStyle`, `preflight` |
 
 Composables are always attached with `@Compose` from `@praxisjs/decorators` — never instantiated by hand:
@@ -440,11 +520,11 @@ Composables are always attached with `@Compose` from `@praxisjs/decorators` — 
 
 | Package | Entry point |
 |---|---|
-| `@praxisjs/vite-plugin` | `praxisjs()` — required; `praxisjsCSS()` for build-time CSS extraction |
+| `@praxisjs/vite-plugin` | `praxisjs()` — required. Compiles JSX into cloned templates (`templates`) and rewrites keyed `.map()` into `For` (`keyedLists`), both on by default; `praxisjsCSS()` for build-time CSS extraction |
 | `@praxisjs/ssg` | `ssgPlugin({ root })` — prerenders routes and hydrates them client-side |
-| `@praxisjs/devtools` | `DevTools.init()`, dev-only dynamic import |
-| `@praxisjs/storybook` | Storybook framework adapter — `Meta`, `StoryObj`, `StorybookConfig`, `renderToCanvas` |
-| `@praxisjs/mcp` | The MCP server backing the four tools above |
+| `@praxisjs/devtools` | `DevTools.init()`, dev-only dynamic import. `@Debug({ label, log: boolean \| "trace", break: boolean \| (next, prev) => boolean })` on fields, getters and methods; `@Trace({ slow: ms })` warns about renders slower than `slow`; `Registry.instance.profiler` (`start()`, `stop()`, `reset()`, `snapshot()`) and the `PerformancePlugin` tab for profiling; the `__PRAXIS_DEVTOOLS__` console global. Both decorators are no-ops in production builds |
+| `@praxisjs/storybook` | Storybook framework adapter — `Meta`, `StoryObj`, `StorybookConfig`. Registers `renderToCanvas` and a default `render` itself, so `.storybook/preview.ts` needs no setup |
+| `@praxisjs/mcp` | The MCP server: docs, API reference, project inspection, validation, scaffolding and the project memory (`references/mcp.md`) |
 
 `@praxisjs/ssg` is experimental and has a strict contract: the `root` module must default-export the root component and named-export the same `routes` array passed to `@Router([...])`. Always fetch `tooling/ssg` before touching it.
 
@@ -452,30 +532,32 @@ Composables are always attached with `@Compose` from `@praxisjs/decorators` — 
 
 ## AI-oriented development practices
 
-These habits make AI-assisted development significantly faster and more accurate across sessions.
-
-**Keep CLAUDE.md as the single source of architectural truth.** Inline comments rot; CLAUDE.md stays. When you establish a pattern, document it there — not in a comment buried in a component file.
-
 **Prefer explicit over implicit.** Annotate `@Prop()` fields with explicit types. Name stores, routes, and composables for what they represent, not what they contain (`UserSessionStore` not `Store1`).
 
 **Write small, focused components.** A component doing one thing is trivial to modify correctly. Ask the user to split large components before making changes — AI edits large files with more risk.
 
-**Tests are the spec.** When tests exist, Claude can modify behavior safely. For every `@State` field with side effects, every `@Watch` handler, every `@Resource` call — write a test. Tests live in `src/__tests__/*.test.ts` and run on Vitest; add `// @vitest-environment jsdom` at the top of files that touch DOM APIs.
+**Tests are the spec.** When tests exist, Claude can modify behavior safely. For every `@State` field with side effects, every `@Watch` handler, every `@Resource` call — write a test (`praxisjs-testing`).
 
 **Describe intent in tasks, not steps.** Instead of "set loading to true, call the API, set loading to false", say "fetch users on mount, show a loading spinner during the request". Let the skill look up the idiomatic pattern.
 
-**After significant changes, update CLAUDE.md immediately.** Don't defer it. The next session will be more capable if it starts with current context.
+**Record as you go.** Update the project memory right after adding reusable code or agreeing on a rule, and CLAUDE.md right after a stack change. The next session starts from what you recorded.
 
 ---
 
 ## Hard rules
 
-- Never guess at decorator options — always fetch the docs page.
-- Never hand-roll behavior the framework already ships — search the docs for a native decorator, composable, or package export before writing custom logic, and before reaching for a third-party dependency.
+- Never guess at decorator options, signatures or import paths — look them up (`praxisjs_search_docs`, `praxisjs_get_page`, `praxisjs_api_reference`).
+- Never write PraxisJS code without the MCP server connected; help the developer connect it first.
+- Never hand-roll behavior the framework or the project already has — `praxisjs_memory_check_duplicate` first, and check for a first-party package before a third-party dependency.
+- Never build a UI piece Kosmesis or Morphos already provides; never copy Kosmesis files by hand or edit `@morphos/*` in `node_modules`.
+- Never use the `accessor` keyword.
+- Never create files in ad-hoc places — follow `conventions/project-structure` (`praxisjs_scaffold`).
+- Never read or write `.praxis/` files directly — only the `praxisjs_memory_*` tools.
 - Never use workarounds — if something feels like a hack, it is. Find the idiomatic path.
-- Never skip the CLAUDE.md update — the next session depends on it.
+- Never skip the CLAUDE.md or project memory update — the next session depends on it.
 - Never use `any` or non-null assertions (`!`) in logic — strict TypeScript throughout. (`!` on a decorated field declaration, e.g. `@Resource(...) user!: ResourceInstance<User>`, is the required syntax and is fine.)
-- Never import `signal`, `effect`, `computed`, or anything else from `@praxisjs/*/internal` in application code — use decorators instead.
+- Never import `signal`, `effect`, `computed`, or anything else from `@praxisjs/*/internal` in application code — use decorators instead (custom decorators and composables are the exception).
 - Never give `StatelessComponent` `@State`, `@Prop`, `@Watch`, `@Emit`, or `@Slot` — promote it to `StatefulComponent` instead.
 - Never write version numbers into `package.json` — always resolve installs through `praxisjs_get_install_command` or `npx praxisjs upgrade`.
+- Always run `praxisjs_validate_file` on what you created or changed.
 - If something in the project seems misconfigured (JSX not rendering, decorators not working, integration files missing), run `npx praxisjs doctor` before guessing at a fix.

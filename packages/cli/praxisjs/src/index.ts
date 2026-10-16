@@ -2,12 +2,14 @@ import { argv, exit } from "node:process";
 
 import { add } from "./commands/ai/add";
 import { remove } from "./commands/ai/remove";
+import { sync } from "./commands/ai/sync";
 import { doctor } from "./commands/doctor";
 import { upgrade } from "./commands/upgrade";
 
 const aiCommands: Record<string, () => Promise<void>> = {
   add,
   remove,
+  sync,
 };
 
 const usage =
@@ -15,8 +17,9 @@ const usage =
   "Commands:\n" +
   "  ai add       Add an AI integration to an existing project\n" +
   "  ai remove    Remove an AI integration from the project\n" +
+  "  ai sync      Update installed AI integrations to this version (--dry-run to preview)\n" +
   "  doctor       Diagnose common issues in an existing project\n" +
-  "  upgrade      Upgrade @praxisjs/* dependencies to their latest published version";
+  "  upgrade      Upgrade @praxisjs/*, @morphos/* and kosmesis to their latest compatible version";
 
 function resolveHandler(): (() => Promise<void>) | undefined {
   const [first, second] = argv.slice(2);

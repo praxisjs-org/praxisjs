@@ -1,10 +1,13 @@
 # [Project name]
 
 ## Working agreements
-- Always consult praxisjs.org docs before writing PraxisJS code — use the praxisjs Codex skill
-- Before hand-rolling any behavior, check the docs for a native PraxisJS decorator, composable, or package export that already does it
-- Never hardcode version numbers in package.json — install packages via CLI without specifying a version
-- Update this file whenever an architectural decision is made
+- Look up every PraxisJS API in the docs through the PraxisJS MCP server before writing code — never guess (use the praxisjs Codex skill)
+- Before writing a component, composable, store, service, decorator or helper, run praxisjs_memory_check_duplicate and reuse what exists
+- Extend PraxisJS with its decorator builders, Composable, store plugins and devtools plugins; never the `accessor` keyword
+- Build UI from installed Kosmesis components, the Kosmesis registry (`npx kosmesis add`) and Morphos primitives before writing new ones
+- Put files where conventions/project-structure says (praxisjs_scaffold); move misplaced code you touch
+- Never hardcode version numbers in package.json — install packages via praxisjs_get_install_command or `praxisjs upgrade`
+- Validate changed files with praxisjs_validate_file
 
 ## Stack
 - PraxisJS [version] + packages: @praxisjs/[list]
@@ -16,9 +19,9 @@
 ## Architecture
 [2–4 sentences: what the app does, how it's organized, main entry points]
 
-## Conventions
-[Project-specific patterns — e.g. "all forms extend FormBase", "stores are singletons injected via @Store",
-"presentational components extend StatelessComponent<Props>, anything with @State extends StatefulComponent"]
+## Project memory
+Reusable code, business rules, decisions and conventions are in `.praxis/`, read and changed only
+through the PraxisJS MCP server (`praxisjs_memory_*` tools). Never edit those files by hand.
 
 ## Known constraints
 [Anything that would surprise a developer — auth, browser targets, env vars, etc.]

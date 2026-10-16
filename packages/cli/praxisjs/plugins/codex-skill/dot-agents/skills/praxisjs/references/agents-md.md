@@ -1,15 +1,27 @@
 # AGENTS.md Templates for PraxisJS Projects
 
-`AGENTS.md` is the primary context document for Codex. Every session reads it at startup. Keep it accurate and concise — one page maximum.
+AGENTS.md is the primary context document for AI-assisted development. Every Codex session reads it first. Keep it accurate and concise — one page maximum.
 
-The **Working agreements** block belongs at the top of every variant below:
+It holds the stack, the entry points and the constraints. Everything that grows with the code —
+reusable components and utilities, business rules, architecture decisions, conventions, the glossary —
+lives in the project memory (`.praxis/`), read and changed only through the PraxisJS MCP server's
+`praxisjs_memory_*` tools (`project-memory.md`). Don't copy memory entries into AGENTS.md.
+
+The **Working agreements** and **Project memory** blocks belong in every variant below:
 
 ```markdown
 ## Working agreements
-- Always consult praxisjs.org docs before writing PraxisJS code — use the praxisjs Codex skill
-- Before hand-rolling any behavior, check the docs for a native PraxisJS decorator, composable, or package export that already does it
-- Never hardcode version numbers in package.json — install packages via CLI without specifying a version
-- Update this file whenever an architectural decision is made
+- Look up every PraxisJS API in the docs through the PraxisJS MCP server before writing code — never guess
+- Before writing a component, composable, store, service, decorator or helper, run praxisjs_memory_check_duplicate and reuse what exists
+- Extend PraxisJS with its decorator builders, Composable, store plugins and devtools plugins; never the `accessor` keyword
+- Build UI from installed Kosmesis components, the Kosmesis registry (`npx kosmesis add`) and Morphos primitives before writing new ones
+- Put files where conventions/project-structure says (praxisjs_scaffold); move misplaced code you touch
+- Never hardcode version numbers in package.json — install packages via praxisjs_get_install_command or `praxisjs upgrade`
+- Validate changed files with praxisjs_validate_file
+
+## Project memory
+Reusable code, business rules, decisions and conventions are in `.praxis/`, read and changed only
+through the PraxisJS MCP server (`praxisjs_memory_*` tools). Never edit those files by hand.
 ```
 
 ---
@@ -31,9 +43,11 @@ The **Working agreements** block belongs at the top of every variant below:
 Single-page app. Entry: `src/main.tsx` calls `render(() => <App />, …)`. Components live in `src/components/`.
 
 ## Conventions
-- All components in PascalCase files: `src/components/MyComponent.tsx`
 - No global state — all state is local to components
-- Presentational components extend `StatelessComponent<Props>`; anything with `@State`, `@Watch`, or `@Emit` extends `StatefulComponent`
+- Folder layout and naming: `conventions/project-structure` in the project memory
+
+## Project memory
+[block above]
 
 ## Known constraints
 [e.g. targets Chrome 90+, no IE support]
@@ -57,6 +71,9 @@ Single-page app. Entry: `src/main.tsx` calls `render(() => <App />, …)`. Compo
 ## Architecture
 SPA. Entry: `src/main.tsx`. Routes configured on the root component with `@Router([...])`.
 Pages in `src/pages/`, shared components in `src/components/`.
+
+## Project memory
+[block above]
 
 ## Routing conventions
 - Each page is a class annotated with `@Route('/path')` or `@Route({ path, name, meta })`
@@ -87,6 +104,9 @@ Pages in `src/pages/`, shared components in `src/components/`.
 SPA with centralized state. Stores in `src/stores/`, injected with `@Store`.
 DI container configured in `src/di.ts`. Pages in `src/pages/`, components in `src/components/`.
 
+## Project memory
+[block above]
+
 ## Store conventions
 - One store per domain: `UserStore`, `CartStore`, `NotificationsStore`
 - Stores are class singletons: `@Storable() class UserStore extends ReactiveStore`, reactive fields declared with `@State()`
@@ -98,7 +118,7 @@ DI container configured in `src/di.ts`. Pages in `src/pages/`, components in `sr
 - Scoped containers via `@Scope` on feature modules
 
 ## Known constraints
-[auth flow, token storage, SSG decision, etc.]
+[auth flow, token storage, SSR/SSG decision, etc.]
 ```
 
 ---
@@ -120,6 +140,9 @@ DI container configured in `src/di.ts`. Pages in `src/pages/`, components in `sr
 ## Architecture
 Markdown-backed site. Posts in `src/content/posts/*.md`, collection defined in `src/content/posts.ts`.
 Pages in `src/pages/`, entry `src/main.tsx`.
+
+## Project memory
+[block above]
 
 ## Content conventions
 - Frontmatter shape is a class extending `ContentSchema`, wired with `@Collection` / `@PagedCollection`
@@ -179,8 +202,8 @@ vs. plain Stylesheet vs. plain classes]
 ## Async & concurrency
 [Which endpoints go through @Resource, which flows use @Task / @Queue / @Pool]
 
-## Conventions
-[Project-specific patterns beyond the defaults]
+## Project memory
+[block above]
 
 ## Known constraints
 [Important limitations, env vars, browser targets]
@@ -193,40 +216,45 @@ vs. plain Stylesheet vs. plain classes]
 Always resolve `@praxisjs/*` installs through the `praxisjs_get_install_command` MCP tool — never hand-write the command or a version number:
 
 ```
-praxisjs_get_install_command({ packages: ["@praxisjs/store"] })
-praxisjs_get_install_command({ packages: ["@praxisjs/router", "@praxisjs/di"], manager: "pnpm" })
+praxisjs_get_install_command({ packages: ["@praxisjs/store"], dev: false })
+praxisjs_get_install_command({ packages: ["@praxisjs/router", "@praxisjs/di"], manager: "pnpm", dev: false })
+praxisjs_get_install_command({ packages: ["@praxisjs/ssg"], manager: "pnpm" })
 ```
 
+`dev` defaults to `true`: pass `dev: false` for packages the app imports at runtime, keep the default for build tooling.
+
+The tool returns the correct command for the project's package manager with no version constraint, so the package manager always resolves the latest compatible release.
+
 ```bash
-# wrong — version may already be outdated
+# wrong — version may already be outdated, and it bypasses the package manager's resolution
 pnpm add @praxisjs/store@^0.1.0
 ```
 
-Never add a `@praxisjs/*` entry to `package.json` by hand with a version constraint. To bump existing `@praxisjs/*` dependencies, run `npx praxisjs upgrade` instead of editing ranges manually.
+Never add a `@praxisjs/*` entry to `package.json` by hand with a version constraint. To bump existing `@praxisjs/*` dependencies to their latest version, run `npx praxisjs upgrade` instead of editing ranges manually.
 
-In `AGENTS.md`, record the package name only in the Stack section — not the version constraint. The version in `package.json` is authoritative.
+In AGENTS.md, record the package name only in the Stack section — not the version constraint. The version in `package.json` (set by the CLI) is authoritative.
 
 ---
 
-## When to update AGENTS.md
+## When to update AGENTS.md, and when the project memory
 
-Update immediately after:
-
-| Event | What to update |
+| Event | Update |
 |---|---|
-| Added `@praxisjs/*` package | Stack section |
-| Created new store or DI service | Store/DI conventions |
-| Added new route pattern | Routing conventions |
-| Created base class components share | Conventions section |
-| Wrote custom logic because the docs confirmed no native API covers it | Conventions section — say what you built and why nothing built-in fit |
-| Added a shared stylesheet class or composable | Styling / Composables section |
-| Enabled or reconfigured `@praxisjs/ssg` | Prerendering section |
-| Changed how auth/env/config, or styling, works | Known constraints |
-| Renamed a major directory | Architecture section |
+| Added or removed a `@praxisjs/*` package | AGENTS.md, Stack section |
+| Changed entry points, build, env vars, browser targets, deploy | AGENTS.md |
+| Enabled or reconfigured `@praxisjs/ssg` | AGENTS.md, Prerendering section |
+| Created a reusable component, composable, store, service, decorator or helper | project memory: `praxisjs_memory_add` (`components` / `utilities`) |
+| Wrote custom logic because nothing built-in fit | project memory entry, with why nothing existing fit |
+| Changed or moved reusable code | project memory: `praxisjs_memory_update` (`praxisjs_memory_map` finds stale entries) |
+| A business rule came up | project memory: `business-rules` |
+| An architecture choice was made (state management, routing strategy, styling) | project memory: `architecture` |
+| A folder layout or coding convention was agreed | project memory: `conventions` (`project-structure` for folders) |
+
+Update immediately; don't defer.
 
 ## What NOT to put in AGENTS.md
 
+- Anything the project memory holds (component catalog, rules, decisions, conventions)
 - Implementation details (those belong in the code)
 - Change history (that belongs in git)
 - TODOs (use issues or a TODO file)
-- Per-component documentation
