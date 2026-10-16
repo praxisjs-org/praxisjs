@@ -86,6 +86,7 @@ pnpm --filter @praxisjs/core dev
 pnpm build                      # build all packages
 pnpm build:foundation           # foundation packages only
 pnpm --filter @praxisjs/runtime build
+pnpm typecheck                  # tsc --noEmit in every package, tests included
 
 # Playground
 cd playground && pnpm dev       # or from root: pnpm --filter playground dev
@@ -108,7 +109,7 @@ pnpm docs:build
 
 ## Build system
 
-- **Foundation / Features / Utils**: `tsc` — each package has its own `tsconfig.json` extending `tsconfig.base.json`. Output goes to `dist/`.
+- **Foundation / Features / Utils** (and `ssg`, `storybook`, `vite-plugin`): `tsc -p tsconfig.build.json` — each package has its own `tsconfig.json` extending `tsconfig.base.json`, and a `tsconfig.build.json` that leaves `src/**/__tests__` out of `dist/`. `pnpm typecheck` (`tsc --noEmit` with `tsconfig.json`) type-checks the tests too. Each package's `files` keeps tests out of the published tarball; check with `pnpm pack --dry-run`.
 - **Devtools**: `vite build` with `vite-plugin-dts`.
 - **create-praxisjs**: `tsdown`.
 - **No TypeScript project references** — packages are built independently.
@@ -218,7 +219,32 @@ class MyModule extends StatefulComponent { /* ... */ }
 
 ### Field decorators — `createFieldDecorator`
 
-Use for property-level behavior. The `bind` callback runs once per instance during construction.
+Use for property-level behavior. Prefer `setup`: it runs once per decorated field and returns a
+`get`/`set` pair shared by every instance (`this` is the instance), with per-instance state in
+symbol slots created in `init`. The same `setup` form exists on `createMethodDecorator`,
+`createGetterDecorator` and `createWritableGetterDecorator`. Never use the `accessor` keyword: field
+decorators throw on it and there is no accessor builder.
+
+```ts
+import { createFieldDecorator } from '@praxisjs/decorators'
+
+function MyDecorator() {
+  return createFieldDecorator<object, number>({
+    setup(name) {
+      const slot = Symbol(name)
+      return {
+        get(this: Record<symbol, unknown>) { /* read this[slot] */ },
+        set(this: Record<symbol, unknown>, v) { /* write this[slot] */ },
+        init(instance, initialValue) { /* create the slot for every instance */ },
+        onMount(instance) { /* ... */ },
+      }
+    },
+  })
+}
+```
+
+`bind` runs once per instance during construction, for decorators that wrap the property a decorator
+stacked under them installed:
 
 ```ts
 import { createFieldDecorator, type FieldBinding } from '@praxisjs/decorators'
@@ -241,11 +267,12 @@ function MyDecorator() {
 
 ### Class decorators — `createClassDecorator` / `ClassBehavior`
 
-Use for class-level behavior. Extend `ClassBehavior` and implement its two hooks:
+Use for class-level behavior. Extend `ClassBehavior` and implement the hooks you need (all optional):
 
 | Hook | When it runs | Use for |
 |---|---|---|
-| `create(instance)` | Once per instance, in the constructor | Per-instance setup (state, side-effects) |
+| `onMount(instance)` / `onUnmount(instance)` / `render(instance, originalRender)` | Every mount / unmount / render | Shared hooks on the behavior itself, nothing allocated per instance |
+| `create(instance)` | Once per instance, in the constructor | Per-instance setup returning a `ClassEnhancement` with closures |
 | `initialize(Enhanced, original)` | Once after the class is decorated | Static setup — registrations, metadata on the constructor |
 
 ```ts
@@ -271,7 +298,7 @@ export function MyDecorator() {
 }
 ```
 
-`createClassDecorator` wraps the class in an `Enhanced` subclass. The original class name is preserved via `Object.defineProperty`. Decorators built this way must be used as real decorators (not called imperatively with the return value discarded) so TypeScript reassigns the class variable to `Enhanced`.
+`createClassDecorator` wraps the class in an `Enhanced` subclass (a behavior with only `initialize` returns the class unchanged). The original class name is preserved via `Object.defineProperty`. Decorators built this way must be used as real decorators (not called imperatively with the return value discarded) so TypeScript reassigns the class variable to `Enhanced`.
 
 ---
 

@@ -41,6 +41,10 @@ jobs:
           pnpm build:dx
           pnpm build:cli
 
+      # Package builds compile src without its __tests__, which this step still type-checks.
+      - name: Typecheck packages and tests
+        run: pnpm typecheck
+
       - name: Run tests
         run: pnpm test:coverage
 

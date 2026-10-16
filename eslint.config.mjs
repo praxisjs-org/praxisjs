@@ -20,7 +20,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['*.config.ts', '*.config.mjs'],
+          allowDefaultProject: ['*.config.ts', '*.config.mjs', 'packages/dx/devtools/vite.config.ts'],
         },
         tsconfigRootDir: import.meta.dirname,
       },
