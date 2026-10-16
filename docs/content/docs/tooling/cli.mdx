@@ -8,28 +8,9 @@ icon: Terminal
 
 `praxisjs` is a CLI for maintaining an **existing** PraxisJS project — as opposed to `create-praxisjs`, which only scaffolds new ones. No install required:
 
-<Tabs items={['npx', 'pnpm', 'yarn', 'bun']}>
-<Tab value="npx">
-```sh
+```npm
 npx praxisjs <command>
 ```
-</Tab>
-<Tab value="pnpm">
-```sh
-pnpm dlx praxisjs <command>
-```
-</Tab>
-<Tab value="yarn">
-```sh
-yarn dlx praxisjs <command>
-```
-</Tab>
-<Tab value="bun">
-```sh
-bunx praxisjs <command>
-```
-</Tab>
-</Tabs>
 
 | Command | Purpose |
 |---|---|
@@ -48,7 +29,7 @@ Running `praxisjs` with no arguments, an unknown command, `ai` without a subcomm
 
 Sets up Kosmesis in the current project, the same way `create-praxisjs --kosmesis` does for a new one:
 
-```sh
+```npm
 npx praxisjs add kosmesis
 ```
 
@@ -68,7 +49,7 @@ In a terminal and without flags, it asks whether to add the starter components (
 | `--icon-library`, `--css`, `--root-component`, `--erase`, `--no-erase`, `--overwrite`, `--no-overwrite`, `--force` | Passed to [`kosmesis init`](https://kosmesis.praxisjs.org/docs/guide/getting-started#non-interactive-setup) as given |
 | `-h`, `--help` | Prints the flags |
 
-```sh
+```npm
 npx praxisjs add kosmesis --style-system praxisjs-css --components button,card,dialog
 ```
 
@@ -80,7 +61,7 @@ If `kosmesis` fails (no network, or a release without the flags), it shows why, 
 
 Installs an AI integration into the current project. Prompts for which one:
 
-```sh
+```npm
 npx praxisjs ai add
 ```
 
@@ -105,7 +86,7 @@ It ends with a prompt to paste into the agent, which [maps the project into the 
 
 Uninstalls an AI integration. Prompts for which one, then asks for confirmation before deleting anything:
 
-```sh
+```npm
 npx praxisjs ai remove
 ```
 
@@ -122,7 +103,7 @@ The memory file, `.praxisjs-ai.json` and `.praxis/` are never deleted — they h
 
 Brings every installed AI integration up to the CLI's version — typically after upgrading `praxisjs`, or in a project set up by an earlier release:
 
-```sh
+```npm
 npx praxisjs ai sync --dry-run   # show what would change
 npx praxisjs ai sync
 ```
@@ -149,7 +130,7 @@ When the sync adds the MCP server to an integration that didn't have it configur
 
 Diagnoses common problems in the current project:
 
-```sh
+```npm
 npx praxisjs doctor
 ```
 
@@ -178,7 +159,7 @@ The version check reads the installed version from `node_modules` and falls back
 
 Updates the PraxisJS ecosystem packages in `package.json` to their latest published version:
 
-```sh
+```npm
 npx praxisjs upgrade
 ```
 

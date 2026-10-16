@@ -10,28 +10,9 @@ icon: Zap
 
 `create-praxisjs` scaffolds a project with TypeScript, Vite, JSX, and HMR already configured. It's the fastest way to get started.
 
-<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
-<Tab value="npm">
-```sh
+```npm
 npm create praxisjs@latest
 ```
-</Tab>
-<Tab value="pnpm">
-```sh
-pnpm create praxisjs
-```
-</Tab>
-<Tab value="yarn">
-```sh
-yarn create praxisjs
-```
-</Tab>
-<Tab value="bun">
-```sh
-bun create praxisjs
-```
-</Tab>
-</Tabs>
 
 The CLI asks, in order:
 
@@ -50,7 +31,7 @@ The CLI asks, in order:
 
 Start the dev server:
 
-```sh
+```npm
 cd my-app
 npm install
 npm run dev
@@ -69,28 +50,9 @@ Flags answer a question ahead of time, in any position after the project name. W
 
 After the template, the CLI asks **Desktop app with Tauri v2?** Answer yes, or pass `--tauri` to skip the question (`--no-tauri` skips it too, with no desktop app). The option works with every template:
 
-<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
-<Tab value="npm">
-```sh
+```npm
 npm create praxisjs@latest my-app -- --tauri
 ```
-</Tab>
-<Tab value="pnpm">
-```sh
-pnpm create praxisjs my-app --tauri
-```
-</Tab>
-<Tab value="yarn">
-```sh
-yarn create praxisjs my-app --tauri
-```
-</Tab>
-<Tab value="bun">
-```sh
-bun create praxisjs my-app --tauri
-```
-</Tab>
-</Tabs>
 
 npm needs the `--` so that it passes `--tauri` to the CLI instead of reading it as one of its own options.
 
@@ -105,7 +67,7 @@ The CLI runs the official Tauri CLI (`tauri init`, through `npx`, `pnpm dlx`, `y
 | `src/greet.tsx` (minimal) or `src/components/greet.tsx` | A component that calls the Rust command with `invoke("greet", { name })`, rendered by `src/app.tsx` |
 | `.gitignore`, `README.md` | Tauri build output ignored, a short "Desktop app" section |
 
-```sh
+```npm
 cd my-app
 npm install
 npm run tauri:dev    # Vite + native window, with hot reload
@@ -131,28 +93,9 @@ If the Tauri CLI cannot be downloaded or fails, the CLI says why, removes the pa
 | **Yes, with Tailwind CSS** | Tailwind CSS v4 utility classes and `class-variance-authority` |
 | **Yes, with @praxisjs/css** | Typed CSS-in-TS with [`@praxisjs/css`](/docs/css), no Tailwind |
 
-<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
-<Tab value="npm">
-```sh
+```npm
 npm create praxisjs@latest my-app -- --kosmesis
 ```
-</Tab>
-<Tab value="pnpm">
-```sh
-pnpm create praxisjs my-app --kosmesis
-```
-</Tab>
-<Tab value="yarn">
-```sh
-yarn create praxisjs my-app --kosmesis
-```
-</Tab>
-<Tab value="bun">
-```sh
-bun create praxisjs my-app --kosmesis
-```
-</Tab>
-</Tabs>
 
 The CLI runs `kosmesis init` without prompts through your package manager (`npx`, `pnpm dlx`, `yarn dlx` or `bunx`, with `kosmesis@^0.6.0`), then `kosmesis add button card`. That installs the project's dependencies, so the project is ready to run when the CLI ends. Kosmesis:
 
@@ -174,28 +117,9 @@ Kosmesis works with every template and with `--tauri`: the components render in 
 
 `praxisjs add kosmesis` sets Kosmesis up in a project you already have, Tauri apps included. It checks that the project depends on `@praxisjs/core`, installs its dependencies when `node_modules` is missing, runs `kosmesis init` and says what to do next:
 
-<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
-<Tab value="npm">
-```sh
+```npm
 npx praxisjs add kosmesis
 ```
-</Tab>
-<Tab value="pnpm">
-```sh
-pnpm dlx praxisjs add kosmesis
-```
-</Tab>
-<Tab value="yarn">
-```sh
-yarn dlx praxisjs add kosmesis
-```
-</Tab>
-<Tab value="bun">
-```sh
-bunx praxisjs add kosmesis
-```
-</Tab>
-</Tabs>
 
 In a terminal, without flags, `kosmesis init` asks its own questions. With flags it runs without prompts: `npx praxisjs add kosmesis --style-system praxisjs-css --components button,card`. See the [CLI reference](/docs/tooling/cli#add-kosmesis) for every flag.
 
@@ -207,32 +131,10 @@ Prefer to wire things up yourself? Here's what you need.
 
 ### 1. Install packages
 
-<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
-<Tab value="npm">
-```sh
+```npm
 npm install @praxisjs/core @praxisjs/jsx @praxisjs/runtime @praxisjs/decorators
 npm install -D @praxisjs/vite-plugin
 ```
-</Tab>
-<Tab value="pnpm">
-```sh
-pnpm add @praxisjs/core @praxisjs/jsx @praxisjs/runtime @praxisjs/decorators
-pnpm add -D @praxisjs/vite-plugin
-```
-</Tab>
-<Tab value="yarn">
-```sh
-yarn add @praxisjs/core @praxisjs/jsx @praxisjs/runtime @praxisjs/decorators
-yarn add -D @praxisjs/vite-plugin
-```
-</Tab>
-<Tab value="bun">
-```sh
-bun add @praxisjs/core @praxisjs/jsx @praxisjs/runtime @praxisjs/decorators
-bun add -d @praxisjs/vite-plugin
-```
-</Tab>
-</Tabs>
 
 ### 2. Configure Vite
 
@@ -329,28 +231,9 @@ At the "Add an AI integration?" step of `create-praxisjs`, pick **Claude Code** 
 
 Run the `ai add` command in the project root:
 
-<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
-<Tab value="npm">
-```sh
+```npm
 npx praxisjs ai add
 ```
-</Tab>
-<Tab value="pnpm">
-```sh
-pnpm dlx praxisjs ai add
-```
-</Tab>
-<Tab value="yarn">
-```sh
-yarn dlx praxisjs ai add
-```
-</Tab>
-<Tab value="bun">
-```sh
-bunx praxisjs ai add
-```
-</Tab>
-</Tabs>
 
 It ends with a [prompt to map the project](#set-up-with-your-agent) into the memory. To uninstall an integration, run `praxisjs ai remove`: see the [AI skills guide](/docs/guide/ai-skills#removing-a-skill) for what it does and doesn't delete.
 

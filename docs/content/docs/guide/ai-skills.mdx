@@ -16,28 +16,9 @@ PraxisJS ships AI skills that give Claude Code and Codex a structured way to wor
 
 Select an integration during scaffolding:
 
-<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
-<Tab value="npm">
-```sh
+```npm
 npm create praxisjs@latest
 ```
-</Tab>
-<Tab value="pnpm">
-```sh
-pnpm create praxisjs
-```
-</Tab>
-<Tab value="yarn">
-```sh
-yarn create praxisjs
-```
-</Tab>
-<Tab value="bun">
-```sh
-bun create praxisjs
-```
-</Tab>
-</Tabs>
 
 At the "Add an AI integration?" step, choose **Claude Code** or **Codex**. The CLI ends with a prompt to paste into the agent: it starts the project setup (docs through the MCP server, the project memory, your folder structure and conventions).
 
@@ -45,28 +26,9 @@ At the "Add an AI integration?" step, choose **Claude Code** or **Codex**. The C
 
 Run the `ai add` command at the project root:
 
-<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
-<Tab value="npm">
-```sh
+```npm
 npx praxisjs ai add
 ```
-</Tab>
-<Tab value="pnpm">
-```sh
-pnpm dlx praxisjs ai add
-```
-</Tab>
-<Tab value="yarn">
-```sh
-yarn dlx praxisjs ai add
-```
-</Tab>
-<Tab value="bun">
-```sh
-bunx praxisjs ai add
-```
-</Tab>
-</Tabs>
 
 It ends with a prompt that asks the agent to map the project into its memory. `praxisjs ai sync` prints the same prompt when it adds the MCP server to a project that didn't have it, and `praxisjs add kosmesis` prints it when an AI integration is installed.
 
@@ -99,28 +61,9 @@ Later sessions read `.praxisjs-ai.json` and the memory silently and go straight 
 
 Run the `ai remove` command at the project root and pick the integration to uninstall:
 
-<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
-<Tab value="npm">
-```sh
+```npm
 npx praxisjs ai remove
 ```
-</Tab>
-<Tab value="pnpm">
-```sh
-pnpm dlx praxisjs ai remove
-```
-</Tab>
-<Tab value="yarn">
-```sh
-yarn dlx praxisjs ai remove
-```
-</Tab>
-<Tab value="bun">
-```sh
-bunx praxisjs ai remove
-```
-</Tab>
-</Tabs>
 
 This deletes the PraxisJS skills and removes the `praxisjs` MCP server from the project configuration (other servers and settings stay). It leaves `CLAUDE.md`/`AGENTS.md`, `.praxisjs-ai.json` and `.praxis/` alone — those hold project context and preferences that aren't owned exclusively by the integration.
 
@@ -256,32 +199,10 @@ In a feature-slice project, features import each other only through their `index
 
 Projects set up by an earlier `praxisjs` or `create-praxisjs` move to the current setup with:
 
-<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
-<Tab value="npm">
-```sh
+```npm
 npx praxisjs ai sync --dry-run
 npx praxisjs ai sync
 ```
-</Tab>
-<Tab value="pnpm">
-```sh
-pnpm dlx praxisjs ai sync --dry-run
-pnpm dlx praxisjs ai sync
-```
-</Tab>
-<Tab value="yarn">
-```sh
-yarn dlx praxisjs ai sync --dry-run
-yarn dlx praxisjs ai sync
-```
-</Tab>
-<Tab value="bun">
-```sh
-bunx praxisjs ai sync --dry-run
-bunx praxisjs ai sync
-```
-</Tab>
-</Tabs>
 
 `ai sync` updates every installed integration in place: it adds the new skills, replaces skill files you never changed, removes files the current version no longer ships, and rewrites the MCP server configuration (moving an old entry out of `.claude/settings.json`, where Claude Code never read it). Files you edited are never overwritten silently: it shows the diff and asks, and without a terminal (CI) it keeps them. It recognizes installs from before it existed by the hashes of every file earlier releases shipped, and from now on records what it installed in `.praxisjs-ai.lock.json` (commit it). It is safe to run again. `praxisjs doctor` reports an outdated setup, and `praxisjs upgrade` offers to sync it after upgrading packages. See [ai sync](/docs/tooling/cli#ai-sync).
 
