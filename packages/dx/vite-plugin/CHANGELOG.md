@@ -1,5 +1,11 @@
 # @praxisjs/vite-plugin
 
+## 4.2.1
+
+### Patch Changes
+
+- d634a29: Write boolean `aria-*` attributes as `"true"` and `"false"` instead of an empty attribute (or none for `false`), which assistive technology reads as an unset state. Compiled templates emit the same markup. `data-*` and HTML boolean attributes are unchanged.
+
 ## 4.2.0
 
 ### Minor Changes
