@@ -1,13 +1,13 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { cwd, execPath, exit } from "node:process";
+import { cwd, execPath, exit, versions } from "node:process";
 
 import { confirm, intro, isCancel, note, outro, spinner } from "@clack/prompts";
 import pc from "picocolors";
 
 import { describeFailure, run, type Invocation, type RunResult } from "../kosmesis";
-import { compareVersions, fetchManifest, satisfies, splitRange, type PublishedManifest } from "../versions";
+import { compareVersions, fetchManifest, newestReleaseFor, satisfies, splitRange, type PublishedManifest } from "../versions";
 import { isInteractive, offerAiSync } from "./ai/sync";
 
 const DEPENDENCY_FIELDS = ["dependencies", "devDependencies", "peerDependencies"] as const;
@@ -40,14 +40,15 @@ const EXEC_COMMANDS: Record<PackageManager, string> = {
   npm: "npx",
 };
 
-/**
- * npm releases before this one crash with "Cannot read properties of null (reading 'edgesOut')" when
- * a peer they placed is swapped for another version while resolving a peer set (vite 8's optional
- * peers reach the vitest packages, which pin each other exactly).
- */
-const NPM_PEER_SET_FIX = "11.6.0";
+/** The Node.js releases Vite 8, which every PraxisJS template builds with, runs on. */
+const NODE_RANGE = "^20.19.0 || >=22.12.0";
 
-const NPM_UPDATE: Invocation = { command: "npm", args: ["install", "--global", "npm@latest"] };
+/**
+ * npm releases before this one can crash with "Cannot read properties of null (reading 'edgesOut')"
+ * while resolving peer dependencies: vite 8's optional peers reach the vitest packages, which pin
+ * each other exactly, and npm loses track of a peer it swaps for another version.
+ */
+const NPM_MINIMUM = "11.6.0";
 
 // A package-lock.json entry of an ecosystem package, at any depth.
 const ECOSYSTEM_LOCK_PATH = /(?:^|\/)node_modules\/(?:@praxisjs\/[^/]+|@morphos\/[^/]+|kosmesis)$/;
@@ -305,17 +306,24 @@ function staleInstalls(root: string, candidates: Candidate[]): string[] {
     .map(({ name }) => name);
 }
 
-/** Runs the package manager's install, freeing npm from the ecosystem's stale lockfile entries first. */
+/** Runs the package manager's install, checking Node.js and npm against the minimums first. */
 async function install(root: string, pm: PackageManager): Promise<boolean> {
   const [command, args] = INSTALL_COMMANDS[pm];
-  const invocation: Invocation = { command, args };
-  if (pm === "npm") releaseLockedEcosystem(root);
-  let result = await runInstall(invocation, root);
-  if (result.code !== 0 && pm === "npm" && result.output.includes("reading 'edgesOut'") && (await updateNpm(root))) {
-    result = await runInstall(invocation, root);
+  const updates: string[] = [];
+  if (satisfies(versions.node, NODE_RANGE) === false) {
+    note(`Node.js ${versions.node} is older than PraxisJS needs (${NODE_RANGE}). Update it from https://nodejs.org.`, "Update Node.js");
+    updates.push(`Update Node.js to ${NODE_RANGE} from https://nodejs.org.`);
   }
+  if (pm === "npm") {
+    const npmUpdate = await ensureNpm(root);
+    if (npmUpdate !== undefined) updates.push(npmUpdate);
+    releaseLockedEcosystem(root);
+  }
+
+  const result = await runInstall({ command, args }, root);
   if (result.code === 0) return true;
-  note(`Run \`${[command, ...args].join(" ")}\` manually.`, "Install failed");
+  const rerun = `\`${[command, ...args].join(" ")}\``;
+  note(updates.length > 0 ? [...updates, `Then run ${rerun}.`].join("\n") : `Run ${rerun} manually.`, "Install failed");
   const output = result.output.trim().split(/\r?\n/).slice(-12).join("\n");
   if (output !== "") note(output, `${command} output`);
   return false;
@@ -335,28 +343,42 @@ async function npmVersion(root: string): Promise<string | undefined> {
   return splitRange(version) ? version : undefined;
 }
 
-/** Offers to update an npm that has the peer resolution crash. True when npm was updated. */
-async function updateNpm(root: string): Promise<boolean> {
-  const version = await npmVersion(root);
-  if (version === undefined || compareVersions(version, NPM_PEER_SET_FIX) >= 0) return false;
-  const problem = `npm ${version} has a bug that crashes while resolving peer dependencies, fixed in npm ${NPM_PEER_SET_FIX}.`;
-  if (!isInteractive()) {
-    note(`${problem}\nUpdate it with \`${[NPM_UPDATE.command, ...NPM_UPDATE.args].join(" ")}\`, then run \`npm install\`.`, "Update npm");
-    return false;
+/**
+ * Offers to update an npm older than `NPM_MINIMUM` to the newest release the running Node.js
+ * supports (the latest npm may need a newer Node.js). Returns what to do by hand when npm stays
+ * outdated, `undefined` when it is fine.
+ */
+async function ensureNpm(root: string): Promise<string | undefined> {
+  const current = await npmVersion(root);
+  if (current === undefined || compareVersions(current, NPM_MINIMUM) >= 0) return undefined;
+  const problem = `npm ${current} is older than ${NPM_MINIMUM}, the minimum PraxisJS installs with: older releases can crash while resolving peer dependencies.`;
+
+  const target = await newestReleaseFor("npm", versions.node);
+  if (target === undefined || compareVersions(target, NPM_MINIMUM) < 0) {
+    const advice = `Update Node.js from https://nodejs.org, then npm with \`npm install --global npm@latest\`.`;
+    note(`${problem}\nNo npm release from ${NPM_MINIMUM} on supports Node.js ${versions.node}, or the registry could not be reached. ${advice}`, "Update npm");
+    return advice;
   }
-  note(problem, "npm crashed");
-  const answer = await confirm({ message: "Update npm to the latest version and install again?", initialValue: true });
-  if (isCancel(answer) || !answer) return false;
+  const update: Invocation = { command: "npm", args: ["install", "--global", `npm@${target}`] };
+  const manual = `Update npm with \`${[update.command, ...update.args].join(" ")}\`.`;
+  if (!isInteractive()) {
+    note(`${problem}\n${manual}`, "Update npm");
+    return manual;
+  }
+
+  note(problem, "Update npm");
+  const answer = await confirm({ message: `Update npm to ${target} before installing?`, initialValue: true });
+  if (isCancel(answer) || !answer) return manual;
   const updateSpinner = spinner();
-  updateSpinner.start("Updating npm...");
-  const result = await run(NPM_UPDATE, root, "pipe");
+  updateSpinner.start(`Updating npm to ${target}...`);
+  const result = await run(update, root, "pipe");
   if (result.code !== 0) {
     updateSpinner.stop("npm could not be updated.");
-    note(describeFailure(NPM_UPDATE, result), "npm update");
-    return false;
+    note(describeFailure(update, result), "npm update");
+    return manual;
   }
-  updateSpinner.stop(`npm updated to ${(await npmVersion(root)) ?? "the latest version"}.`);
-  return true;
+  updateSpinner.stop(`npm updated to ${target}.`);
+  return undefined;
 }
 
 export async function upgrade(): Promise<void> {

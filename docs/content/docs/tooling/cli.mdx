@@ -207,7 +207,14 @@ When `package.json` is already up to date but the versions installed in `node_mo
 
 If the install fails, `upgrade` reports it without crashing, shows the end of the package manager's output and the command to run manually.
 
-npm releases before 11.6.0 can crash with `Cannot read properties of null (reading 'edgesOut')` while resolving peer dependencies, a bug fixed in npm 11.6.0 (vite 8's optional peers reach the `vitest` packages, which pin each other at exact versions). When the install fails that way, `upgrade` says which npm you have and asks to update it (`npm install --global npm@latest`), then installs again. Outside a terminal it prints the command instead.
+Before installing, `upgrade` checks the toolchain against two minimums:
+
+| Tool | Minimum | Why |
+|---|---|---|
+| Node.js | `^20.19.0 \|\| >=22.12.0` | What Vite 8, which every template builds with, runs on |
+| npm | `11.6.0` | Older releases can crash with `Cannot read properties of null (reading 'edgesOut')` while resolving peer dependencies (vite 8's optional peers reach the `vitest` packages, which pin each other at exact versions) |
+
+An older Node.js is reported with a link to [nodejs.org](https://nodejs.org); `upgrade` can't update it for you. In an npm project, an older npm makes `upgrade` ask to update it before installing, to the newest npm release your Node.js supports (the latest npm may need a newer Node.js), with `npm install --global npm@<version>`. Outside a terminal it prints that command instead. If the install then fails, the **Install failed** note says which of the two to update first.
 
 <Callout type="info" title="A project an older upgrade left broken">
   Run `npx praxisjs@latest upgrade` again: it finds the packages that don't match `package.json`, clears their stale lockfile entries and installs. Deleting `node_modules` and `package-lock.json` and running `npm install` works too, but it also unlocks every other dependency.

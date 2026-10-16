@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { compareVersions, fetchManifest, satisfies, splitRange } from "../versions";
+import { compareVersions, fetchManifest, newestReleaseFor, satisfies, splitRange } from "../versions";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -133,5 +133,50 @@ describe("satisfies", () => {
 
   it.each(["workspace:*", "npm:other@1.0.0", "latest", "^1.0.0 || next"])("cannot judge %s", (range) => {
     expect(satisfies("1.0.0", range)).toBeUndefined();
+  });
+});
+
+describe("newestReleaseFor", () => {
+  function registry(versions: unknown): ReturnType<typeof vi.fn> {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ versions }) });
+    vi.stubGlobal("fetch", fetch);
+    return fetch;
+  }
+
+  it("picks the newest stable release whose engines accept the Node.js version", async () => {
+    vi.stubEnv("npm_config_registry", "https://npm.example.com");
+    const fetch = registry({
+      "10.9.9": { engines: { node: "^18.17.0 || >=20.5.0" } },
+      "11.21.1": { engines: { node: "^20.17.0 || >=22.9.0" } },
+      "11.5.0": { engines: { node: "^20.17.0 || >=22.9.0" } },
+      "12.0.0-pre.0": { engines: { node: "^20.17.0 || >=22.9.0" } },
+      "12.2.0": { engines: { node: "^22.22.2 || ^24.15.0 || >=26.0.0" } },
+    });
+
+    expect(await newestReleaseFor("npm", "20.19.0")).toBe("11.21.1");
+    expect(await newestReleaseFor("npm", "24.15.0")).toBe("12.2.0");
+    expect(fetch).toHaveBeenCalledWith("https://npm.example.com/npm", {
+      headers: { accept: "application/vnd.npm.install-v1+json" },
+    });
+  });
+
+  it("treats a release without engines as fitting and skips an engines range it can't read", async () => {
+    registry({ "1.0.0": {}, "1.1.0": null, "2.0.0": { engines: { node: "workspace:*" } } });
+
+    expect(await newestReleaseFor("tool", "20.0.0")).toBe("1.1.0");
+  });
+
+  it("returns undefined when nothing fits, the registry fails or is unreachable", async () => {
+    registry({ "1.0.0": { engines: { node: ">=30.0.0" } } });
+    expect(await newestReleaseFor("tool", "20.0.0")).toBeUndefined();
+
+    registry(undefined);
+    expect(await newestReleaseFor("tool", "20.0.0")).toBeUndefined();
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve({}) }));
+    expect(await newestReleaseFor("tool", "20.0.0")).toBeUndefined();
+
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    expect(await newestReleaseFor("tool", "20.0.0")).toBeUndefined();
   });
 });

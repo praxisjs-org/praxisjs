@@ -6,6 +6,10 @@ icon: Wrench
 
 # praxisjs
 
+## 1.2.4
+
+**`praxisjs upgrade` checks Node.js and npm before installing.** Instead of reacting to one npm error, it compares the toolchain with two minimums: Node.js `^20.19.0 || >=22.12.0` (Vite 8's range) and npm `11.6.0` (the first release without the peer resolution crash). An older Node.js is reported with a link to nodejs.org. In an npm project, an older npm makes `upgrade` ask to update it before the install runs, to the newest npm release the running Node.js supports: 1.2.3 offered `npm@latest`, which now needs Node.js 22.22 or later and doesn't run on Node.js 20. Outside a terminal it prints the command. When the install fails, the **Install failed** note says which of the two to update first.
+
 ## 1.2.3
 
 **`praxisjs upgrade` offers to update npm when it crashes.** npm releases before 11.6.0 can crash with `Cannot read properties of null (reading 'edgesOut')` while resolving peer dependencies (vite 8's optional peers reach the `vitest` packages, which pin each other at exact versions). When the install fails that way, `upgrade` says which npm you have, asks to update it to the latest version and installs again. Outside a terminal it prints `npm install --global npm@latest` instead.

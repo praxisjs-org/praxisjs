@@ -16,6 +16,7 @@ const mockRmSync = vi.fn();
 const mockRun = vi.fn();
 const mockConfirm = vi.fn();
 const mockIsInteractive = vi.fn();
+const runtime = vi.hoisted(() => ({ node: "22.12.0" }));
 
 vi.mock("@clack/prompts", () => ({
   intro: mockIntro,
@@ -32,6 +33,9 @@ vi.mock("node:process", () => ({
   cwd: () => "/project",
   execPath: "/usr/bin/node",
   exit: mockExit,
+  get versions() {
+    return { node: runtime.node };
+  },
 }));
 vi.mock("node:fs", () => ({
   default: {
@@ -114,6 +118,7 @@ beforeEach(() => {
   mockCommands();
   mockConfirm.mockReset();
   mockIsInteractive.mockReset().mockReturnValue(false);
+  runtime.node = "22.12.0";
 });
 
 afterEach(() => {
@@ -763,116 +768,141 @@ describe("upgrade — repairing an upgrade whose install did not finish", () => 
   });
 });
 
-describe("upgrade — npm's peer resolution crash", () => {
+describe("upgrade — Node.js and npm minimums", () => {
   const manifest = { dependencies: { "@praxisjs/core": "^1.0.0" } };
-  const crash = { code: 1, output: "npm error Cannot read properties of null (reading 'edgesOut')\n" };
-  const update = { command: "npm", args: ["install", "--global", "npm@latest"] };
+  const releases = {
+    "11.21.1": { engines: { node: "^20.17.0 || >=22.9.0" } },
+    "12.2.0": { engines: { node: "^22.22.2 || ^24.15.0 || >=26.0.0" } },
+  };
+  const update = (version: string) => ({ command: "npm", args: ["install", "--global", `npm@${version}`] });
 
-  function crashingProject(npm: string, afterUpdate = "11.21.1"): void {
+  /** An npm project whose `npm --version` is `npm` until `npm install --global` runs. */
+  function project({
+    npm,
+    npmReleases = releases as unknown,
+    updateResult = { code: 0, output: "" },
+    install = { code: 0, output: "" },
+  }: {
+    npm: string;
+    npmReleases?: unknown;
+    updateResult?: { code: number; output: string };
+    install?: { code: number; output: string };
+  }): void {
     mockFiles({ "/project/package.json": manifest });
     mockRegistry({ "@praxisjs/core": "2.0.0" });
-    let updated = false;
-    mockRun.mockImplementation((invocation: { command: string; args: string[] }) => {
-      if (invocation.args[0] === "--version") return Promise.resolve({ code: 0, output: `${updated ? afterUpdate : npm}\n` });
+    const registry = mockFetch.getMockImplementation() as (url: string) => Promise<unknown>;
+    mockFetch.mockImplementation((url: string) =>
+      String(url).endsWith("/npm")
+        ? Promise.resolve({ ok: npmReleases !== undefined, json: () => Promise.resolve({ versions: npmReleases }) })
+        : registry(url),
+    );
+    let version = npm;
+    mockRun.mockImplementation((invocation: { args: string[] }) => {
+      if (invocation.args[0] === "--version") return Promise.resolve({ code: 0, output: `${version}\n` });
       if (invocation.args[1] === "--global") {
-        updated = true;
-        return Promise.resolve({ code: 0, output: "" });
+        if (updateResult.code === 0) version = invocation.args[2].slice("npm@".length);
+        return Promise.resolve(updateResult);
       }
-      return Promise.resolve(updated ? { code: 0, output: "" } : crash);
+      return Promise.resolve(install);
     });
   }
 
-  it("asks to update npm, updates it and installs again", async () => {
-    crashingProject("10.8.2");
+  it("asks to update an npm below the minimum to the newest release the running Node.js supports", async () => {
+    runtime.node = "20.19.0";
+    project({ npm: "10.8.2" });
     mockIsInteractive.mockReturnValue(true);
     mockConfirm.mockResolvedValue(true);
 
     await upgrade();
 
-    expect(noteBody("npm crashed")).toBe("npm 10.8.2 has a bug that crashes while resolving peer dependencies, fixed in npm 11.6.0.");
-    expect(mockConfirm).toHaveBeenCalledWith(expect.objectContaining({ message: "Update npm to the latest version and install again?" }));
-    expect(mockRun).toHaveBeenCalledWith(update, "/project", "pipe");
+    expect(noteBody("Update npm")).toBe(
+      "npm 10.8.2 is older than 11.6.0, the minimum PraxisJS installs with: older releases can crash while resolving peer dependencies.",
+    );
+    expect(mockConfirm).toHaveBeenCalledWith(expect.objectContaining({ message: "Update npm to 11.21.1 before installing?" }));
+    expect(mockRun).toHaveBeenCalledWith(update("11.21.1"), "/project", "pipe");
     expect(mockSpinnerStop).toHaveBeenCalledWith("npm updated to 11.21.1.");
-    expect(mockRun.mock.calls.filter(([invocation]) => (invocation as { args: string[] }).args[0] === "install")).toHaveLength(3);
-    expect(noteBody("Install failed")).toBeUndefined();
+    expect(mockRun).toHaveBeenCalledWith({ command: "npm", args: ["install"] }, "/project", "pipe");
+    expect(noteBody("Update Node.js")).toBeUndefined();
     expect(mockOutro).toHaveBeenCalledWith("Upgrade complete!");
   });
 
-  it("says npm was updated even when its new version can't be read", async () => {
-    crashingProject("10.8.2", "unknown");
-    mockIsInteractive.mockReturnValue(true);
-    mockConfirm.mockResolvedValue(true);
-
-    await upgrade();
-
-    expect(mockSpinnerStop).toHaveBeenCalledWith("npm updated to the latest version.");
-  });
-
-  it.each([
-    ["declined", false],
-    ["cancelled", Symbol("cancel")],
-  ])("leaves npm alone when the update is %s", async (_label, answer) => {
-    crashingProject("10.8.2");
-    mockIsInteractive.mockReturnValue(true);
-    mockConfirm.mockResolvedValue(answer);
-
-    await upgrade();
-
-    expect(mockRun).not.toHaveBeenCalledWith(update, "/project", "pipe");
-    expect(noteBody("Install failed")).toBe("Run `npm install` manually.");
-  });
-
-  it("prints the update command outside a terminal", async () => {
-    crashingProject("10.8.2");
-
-    await upgrade();
-
-    expect(mockConfirm).not.toHaveBeenCalled();
-    expect(noteBody("Update npm")).toBe(
-      "npm 10.8.2 has a bug that crashes while resolving peer dependencies, fixed in npm 11.6.0.\n" +
-        "Update it with `npm install --global npm@latest`, then run `npm install`.",
-    );
-  });
-
-  it.each([["already has the fix", "11.6.0"], ["reports no version", "not a version"]])(
-    "offers nothing when npm %s",
-    async (_label, npm) => {
-      crashingProject(npm);
+  it("checks nothing when npm is at the minimum or reports no version", async () => {
+    for (const npm of ["11.6.0", "unknown"]) {
+      project({ npm });
       mockIsInteractive.mockReturnValue(true);
 
       await upgrade();
 
       expect(mockConfirm).not.toHaveBeenCalled();
       expect(noteBody("Update npm")).toBeUndefined();
-    },
-  );
+    }
+  });
 
-  it("reports an npm update that fails and keeps the failed install", async () => {
-    mockFiles({ "/project/package.json": manifest });
-    mockRegistry({ "@praxisjs/core": "2.0.0" });
-    mockRun.mockImplementation((invocation: { command: string; args: string[] }) => {
-      if (invocation.args[0] === "--version") return Promise.resolve({ code: 0, output: "10.8.2\n" });
-      if (invocation.args[1] === "--global") return Promise.resolve({ code: 1, output: "EACCES: permission denied\n" });
-      return Promise.resolve(crash);
-    });
+  it("does not check npm for other package managers", async () => {
+    project({ npm: "10.8.2" });
+    mockFiles({ "/project/package.json": manifest, "/project/pnpm-lock.yaml": "" });
+
+    await upgrade();
+
+    expect(mockRun).not.toHaveBeenCalledWith({ command: "npm", args: ["--version"] }, "/project", "pipe");
+  });
+
+  it.each([
+    ["declined", false],
+    ["cancelled", Symbol("cancel")],
+  ])("installs with the old npm when the update is %s, and says to update it if that fails", async (_label, answer) => {
+    project({ npm: "10.8.2", install: { code: 1, output: "npm error Cannot read properties of null (reading 'edgesOut')" } });
+    mockIsInteractive.mockReturnValue(true);
+    mockConfirm.mockResolvedValue(answer);
+
+    await upgrade();
+
+    expect(mockRun).not.toHaveBeenCalledWith(update("11.21.1"), "/project", "pipe");
+    expect(mockRun).toHaveBeenCalledWith({ command: "npm", args: ["install"] }, "/project", "pipe");
+    expect(noteBody("Install failed")).toBe("Update npm with `npm install --global npm@11.21.1`.\nThen run `npm install`.");
+  });
+
+  it("prints the update outside a terminal, to npm 12 on a Node.js that runs it", async () => {
+    runtime.node = "24.15.0";
+    project({ npm: "10.8.2" });
+
+    await upgrade();
+
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(noteBody("Update npm")).toContain("\nUpdate npm with `npm install --global npm@12.2.0`.");
+  });
+
+  it("reports an npm update that fails", async () => {
+    project({ npm: "10.8.2", updateResult: { code: 1, output: "EACCES: permission denied\n" }, install: { code: 1, output: "" } });
     mockIsInteractive.mockReturnValue(true);
     mockConfirm.mockResolvedValue(true);
 
     await upgrade();
 
     expect(mockSpinnerStop).toHaveBeenCalledWith("npm could not be updated.");
-    expect(noteBody("npm update")).toBe("`npm install --global npm@latest` exited with code 1.\nEACCES: permission denied");
-    expect(noteBody("Install failed")).toBe("Run `npm install` manually.");
+    expect(noteBody("npm update")).toBe("`npm install --global npm@11.21.1` exited with code 1.\nEACCES: permission denied");
+    expect(noteBody("Install failed")).toBe("Update npm with `npm install --global npm@11.21.1`.\nThen run `npm install`.");
   });
 
-  it("does not offer the update for other install failures", async () => {
-    mockFiles({ "/project/package.json": manifest });
-    mockRegistry({ "@praxisjs/core": "2.0.0" });
-    mockCommands({ npm: "10.8.2", install: [{ code: 1, output: "npm error ERESOLVE" }] });
+  it.each([
+    ["no npm release from the minimum on supports the Node.js version", { "11.21.1": { engines: { node: ">=20.17.0" } } }],
+    ["the registry can't be reached", undefined],
+  ])("says to update Node.js first when %s", async (_label, npmReleases) => {
+    runtime.node = "20.10.0";
+    project({ npm: "10.8.2", npmReleases, install: { code: 1, output: "" } });
     mockIsInteractive.mockReturnValue(true);
 
     await upgrade();
 
     expect(mockConfirm).not.toHaveBeenCalled();
+    expect(noteBody("Update Node.js")).toBe(
+      "Node.js 20.10.0 is older than PraxisJS needs (^20.19.0 || >=22.12.0). Update it from https://nodejs.org.",
+    );
+    expect(noteBody("Update npm")).toContain("No npm release from 11.6.0 on supports Node.js 20.10.0");
+    expect(noteBody("Install failed")).toBe(
+      "Update Node.js to ^20.19.0 || >=22.12.0 from https://nodejs.org.\n" +
+        "Update Node.js from https://nodejs.org, then npm with `npm install --global npm@latest`.\n" +
+        "Then run `npm install`.",
+    );
   });
 });

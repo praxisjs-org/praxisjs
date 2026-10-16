@@ -143,3 +143,28 @@ export function satisfies(version: string, range: string): boolean | undefined {
   }
   return sets.some((set) => set.every((comparator) => matches(version, comparator)));
 }
+
+/**
+ * The newest stable release of `name` whose `engines.node` accepts `node`, or `undefined` when the
+ * registry is unreachable or no release fits. A release without `engines.node` fits any Node.js.
+ */
+export async function newestReleaseFor(name: string, node: string): Promise<string | undefined> {
+  try {
+    // The abbreviated metadata keeps `engines` and leaves out the readmes of every release.
+    const res = await fetch(`${registryUrl()}/${encodeURIComponent(name)}`, {
+      headers: { accept: "application/vnd.npm.install-v1+json" },
+    });
+    if (!res.ok) return undefined;
+    const data = (await res.json()) as { versions?: Record<string, { engines?: { node?: unknown } } | null> };
+    let newest: string | undefined;
+    for (const [version, manifest] of Object.entries(data.versions ?? {})) {
+      if (!/^\d+\.\d+\.\d+$/.test(version)) continue;
+      const range = manifest?.engines?.node;
+      if (typeof range === "string" && satisfies(node, range) !== true) continue;
+      if (newest === undefined || compareVersions(version, newest) > 0) newest = version;
+    }
+    return newest;
+  } catch {
+    return undefined;
+  }
+}
