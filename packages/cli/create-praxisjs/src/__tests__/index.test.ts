@@ -30,7 +30,7 @@ function makeClack(overrides: Record<string, unknown> = {}) {
     cancel: vi.fn(),
     note: vi.fn(),
     text: vi.fn().mockResolvedValue("my-app"),
-    select: vi.fn().mockResolvedValueOnce("minimal").mockResolvedValueOnce("none"),
+    select: vi.fn().mockResolvedValueOnce("minimal").mockResolvedValueOnce(false).mockResolvedValueOnce("none"),
     confirm: vi.fn().mockResolvedValue(true),
     isCancel: vi.fn().mockReturnValue(false),
     spinner: vi.fn(() => ({ start: vi.fn(), stop: vi.fn(), message: vi.fn() })),
@@ -88,6 +88,7 @@ function makeFs({
 // ─── Setup / Teardown ─────────────────────────────────────────────────────────
 
 const addTauri = vi.fn();
+const setupKosmesis = vi.fn();
 
 beforeEach(() => {
   vi.resetModules();
@@ -95,6 +96,11 @@ beforeEach(() => {
   vi.doMock("../tauri/setup", async (importOriginal) => ({
     ...(await importOriginal<typeof import("../tauri/setup")>()),
     addTauri,
+  }));
+  setupKosmesis.mockReset().mockResolvedValue({ ok: true, components: ["button", "card"] });
+  vi.doMock("praxisjs", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("praxisjs")>()),
+    setupKosmesis,
   }));
 });
 
@@ -133,8 +139,8 @@ describe("create-praxisjs index – happy path (argv target dir)", () => {
 
     // intro must always be called
     expect(clack.intro).toHaveBeenCalledOnce();
-    // select called twice: template + plugin
-    expect(clack.select).toHaveBeenCalledTimes(2);
+    // select called three times: template + Kosmesis + plugin
+    expect(clack.select).toHaveBeenCalledTimes(3);
     // outro at the end
     expect(clack.outro).toHaveBeenCalledOnce();
     // process.exit was NOT called (no cancel)
@@ -142,7 +148,7 @@ describe("create-praxisjs index – happy path (argv target dir)", () => {
   });
 
   it("scaffolds router template", async () => {
-    const clack = makeClack({ select: vi.fn().mockResolvedValueOnce("router").mockResolvedValueOnce("none") });
+    const clack = makeClack({ select: vi.fn().mockResolvedValueOnce("router").mockResolvedValueOnce(false).mockResolvedValueOnce("none") });
     const fsMock = makeFs();
 
     vi.doMock("picocolors", () => makePc());
@@ -160,7 +166,7 @@ describe("create-praxisjs index – happy path (argv target dir)", () => {
   });
 
   it("scaffolds full template", async () => {
-    const clack = makeClack({ select: vi.fn().mockResolvedValueOnce("full").mockResolvedValueOnce("none") });
+    const clack = makeClack({ select: vi.fn().mockResolvedValueOnce("full").mockResolvedValueOnce(false).mockResolvedValueOnce("none") });
     const fsMock = makeFs();
 
     vi.doMock("picocolors", () => makePc());
@@ -736,13 +742,13 @@ describe("create-praxisjs index – plugin select", () => {
 
     await runMain();
 
-    expect(clack.select).toHaveBeenCalledTimes(2);
+    expect(clack.select).toHaveBeenCalledTimes(3);
     expect(clack.outro).toHaveBeenCalledOnce();
   });
 
   it("copies skill files when claude-skill is selected", async () => {
     const clack = makeClack({
-      select: vi.fn().mockResolvedValueOnce("minimal").mockResolvedValueOnce("claude-skill"),
+      select: vi.fn().mockResolvedValueOnce("minimal").mockResolvedValueOnce(false).mockResolvedValueOnce("claude-skill"),
     });
     const fsMock = makeFs();
 
@@ -790,6 +796,7 @@ describe("create-praxisjs index – plugin select", () => {
     const clack = makeClack({
       select: vi.fn()
         .mockResolvedValueOnce("minimal")
+        .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(CANCEL),
       isCancel: vi.fn().mockImplementation((v) => v === CANCEL),
     });
@@ -948,5 +955,143 @@ describe("create-praxisjs index – Tauri v2", () => {
     expect(String(consoleSpy.mock.calls[0]?.[0])).toContain('Unknown option "--taur"');
     expect(mockExit).toHaveBeenCalledWith(1);
     expect(clack.intro).not.toHaveBeenCalled();
+  });
+});
+
+describe("create-praxisjs index – Kosmesis", () => {
+  function mockRun(argv: string[], clack = makeClack()) {
+    vi.doMock("picocolors", () => makePc());
+    vi.doMock("@clack/prompts", () => clack);
+    vi.doMock("node:fs", () => makeFs());
+    const mockExit = vi.fn();
+    vi.doMock("node:process", () => ({
+      argv: ["node", "create-praxisjs", ...argv],
+      cwd: () => "/fake/cwd",
+      exit: mockExit,
+    }));
+    return { clack, mockExit };
+  }
+
+  it("asks after Tauri and before the AI integration, defaulting to no", async () => {
+    const { clack } = mockRun(["my-app"]);
+
+    await runMain();
+
+    const messages = clack.select.mock.calls.map((call) => (call[0] as { message: string }).message);
+    expect(messages).toEqual(["Select a template:", "Add Kosmesis UI components?", "Add an AI integration?"]);
+    const options = (clack.select.mock.calls[1]?.[0] as { options: Array<{ value: unknown; label: string }> }).options;
+    expect(options.map((o) => o.value)).toEqual([false, "tailwind", "praxisjs-css"]);
+    expect(options[0]?.label).toBe("No");
+    expect(setupKosmesis).not.toHaveBeenCalled();
+  });
+
+  it("sets Kosmesis up with the chosen style system and starter components, then shows how to use it", async () => {
+    process.env.npm_config_user_agent = "pnpm/10.0.0 node/v22";
+    const spinnerHandle = { start: vi.fn(), stop: vi.fn(), message: vi.fn() };
+    const { clack } = mockRun(
+      ["my-app", "--tauri"],
+      makeClack({
+        select: vi.fn().mockResolvedValueOnce("router").mockResolvedValueOnce("praxisjs-css").mockResolvedValueOnce("none"),
+        spinner: vi.fn(() => spinnerHandle),
+      }),
+    );
+
+    await runMain();
+
+    expect(spinnerHandle.message).toHaveBeenCalledWith("Adding Kosmesis (installs the project's dependencies)");
+    expect(setupKosmesis).toHaveBeenCalledWith({
+      root: expect.stringMatching(/my-app$/) as unknown,
+      packageManager: "pnpm",
+      userAgent: "pnpm/10.0.0 node/v22",
+      styleSystem: "praxisjs-css",
+      components: ["button", "card"],
+    });
+    expect(addTauri.mock.invocationCallOrder[0]).toBeLessThan(setupKosmesis.mock.invocationCallOrder[0] ?? 0);
+    const kosmesisNote = clack.note.mock.calls.find((call) => call[1] === "Kosmesis") as [string, string];
+    expect(kosmesisNote[0]).toContain("(button, card)");
+    expect(kosmesisNote[0]).toContain("pnpm dlx kosmesis@^0.6.0 add <component>");
+  });
+
+  it("skips the prompt with --kosmesis and --no-kosmesis", async () => {
+    const withFlag = mockRun(["my-app", "--kosmesis"], makeClack({ select: vi.fn().mockResolvedValueOnce("minimal").mockResolvedValueOnce("none") }));
+    await runMain();
+    expect(withFlag.clack.select).toHaveBeenCalledTimes(2);
+    expect(setupKosmesis).toHaveBeenCalledWith(expect.objectContaining({ styleSystem: "tailwind" }));
+
+    vi.resetModules();
+    setupKosmesis.mockClear();
+    const without = mockRun(["my-app", "--no-kosmesis"], makeClack({ select: vi.fn().mockResolvedValueOnce("minimal").mockResolvedValueOnce("none") }));
+    await runMain();
+    expect(without.clack.select).toHaveBeenCalledTimes(2);
+    expect(setupKosmesis).not.toHaveBeenCalled();
+  });
+
+  it("keeps the project and prints the commands to run later when the setup fails", async () => {
+    setupKosmesis.mockResolvedValue({
+      ok: false,
+      reason: "`npx --yes kosmesis@^0.6.0 init` exited with code 1.",
+      commands: ["npx --yes kosmesis@^0.6.0 init --yes --style-system tailwind", "npx --yes kosmesis@^0.6.0 add button card"],
+    });
+    const { clack, mockExit } = mockRun(["my-app", "--kosmesis"]);
+
+    await runMain();
+
+    const warning = clack.log.warn.mock.calls[0]?.[0] as string;
+    expect(warning).toContain("Kosmesis was not added. The project works without it.");
+    expect(warning).toContain("exited with code 1.");
+    expect(warning).toContain("npx --yes kosmesis@^0.6.0 init --yes --style-system tailwind\nnpx --yes kosmesis@^0.6.0 add button card");
+    expect(clack.note.mock.calls.some((call) => call[1] === "Kosmesis")).toBe(false);
+    expect(clack.outro).toHaveBeenCalledOnce();
+    expect(mockExit).not.toHaveBeenCalled();
+  });
+
+  it("exits when the Kosmesis prompt is cancelled", async () => {
+    const CANCEL = Symbol("cancel");
+    const { clack, mockExit } = mockRun(
+      ["my-app"],
+      makeClack({
+        select: vi.fn().mockResolvedValueOnce("minimal").mockResolvedValueOnce(CANCEL),
+        isCancel: vi.fn().mockImplementation((v) => v === CANCEL),
+      }),
+    );
+
+    await runMain();
+
+    expect(clack.cancel).toHaveBeenCalledWith("Operation cancelled");
+    expect(mockExit).toHaveBeenCalledWith(0);
+    expect(setupKosmesis).not.toHaveBeenCalled();
+  });
+});
+
+describe("create-praxisjs index – AI setup prompt", () => {
+  it("ends with the setup prompt to paste into the chosen agent", async () => {
+    const { SETUP_PROMPT } = await import("praxisjs");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const clack = makeClack({
+      select: vi.fn().mockResolvedValueOnce("minimal").mockResolvedValueOnce(false).mockResolvedValueOnce("codex-skill"),
+    });
+    vi.doMock("picocolors", () => makePc());
+    vi.doMock("@clack/prompts", () => clack);
+    vi.doMock("node:fs", () => makeFs());
+    vi.doMock("node:process", () => ({ argv: ["node", "create-praxisjs", "my-app"], cwd: () => "/fake/cwd", exit: vi.fn() }));
+
+    await runMain();
+
+    const printed = log.mock.calls.map((call) => String(call[0])).join("\n");
+    expect(printed).toContain("(paste this into Codex)");
+    expect(printed).toContain(SETUP_PROMPT);
+    expect(clack.outro.mock.invocationCallOrder[0]).toBeLessThan(log.mock.invocationCallOrder[0] ?? 0);
+  });
+
+  it("prints no prompt without an AI integration", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.doMock("picocolors", () => makePc());
+    vi.doMock("@clack/prompts", () => makeClack());
+    vi.doMock("node:fs", () => makeFs());
+    vi.doMock("node:process", () => ({ argv: ["node", "create-praxisjs", "my-app"], cwd: () => "/fake/cwd", exit: vi.fn() }));
+
+    await runMain();
+
+    expect(log).not.toHaveBeenCalled();
   });
 });

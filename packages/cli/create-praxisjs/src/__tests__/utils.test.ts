@@ -434,6 +434,24 @@ describe("parseArgs", () => {
   });
 
   it("rejects unknown options", () => {
-    expect(() => parseArgs(["-t"])).toThrow('Unknown option "-t". Supported: --tauri, --no-tauri.');
+    expect(() => parseArgs(["-t"])).toThrow(
+      'Unknown option "-t". Supported: --tauri, --no-tauri, --kosmesis[=tailwind|praxisjs-css], --no-kosmesis.',
+    );
+  });
+
+  it("reads --kosmesis as Tailwind, with an optional style system inline or as the next argument", () => {
+    expect(parseArgs(["app"]).kosmesis).toBeUndefined();
+    expect(parseArgs(["app", "--kosmesis"]).kosmesis).toBe("tailwind");
+    expect(parseArgs(["--kosmesis", "app"])).toEqual({ targetDir: "app", tauri: undefined, kosmesis: "tailwind" });
+    expect(parseArgs(["--kosmesis=praxisjs-css", "app"]).kosmesis).toBe("praxisjs-css");
+    expect(parseArgs(["--kosmesis", "praxisjs-css", "app"])).toEqual({ targetDir: "app", tauri: undefined, kosmesis: "praxisjs-css" });
+    expect(parseArgs(["app", "--kosmesis", "tailwind"]).targetDir).toBe("app");
+    expect(parseArgs(["--kosmesis", "--no-kosmesis"]).kosmesis).toBe(false);
+  });
+
+  it("rejects an unknown Kosmesis style system", () => {
+    expect(() => parseArgs(["--kosmesis=bootstrap"])).toThrow(
+      'Invalid value "bootstrap" for --kosmesis. Expected tailwind or praxisjs-css.',
+    );
   });
 });

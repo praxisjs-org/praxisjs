@@ -1,6 +1,6 @@
 ---
 title: praxisjs CLI
-description: "praxisjs — maintenance CLI for existing PraxisJS projects. `ai add` / `ai remove` for AI integrations, `doctor` for diagnostics, `upgrade` for dependency updates."
+description: "praxisjs — maintenance CLI for existing PraxisJS projects. `add kosmesis` for Kosmesis UI components, `ai add` / `ai remove` / `ai sync` for AI integrations, `doctor` for diagnostics, `upgrade` for dependency updates."
 icon: Terminal
 ---
 
@@ -33,13 +33,46 @@ bunx praxisjs <command>
 
 | Command | Purpose |
 |---|---|
+| [`add kosmesis`](#add-kosmesis) | Set up [Kosmesis](https://kosmesis.praxisjs.org) UI components in the project |
 | [`ai add`](#ai-add) | Install an AI integration (Claude Code or Codex skills and the PraxisJS MCP server) |
 | [`ai remove`](#ai-remove) | Uninstall an AI integration |
 | [`ai sync`](#ai-sync) | Update installed AI integrations (skills, MCP configuration) to this version |
 | [`doctor`](#doctor) | Diagnose common project issues |
 | [`upgrade`](#upgrade) | Update `@praxisjs/*`, `@morphos/*` and `kosmesis` dependencies to their latest compatible version |
 
-Running `praxisjs` with no arguments, an unknown command, or `ai` without a subcommand prints this usage list and exits with code `1`.
+Running `praxisjs` with no arguments, an unknown command, `ai` without a subcommand or `add` without `kosmesis` prints this usage list and exits with code `1`.
+
+---
+
+## `add kosmesis`
+
+Sets up Kosmesis in the current project, the same way `create-praxisjs --kosmesis` does for a new one:
+
+```sh
+npx praxisjs add kosmesis
+```
+
+1. Checks that `package.json` depends on `@praxisjs/core` (exits with code `1` otherwise) and reports what it found: the closest template (minimal, router, full or blog), a Tauri v2 app (`src-tauri/tauri.conf.json` or `@tauri-apps/api`), the package manager (from the lockfile) and an installed AI integration.
+2. Stops with a hint when `components.json` already exists: Kosmesis is set up, add components with `kosmesis add`.
+3. Runs the project's install command when `node_modules` is missing.
+4. Runs `kosmesis init` through the package manager (`npx`, `pnpm dlx`, `yarn dlx` or `bunx`, with `kosmesis@^0.6.0`), then `kosmesis add` for the components you asked for.
+5. Prints how to import a component, add more and run the app (`tauri:dev` in a Tauri project). With an AI integration installed, it ends with the [prompt to map the project](/docs/guide/getting-started#set-up-with-your-agent) into the memory, so the agent records the new components.
+
+In a terminal and without flags, it asks whether to add the starter components (`button`, `card`) and then lets `kosmesis init` ask its own questions. Any flag runs it without prompts (`--yes` alone too), with `kosmesis init --yes` and the defaults for whatever you don't pass:
+
+| Flag | Effect |
+|---|---|
+| `--style-system <tailwind\|praxisjs-css>` | Styling system (default `tailwind`) |
+| `--components <a,b>` | Components to add after the setup, e.g. `button,card` (default: none) |
+| `-y`, `--yes` | No prompts |
+| `--icon-library`, `--css`, `--root-component`, `--erase`, `--no-erase`, `--overwrite`, `--no-overwrite`, `--force` | Passed to [`kosmesis init`](https://kosmesis.praxisjs.org/docs/guide/getting-started#non-interactive-setup) as given |
+| `-h`, `--help` | Prints the flags |
+
+```sh
+npx praxisjs add kosmesis --style-system praxisjs-css --components button,card,dialog
+```
+
+If `kosmesis` fails (no network, or a release without the flags), it shows why, prints the commands to finish by hand in the project and exits with code `1`.
 
 ---
 
@@ -59,6 +92,8 @@ npx praxisjs ai add
 Existing config files are merged, never replaced: other MCP servers, settings and approvals stay as they are, and running `ai add` again only refreshes the skills. A config file that isn't valid JSON is left alone with a warning, so you can add the server by hand. A `praxisjs` entry under `mcpServers` in `.claude/settings.json`, written by earlier versions, is removed. Claude Code never reads MCP servers from that file, so with those versions the server never started.
 
 The skills create `CLAUDE.md` / `AGENTS.md`, `.praxisjs-ai.json` and the [project memory](/docs/tooling/mcp#project-memory) (`.praxis/`) the first time they run — see the [AI skills guide](/docs/guide/ai-skills) for what each file is for.
+
+It ends with a prompt to paste into the agent, which [maps the project into the memory](/docs/guide/getting-started#set-up-with-your-agent) with the `praxisjs-memory-bootstrap` skill. Updating an integration that is already installed prints it only when the update added the MCP server.
 
 <Callout type="info">
   During `create-praxisjs` scaffolding, the same integration picker appears as the "Add an AI integration?" step — `ai add` is only needed for a project that already exists.
@@ -103,6 +138,8 @@ For each integration it finds (a skill directory or an entry in the lock), it co
 | Already current | Left alone |
 
 "Unedited" means the file matches what the CLI recorded when it installed it, in `.praxisjs-ai.lock.json` (one hash per file, per integration; commit it), or, for installs made before the lock existed, one of the files earlier releases shipped. It also rewrites the MCP server configuration: the `praxisjs` server in `.mcp.json` gets the current command (a server pointing at a local `praxisjs-mcp` binary is kept, and so are extra keys such as `env`), its approval in `.claude/settings.json`, and the `[mcp_servers.praxisjs]` table in `.codex/config.toml`. Running it twice changes nothing the second time. It ends with a summary per integration: files written, removed and kept with your edits, and the config files it changed.
+
+When the sync adds the MCP server to an integration that didn't have it configured (a new `.mcp.json` or `.codex/config.toml` entry, or a server moved out of `.claude/settings.json`), it ends with the [prompt to map the project](/docs/guide/getting-started#set-up-with-your-agent) into the memory.
 
 `ai add` on an integration that is already installed runs the same update instead of overwriting it. The project memory (`.praxis/`) is updated separately, by the agent, with [`praxisjs_memory_migrate`](/docs/tooling/mcp#format-versions).
 

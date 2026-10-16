@@ -1,5 +1,6 @@
 import { argv, exit } from "node:process";
 
+import { addKosmesis } from "./commands/add/kosmesis";
 import { add } from "./commands/ai/add";
 import { remove } from "./commands/ai/remove";
 import { sync } from "./commands/ai/sync";
@@ -15,6 +16,7 @@ const aiCommands: Record<string, () => Promise<void>> = {
 const usage =
   "Usage: praxisjs <command>\n\n" +
   "Commands:\n" +
+  "  add kosmesis Set up Kosmesis UI components in this project (--help for flags)\n" +
   "  ai add       Add an AI integration to an existing project\n" +
   "  ai remove    Remove an AI integration from the project\n" +
   "  ai sync      Update installed AI integrations to this version (--dry-run to preview)\n" +
@@ -25,6 +27,7 @@ function resolveHandler(): (() => Promise<void>) | undefined {
   const [first, second] = argv.slice(2);
 
   if (first === "ai") return second ? aiCommands[second] : undefined;
+  if (first === "add") return second === "kosmesis" ? addKosmesis : undefined;
   if (first === "doctor") return doctor;
   if (first === "upgrade") return upgrade;
   return undefined;

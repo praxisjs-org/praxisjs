@@ -15,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   applySync: vi.fn(),
   installedIntegrations: vi.fn(),
   hasPendingChanges: vi.fn(),
+  hasMcpServer: vi.fn(() => true),
+  printAgentPrompt: vi.fn(),
 }));
 
 vi.mock("node:process", () => ({
@@ -41,6 +43,8 @@ vi.mock("../plugins", () => ({
   installedIntegrations: mocks.installedIntegrations,
   hasPendingChanges: mocks.hasPendingChanges,
 }));
+
+vi.mock("../agent-prompts", () => ({ hasMcpServer: mocks.hasMcpServer, printAgentPrompt: mocks.printAgentPrompt }));
 
 const { describePlan, isInteractive, offerAiSync, sync, syncIntegration } = await import("../commands/ai/sync");
 
@@ -157,6 +161,21 @@ describe("sync command", () => {
     await sync();
     expect(mocks.applySync).toHaveBeenCalledOnce();
     expect(mocks.outro).toHaveBeenLastCalledWith(expect.stringContaining("Dry run"));
+    expect(mocks.printAgentPrompt).not.toHaveBeenCalled();
+  });
+
+  it("prints the map prompt for each integration whose MCP server the sync added", async () => {
+    mocks.installedIntegrations.mockReturnValueOnce(["claude-skill", "codex-skill"]);
+    // before: claude has no server, codex has one; after: both have it
+    mocks.hasMcpServer.mockReturnValueOnce(false).mockReturnValueOnce(true).mockReturnValueOnce(true);
+    await sync();
+    expect(mocks.printAgentPrompt).toHaveBeenCalledOnce();
+    expect(mocks.printAgentPrompt).toHaveBeenCalledWith("claude-skill", "map");
+
+    mocks.argv = [...mocks.argv, "--dry-run"];
+    mocks.hasMcpServer.mockReturnValueOnce(false).mockReturnValueOnce(false);
+    await sync();
+    expect(mocks.printAgentPrompt).toHaveBeenCalledOnce();
   });
 });
 

@@ -297,6 +297,35 @@ describe("praxisjs index — command dispatch", () => {
   });
 });
 
+describe("praxisjs index — add", () => {
+  it("routes 'add kosmesis' to the Kosmesis setup", async () => {
+    const addKosmesis = vi.fn().mockResolvedValue(undefined);
+
+    vi.doMock("../commands/add/kosmesis", () => ({ addKosmesis }));
+    vi.doMock("node:process", () => ({
+      argv: ["node", "praxisjs", "add", "kosmesis", "--yes"],
+      cwd: () => "/fake/cwd",
+      exit: vi.fn(),
+    }));
+
+    await runCli();
+
+    expect(addKosmesis).toHaveBeenCalledOnce();
+  });
+
+  it("logs usage and exits with code 1 for anything else after 'add'", async () => {
+    const mockExit = vi.fn();
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.doMock("node:process", () => ({ argv: ["node", "praxisjs", "add", "tauri"], cwd: () => "/fake/cwd", exit: mockExit }));
+
+    await runCli();
+
+    expect(String(consoleSpy.mock.calls[0]?.[0])).toContain("add kosmesis");
+    expect(mockExit).toHaveBeenCalledWith(1);
+    consoleSpy.mockRestore();
+  });
+});
+
 describe("praxisjs index — command handler error", () => {
   it("logs the error and exits with code 1 when the handler rejects", async () => {
     const mockExit = vi.fn();

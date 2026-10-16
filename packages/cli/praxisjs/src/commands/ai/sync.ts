@@ -3,6 +3,7 @@ import { argv, cwd, env, exit, stdin } from "node:process";
 import { confirm, intro, isCancel, log, note, outro } from "@clack/prompts";
 import pc from "picocolors";
 
+import { hasMcpServer, printAgentPrompt } from "../../agent-prompts";
 import { PLUGINS } from "../../constants";
 import { lineDiff } from "../../diff";
 import {
@@ -121,12 +122,16 @@ export async function sync(): Promise<void> {
     return;
   }
   const options = { dryRun: argv.includes("--dry-run"), interactive: isInteractive() };
+  const withoutServer = integrations.filter((plugin) => !hasMcpServer(plugin, root));
   for (const plugin of integrations) await syncIntegration(plugin, root, options);
   outro(
     options.dryRun
       ? pc.dim("Dry run: nothing was written. Run `praxisjs ai sync` to apply.")
       : pc.green("AI setup is up to date. Ask your agent to run praxisjs_memory_migrate (or the praxisjs-ai-setup skill) for the project memory."),
   );
+  for (const plugin of withoutServer) {
+    if (hasMcpServer(plugin, root)) printAgentPrompt(plugin, "map");
+  }
 }
 
 /** After `praxisjs upgrade`: offers to bring an outdated AI setup up to date too. */

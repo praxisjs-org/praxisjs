@@ -1,11 +1,17 @@
 ---
 name: praxisjs-memory-bootstrap
-description: Initialize the PraxisJS project memory (.praxis/) with a thorough analysis of the whole project, run as parallel focused passes (UI components, utilities and stores, routes and pages, business rules, architecture and data flow, conventions, dependencies including Morphos/Kosmesis, tests and tooling) and recorded through the PraxisJS MCP server. Use the first time an agent works in a PraxisJS project, when .praxis/ is missing or nearly empty, or when the user asks to analyze or document the project. Safe to re-run.
+description: Initialize the PraxisJS project memory (.praxis/) with a thorough analysis of the whole project, run as parallel focused passes (UI components, utilities and stores, routes and pages, business rules, architecture and data flow, conventions, dependencies including Morphos/Kosmesis, tests and tooling) and recorded through the PraxisJS MCP server. Use when the developer asks to map, analyze or document the project, or answered "map" to the session start question about an unset memory. Never start it on your own because .praxis/ is missing: ask first (scaffold / map). Safe to re-run.
 ---
 
 # Bootstrap the project memory
 
 Follow the `praxisjs` skill's rules. Reference: `../praxisjs/references/project-memory.md`.
+
+**Run it only when the developer asked for it**: an explicit request ("map this project into its
+memory"), or the answer `map` to question 6 of the session start (`.praxisjs-ai.json` `memory`). When
+the memory is missing and nobody asked, the main skill's session start checklist asks first whether the
+project is still the empty scaffold or should be mapped. For `scaffold`, only `praxisjs_memory_init`
+runs, with no passes; come back to this skill when the project has code written outside the sessions.
 
 **Everything is written through the MCP tools** (`praxisjs_memory_upsert`, `praxisjs_memory_*`).
 Never read, create or edit files under `.praxis/` yourself, and never in a subagent either.
@@ -59,3 +65,4 @@ Merge the passes' summaries into one message for the developer:
 - Gaps and questions: business rules that could not be inferred, ambiguous ownership, conventions the
   code contradicts, third-party code that duplicates a PraxisJS/Morphos/Kosmesis feature.
 - That `.praxis/` should be committed, and how to keep it current (the `praxisjs-memory` skill).
+- When `.praxisjs-ai.json` says `"memory": "scaffold"`, set it to `"map"`.

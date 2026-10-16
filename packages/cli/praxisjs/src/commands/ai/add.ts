@@ -4,6 +4,7 @@ import { cancel, intro, isCancel, log, outro, select, spinner } from "@clack/pro
 import pc from "picocolors";
 
 import { isInteractive, syncIntegration } from "./sync";
+import { hasMcpServer, printAgentPrompt } from "../../agent-prompts";
 import { PLUGINS, type PluginName } from "../../constants";
 import { applyPlugin, installedIntegrations, notePlugin } from "../../plugins";
 
@@ -33,8 +34,10 @@ export async function add(): Promise<void> {
   const root = cwd();
 
   if (plugin !== "none" && installedIntegrations(root).includes(plugin)) {
+    const hadServer = hasMcpServer(plugin, root);
     await syncIntegration(plugin, root, { dryRun: false, interactive: isInteractive() });
     outro(pc.green("Updated the existing integration."));
+    if (!hadServer && hasMcpServer(plugin, root)) printAgentPrompt(plugin, "map");
     return;
   }
 
@@ -47,4 +50,5 @@ export async function add(): Promise<void> {
   notePlugin(plugin);
 
   outro(pc.green("Happy hacking!"));
+  printAgentPrompt(plugin, "map");
 }

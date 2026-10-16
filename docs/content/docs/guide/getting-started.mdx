@@ -33,13 +33,20 @@ bun create praxisjs
 </Tab>
 </Tabs>
 
-The CLI asks for a project name and a template:
+The CLI asks, in order:
+
+1. **Project name**
+2. **Template**
+3. **Desktop app with Tauri v2?** (see [below](#desktop-app-with-tauri-v2))
+4. **Add Kosmesis UI components?** (see [below](#ui-components-with-kosmesis))
+5. **Add an AI integration?** (see [AI & MCP](#ai--mcp))
 
 | Template | What's included |
 |---|---|
 | **Minimal** | core, decorators, jsx, runtime |
 | **With Router** | Minimal + router |
 | **Full** | Router + store, di, composables, concurrent, devtools |
+| **Blog** | Router + content: a markdown blog with frontmatter and reactive collections |
 
 Start the dev server:
 
@@ -48,6 +55,15 @@ cd my-app
 npm install
 npm run dev
 ```
+
+Flags answer a question ahead of time, in any position after the project name. With npm, put them after `--` (`npm create praxisjs@latest my-app -- --tauri --kosmesis`) so npm passes them to the CLI instead of reading them as its own:
+
+| Flag | Answers |
+|---|---|
+| `--tauri` / `--no-tauri` | Desktop app with Tauri v2 |
+| `--kosmesis` | Kosmesis with Tailwind CSS |
+| `--kosmesis=praxisjs-css` (or `--kosmesis praxisjs-css`) | Kosmesis with `@praxisjs/css` (`--kosmesis=tailwind` works too) |
+| `--no-kosmesis` | No Kosmesis |
 
 ### Desktop app with Tauri v2
 
@@ -105,6 +121,83 @@ Building the desktop app needs [Rust and the system dependencies of your platfor
 </Callout>
 
 If the Tauri CLI cannot be downloaded or fails, the CLI says why, removes the partial `src-tauri/` and leaves the web project as it would be without `--tauri`. Run `npx @tauri-apps/cli@2 init` in the project later and follow the [Tauri Vite guide](https://v2.tauri.app/start/frontend/vite/).
+
+### UI components with Kosmesis
+
+[Kosmesis](https://kosmesis.praxisjs.org) is the copy-paste component collection for PraxisJS, built on the Morphos primitives. At **Add Kosmesis UI components?**, pick a styling system, or pass `--kosmesis` (Tailwind CSS) or `--kosmesis=praxisjs-css`:
+
+| Choice | Components are styled with |
+|---|---|
+| **Yes, with Tailwind CSS** | Tailwind CSS v4 utility classes and `class-variance-authority` |
+| **Yes, with @praxisjs/css** | Typed CSS-in-TS with [`@praxisjs/css`](/docs/css), no Tailwind |
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npm create praxisjs@latest my-app -- --kosmesis
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm create praxisjs my-app --kosmesis
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn create praxisjs my-app --kosmesis
+```
+</Tab>
+<Tab value="bun">
+```sh
+bun create praxisjs my-app --kosmesis
+```
+</Tab>
+</Tabs>
+
+The CLI runs `kosmesis init` without prompts through your package manager (`npx`, `pnpm dlx`, `yarn dlx` or `bunx`, with `kosmesis@^0.6.0`), then `kosmesis add button card`. That installs the project's dependencies, so the project is ready to run when the CLI ends. Kosmesis:
+
+- writes `components.json` and the theme tokens: `src/style.css` with Tailwind (the template's own styles stay below them), `src/lib/kosmesis-theme.ts` with `@praxisjs/css`;
+- adds the `@tailwindcss/vite` or `praxisjsCSS()` plugin and the `@/*` → `src/*` alias to `vite.config.ts` and `tsconfig.json`;
+- wires `@IconProvider(LucideSource)` (and `@Themed(...)` with `@praxisjs/css`) on the `App` component in `src/app.tsx`;
+- copies the starter components into `src/components/ui/`.
+
+```tsx
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+```
+
+Add more components with `npx kosmesis add <component>`: see the [Kosmesis components](https://kosmesis.praxisjs.org/docs).
+
+Kosmesis works with every template and with `--tauri`: the components render in the desktop window as in the browser, and the Tauri `vite.config.ts` gets the same plugin and alias. If Kosmesis cannot be set up (no network, or the `kosmesis` release is not reachable), the CLI says why, leaves the project as it would be without `--kosmesis` and prints the commands to run in the project later.
+
+#### Existing project
+
+`praxisjs add kosmesis` sets Kosmesis up in a project you already have, Tauri apps included. It checks that the project depends on `@praxisjs/core`, installs its dependencies when `node_modules` is missing, runs `kosmesis init` and says what to do next:
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+<Tab value="npm">
+```sh
+npx praxisjs add kosmesis
+```
+</Tab>
+<Tab value="pnpm">
+```sh
+pnpm dlx praxisjs add kosmesis
+```
+</Tab>
+<Tab value="yarn">
+```sh
+yarn dlx praxisjs add kosmesis
+```
+</Tab>
+<Tab value="bun">
+```sh
+bunx praxisjs add kosmesis
+```
+</Tab>
+</Tabs>
+
+In a terminal, without flags, `kosmesis init` asks its own questions. With flags it runs without prompts: `npx praxisjs add kosmesis --style-system praxisjs-css --components button,card`. See the [CLI reference](/docs/tooling/cli#add-kosmesis) for every flag.
 
 ---
 
@@ -219,20 +312,18 @@ render(() => <Counter initialCount={5} />, document.getElementById('app')!)
 
 ---
 
----
-
 ## AI & MCP
 
-[`@praxisjs/mcp`](/docs/tooling/mcp) gives any MCP-compatible AI assistant live access to praxisjs.org documentation. Two AI integrations are available:
+[`@praxisjs/mcp`](/docs/tooling/mcp) gives any MCP-compatible AI assistant live access to praxisjs.org documentation, your project's structure and its project memory. Two AI integrations install the [PraxisJS skills](/docs/guide/ai-skills) and configure the server:
 
-| Integration | AI assistant | Project memory | Skill location |
-|---|---|---|---|
-| **Claude Code** | Claude Code, Cursor, VS Code/Copilot, Windsurf | `CLAUDE.md` | `.claude/skills/praxisjs/` |
-| **Codex** | OpenAI Codex | `AGENTS.md` | `.agents/skills/praxisjs/` |
+| Integration | AI assistant | Project memory file | Skills | MCP server config |
+|---|---|---|---|---|
+| **Claude Code** | Claude Code | `CLAUDE.md` | `.claude/skills/praxisjs*/` | `.mcp.json`, approved in `.claude/settings.json` |
+| **Codex** | OpenAI Codex | `AGENTS.md` | `.agents/skills/praxisjs*/` | `.codex/config.toml` |
 
 ### New project
 
-When scaffolding with `create-praxisjs`, the "Add an AI integration?" step lets you pick the integration — skill files and project memory file are configured automatically.
+At the "Add an AI integration?" step of `create-praxisjs`, pick **Claude Code** or **Codex**. The CLI ends with a [setup prompt](#set-up-with-your-agent) to paste into the agent.
 
 ### Existing project
 
@@ -261,17 +352,33 @@ bunx praxisjs ai add
 </Tab>
 </Tabs>
 
-Select the integration. For **Claude Code**, skill files are added to `.claude/skills/praxisjs/` with the MCP server pre-configured in `.claude/settings.json`. For **Codex**, skill files go to `.agents/skills/praxisjs/` and `AGENTS.md` is created at the project root (MCP is configured separately in `~/.codex/config.toml` — see the [MCP docs](/docs/tooling/mcp)).
-
-To uninstall an integration, run `praxisjs ai remove` — see the [AI skills guide](/docs/guide/ai-skills#removing-a-skill) for what it does and doesn't delete.
+It ends with a [prompt to map the project](#set-up-with-your-agent) into the memory. To uninstall an integration, run `praxisjs ai remove`: see the [AI skills guide](/docs/guide/ai-skills#removing-a-skill) for what it does and doesn't delete.
 
 ### MCP server only
 
-To add only the MCP server (without the Claude Code skill):
+To add only the MCP server (without the skills):
 
 <PackageInstall pkg="@praxisjs/mcp" dev />
 
 See the [MCP Server](/docs/tooling/mcp) page for client-specific setup (Cursor, VS Code/Copilot, Windsurf, Codex).
+
+### Set up with your agent
+
+The CLIs print these prompts when they install the AI integration; copy them from here too. Restart the agent first (Claude Code: approve the `praxisjs` server when it asks, check with `/mcp`).
+
+**New project.** `create-praxisjs` ends with it when you picked an integration:
+
+```text
+Set up this new PraxisJS project with me. Check that the praxisjs MCP server is connected, then read the praxisjs skill and the docs it points to. Run its session start checklist: ask me the setup questions in one message, set up the project memory, and confirm the folder structure and conventions with me before writing any code.
+```
+
+**Existing project.** `praxisjs ai add`, and `praxisjs ai sync` when it adds the MCP server, end with it. So does `praxisjs add kosmesis` when an AI integration is installed, so the new components get recorded:
+
+```text
+Map this PraxisJS project into its memory. Check that the praxisjs MCP server is connected, then run the praxisjs-memory-bootstrap skill over the whole project. Confirm the folder structure and conventions you find with me, and ask about anything the code does not make clear.
+```
+
+The setup prompt runs the skill's [first session](/docs/guide/ai-skills#first-session): your preferences, then whether the project is still the empty scaffold (memory set up without an analysis) or should be mapped. The map prompt runs the `praxisjs-memory-bootstrap` skill directly, which analyzes the project in focused passes and writes `.praxis/` through the MCP server. It is safe to run again later: entries are updated, not duplicated. See [Project memory](/docs/guide/ai-skills#project-memory).
 
 ---
 

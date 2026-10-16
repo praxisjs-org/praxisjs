@@ -6,7 +6,13 @@ icon: Wrench
 
 # praxisjs
 
-## 1.1.1
+## 1.2.0
+
+**New `praxisjs add kosmesis`.** Sets up [Kosmesis](https://kosmesis.praxisjs.org) UI components in a project you already have, Tauri apps included. It checks that the project uses PraxisJS, reports what it found (template, Tauri, package manager, AI integration), installs the dependencies when `node_modules` is missing, runs `kosmesis init` through your package manager (`kosmesis@^0.6.0`) and adds the components you ask for. In a terminal without flags, `kosmesis init` asks its own questions; `--style-system`, `--components`, `--yes` and the `kosmesis init` flags run it without prompts. When the setup fails, it prints the commands to finish by hand and exits with code `1`. See [add kosmesis](/docs/tooling/cli#add-kosmesis).
+
+**Prompts to start with your agent.** `ai add` ends with a prompt to paste into Claude Code or Codex that maps the project into its memory with the `praxisjs-memory-bootstrap` skill and confirms the folder structure and conventions with you. `ai sync` prints it when it adds the MCP server to a project that didn't have it, and `add kosmesis` when an AI integration is installed. The prompts are also in the [Quick Start](/docs/guide/getting-started#set-up-with-your-agent).
+
+**The skills ask before mapping the project.** When the project memory is not set up, the agent no longer starts a full analysis on its own at session start. It runs `praxisjs_inspect_project` first, then asks, in the same message as the `.praxisjs-ai.json` questions, whether the project is still the empty scaffold or should be mapped now (`scaffold / map`), with a suggested answer. The answer is saved as `memory` in `.praxisjs-ai.json`, so it is asked once. `scaffold` sets the memory up with `praxisjs_memory_init` only (the folder structure and UI library conventions); `map` runs the `praxisjs-memory-bootstrap` skill, which otherwise runs only when you ask for it, for example with the map prompt. Claude Code and Codex skills say the same. See [First session](/docs/guide/ai-skills#first-session).
 
 The AI skills list the new [Performance](/docs/performance) pages (benchmarks, why PraxisJS is fast, writing fast PraxisJS code), and the performance skill points agents to them.
 

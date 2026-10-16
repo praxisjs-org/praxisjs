@@ -25,13 +25,17 @@ PraxisJS is a signal-driven TypeScript frontend framework. APIs evolve: **look t
 ## Session start checklist (run every time)
 
 1. **MCP**: the `praxisjs_*` tools are available; if not, stop and follow `references/mcp.md`.
-2. **`.praxisjs-ai.json`** at the project root:
-   - If it **doesn't exist**: run the [init flow](#project-config-praxisjs-aijson) before anything else.
-   - If it **exists**: read it silently and let it govern all decisions for this session.
-3. **`CLAUDE.md`**: read it for the stack and constraints.
-4. **`praxisjs_inspect_project`**: versions, pages, components, stores, routes, folder layout, UI libraries. If it says the project memory is not set up, run the `praxisjs-memory-bootstrap` skill (a full analysis recorded through the MCP) and tell the developer. If a memory tool says `.praxis/` is in an older format, or `npx praxisjs doctor` reports an outdated AI setup, follow the `praxisjs-ai-setup` skill.
-5. **`praxisjs_memory_search`** with the task's words: reusable code, business rules and conventions that apply.
-6. **Docs** for the task: `praxisjs_search_docs`, then `praxisjs_get_page`.
+2. **`praxisjs_inspect_project`**: versions, pages, components, stores, routes, folder layout, UI libraries, and whether the project memory is set up. It runs before the questions below because question 6 depends on it.
+3. **`.praxisjs-ai.json`** at the project root:
+   - If it **doesn't exist**: run the [init flow](#project-config-praxisjs-aijson) before anything else (question 6 included when the project memory is not set up).
+   - If it **exists**: read it silently and let it govern all decisions for this session. If the project memory is not set up and the file has no `memory` answer, ask question 6 alone and save the answer.
+4. **`CLAUDE.md`**: read it for the stack and constraints.
+5. **Project memory**, when it is not set up, by the `memory` answer. Never start a full analysis the developer didn't ask for.
+   - `"scaffold"`: `praxisjs_memory_init` only (it records `conventions/project-structure` and, with Morphos/Kosmesis, `conventions/ui-libraries`), no analysis. Tell the developer the memory grows as you add code, and that the `praxisjs-memory-bootstrap` skill maps the project later, once it has code written outside these sessions.
+   - `"map"`: run the `praxisjs-memory-bootstrap` skill (a full analysis recorded through the MCP) and tell the developer.
+   - If a memory tool says `.praxis/` is in an older format, or `npx praxisjs doctor` reports an outdated AI setup, follow the `praxisjs-ai-setup` skill.
+6. **`praxisjs_memory_search`** with the task's words: reusable code, business rules and conventions that apply.
+7. **Docs** for the task: `praxisjs_search_docs`, then `praxisjs_get_page`. Then the developer's task.
 
 If the developer reports something feels broken (wrong TypeScript config, missing memory files, a stale integration), run `npx praxisjs doctor`: it checks `package.json`, whether the installed `@praxisjs/*` versions work together, `tsconfig.json` (`jsx`, `jsxImportSource`, `useDefineForClassFields`), and whether this Claude Code integration is complete (skills, MCP server configuration, `CLAUDE.md`, `.praxisjs-ai.json`).
 
@@ -61,7 +65,7 @@ Read `references/project-config.md` for the full config format, option descripti
 
 ### Init flow
 
-Run this when `.praxisjs-ai.json` is absent. Ask the questions below **all at once in a single message** — do not scatter them across multiple turns.
+Run this when `.praxisjs-ai.json` is absent. Ask the questions below **all at once in a single message** — do not scatter them across multiple turns. Include question 6 only when `praxisjs_inspect_project` says the project memory is not set up, with a suggested answer from what it found: `scaffold` when the project has only the files its template created, `map` when it has code of its own.
 
 ```
 I need to set up your PraxisJS project preferences so I don't have to ask
@@ -78,9 +82,12 @@ these questions every session. Please answer all of them:
    d) Tailwind CSS
    e) UnoCSS
    f) No styles from Claude (I handle CSS myself)
+6. Is this project still the empty scaffold, or should I map the existing code
+   into the project memory now? (scaffold / map) — this looks like [an untouched
+   scaffold / a project with code of its own], so I suggest [scaffold / map].
 ```
 
-After the developer answers, write `.praxisjs-ai.json` immediately, confirm the saved config in one short message, and proceed with the original task.
+After the developer answers, write `.praxisjs-ai.json` immediately (`memory` holds the answer to question 6), confirm the saved config in one short message, set up the project memory as that answer says (step 5 of the checklist), and proceed with the original task.
 
 ### Reading the config
 
@@ -90,6 +97,7 @@ At the start of every session after init:
 - `uiLocale` → use this locale for all user-facing strings in templates
 - `i18n: true` → use the i18n integration pattern from `references/project-config.md`
 - `css` → follow the styling approach when adding styles to components
+- `memory` → how the project memory was set up: `"scaffold"` (initialized without an analysis) or `"map"` (mapped by the `praxisjs-memory-bootstrap` skill). Never ask question 6 again once it is set
 
 ---
 

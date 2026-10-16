@@ -30,7 +30,9 @@ releases installed) and updated in place; anything the developer changed counts 
 
 ## 2. Project memory
 
-- No `.praxis/`: run the `praxisjs-memory-bootstrap` skill.
+- No `.praxis/`: ask whether the project is still the empty scaffold or should be mapped (question 6 of the
+  session start, saved as `memory` in `.praxisjs-ai.json`): `praxisjs_memory_init` only, or the
+  `praxisjs-memory-bootstrap` skill.
 - `.praxis/` in an older format (memory tools ask for a migration): `praxisjs_memory_migrate` (dry
   run by default) → review the plan with the developer → `praxisjs_memory_migrate({ dryRun: false })`.
   The migration rewrites entries canonically and swaps the folder atomically; invalid entries are

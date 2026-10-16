@@ -39,7 +39,7 @@ bun create praxisjs
 </Tab>
 </Tabs>
 
-At the "Add an AI integration?" step, choose **Claude Code** or **Codex**.
+At the "Add an AI integration?" step, choose **Claude Code** or **Codex**. The CLI ends with a prompt to paste into the agent: it starts the project setup (docs through the MCP server, the project memory, your folder structure and conventions).
 
 ### Existing project
 
@@ -67,6 +67,31 @@ bunx praxisjs ai add
 ```
 </Tab>
 </Tabs>
+
+It ends with a prompt that asks the agent to map the project into its memory. `praxisjs ai sync` prints the same prompt when it adds the MCP server to a project that didn't have it, and `praxisjs add kosmesis` prints it when an AI integration is installed.
+
+### Setup prompts
+
+Both prompts are in the [Quick Start](/docs/guide/getting-started#set-up-with-your-agent), ready to copy: one starts the setup of a new project (the [first session](#first-session) below), the other maps an existing project into the memory with the `praxisjs-memory-bootstrap` skill.
+
+### First session
+
+The first time the agent works in the project, the `praxisjs` skill runs its session start checklist before your task:
+
+1. **MCP server.** The agent client starts the `praxisjs` server from the project config (`.mcp.json` for Claude Code, `.codex/config.toml` for Codex). Claude Code asks you to approve it the first time; check it with `/mcp`. If the `praxisjs_*` tools are missing, the skill stops and walks you through connecting the server (`references/mcp.md`) instead of guessing APIs.
+2. **`praxisjs_inspect_project`.** Versions, folder layout, pages, components, stores, routes, UI libraries, and whether the project memory exists.
+3. **Questions, in one message.** Without a `.praxisjs-ai.json`, the [five preference questions](#project-config-praxisjs-aijson). When the project memory is not set up, a sixth one, with a suggested answer from what `praxisjs_inspect_project` found:
+
+   ```text
+   6. Is this project still the empty scaffold, or should I map the existing code
+      into the project memory now? (scaffold / map)
+   ```
+
+   The answers go into `.praxisjs-ai.json` (the sixth as `memory`), so they are never asked again. A project that already has the config but no memory gets the sixth question alone.
+4. **Project memory.** `scaffold`: `praxisjs_memory_init` only, which records the folder structure and UI library conventions, without a full analysis; the memory then grows as the agent adds code, and you can map the project later with the map prompt. `map`: the `praxisjs-memory-bootstrap` skill analyzes the project and records it (see [Project memory](#project-memory)). The agent never starts a full mapping you didn't ask for.
+5. **Your task.** `praxisjs_memory_search` for what applies, the docs pages for the APIs it needs, then the work.
+
+Later sessions read `.praxisjs-ai.json` and the memory silently and go straight to step 5.
 
 ---
 
@@ -149,7 +174,7 @@ Every skill follows the same rules:
 
 ## Project config (`.praxisjs-ai.json`)
 
-On first use the skill asks five questions in a single message and writes `.praxisjs-ai.json` at the project root. Every subsequent session reads this file silently — the AI never asks the same questions again.
+On first use the skill asks five questions in a single message (six when the project memory is not set up, see [First session](#first-session)) and writes `.praxisjs-ai.json` at the project root. Every subsequent session reads this file silently — the AI never asks the same questions again.
 
 ```jsonc
 {
@@ -158,7 +183,8 @@ On first use the skill asks five questions in a single message and writes `.prax
   "codeLocale": "en",     // language for identifiers, comments, variable names
   "uiLocale": "pt-BR",    // language for user-facing strings in templates
   "i18n": false,          // set up internationalization support
-  "css": "tailwind"       // praxisjs-css | plain | modules | tailwind | unocss | none
+  "css": "tailwind",      // praxisjs-css | plain | modules | tailwind | unocss | none
+  "memory": "scaffold"    // how .praxis/ was set up: scaffold (no analysis) | map; only when it was missing
 }
 ```
 
@@ -197,7 +223,7 @@ through the PraxisJS MCP server (`praxisjs_memory_*` tools).
 JWT stored in memory only. Targets Chrome 100+.
 ```
 
-`.praxis/` is set up on the first session by the `praxisjs-memory-bootstrap` skill (commit it): `praxisjs_memory_bootstrap_plan` splits a full analysis of the project into eight focused passes — UI components, utilities and stores, routes and pages, business rules, architecture, conventions, dependencies and UI libraries, tests and tooling — that run in parallel when the agent supports subagents and one after another otherwise. Each pass writes only through `praxisjs_memory_upsert` (dry run first), links every entry to its source files and reports what it couldn't infer, such as business rules, as questions for you. Re-running it updates entries instead of duplicating them and asks before rewriting text people wrote. The memory is then kept current as the assistant adds, changes, moves or removes reusable code and as rules and decisions come up. Its format, tools and safety guarantees are described on the [MCP Server](/docs/tooling/mcp#project-memory) page.
+`.praxis/` is set up on the first session (commit it). For a project that is still the empty scaffold, `praxisjs_memory_init` creates it with the conventions only. To map a project with code, the `praxisjs-memory-bootstrap` skill runs when you answer `map` or ask for it: `praxisjs_memory_bootstrap_plan` splits a full analysis of the project into eight focused passes — UI components, utilities and stores, routes and pages, business rules, architecture, conventions, dependencies and UI libraries, tests and tooling — that run in parallel when the agent supports subagents and one after another otherwise. Each pass writes only through `praxisjs_memory_upsert` (dry run first), links every entry to its source files and reports what it couldn't infer, such as business rules, as questions for you. Re-running it updates entries instead of duplicating them and asks before rewriting text people wrote. The memory is then kept current as the assistant adds, changes, moves or removes reusable code and as rules and decisions come up. Its format, tools and safety guarantees are described on the [MCP Server](/docs/tooling/mcp#project-memory) page.
 
 <Callout type="info">
   The skill will not proceed with any task until the project memory file exists. If it is missing at session start, the skill creates it before writing any code.
@@ -284,6 +310,8 @@ The full tool list is on the [MCP Server](/docs/tooling/mcp#tools) page.
 These are realistic prompts you can use directly. The skill ensures docs are fetched and conventions are followed before any code is written.
 
 ### Starting a new project
+
+Start with the [setup prompt](/docs/guide/getting-started#set-up-with-your-agent) the CLI prints. Then, for example:
 
 ```
 I just scaffolded a PraxisJS project with the router template. Create CLAUDE.md

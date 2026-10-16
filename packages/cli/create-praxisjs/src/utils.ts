@@ -137,20 +137,41 @@ export async function resolveWorkspaceVersions(
   });
 }
 
+export type KosmesisChoice = "tailwind" | "praxisjs-css" | false;
+
 export interface CliArgs {
   targetDir: string;
   /** `undefined` when neither `--tauri` nor `--no-tauri` was passed, so the prompt asks. */
   tauri: boolean | undefined;
+  /** `undefined` when no `--kosmesis` flag was passed, so the prompt asks. */
+  kosmesis: KosmesisChoice | undefined;
+}
+
+const KOSMESIS_STYLES = ["tailwind", "praxisjs-css"] as const;
+const SUPPORTED = "--tauri, --no-tauri, --kosmesis[=tailwind|praxisjs-css], --no-kosmesis";
+
+function kosmesisStyle(value: string): "tailwind" | "praxisjs-css" {
+  const style = KOSMESIS_STYLES.find((s) => s === value);
+  if (!style) throw new Error(`Invalid value "${value}" for --kosmesis. Expected tailwind or praxisjs-css.`);
+  return style;
 }
 
 export function parseArgs(args: readonly string[]): CliArgs {
   let targetDir = "";
   let tauri: boolean | undefined;
-  for (const arg of args) {
+  let kosmesis: KosmesisChoice | undefined;
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
     if (arg === "--tauri") tauri = true;
     else if (arg === "--no-tauri") tauri = false;
-    else if (arg.startsWith("-")) throw new Error(`Unknown option "${arg}". Supported: --tauri, --no-tauri.`);
+    else if (arg === "--no-kosmesis") kosmesis = false;
+    else if (arg.startsWith("--kosmesis=")) kosmesis = kosmesisStyle(arg.slice("--kosmesis=".length));
+    else if (arg === "--kosmesis") {
+      // `--kosmesis praxisjs-css` too, so the style is not taken for the project directory.
+      const next = args.at(i + 1);
+      kosmesis = next !== undefined && (KOSMESIS_STYLES as readonly string[]).includes(next) ? kosmesisStyle(args[++i]) : "tailwind";
+    } else if (arg.startsWith("-")) throw new Error(`Unknown option "${arg}". Supported: ${SUPPORTED}.`);
     else targetDir ||= arg;
   }
-  return { targetDir: formatTargetDir(targetDir), tauri };
+  return { targetDir: formatTargetDir(targetDir), tauri, kosmesis };
 }

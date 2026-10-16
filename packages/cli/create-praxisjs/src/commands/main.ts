@@ -16,7 +16,19 @@ import {
   text,
 } from "@clack/prompts";
 import pc from "picocolors";
-import { applyPlugin, notePlugin, PLUGINS, type PluginName } from "praxisjs";
+import {
+  applyPlugin,
+  kosmesisInvocation,
+  formatInvocation,
+  KOSMESIS_STYLE_SYSTEMS,
+  notePlugin,
+  PLUGINS,
+  printAgentPrompt,
+  setupKosmesis,
+  STARTER_COMPONENTS,
+  type KosmesisSetupResult,
+  type PluginName,
+} from "praxisjs";
 
 import { RENAME_MAP, TEMPLATES, type TemplateName } from "../constants";
 import { dlxCommand, runScriptCommand } from "../tauri/patches";
@@ -24,6 +36,7 @@ import { addTauri, rustHelp, type AddTauriResult } from "../tauri/setup";
 import {
   copy,
   emptyDir,
+  type KosmesisChoice,
   formatTargetDir,
   isEmpty,
   parseArgs,
@@ -112,6 +125,29 @@ export async function main(): Promise<void> {
     }
 
     tauri = tauriResult;
+  }
+
+  let kosmesis = args.kosmesis;
+  if (kosmesis === undefined) {
+    const kosmesisResult = await select<KosmesisChoice>({
+      message: "Add Kosmesis UI components?",
+      options: [
+        { label: "No", value: false },
+        ...KOSMESIS_STYLE_SYSTEMS.map((style) => ({
+          label: `Yes, with ${style.display}`,
+          hint: style.description,
+          value: style.name,
+        })),
+      ],
+    });
+
+    if (isCancel(kosmesisResult)) {
+      cancel("Operation cancelled");
+      exit(0);
+      return;
+    }
+
+    kosmesis = kosmesisResult;
   }
 
   const pluginResult = await select<PluginName>({
@@ -210,6 +246,18 @@ export async function main(): Promise<void> {
     });
   }
 
+  let kosmesisSetup: KosmesisSetupResult | undefined;
+  if (kosmesis) {
+    s.message("Adding Kosmesis (installs the project's dependencies)");
+    kosmesisSetup = await setupKosmesis({
+      root,
+      packageManager: pkgManager,
+      userAgent,
+      styleSystem: kosmesis,
+      components: STARTER_COMPONENTS,
+    });
+  }
+
   s.stop(pc.green("Project scaffolded!"));
 
   if (tauriSetup?.ok === false) {
@@ -225,6 +273,17 @@ export async function main(): Promise<void> {
 
   for (const warning of tauriSetup?.ok ? tauriSetup.warnings : []) {
     log.warn(warning);
+  }
+
+  if (kosmesisSetup?.ok === false) {
+    log.warn(
+      [
+        "Kosmesis was not added. The project works without it.",
+        kosmesisSetup.reason,
+        "To add it later, run in the project:",
+        ...kosmesisSetup.commands,
+      ].join("\n"),
+    );
   }
 
   const relPath = path.relative(cwd(), root);
@@ -249,7 +308,20 @@ export async function main(): Promise<void> {
     note(rust, "Rust toolchain");
   }
 
+  if (kosmesisSetup?.ok) {
+    note(
+      [
+        `${pc.dim("Components in")} src/components/ui ${pc.dim(`(${kosmesisSetup.components.join(", ")})`)}`,
+        `import { Button } from "@/components/ui/button";`,
+        `${pc.dim("Add more:")} ${pc.cyan(formatInvocation(kosmesisInvocation(pkgManager, userAgent, ["add", "<component>"])))}`,
+        `${pc.dim("Docs:")} kosmesis.praxisjs.org/docs`,
+      ].join("\n"),
+      "Kosmesis",
+    );
+  }
+
   notePlugin(plugin);
 
   outro(pc.green("Happy hacking!"));
+  printAgentPrompt(plugin, "setup");
 }

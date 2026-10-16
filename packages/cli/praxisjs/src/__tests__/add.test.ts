@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   outro: vi.fn(),
   warn: vi.fn(),
   notePlugin: vi.fn(),
+  hasMcpServer: vi.fn(() => false),
+  printAgentPrompt: vi.fn(),
 }));
 
 vi.mock("node:process", () => ({ cwd: () => "/project", exit: vi.fn() }));
@@ -26,6 +28,7 @@ vi.mock("../plugins", () => ({
   installedIntegrations: mocks.installedIntegrations,
   notePlugin: mocks.notePlugin,
 }));
+vi.mock("../agent-prompts", () => ({ hasMcpServer: mocks.hasMcpServer, printAgentPrompt: mocks.printAgentPrompt }));
 vi.mock("../commands/ai/sync", () => ({ isInteractive: () => false, syncIntegration: mocks.syncIntegration }));
 
 const { add } = await import("../commands/ai/add");
@@ -42,6 +45,8 @@ describe("ai add", () => {
     expect(mocks.applyPlugin).toHaveBeenCalledWith("codex-skill", "/project");
     expect(mocks.warn).toHaveBeenCalledWith("warning");
     expect(mocks.notePlugin).toHaveBeenCalledWith("codex-skill");
+    expect(mocks.printAgentPrompt).toHaveBeenCalledWith("codex-skill", "map");
+    expect(mocks.outro.mock.invocationCallOrder[0]).toBeLessThan(mocks.printAgentPrompt.mock.invocationCallOrder[0] ?? 0);
   });
 
   it("updates an integration that is already installed instead of overwriting it", async () => {
@@ -51,6 +56,15 @@ describe("ai add", () => {
     expect(mocks.syncIntegration).toHaveBeenCalledWith("claude-skill", "/project", { dryRun: false, interactive: false });
     expect(mocks.applyPlugin).not.toHaveBeenCalled();
     expect(mocks.outro).toHaveBeenCalledWith("Updated the existing integration.");
+    expect(mocks.printAgentPrompt).not.toHaveBeenCalled();
+  });
+
+  it("prints the map prompt when updating an integration adds its MCP server", async () => {
+    mocks.select.mockResolvedValue("claude-skill");
+    mocks.installedIntegrations.mockReturnValue(["claude-skill"]);
+    mocks.hasMcpServer.mockReturnValueOnce(false).mockReturnValueOnce(true);
+    await add();
+    expect(mocks.printAgentPrompt).toHaveBeenCalledWith("claude-skill", "map");
   });
 
   it("treats 'none' as a fresh choice", async () => {

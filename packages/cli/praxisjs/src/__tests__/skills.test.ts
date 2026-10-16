@@ -84,6 +84,35 @@ describe.each(Object.entries(SKILLS))("%s SKILL.md", (_, file) => {
   });
 });
 
+describe("first session", () => {
+  const QUESTION_6 = "6. Is this project still the empty scaffold, or should I map the existing code\n   into the project memory now? (scaffold / map)";
+
+  it.each(Object.entries(SKILLS))("%s: inspects first, asks scaffold / map with the preferences, and maps only when asked", (_, file) => {
+    const skill = read(file);
+    const checklist = skill.slice(skill.indexOf("## Session start checklist"), skill.indexOf("## Other PraxisJS skills"));
+    const steps = ["**MCP**", "**`praxisjs_inspect_project`**", "**`.praxisjs-ai.json`**", "**Project memory**", "**`praxisjs_memory_search`**"];
+    const positions = steps.map((step) => checklist.indexOf(step));
+    expect(positions.every((p) => p !== -1)).toBe(true);
+    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+    expect(checklist).toContain("Never start a full analysis the developer didn't ask for.");
+    expect(skill).toContain(QUESTION_6);
+    expect(skill).toContain("`memory` holds the answer to question 6");
+  });
+
+  it("stores the answer in .praxisjs-ai.json", () => {
+    const config = read(path.join(CLAUDE_DIR, "references/project-config.md"));
+    expect(config).toContain('"memory": "scaffold"');
+    expect(config).toContain("### `memory`");
+  });
+
+  it("keeps the memory bootstrap for an explicit request or a map answer", () => {
+    const bootstrap = read(path.join(SHARED_SKILLS, "praxisjs-memory-bootstrap/SKILL.md"));
+    expect(bootstrap).toContain("**Run it only when the developer asked for it**");
+    expect(bootstrap).toContain("Never start it on your own because .praxis/ is missing");
+    expect(read(path.join(SHARED_REFERENCES, "project-memory.md"))).toContain("still the empty scaffold → `praxisjs_memory_init` only");
+  });
+});
+
 describe("Claude Code and Codex variants", () => {
   it("say the same thing, with the agent's names swapped", () => {
     expect(read(SKILLS.codex)).toBe(toCodex(read(SKILLS.claude)));

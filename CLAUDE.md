@@ -49,7 +49,7 @@ Signal-driven TypeScript frontend framework. Monorepo managed with pnpm workspac
 | Package           | Role                                                                  |
 | ------------------ | --------------------------------------------------------------------- |
 | `create-praxisjs`  | Scaffolds new projects (`npm create praxisjs@latest`), tsdown build   |
-| `praxisjs`         | Maintains existing projects — `ai add`/`ai remove` (AI integrations), `doctor` (diagnostics), `upgrade` (`@praxisjs/*` version bumps), tsdown build |
+| `praxisjs`         | Maintains existing projects — `add kosmesis` (Kosmesis setup), `ai add`/`ai remove`/`ai sync` (AI integrations), `doctor` (diagnostics), `upgrade` (`@praxisjs/*` version bumps), tsdown build. Its lib (`src/lib.ts`) also gives create-praxisjs the Kosmesis setup and the agent prompts |
 
 ### Private
 

@@ -34,7 +34,7 @@ Every entry also has `title`, a one-line `summary`, `tags` and `related` (`"cate
 | A domain rule came up in the task | `praxisjs_memory_add` in `business-rules` |
 | An architecture choice was made | `praxisjs_memory_add` in `architecture` |
 | A new folder or coding convention was agreed | `praxisjs_memory_update` on `conventions/project-structure`, or a new `conventions` entry |
-| Memory missing (`praxisjs_inspect_project` says so) | the `praxisjs-memory-bootstrap` skill (`praxisjs_memory_bootstrap_plan`, `praxisjs_memory_upsert`) |
+| Memory missing (`praxisjs_inspect_project` says so) | ask first, in the session start questions: still the empty scaffold → `praxisjs_memory_init` only; code to map → the `praxisjs-memory-bootstrap` skill (`praxisjs_memory_bootstrap_plan`, `praxisjs_memory_upsert`). The answer is saved as `memory` in `.praxisjs-ai.json` |
 | Code moved, or memory looks out of date | `praxisjs_memory_map`; fix each stale entry it reports |
 | A memory tool says the format is older | `praxisjs_memory_migrate` (dry run, then `{ dryRun: false }`) |
 

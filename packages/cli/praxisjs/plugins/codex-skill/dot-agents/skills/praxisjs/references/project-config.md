@@ -25,7 +25,11 @@ Stores developer preferences at the project root. Created once during the init f
   "i18n": false,
 
   // Styling approach: "praxisjs-css" | "plain" | "modules" | "tailwind" | "unocss" | "none"
-  "css": "plain"
+  "css": "plain",
+
+  // How the project memory (.praxis/) was set up: "scaffold" | "map"
+  // Only asked when the memory was not set up yet; absent otherwise
+  "memory": "scaffold"
 }
 ```
 
@@ -160,6 +164,18 @@ Add `i18n: true` and the active locale to `AGENTS.md` under **Known constraints*
 | `"none"` | Write no CSS. Provide component structure and logic only; the developer handles all styling. |
 
 When `css` is `"praxisjs-css"`, check whether the project also registers `praxisjsCSS()` in `vite.config.ts` — that plugin extracts all stylesheet rules at build time so no `<style>` tags are injected at runtime. See `tooling/vite-plugin`.
+
+---
+
+### `memory`
+
+The answer to the init flow's question 6, asked only when the project memory (`.praxis/`) was not set up. Saved so it is never asked again.
+
+| Value | Behavior |
+|---|---|
+| `"scaffold"` | The project was still the empty scaffold: `praxisjs_memory_init` only, no full analysis. The memory grows as reusable code, rules and decisions are added. When the project later has code written outside these sessions, suggest mapping it with the `praxisjs-memory-bootstrap` skill, and set `"map"` once it ran. |
+| `"map"` | The project had code of its own: the `praxisjs-memory-bootstrap` skill mapped it into the memory. |
+| absent | The memory already existed when the config was created, or the config predates this option. |
 
 ---
 

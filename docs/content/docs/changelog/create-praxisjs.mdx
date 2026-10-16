@@ -6,6 +6,12 @@ icon: Rocket
 
 # create-praxisjs
 
+## 1.2.0
+
+**New:** start with [Kosmesis](https://kosmesis.praxisjs.org) UI components, with every template and with Tauri v2. After the Tauri question, the CLI asks "Add Kosmesis UI components?" with Tailwind CSS or `@praxisjs/css`; `--kosmesis` answers Tailwind, `--kosmesis=praxisjs-css` (or `--kosmesis praxisjs-css`) `@praxisjs/css`, and `--no-kosmesis` no. It runs `kosmesis init` without prompts through your package manager (`kosmesis@^0.6.0`, the first release with the flags it needs) and adds the `button` and `card` components, which installs the project's dependencies. The theme, the Vite plugin, the `@/*` alias and the icon provider are wired for you, also in the Tauri `vite.config.ts`. When Kosmesis cannot be set up, the CLI says why, keeps the project as it would be without it and prints the commands to run later. See [UI components with Kosmesis](/docs/guide/getting-started#ui-components-with-kosmesis).
+
+**New:** with an AI integration, the CLI ends with a prompt to paste into Claude Code or Codex. It asks the agent to check the PraxisJS MCP server, read the PraxisJS skill and docs, run its first-session checklist (your preferences, then whether to set up the project memory for the empty scaffold or map existing code) and confirm the folder structure and conventions with you. See [Set up with your agent](/docs/guide/getting-started#set-up-with-your-agent).
+
 ## 1.1.0
 
 **New:** desktop apps with [Tauri v2](https://v2.tauri.app), with every template. After the template, the CLI asks "Desktop app with Tauri v2?"; `--tauri` answers yes without asking and `--no-tauri` answers no (with npm: `npm create praxisjs@latest my-app -- --tauri`). It runs the official Tauri CLI (`tauri init` through `npx`, `pnpm dlx`, `yarn dlx` or `bunx`) to generate `src-tauri/`, then wires it to the project: `tauri.conf.json` points at Vite's port 5173 and `dist/` and runs your package manager's `dev` / `build` scripts, `package.json` gets `tauri`, `tauri:dev` and `tauri:build` scripts plus `@tauri-apps/api` and `@tauri-apps/cli`, `vite.config.ts` gets the settings Tauri recommends (fixed port, `strictPort`, `clearScreen: false`, `TAURI_ENV_*` prefix, HMR host for mobile devices), and a small `Greet` component calls a `greet` Rust command with `invoke()`. See [Desktop app with Tauri v2](/docs/guide/getting-started#desktop-app-with-tauri-v2).
