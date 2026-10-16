@@ -25,11 +25,11 @@
     "dev": "vite build --watch"
   },
   "dependencies": {
-    "@praxisjs/core": "workspace:*",
-    "@praxisjs/decorators": "workspace:*",
-    "@praxisjs/jsx": "workspace:*",
-    "@praxisjs/runtime": "workspace:*",
-    "@praxisjs/shared": "workspace:*",
+    "@praxisjs/core": "workspace:^",
+    "@praxisjs/decorators": "workspace:^",
+    "@praxisjs/jsx": "workspace:^",
+    "@praxisjs/runtime": "workspace:^",
+    "@praxisjs/shared": "workspace:^",
     "@unocss/reset": "^66.6.7"
   },
   "devDependencies": {

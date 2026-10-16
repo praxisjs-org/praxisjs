@@ -6,6 +6,10 @@ icon: Braces
 
 # @praxisjs/jsx
 
+## 0.8.2
+
+Depends on the other `@praxisjs/*` packages through caret ranges (`^2.3.0`) instead of exact versions, so npm no longer installs a second copy of a package when two releases disagree, and upgrades no longer end in peer conflicts.
+
 ## 0.8.0
 
 The published package no longer contains the package's tests (compiled tests in `dist/__tests__`, test sources in `src/__tests__`).

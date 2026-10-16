@@ -28,11 +28,11 @@
   },
   "packageManager": "pnpm@10.30.2",
   "dependencies": {
-    "@praxisjs/core": "workspace:*",
-    "@praxisjs/head": "workspace:*",
-    "@praxisjs/router": "workspace:*",
-    "@praxisjs/runtime": "workspace:*",
-    "@praxisjs/shared": "workspace:*",
+    "@praxisjs/core": "workspace:^",
+    "@praxisjs/head": "workspace:^",
+    "@praxisjs/router": "workspace:^",
+    "@praxisjs/runtime": "workspace:^",
+    "@praxisjs/shared": "workspace:^",
     "jsdom": "^29.0.1"
   },
   "peerDependencies": {

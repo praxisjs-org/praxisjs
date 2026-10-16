@@ -32,6 +32,6 @@
     "typescript": "catalog:"
   },
   "dependencies": {
-    "@praxisjs/shared": "workspace:*"
+    "@praxisjs/shared": "workspace:^"
   }
 }

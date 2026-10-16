@@ -28,7 +28,7 @@
     "typescript": "catalog:"
   },
   "dependencies": {
-    "@praxisjs/core": "workspace:*",
-    "@praxisjs/decorators": "workspace:*"
+    "@praxisjs/core": "workspace:^",
+    "@praxisjs/decorators": "workspace:^"
   }
 }

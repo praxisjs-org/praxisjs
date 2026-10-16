@@ -30,8 +30,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@praxisjs/runtime": "workspace:*",
-    "@praxisjs/vite-plugin": "workspace:*"
+    "@praxisjs/runtime": "workspace:^",
+    "@praxisjs/vite-plugin": "workspace:^"
   },
   "peerDependencies": {
     "@storybook/builder-vite": ">=8.0.0",

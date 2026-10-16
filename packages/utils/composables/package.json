@@ -28,7 +28,7 @@
     "typescript": "catalog:"
   },
   "dependencies": {
-    "@praxisjs/core": "workspace:*",
-    "@praxisjs/shared": "workspace:*"
+    "@praxisjs/core": "workspace:^",
+    "@praxisjs/shared": "workspace:^"
   }
 }

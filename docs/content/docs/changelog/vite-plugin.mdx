@@ -6,6 +6,10 @@ icon: Hammer
 
 # @praxisjs/vite-plugin
 
+## 4.2.2
+
+Depends on the other `@praxisjs/*` packages through caret ranges (`^2.3.0`) instead of exact versions, so npm no longer installs a second copy of a package when two releases disagree, and upgrades no longer end in peer conflicts. The `@praxisjs/css` peer accepts any 0.3.x release.
+
 ## 4.2.1
 
 Compiled templates write a static boolean `aria-*` attribute as `"true"` or `"false"`, matching `@praxisjs/runtime` 0.8.1 (it used to be an empty attribute, or left out for `false`).

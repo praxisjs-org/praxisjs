@@ -18,7 +18,7 @@
   "dependencies": {
     "@clack/prompts": "^1.2.0",
     "picocolors": "^1.1.1",
-    "praxisjs": "workspace:*"
+    "praxisjs": "workspace:^"
   },
   "devDependencies": {
     "@praxisjs/composables": "workspace:*",

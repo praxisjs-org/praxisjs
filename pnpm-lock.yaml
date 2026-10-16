@@ -127,7 +127,7 @@ importers:
         specifier: ^1.1.1
         version: 1.1.1
       praxisjs:
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../praxisjs
     devDependencies:
       '@praxisjs/composables':
@@ -195,19 +195,19 @@ importers:
   packages/dx/devtools:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/core
       '@praxisjs/decorators':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/decorators
       '@praxisjs/jsx':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/jsx
       '@praxisjs/runtime':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/runtime
       '@praxisjs/shared':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/shared
       '@unocss/reset':
         specifier: ^66.6.7
@@ -257,19 +257,19 @@ importers:
   packages/dx/ssg:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/core
       '@praxisjs/head':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../features/head
       '@praxisjs/router':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../features/router
       '@praxisjs/runtime':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/runtime
       '@praxisjs/shared':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/shared
       jsdom:
         specifier: ^29.0.1
@@ -291,10 +291,10 @@ importers:
   packages/dx/storybook:
     dependencies:
       '@praxisjs/runtime':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/runtime
       '@praxisjs/vite-plugin':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../vite-plugin
     devDependencies:
       '@storybook/builder-vite':
@@ -332,10 +332,10 @@ importers:
   packages/features/content:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/core
       '@praxisjs/decorators':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/decorators
       marked:
         specifier: ^15.0.0
@@ -351,10 +351,10 @@ importers:
   packages/features/di:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/core
       '@praxisjs/decorators':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/decorators
     devDependencies:
       '@types/node':
@@ -367,13 +367,13 @@ importers:
   packages/features/fsm:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/core
       '@praxisjs/decorators':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/decorators
       '@praxisjs/shared':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/shared
     devDependencies:
       typescript:
@@ -383,13 +383,13 @@ importers:
   packages/features/head:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/core
       '@praxisjs/decorators':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/decorators
       '@praxisjs/shared':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/shared
     devDependencies:
       typescript:
@@ -399,13 +399,13 @@ importers:
   packages/features/motion:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/core
       '@praxisjs/decorators':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/decorators
       '@praxisjs/shared':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/shared
     devDependencies:
       typescript:
@@ -415,16 +415,16 @@ importers:
   packages/features/router:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/core
       '@praxisjs/decorators':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/decorators
       '@praxisjs/jsx':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/jsx
       '@praxisjs/shared':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/shared
     devDependencies:
       '@praxisjs/runtime':
@@ -437,10 +437,10 @@ importers:
   packages/features/store:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/core
       '@praxisjs/decorators':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/decorators
     devDependencies:
       typescript:
@@ -450,7 +450,7 @@ importers:
   packages/foundation/core:
     dependencies:
       '@praxisjs/shared':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../shared
     devDependencies:
       typescript:
@@ -460,10 +460,10 @@ importers:
   packages/foundation/decorators:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@praxisjs/shared':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../shared
     devDependencies:
       '@types/node':
@@ -476,13 +476,13 @@ importers:
   packages/foundation/jsx:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@praxisjs/runtime':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../runtime
       '@praxisjs/shared':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../shared
     devDependencies:
       typescript:
@@ -492,13 +492,13 @@ importers:
   packages/foundation/runtime:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@praxisjs/decorators':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../decorators
       '@praxisjs/shared':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../shared
     devDependencies:
       typescript:
@@ -514,10 +514,10 @@ importers:
   packages/utils/composables:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/core
       '@praxisjs/shared':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/shared
     devDependencies:
       typescript:
@@ -527,13 +527,13 @@ importers:
   packages/utils/concurrent:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/core
       '@praxisjs/decorators':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/decorators
       '@praxisjs/shared':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/shared
     devDependencies:
       typescript:
@@ -543,10 +543,10 @@ importers:
   packages/utils/css:
     dependencies:
       '@praxisjs/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/core
       '@praxisjs/decorators':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../foundation/decorators
       csstype:
         specifier: ^3.2.3

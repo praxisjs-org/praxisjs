@@ -6,6 +6,10 @@ icon: Boxes
 
 # @praxisjs/runtime
 
+## 0.8.2
+
+Depends on the other `@praxisjs/*` packages through caret ranges (`^2.3.0`) instead of exact versions, so npm no longer installs a second copy of a package when two releases disagree, and upgrades no longer end in peer conflicts.
+
 ## 0.8.1
 
 **Bug fix:** boolean values of `aria-*` attributes are written as `"true"` and `"false"`. `aria-selected={true}` used to render an empty attribute and `false` removed it, which assistive technology reads as an unset state. `data-*` and HTML boolean attributes (`disabled`, `hidden`…) are unchanged. See [Attributes](/docs/essentials/jsx#attributes).

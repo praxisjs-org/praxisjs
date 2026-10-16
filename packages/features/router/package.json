@@ -33,9 +33,9 @@
     "@praxisjs/runtime": "workspace:*"
   },
   "dependencies": {
-    "@praxisjs/core": "workspace:*",
-    "@praxisjs/decorators": "workspace:*",
-    "@praxisjs/jsx": "workspace:*",
-    "@praxisjs/shared": "workspace:*"
+    "@praxisjs/core": "workspace:^",
+    "@praxisjs/decorators": "workspace:^",
+    "@praxisjs/jsx": "workspace:^",
+    "@praxisjs/shared": "workspace:^"
   }
 }

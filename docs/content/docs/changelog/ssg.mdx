@@ -6,6 +6,10 @@ icon: FileStack
 
 # @praxisjs/ssg
 
+## 0.1.5
+
+Depends on the other `@praxisjs/*` packages through caret ranges (`^2.3.0`) instead of exact versions, so npm no longer installs a second copy of a package when two releases disagree, and upgrades no longer end in peer conflicts.
+
 ## 0.1.3
 
 **Hydration code only where it is used.** `render()` from `@praxisjs/runtime` hydrates only once `enableHydration()` has run, which keeps the reconciliation code out of apps that don't prerender. `ssgPlugin()` adds that call in front of the client entry (a module script Vite bundles with it), so prerendered pages hydrate exactly as before. With `hydrate: false` nothing is added. See [Enabling hydration](/docs/tooling/ssg#enabling-hydration).

@@ -25,8 +25,8 @@
   },
   "packageManager": "pnpm@10.30.2",
   "dependencies": {
-    "@praxisjs/core": "workspace:*",
-    "@praxisjs/decorators": "workspace:*"
+    "@praxisjs/core": "workspace:^",
+    "@praxisjs/decorators": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
