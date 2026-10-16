@@ -12,8 +12,12 @@ vi.mock("../plugins/signals/signals-tab", () => ({
 vi.mock("../plugins/timeline/timeline-tab", () => ({
   TimelineTab: class MockTimelineTab {},
 }));
+vi.mock("../plugins/performance/performance-tab", () => ({
+  PerformanceTab: class MockPerformanceTab {},
+}));
 
 import { ComponentsPlugin } from "../plugins/components";
+import { PerformancePlugin } from "../plugins/performance";
 import { SignalsPlugin } from "../plugins/signals";
 import { TimelinePlugin } from "../plugins/timeline";
 import { TYPE_META, FILTERS } from "../plugins/timeline/constants";
@@ -29,6 +33,20 @@ describe("ComponentsPlugin", () => {
 
   it("exposes a component", () => {
     expect(ComponentsPlugin.component).toBeDefined();
+  });
+});
+
+describe("PerformancePlugin", () => {
+  it("has id 'performance'", () => {
+    expect(PerformancePlugin.id).toBe("performance");
+  });
+
+  it("has label 'Performance'", () => {
+    expect(PerformancePlugin.label).toBe("Performance");
+  });
+
+  it("exposes a component", () => {
+    expect(PerformancePlugin.component).toBeDefined();
   });
 });
 
