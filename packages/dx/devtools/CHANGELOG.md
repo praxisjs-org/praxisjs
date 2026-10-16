@@ -1,5 +1,37 @@
 # @praxisjs/devtools
 
+## 0.3.0
+
+### Minor Changes
+
+- 75115a9: DevTools: a Performance panel and `profiler` that record signal writes, effect runs and computed recomputations with their cost, grouped by the component that created each effect; `@Debug({ log, break })`, reactive observation of accessor fields (props included), promise-aware method timing, `@Trace({ slow })`, inert decorators in production builds, and a faster registry. Core exposes the observer hooks the profiler uses (`setReactiveObserver`, `setCurrentOwner`, `getEffectOwner` in `@praxisjs/core/internal`), which cost one null check while no observer is installed; the runtime marks the rendering component as the owner of the effects it creates.
+
+### Patch Changes
+
+- 75115a9: Published packages no longer contain their tests: package builds compile `src` without `src/**/__tests__` (through a `tsconfig.build.json`), and each package's `files` leaves test sources and stale compiled tests out of the tarball. `pnpm typecheck` still type-checks the tests.
+- 75115a9: Smaller production bundles. The framework and feature packages are marked `"sideEffects": false`, so bundlers leave out the modules an app does not use (`For`/`Index` and `selector()` were kept in every bundle by their shape keepers). `@praxisjs/core`'s graph gates its observer instrumentation on a boolean that minifiers fold away when no observer is ever installed. `@praxisjs/runtime` passes `Index`'s positional update to the list view, so `For`-only apps leave it out, and builds its event prop table from camel-case names. `@praxisjs/devtools` is built one file per module and its decorators check `process.env.NODE_ENV` inline, so `@Trace`/`@Debug` in production code no longer bundle the registry and the panel. `@praxisjs/vite-plugin` serves TypeScript's decorator helpers and the claimed fields' helper from one virtual module (`virtual:praxisjs/decorators`) instead of writing them into every decorated file, and replaces the identical copies `tsc` wrote into ES module libraries.
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+  - @praxisjs/decorators@2.0.0
+  - @praxisjs/runtime@0.8.0
+  - @praxisjs/core@2.3.0
+  - @praxisjs/jsx@0.8.0
+  - @praxisjs/shared@0.3.2
+
 ## 0.2.34
 
 ### Patch Changes

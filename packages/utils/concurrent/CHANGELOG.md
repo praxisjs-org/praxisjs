@@ -1,5 +1,28 @@
 # @praxisjs/concurrent
 
+## 1.3.9
+
+### Patch Changes
+
+- 75115a9: Field decorators throw a `TypeError` when the class is defined if they decorate an `accessor`, naming the member to fix. Covers `@State()`, `@Prop()`, every built-in field decorator and `createFieldDecorator` bindings. New `assertFieldContext(context, label?)` export for field decorators written against the TC39 API directly.
+- 75115a9: Published packages no longer contain their tests: package builds compile `src` without `src/**/__tests__` (through a `tsconfig.build.json`), and each package's `files` leaves test sources and stale compiled tests out of the tarball. `pnpm typecheck` still type-checks the tests.
+- 75115a9: Faster utils packages and fixes. `@praxisjs/css`: shared per-field state for `@Styled`, `@Param` and `@Style`, a prototype-based `css()` builder, cached token reads and a direct `cx()`. Static extraction now keeps `globalStyle()` layers and supports `preflight()`. Server renders collect theme vars, and instantiating a `@Themed` class keeps the active theme. `@praxisjs/composables`: listeners, observers and timers start on mount. `Idle` and `TimeAgo` no longer reschedule or poll timers, and `FileUpload.clear()` no longer starts discarded uploads. `add()` called from an effect no longer subscribes it to the list. `@praxisjs/concurrent`: cached signal detection, direct signal views, O(1) queues, and `@Pool` no longer subscribes the calling effect.
+- 75115a9: Smaller production bundles. The framework and feature packages are marked `"sideEffects": false`, so bundlers leave out the modules an app does not use (`For`/`Index` and `selector()` were kept in every bundle by their shape keepers). `@praxisjs/core`'s graph gates its observer instrumentation on a boolean that minifiers fold away when no observer is ever installed. `@praxisjs/runtime` passes `Index`'s positional update to the list view, so `For`-only apps leave it out, and builds its event prop table from camel-case names. `@praxisjs/devtools` is built one file per module and its decorators check `process.env.NODE_ENV` inline, so `@Trace`/`@Debug` in production code no longer bundle the registry and the panel. `@praxisjs/vite-plugin` serves TypeScript's decorator helpers and the claimed fields' helper from one virtual module (`virtual:praxisjs/decorators`) instead of writing them into every decorated file, and replaces the identical copies `tsc` wrote into ES module libraries.
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+  - @praxisjs/decorators@2.0.0
+  - @praxisjs/core@2.3.0
+  - @praxisjs/shared@0.3.2
+
 ## 1.3.8
 
 ### Patch Changes

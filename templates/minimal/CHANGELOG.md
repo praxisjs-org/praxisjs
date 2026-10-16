@@ -1,5 +1,30 @@
 # template-minimal
 
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+  - @praxisjs/decorators@2.0.0
+  - @praxisjs/runtime@0.8.0
+  - @praxisjs/core@2.3.0
+  - @praxisjs/jsx@0.8.0
+
 ## 1.0.4
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "create-praxisjs",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "description": "Scaffold a new PraxisJS framework project",
   "type": "module",
   "bin": {

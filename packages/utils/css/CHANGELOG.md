@@ -1,5 +1,27 @@
 # @praxisjs/css
 
+## 0.3.5
+
+### Patch Changes
+
+- 75115a9: Decorated fields are defined by their innermost decorator. With `@praxisjs/vite-plugin`, `@State()`, `@Prop()`, every built-in field decorator and `createFieldDecorator` bindings install their property directly with the field's initial value instead of replacing a plain value, which kept every instance in V8's slow dictionary mode. New `addClaimableInitializer(context, init)` export for field decorators written against the TC39 API.
+- 75115a9: Field decorators throw a `TypeError` when the class is defined if they decorate an `accessor`, naming the member to fix. Covers `@State()`, `@Prop()`, every built-in field decorator and `createFieldDecorator` bindings. New `assertFieldContext(context, label?)` export for field decorators written against the TC39 API directly.
+- 75115a9: Published packages no longer contain their tests: package builds compile `src` without `src/**/__tests__` (through a `tsconfig.build.json`), and each package's `files` leaves test sources and stale compiled tests out of the tarball. `pnpm typecheck` still type-checks the tests.
+- 75115a9: Faster utils packages and fixes. `@praxisjs/css`: shared per-field state for `@Styled`, `@Param` and `@Style`, a prototype-based `css()` builder, cached token reads and a direct `cx()`. Static extraction now keeps `globalStyle()` layers and supports `preflight()`. Server renders collect theme vars, and instantiating a `@Themed` class keeps the active theme. `@praxisjs/composables`: listeners, observers and timers start on mount. `Idle` and `TimeAgo` no longer reschedule or poll timers, and `FileUpload.clear()` no longer starts discarded uploads. `add()` called from an effect no longer subscribes it to the list. `@praxisjs/concurrent`: cached signal detection, direct signal views, O(1) queues, and `@Pool` no longer subscribes the calling effect.
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+  - @praxisjs/decorators@2.0.0
+  - @praxisjs/core@2.3.0
+
 ## 0.3.4
 
 ### Patch Changes
