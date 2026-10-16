@@ -1,9 +1,22 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+import type { Composable } from "@praxisjs/core";
 import { effect } from "@praxisjs/core/internal";
 
 import { MediaQuery, ColorScheme, Mouse, KeyCombo, Idle } from "../browser";
+
+// Sets a composable up and mounts it, as @Compose does; everything mounted is unmounted after each test.
+const mounted: Composable[] = [];
+function mount<T extends Composable>(composable: T): ReturnType<T["setup"]> {
+  const view = composable.setup() as ReturnType<T["setup"]>;
+  composable.onMount?.();
+  mounted.push(composable);
+  return view;
+}
+afterEach(() => {
+  for (const composable of mounted.splice(0)) composable.onUnmount?.();
+});
 
 function mockMatchMedia(matches: boolean, onAdd?: (_: string, fn: (e: MediaQueryListEvent) => void) => void) {
   const mql = {
@@ -23,7 +36,7 @@ describe("MediaQuery", () => {
   it("reads initial match state", () => {
     mockMatchMedia(true);
     const mq = new MediaQuery("(min-width: 768px)");
-    const { matches } = mq.setup() as { matches: () => boolean };
+    const { matches } = mount(mq) as { matches: () => boolean };
     expect(matches()).toBe(true);
   });
 
@@ -32,7 +45,7 @@ describe("MediaQuery", () => {
     mockMatchMedia(false, (_: string, fn) => { changeHandler = fn; });
 
     const mq = new MediaQuery("(min-width: 768px)");
-    const { matches } = mq.setup() as { matches: () => boolean };
+    const { matches } = mount(mq) as { matches: () => boolean };
     expect(matches()).toBe(false);
 
     changeHandler!({ matches: true } as MediaQueryListEvent);
@@ -63,7 +76,7 @@ describe("ColorScheme", () => {
     mockMatchMedia(false, (_: string, fn) => { changeHandler = fn; });
 
     const cs = new ColorScheme();
-    const { isDark, isLight } = cs.setup() as { isDark: () => boolean; isLight: () => boolean };
+    const { isDark, isLight } = mount(cs) as { isDark: () => boolean; isLight: () => boolean };
 
     expect(isDark()).toBe(false);
     expect(isLight()).toBe(true);
@@ -92,14 +105,14 @@ describe("ColorScheme", () => {
 describe("Mouse", () => {
   it("starts at (0, 0)", () => {
     const mouse = new Mouse();
-    const { x, y } = mouse.setup() as { x: () => number; y: () => number };
+    const { x, y } = mount(mouse) as { x: () => number; y: () => number };
     expect(x()).toBe(0);
     expect(y()).toBe(0);
   });
 
   it("updates x and y on mousemove", () => {
     const mouse = new Mouse();
-    const { x, y } = mouse.setup() as { x: () => number; y: () => number };
+    const { x, y } = mount(mouse) as { x: () => number; y: () => number };
 
     window.dispatchEvent(new MouseEvent("mousemove", { clientX: 120, clientY: 80 }));
     expect(x()).toBe(120);
@@ -120,13 +133,13 @@ describe("Mouse", () => {
 describe("KeyCombo", () => {
   it("starts as not pressed", () => {
     const kc = new KeyCombo("ctrl+s");
-    const { pressed } = kc.setup() as { pressed: () => boolean };
+    const { pressed } = mount(kc) as { pressed: () => boolean };
     expect(pressed()).toBe(false);
   });
 
   it("sets pressed=true when matching combo is pressed", () => {
     const kc = new KeyCombo("ctrl+s");
-    const { pressed } = kc.setup() as { pressed: () => boolean };
+    const { pressed } = mount(kc) as { pressed: () => boolean };
 
     window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "s" }));
     expect(pressed()).toBe(true);
@@ -134,7 +147,7 @@ describe("KeyCombo", () => {
 
   it("resets pressed on keyup", () => {
     const kc = new KeyCombo("ctrl+s");
-    const { pressed } = kc.setup() as { pressed: () => boolean };
+    const { pressed } = mount(kc) as { pressed: () => boolean };
 
     window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "s" }));
     window.dispatchEvent(new KeyboardEvent("keyup"));
@@ -143,7 +156,7 @@ describe("KeyCombo", () => {
 
   it("does not set pressed for wrong key", () => {
     const kc = new KeyCombo("ctrl+s");
-    const { pressed } = kc.setup() as { pressed: () => boolean };
+    const { pressed } = mount(kc) as { pressed: () => boolean };
 
     window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "z" }));
     expect(pressed()).toBe(false);
@@ -160,7 +173,7 @@ describe("KeyCombo", () => {
 
   it("matches combo without ctrl modifier (ctrl branch: `: true`)", () => {
     const kc = new KeyCombo("s");
-    const { pressed } = kc.setup() as { pressed: () => boolean };
+    const { pressed } = mount(kc) as { pressed: () => boolean };
     // No ctrlKey needed — parts doesn't include "ctrl" so ctrl = true always
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "s" }));
     expect(pressed()).toBe(true);
@@ -168,21 +181,21 @@ describe("KeyCombo", () => {
 
   it("matches combo with shift modifier (shift branch: `e.shiftKey`)", () => {
     const kc = new KeyCombo("ctrl+shift+s");
-    const { pressed } = kc.setup() as { pressed: () => boolean };
+    const { pressed } = mount(kc) as { pressed: () => boolean };
     window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, shiftKey: true, key: "s" }));
     expect(pressed()).toBe(true);
   });
 
   it("does not match when shift is required but not pressed", () => {
     const kc = new KeyCombo("ctrl+shift+s");
-    const { pressed } = kc.setup() as { pressed: () => boolean };
+    const { pressed } = mount(kc) as { pressed: () => boolean };
     window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, shiftKey: false, key: "s" }));
     expect(pressed()).toBe(false);
   });
 
   it("matches combo with alt modifier (alt branch: `e.altKey`)", () => {
     const kc = new KeyCombo("ctrl+alt+s");
-    const { pressed } = kc.setup() as { pressed: () => boolean };
+    const { pressed } = mount(kc) as { pressed: () => boolean };
     window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, altKey: true, key: "s" }));
     expect(pressed()).toBe(true);
   });
@@ -194,7 +207,7 @@ describe("Idle", () => {
   it("starts as not idle", () => {
     vi.useFakeTimers();
     const idle = new Idle(500);
-    const { idle: isIdle } = idle.setup() as { idle: () => boolean };
+    const { idle: isIdle } = mount(idle) as { idle: () => boolean };
     expect(isIdle()).toBe(false);
     vi.useRealTimers();
   });
@@ -202,7 +215,7 @@ describe("Idle", () => {
   it("becomes idle after timeout", () => {
     vi.useFakeTimers();
     const composable = new Idle(500);
-    const { idle: isIdle } = composable.setup() as { idle: () => boolean };
+    const { idle: isIdle } = mount(composable) as { idle: () => boolean };
     vi.advanceTimersByTime(500);
     expect(isIdle()).toBe(true);
     vi.useRealTimers();
@@ -211,7 +224,7 @@ describe("Idle", () => {
   it("resets idle timer on activity", () => {
     vi.useFakeTimers();
     const composable = new Idle(500);
-    const { idle: isIdle } = composable.setup() as { idle: () => boolean };
+    const { idle: isIdle } = mount(composable) as { idle: () => boolean };
     vi.advanceTimersByTime(400);
     window.dispatchEvent(new MouseEvent("mousemove"));
     vi.advanceTimersByTime(400);
@@ -230,7 +243,7 @@ describe("Idle", () => {
   it("fires on scroll event", () => {
     vi.useFakeTimers();
     const composable = new Idle(500);
-    const { idle: isIdle } = composable.setup() as { idle: () => boolean };
+    const { idle: isIdle } = mount(composable) as { idle: () => boolean };
     vi.advanceTimersByTime(500);
     expect(isIdle()).toBe(true);
     window.dispatchEvent(new Event("scroll"));
@@ -241,7 +254,7 @@ describe("Idle", () => {
   it("fires on click event", () => {
     vi.useFakeTimers();
     const composable = new Idle(500);
-    const { idle: isIdle } = composable.setup() as { idle: () => boolean };
+    const { idle: isIdle } = mount(composable) as { idle: () => boolean };
     vi.advanceTimersByTime(500);
     expect(isIdle()).toBe(true);
     window.dispatchEvent(new MouseEvent("click"));
@@ -252,7 +265,7 @@ describe("Idle", () => {
   it("fires on keydown event", () => {
     vi.useFakeTimers();
     const composable = new Idle(500);
-    const { idle: isIdle } = composable.setup() as { idle: () => boolean };
+    const { idle: isIdle } = mount(composable) as { idle: () => boolean };
     vi.advanceTimersByTime(500);
     expect(isIdle()).toBe(true);
     window.dispatchEvent(new KeyboardEvent("keydown"));
@@ -263,7 +276,7 @@ describe("Idle", () => {
   it("activity after becoming idle resets the timer", () => {
     vi.useFakeTimers();
     const composable = new Idle(500);
-    const { idle: isIdle } = composable.setup() as { idle: () => boolean };
+    const { idle: isIdle } = mount(composable) as { idle: () => boolean };
     vi.advanceTimersByTime(500);
     expect(isIdle()).toBe(true);
     window.dispatchEvent(new MouseEvent("mousemove"));
@@ -280,14 +293,14 @@ describe("Idle", () => {
 describe("KeyCombo (additional)", () => {
   it("fires on meta+s keydown", () => {
     const kc = new KeyCombo("meta+s");
-    const { pressed } = kc.setup() as { pressed: () => boolean };
+    const { pressed } = mount(kc) as { pressed: () => boolean };
     window.dispatchEvent(new KeyboardEvent("keydown", { metaKey: true, key: "s" }));
     expect(pressed()).toBe(true);
   });
 
   it("modifier-only combo (ctrl+shift) — keyup resets pressed to false", () => {
     const kc = new KeyCombo("ctrl+shift");
-    const { pressed } = kc.setup() as { pressed: () => boolean };
+    const { pressed } = mount(kc) as { pressed: () => boolean };
     // Fire keyup to cover the _keyupHandler arrow function inside the !key branch
     window.dispatchEvent(new KeyboardEvent("keyup"));
     expect(pressed()).toBe(false);
@@ -295,7 +308,7 @@ describe("KeyCombo (additional)", () => {
 
   it("modifier-only combo (ctrl+shift) never fires", () => {
     const kc = new KeyCombo("ctrl+shift");
-    const { pressed } = kc.setup() as { pressed: () => boolean };
+    const { pressed } = mount(kc) as { pressed: () => boolean };
     window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, shiftKey: true, key: "Control" }));
     window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, shiftKey: true, key: "Shift" }));
     window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, shiftKey: true, key: "a" }));
@@ -305,18 +318,19 @@ describe("KeyCombo (additional)", () => {
   it("whitespace in combo string (ctrl + s) is handled gracefully — fires on ctrl+s", () => {
     // Parts are trimmed, so "ctrl + s" becomes ["ctrl", "s"] after trim
     const kc = new KeyCombo("ctrl + s");
-    const { pressed } = kc.setup() as { pressed: () => boolean };
+    const { pressed } = mount(kc) as { pressed: () => boolean };
     window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "s" }));
     expect(pressed()).toBe(true);
   });
 
-  it("setup() called twice registers only one set of listeners", () => {
-    const add = vi.spyOn(window, "addEventListener");
+  it("mounting twice and unmounting once leaves no listener behind", () => {
     const kc = new KeyCombo("ctrl+s");
-    kc.setup();
-    kc.setup();
-    const keydownCalls = add.mock.calls.filter((c) => c[0] === "keydown").length;
-    expect(keydownCalls).toBe(1);
+    const { pressed } = mount(kc) as { pressed: () => boolean };
+    kc.onMount();
+    kc.onMount();
+    kc.onUnmount();
+    window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "s" }));
+    expect(pressed()).toBe(false);
   });
 });
 
@@ -325,12 +339,30 @@ describe("KeyCombo (additional)", () => {
 describe("MediaQuery (additional)", () => {
   beforeEach(() => { vi.restoreAllMocks(); });
 
-  it("setup() called twice registers only one listener", () => {
+  it("setup() called twice queries once and mounting registers one listener", () => {
     const mql = mockMatchMedia(false);
+    const matchMedia = vi.spyOn(window, "matchMedia");
     const mq = new MediaQuery("(min-width: 768px)");
     mq.setup();
-    mq.setup();
+    mount(mq);
+    expect(matchMedia).toHaveBeenCalledTimes(1);
     expect((mql.addEventListener as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-reads the match state on mount", () => {
+    const mql = mockMatchMedia(false);
+    const mq = new MediaQuery("(min-width: 768px)");
+    const { matches } = mq.setup() as { matches: () => boolean };
+    (mql as { matches: boolean }).matches = true;
+    mq.onMount();
+    expect(matches()).toBe(true);
+    mq.onUnmount();
+  });
+
+  it("does not listen before it is mounted", () => {
+    const mql = mockMatchMedia(false);
+    new MediaQuery("(min-width: 768px)").setup();
+    expect((mql.addEventListener as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
   });
 });
 
@@ -339,11 +371,9 @@ describe("MediaQuery (additional)", () => {
 describe("ColorScheme (additional)", () => {
   beforeEach(() => { vi.restoreAllMocks(); });
 
-  it("setup() called twice registers only one listener", () => {
+  it("mounting registers one listener", () => {
     const mql = mockMatchMedia(false);
-    const cs = new ColorScheme();
-    cs.setup();
-    cs.setup();
+    mount(new ColorScheme());
     expect((mql.addEventListener as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
   });
 });
@@ -351,55 +381,87 @@ describe("ColorScheme (additional)", () => {
 // ── Mouse (additional) ────────────────────────────────────────────────────────
 
 describe("Mouse (additional)", () => {
-  it("setup() called twice returns the same view object", () => {
+  it("setup() called twice exposes the same signals", () => {
     const mouse = new Mouse();
     const view1 = mouse.setup();
     const view2 = mouse.setup();
-    expect(view1).toBe(view2);
+    expect(view1.x).toBe(view2.x);
+    expect(view1.y).toBe(view2.y);
   });
 
-  it("setup() called twice registers only one mousemove listener", () => {
-    const add = vi.spyOn(window, "addEventListener");
+  it("does not listen before it is mounted", () => {
     const mouse = new Mouse();
-    mouse.setup();
-    mouse.setup();
-    const moveCalls = add.mock.calls.filter((c) => c[0] === "mousemove").length;
-    expect(moveCalls).toBe(1);
-    vi.restoreAllMocks();
+    const { x } = mouse.setup() as { x: () => number };
+    window.dispatchEvent(new MouseEvent("mousemove", { clientX: 9, clientY: 9 }));
+    expect(x()).toBe(0);
   });
 });
 
 // ── Idle (additional) ─────────────────────────────────────────────────────────
 
 describe("Idle (additional)", () => {
-  it("setup() called twice returns the same view object", () => {
-    vi.useFakeTimers();
+  afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+  it("setup() called twice exposes the same signal", () => {
     const idle = new Idle(500);
-    const view1 = idle.setup();
-    const view2 = idle.setup();
-    expect(view1).toBe(view2);
-    idle.onUnmount();
-    vi.useRealTimers();
+    expect(idle.setup().idle).toBe(idle.setup().idle);
   });
 
-  it("setup() called twice registers activity listeners only once", () => {
+  it("does not start its timer before it is mounted", () => {
     vi.useFakeTimers();
-    const add = vi.spyOn(window, "addEventListener");
-    const idle = new Idle(500);
-    idle.setup();
-    idle.setup();
-    const moveCalls = add.mock.calls.filter((c) => c[0] === "mousemove").length;
-    expect(moveCalls).toBe(1);
-    idle.onUnmount();
-    vi.restoreAllMocks();
-    vi.useRealTimers();
+    const { idle } = new Idle(500).setup() as { idle: () => boolean };
+    vi.advanceTimersByTime(1000);
+    expect(idle()).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("keeps a single pending timer however many activity events arrive", () => {
+    vi.useFakeTimers();
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+    const composable = new Idle(500);
+    const { idle } = mount(composable) as { idle: () => boolean };
+    for (let i = 0; i < 50; i++) {
+      vi.advanceTimersByTime(5);
+      window.dispatchEvent(new MouseEvent("mousemove"));
+    }
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(1);
+    // 250ms since mount, the last activity just now: idle exactly 500ms after it.
+    vi.advanceTimersByTime(499);
+    expect(idle()).toBe(false);
+    vi.advanceTimersByTime(1);
+    expect(idle()).toBe(true);
+  });
+
+  it("stops its timer and listeners on unmount", () => {
+    vi.useFakeTimers();
+    const composable = new Idle(500);
+    const { idle } = composable.setup() as { idle: () => boolean };
+    composable.onMount();
+    composable.onUnmount();
+    expect(vi.getTimerCount()).toBe(0);
+    window.dispatchEvent(new MouseEvent("mousemove"));
+    vi.advanceTimersByTime(1000);
+    expect(idle()).toBe(false);
+  });
+
+  it("re-mounting restarts the countdown", () => {
+    vi.useFakeTimers();
+    const composable = new Idle(500);
+    const { idle } = mount(composable) as { idle: () => boolean };
+    vi.advanceTimersByTime(500);
+    expect(idle()).toBe(true);
+    composable.onUnmount();
+    composable.onMount();
+    expect(idle()).toBe(false);
+    expect(vi.getTimerCount()).toBe(1);
   });
 });
 
 describe("Mouse paired updates", () => {
   it("re-runs dependents once per mousemove", () => {
     const mouse = new Mouse();
-    const { x, y } = mouse.setup() as { x: () => number; y: () => number };
+    const { x, y } = mount(mouse) as { x: () => number; y: () => number };
     let runs = 0;
     effect(() => {
       void x();

@@ -1,8 +1,4 @@
-// ─── camelCase → --kebab-case ─────────────────────────────────────────────────
-
-function camelToKebab(s: string): string {
-  return s.replace(/([A-Z])/g, "-$1").toLowerCase();
-}
+import { toKebab } from "../internal/kebab.js";
 
 // ─── Static props that must never be intercepted ──────────────────────────────
 
@@ -15,6 +11,9 @@ const SKIP = new Set([
 ]);
 
 // ─── TokenSheet ───────────────────────────────────────────────────────────────
+
+// Every static read of a token goes through the trap, so each name's reference is built once.
+const refs = new Map<string, string>();
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 const _Base = class {};
@@ -44,13 +43,14 @@ const _Base = class {};
  */
 export const TokenSheet = new Proxy(_Base, {
   get(target, prop, receiver) {
-    if (
-      typeof prop === "string" &&
-      !SKIP.has(prop) &&
-      !prop.startsWith("_") &&
-      !prop.startsWith("$")
-    ) {
-      return `var(--${camelToKebab(prop)})`;
+    if (typeof prop === "string") {
+      const ref = refs.get(prop);
+      if (ref !== undefined) return ref;
+      if (!SKIP.has(prop) && !prop.startsWith("_") && !prop.startsWith("$")) {
+        const created = `var(--${toKebab(prop)})`;
+        refs.set(prop, created);
+        return created;
+      }
     }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return Reflect.get(target, prop, receiver);

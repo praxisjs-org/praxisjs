@@ -85,3 +85,17 @@ describe("tokenVars()", () => {
     expect(tokenVars(AppTokens)).toBe(AppTokens as unknown);
   });
 });
+
+describe("TokenSheet — reference cache", () => {
+  it("returns the same string on repeated reads, through any subclass", () => {
+    const first = asRecord(AppTokens).spaceMd;
+    expect(asRecord(AppTokens).spaceMd).toBe(first);
+    expect(asRecord(DarkTheme).spaceMd).toBe(first);
+  });
+
+  it("never caches skipped names as token references", () => {
+    expect(asRecord(AppTokens).name).toBe("AppTokens");
+    expect(asRecord(LightTheme).name).toBe("LightTheme");
+    expect(asRecord(AppTokens)._private).toBeUndefined();
+  });
+});

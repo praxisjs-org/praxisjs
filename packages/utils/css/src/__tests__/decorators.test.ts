@@ -88,6 +88,49 @@ describe("@Themed — class decorator", () => {
   });
 });
 
+describe("@Themed — instantiating the decorated class", () => {
+  // Bug: every instantiation created a fresh ThemeInstance from the default theme, undoing a
+  // theme the user had switched to and orphaning the previous instance.
+  it("keeps a switched theme when the class is instantiated again", () => {
+    @Themed(AppTokens, LightTheme)
+    class App { render() { return null; } }
+
+    new App();
+    const active = theme();
+    active.switch(DarkTheme);
+    new App();
+
+    expect(theme()).toBe(active);
+    expect(styleEl()?.textContent).toContain("--color-primary: #60a5fa");
+  });
+
+  it("re-activates its theme after another @Themed class replaced it", () => {
+    @Themed(AppTokens, LightTheme)
+    class LightApp { render() { return null; } }
+    @Themed(AppTokens, DarkTheme)
+    class DarkApp { render() { return null; } }
+    void DarkApp;
+
+    expect(theme().current).toBeInstanceOf(DarkTheme);
+    new LightApp();
+    expect(theme().current).not.toBeInstanceOf(DarkTheme);
+    expect(styleEl()?.textContent).toContain("--color-primary: #3b82f6");
+  });
+
+  it("re-creates its theme after the active one was destroyed", () => {
+    @Themed(AppTokens, LightTheme)
+    class App { render() { return null; } }
+
+    const first = theme();
+    first.destroy();
+    expect(styleEl()).toBeNull();
+
+    new App();
+    expect(theme()).not.toBe(first);
+    expect(styleEl()).not.toBeNull();
+  });
+});
+
 // ─── @Theme ───────────────────────────────────────────────────────────────────
 
 describe("@Theme — field decorator", () => {

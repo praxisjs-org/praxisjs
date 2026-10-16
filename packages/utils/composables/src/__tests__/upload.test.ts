@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { signal } from "@praxisjs/core/internal";
+import { effect, signal } from "@praxisjs/core/internal";
 
 import {
   FileSelection,
@@ -595,6 +595,105 @@ describe("FileUpload", () => {
 });
 
 // ── FilePreview ───────────────────────────────────────────────────────────────
+
+describe("FileUpload — regressions", () => {
+  type View = {
+    items: () => UploadItem[];
+    progress: () => number;
+    add: (f: File[]) => void;
+    clear: () => void;
+    retry: (id: string) => void;
+  };
+
+  beforeEach(() => {
+    FakeXHR.instances = [];
+    vi.stubGlobal("XMLHttpRequest", FakeXHR);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // Bug: aborting the running uploads fired onabort, which pumped and started the pending ones
+  // just before the list was emptied, leaving requests uploading files that were cleared.
+  it("clear() does not start the pending uploads it discards", () => {
+    const view = new FileUpload({ url: "/u", concurrency: 1 }).setup() as unknown as View;
+    view.add([makeFile("a"), makeFile("b"), makeFile("c")]);
+    expect(FakeXHR.instances).toHaveLength(1);
+
+    view.clear();
+
+    expect(FakeXHR.instances).toHaveLength(1);
+    expect(FakeXHR.instances[0].aborted).toBe(true);
+    expect(view.items()).toEqual([]);
+  });
+
+  // Bug: add() read the item list tracked, so an effect calling it re-ran (and added the files
+  // again) on every progress update.
+  it("add() called from an effect does not subscribe the effect to the item list", () => {
+    const view = new FileUpload({ url: "/u" }).setup() as unknown as View;
+    const file = makeFile("a");
+    let runs = 0;
+    const stop = effect(() => {
+      runs++;
+      view.add([file]);
+    });
+    FakeXHR.instances[0].upload.onprogress?.({ lengthComputable: true, loaded: 50, total: 100 });
+    FakeXHR.instances[0].respond(200);
+    stop();
+    expect(runs).toBe(1);
+    expect(view.items()).toHaveLength(1);
+  });
+
+  it("progress events that do not change the rounded percentage publish nothing", () => {
+    const view = new FileUpload({ url: "/u" }).setup() as unknown as View;
+    view.add([makeFile("a")]);
+    const xhr = FakeXHR.instances[0];
+    let publishes = 0;
+    const stop = effect(() => {
+      void view.items();
+      publishes++;
+    });
+    publishes = 0;
+    xhr.upload.onprogress?.({ lengthComputable: true, loaded: 2, total: 1000 });
+    xhr.upload.onprogress?.({ lengthComputable: true, loaded: 501, total: 1000 });
+    xhr.upload.onprogress?.({ lengthComputable: true, loaded: 503, total: 1000 });
+    xhr.upload.onprogress?.({ lengthComputable: true, loaded: 504, total: 1000 });
+    stop();
+    expect(publishes).toBe(1);
+    expect(view.items()[0].progress).toBe(50);
+  });
+
+  it("a response for an item removed meanwhile changes nothing", () => {
+    const view = new FileUpload({ url: "/u" }).setup() as unknown as View & { remove: (id: string) => void };
+    view.add([makeFile("a")]);
+    const xhr = FakeXHR.instances[0];
+    const before = view.items();
+    view.clear();
+    xhr.respond(200);
+    expect(view.items()).toEqual([]);
+    expect(before).toHaveLength(1);
+  });
+});
+
+describe("FileSelection — regressions", () => {
+  it("add() called from an effect does not subscribe the effect to the file list", () => {
+    const view = new FileSelection({ multiple: true }).setup() as unknown as {
+      files: () => File[];
+      add: (f: File[]) => void;
+      remove: (f: File) => void;
+    };
+    const a = makeFile("a");
+    let runs = 0;
+    const stop = effect(() => {
+      runs++;
+      view.add([a]);
+    });
+    view.add([makeFile("b")]);
+    stop();
+    expect(runs).toBe(1);
+    expect(view.files()).toHaveLength(2);
+  });
+});
 
 describe("FilePreview", () => {
   beforeEach(() => {

@@ -1,6 +1,11 @@
 import { Stylesheet, ReactiveStylesheet } from "./base/stylesheet.js";
-import { isCSSBuilder, createCSSBuilder, type CSSProperties } from "./builder/css-builder.js";
+import { createCSSBuilder, type CSSProperties } from "./builder/css-builder.js";
+import { keyframesRule } from "./builder/keyframes.js";
+import { globalCSS, type GlobalStyleFactory, type GlobalStyleOptions } from "./global.js";
 import { hashCSS } from "./internal/hash.js";
+import { compileSheet } from "./internal/sheet.js";
+import { preflightCSS, type PreflightOptions } from "./preflight.js";
+import { instanceToVars, varsToCSS } from "./tokens/theme-instance.js";
 import { TokenSheet, tokenVars } from "./tokens/token-sheet.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -12,18 +17,10 @@ type Ctor = new (...args: any[]) => unknown;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function camelToKebab(s: string): string {
-  return s.replace(/([A-Z])/g, "-$1").toLowerCase();
-}
-
 function themeToRootCSS(ThemeClass: Ctor): string | null {
   try {
-    const inst = new ThemeClass() as Record<string, unknown>;
-    const vars = Object.entries(inst)
-      .filter(([, v]) => typeof v === "string" || typeof v === "number")
-      .map(([k, v]) => `  --${camelToKebab(k)}: ${String(v)};`)
-      .join("\n");
-    return vars ? `:root {\n${vars}\n}` : null;
+    const vars = instanceToVars(new ThemeClass() as Record<string, unknown>);
+    return Object.keys(vars).length > 0 ? varsToCSS(vars) : null;
   } catch {
     return null;
   }
@@ -31,16 +28,8 @@ function themeToRootCSS(ThemeClass: Ctor): string | null {
 
 function collectSheetCSS(SheetClass: Ctor, emit: EmitFn): void {
   try {
-    const inst = new SheetClass() as Record<string, unknown>;
-    const blocks: string[] = [];
-    for (const [k, v] of Object.entries(inst)) {
-      if (!k.startsWith("$")) continue;
-      const css = typeof v === "string" ? v : (isCSSBuilder(v) ? String(v) : null);
-      if (!css) continue;
-      const name = k.slice(1).replace(/[^\w-]/g, "-");
-      blocks.push(`.prx-${name}-${hashCSS(css)} { ${css.trim()} }`);
-    }
-    if (blocks.length) emit(blocks.join("\n"));
+    const { css } = compileSheet(SheetClass);
+    if (css) emit(css);
   } catch { /* skip sheets that can't be instantiated at build time */ }
 }
 
@@ -117,20 +106,15 @@ export function extractionModule(emit: EmitFn): Record<string, unknown> {
     Style:  () => () => {},
     cx:     () => "",
     keyframes: (name: string, stops: Record<string, CSSProperties>) => {
-      const stopToCSS = (p: CSSProperties) =>
-        Object.entries(p)
-          .filter(([, v]) => v != null)
-          .map(([k, v]) => `    ${camelToKebab(k)}: ${String(v)};`)
-          .join("\n");
-      const body = Object.entries(stops)
-        .map(([s, p]) => `  ${s} {\n${stopToCSS(p)}\n  }`)
-        .join("\n");
-      const sn = `prx-${name}-${hashCSS(body)}`;
-      dedupEmit(`@keyframes ${sn} {\n${body}\n}`);
-      return sn;
+      const rule = keyframesRule(name, stops);
+      dedupEmit(rule.css);
+      return rule.name;
     },
-    globalStyle: (factory: (css: typeof createCSSBuilder) => unknown) => {
-      dedupEmit(String(factory(createCSSBuilder)));
+    globalStyle: (factory: GlobalStyleFactory, options?: GlobalStyleOptions) => {
+      dedupEmit(globalCSS(factory, options));
+    },
+    preflight: (options?: PreflightOptions) => {
+      dedupEmit(preflightCSS(options));
     },
   };
 }

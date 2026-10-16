@@ -235,6 +235,27 @@ describe("ThemeInstance — syncTabs: true", () => {
 
 // ─── createThemeInstance / theme() ───────────────────────────────────────────
 
+describe("createThemeInstance — replacing the singleton", () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  // Bug: the replaced instance kept its BroadcastChannel (and listener) open forever.
+  it("closes the previous instance's BroadcastChannel", () => {
+    const channel = makeBCMock();
+    createThemeInstance(LightTheme, { syncTabs: true });
+    expect(channel.close).not.toHaveBeenCalled();
+    createThemeInstance(DarkTheme, { syncTabs: true });
+    expect(channel.close).toHaveBeenCalledTimes(1);
+    theme().destroy();
+  });
+
+  it("leaves exactly one theme <style> with the new values", () => {
+    createThemeInstance(LightTheme);
+    createThemeInstance(DarkTheme);
+    expect(document.querySelectorAll("style[data-praxis-theme]").length).toBe(1);
+    expect(styleEl()?.textContent).toContain("--color-primary: #60a5fa");
+  });
+});
+
 describe("createThemeInstance / theme()", () => {
   it("creates and returns a ThemeInstance", () => {
     const t = createThemeInstance(LightTheme);
@@ -330,7 +351,22 @@ describe("ThemeInstance — SSR (document === undefined)", () => {
 // ─── Collector routing (applyVarsToRoot) ─────────────────────────────────────
 
 describe("ThemeInstance — collector routing", () => {
-  afterEach(() => { setCollector(null); });
+  afterEach(() => { setCollector(null); vi.unstubAllGlobals(); });
+
+  // Bug: the constructor and switch() returned early without a document, before reaching the
+  // collector, so a server render never collected the theme's :root vars.
+  it("collects :root vars when there is no document (server render)", () => {
+    const col = createCollector();
+    setCollector(col);
+    vi.stubGlobal("document", undefined);
+    const t = new ThemeInstance(LightTheme);
+    expect(col.getCSS()).toContain("--color-primary: #3b82f6");
+
+    const next = createCollector();
+    setCollector(next);
+    t.switch(DarkTheme);
+    expect(next.getCSS()).toContain("--color-primary: #60a5fa");
+  });
 
   it("routes :root injection through the collector when one is active", () => {
     const col = createCollector();

@@ -6,6 +6,7 @@ import { Component } from "@praxisjs/decorators";
 import { Param } from "../decorators/param";
 import { ReactiveStylesheet, Stylesheet } from "../base/stylesheet";
 import { Styled } from "../decorators/styled";
+import { createCollector, setCollector } from "../internal/collector";
 
 type WithLifecycle = { onMount?(): void; onUnmount?(): void };
 
@@ -439,5 +440,140 @@ describe("@Param — reactive CSS custom properties", () => {
       };
       dec(undefined, fakeCtx);
     }).not.toThrow();
+  });
+});
+
+// ─── Per-instance cost and lifecycle ──────────────────────────────────────────
+
+describe("@Styled — shared state and lifecycle", () => {
+  it("a stylesheet without @Param() adds no lifecycle hooks to the instance", () => {
+    class Comp {
+      @Styled(BtnStyle) $btn!: BtnStyle;
+    }
+    const inst = new Comp() as WithLifecycle;
+    expect(inst.onMount).toBeUndefined();
+    expect(inst.onUnmount).toBeUndefined();
+  });
+
+  it("a stylesheet with neither $ fields nor @Param() injects nothing", () => {
+    class Empty extends Stylesheet {}
+    class Comp {
+      @Styled(Empty) $s!: Empty;
+    }
+    const inst = new Comp();
+    expect(inst.$s).toEqual({});
+    expect(document.head.querySelector("style[data-praxis-hash]")).toBeNull();
+  });
+
+  it("puts the stylesheet back when a new instance finds its <style> removed", () => {
+    class Comp {
+      @Styled(BtnStyle) $btn!: BtnStyle;
+    }
+    document.head.querySelectorAll("style[data-praxis-hash]").forEach((el) => el.remove());
+    new Comp();
+    expect(document.head.querySelectorAll("style[data-praxis-hash]").length).toBe(1);
+  });
+
+  it("collects the stylesheet per instance while a collector is active (server render)", () => {
+    class Comp {
+      @Styled(BtnStyle) $btn!: BtnStyle;
+    }
+    const col = createCollector();
+    setCollector(col);
+    try {
+      const inst = new Comp();
+      expect(col.getCSS()).toContain(inst.$btn.$base);
+    } finally {
+      setCollector(null);
+    }
+  });
+
+  it("instances with @Param() share accessors and class names through one prototype", () => {
+    class S extends ReactiveStylesheet {
+      @Param() color = "blue";
+      $root = `color: var(--color);`;
+    }
+    class Comp extends StatefulComponent {
+      @Styled(S) $s!: S;
+      render() { return document.createElement("div"); }
+    }
+    const a = new Comp();
+    const b = new Comp();
+    expect(Object.getPrototypeOf(a.$s)).toBe(Object.getPrototypeOf(b.$s));
+    expect(a.$s.$root).toBe(b.$s.$root);
+    a.$s.color = "red";
+    expect(b.$s.color).toBe("blue");
+  });
+
+  it("runs the component's own onMount/onUnmount before its own work", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const calls: string[] = [];
+
+    class S extends ReactiveStylesheet {
+      @Param() color = "blue";
+    }
+    class Comp extends StatefulComponent {
+      constructor() {
+        super();
+        setComponentAnchor(this, makeAnchor(container));
+      }
+      @Styled(S) $s!: S;
+      onMount() { calls.push(`mount:${container.style.getPropertyValue("--color")}`); }
+      onUnmount() { calls.push(`unmount:${container.style.getPropertyValue("--color")}`); }
+      render() { return document.createElement("div"); }
+    }
+
+    const inst = new Comp();
+    inst.onMount();
+    inst.onUnmount();
+    expect(calls).toEqual(["mount:", "unmount:blue"]);
+    expect(container.style.getPropertyValue("--color")).toBe("");
+    container.remove();
+  });
+
+  it("onMount without a parent element sets nothing, and onUnmount is then a no-op", () => {
+    class S extends ReactiveStylesheet {
+      @Param() color = "blue";
+    }
+    class Comp extends StatefulComponent {
+      @Styled(S) $s!: S;
+      render() { return document.createElement("div"); }
+    }
+    const inst = new Comp() as WithLifecycle & Comp;
+    inst.onMount?.();
+    inst.$s.color = "red";
+    expect(() => inst.onUnmount?.()).not.toThrow();
+    expect(inst.$s.color).toBe("red");
+  });
+
+  // Bug: the vars were removed from the anchor's current parent, so a component whose anchor was
+  // already detached at unmount left them on its old container.
+  it("removes the vars from the element they were set on, even after the anchor is detached", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const anchor = makeAnchor(container);
+
+    class S extends ReactiveStylesheet {
+      @Param() color = "blue";
+    }
+    class Comp extends StatefulComponent {
+      constructor() {
+        super();
+        setComponentAnchor(this, anchor);
+      }
+      @Styled(S) $s!: S;
+      render() { return document.createElement("div"); }
+    }
+
+    const inst = new Comp() as WithLifecycle & Comp;
+    inst.onMount?.();
+    anchor.remove();
+    inst.onUnmount?.();
+    expect(container.style.getPropertyValue("--color")).toBe("");
+
+    inst.$s.color = "red";
+    expect(container.style.getPropertyValue("--color")).toBe("");
+    container.remove();
   });
 });

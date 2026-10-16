@@ -1,3 +1,5 @@
+import { declarations } from "../internal/kebab.js";
+
 import type { Properties } from "csstype";
 
 // ─── CSSProperties ────────────────────────────────────────────────────────────
@@ -113,92 +115,86 @@ export type CSSBuilder = string & {
 
 // ─── Runtime ──────────────────────────────────────────────────────────────────
 
-const CSS_BUILDER = Symbol("css-builder");
+type Props = CSSProperties;
+
+// Every method lives once on the prototype: `this.css()` runs for each `$` field of every
+// stylesheet, and a per-builder set of ~40 closures made each call allocate them all.
+class CSSBuilderImpl {
+  readonly #parts: string[] = [];
+
+  constructor(props: Props) {
+    const root = declarations(props, "");
+    if (root) this.#parts.push(root);
+  }
+
+  #nest(selector: string, props: Props): this {
+    const css = declarations(props, "");
+    // Indents every line, including the continuation lines of a multi-line value.
+    if (css) this.#parts.push(`${selector} {\n  ${css.replaceAll("\n", "\n  ")}\n}`);
+    return this;
+  }
+
+  toString(): string {
+    return this.#parts.join("\n");
+  }
+
+  [Symbol.toPrimitive](): string {
+    return this.toString();
+  }
+
+  // Pseudo-classes — interaction
+  hover(p: Props): this { return this.#nest("&:hover", p); }
+  focus(p: Props): this { return this.#nest("&:focus", p); }
+  focusWithin(p: Props): this { return this.#nest("&:focus-within", p); }
+  focusVisible(p: Props): this { return this.#nest("&:focus-visible", p); }
+  active(p: Props): this { return this.#nest("&:active", p); }
+  visited(p: Props): this { return this.#nest("&:visited", p); }
+  target(p: Props): this { return this.#nest("&:target", p); }
+
+  // Pseudo-classes — form state
+  disabled(p: Props): this { return this.#nest('&:disabled, &[disabled], &[aria-disabled="true"]', p); }
+  enabled(p: Props): this { return this.#nest("&:enabled", p); }
+  checked(p: Props): this { return this.#nest("&:checked", p); }
+  indeterminate(p: Props): this { return this.#nest("&:indeterminate", p); }
+  required(p: Props): this { return this.#nest("&:required", p); }
+  optional(p: Props): this { return this.#nest("&:optional", p); }
+  valid(p: Props): this { return this.#nest("&:valid", p); }
+  invalid(p: Props): this { return this.#nest("&:invalid", p); }
+  readOnly(p: Props): this { return this.#nest("&:read-only", p); }
+
+  // Pseudo-classes — structural
+  first(p: Props): this { return this.#nest("&:first-child", p); }
+  last(p: Props): this { return this.#nest("&:last-child", p); }
+  nthChild(n: string | number, p: Props): this { return this.#nest(`&:nth-child(${String(n)})`, p); }
+  empty(p: Props): this { return this.#nest("&:empty", p); }
+
+  // Pseudo-classes — relational (Selectors Level 4)
+  has(sel: string, p: Props): this { return this.#nest(`&:has(${sel})`, p); }
+  is(sel: string, p: Props): this { return this.#nest(`&:is(${sel})`, p); }
+  where(sel: string, p: Props): this { return this.#nest(`&:where(${sel})`, p); }
+  not(sel: string, p: Props): this { return this.#nest(`&:not(${sel})`, p); }
+
+  // Pseudo-elements
+  before(p: Props): this { return this.#nest("&::before", p); }
+  after(p: Props): this { return this.#nest("&::after", p); }
+  placeholder(p: Props): this { return this.#nest("&::placeholder", p); }
+  selection(p: Props): this { return this.#nest("&::selection", p); }
+  firstLine(p: Props): this { return this.#nest("&::first-line", p); }
+  firstLetter(p: Props): this { return this.#nest("&::first-letter", p); }
+  marker(p: Props): this { return this.#nest("&::marker", p); }
+  backdrop(p: Props): this { return this.#nest("&::backdrop", p); }
+
+  // At-rules
+  media(q: string, p: Props): this { return this.#nest(`@media (${q})`, p); }
+  container(q: string, p: Props): this { return this.#nest(`@container (${q})`, p); }
+  supports(cond: string, p: Props): this { return this.#nest(`@supports (${cond})`, p); }
+  on(sel: string, p: Props): this { return this.#nest(sel, p); }
+}
 
 export function isCSSBuilder(value: unknown): boolean {
-  return typeof value === "object" && value !== null &&
-    (value as Record<symbol, unknown>)[CSS_BUILDER] === true;
-}
-
-function toKebab(camel: string): string {
-  return camel.replace(/([A-Z])/g, "-$1").toLowerCase();
-}
-
-function propsToCSS(props: CSSProperties): string {
-  return Object.entries(props)
-    .filter(([, v]) => v != null)
-    .map(([k, v]) => `${toKebab(k)}: ${String(v)};`)
-    .join("\n");
+  return value instanceof CSSBuilderImpl;
 }
 
 export function createCSSBuilder(initialProps: CSSProperties): CSSBuilder {
-  const parts: string[] = [];
-  const rootCSS = propsToCSS(initialProps);
-  if (rootCSS) parts.push(rootCSS);
-
-  const addNested = (selector: string, props: CSSProperties): CSSBuilder => {
-    const rawCSS = propsToCSS(props);
-    if (!rawCSS) return builder;
-    const inner = rawCSS.split("\n").map((l) => `  ${l}`).join("\n");
-    parts.push(`${selector} {\n${inner}\n}`);
-    return builder;
-  };
-
-  const toCSS = (): string => parts.join("\n");
-
-  const builder = Object.assign(Object.create(null) as object, {
-    [CSS_BUILDER]:        true,
-    toString:             toCSS,
-    [Symbol.toPrimitive]: toCSS,
-
-    // Pseudo-classes — interaction
-    hover:        (p: CSSProperties) => addNested("&:hover", p),
-    focus:        (p: CSSProperties) => addNested("&:focus", p),
-    focusWithin:  (p: CSSProperties) => addNested("&:focus-within", p),
-    focusVisible: (p: CSSProperties) => addNested("&:focus-visible", p),
-    active:       (p: CSSProperties) => addNested("&:active", p),
-    visited:      (p: CSSProperties) => addNested("&:visited", p),
-    target:       (p: CSSProperties) => addNested("&:target", p),
-
-    // Pseudo-classes — form state
-    disabled:     (p: CSSProperties) => addNested('&:disabled, &[disabled], &[aria-disabled="true"]', p),
-    enabled:      (p: CSSProperties) => addNested("&:enabled", p),
-    checked:      (p: CSSProperties) => addNested("&:checked", p),
-    indeterminate:(p: CSSProperties) => addNested("&:indeterminate", p),
-    required:     (p: CSSProperties) => addNested("&:required", p),
-    optional:     (p: CSSProperties) => addNested("&:optional", p),
-    valid:        (p: CSSProperties) => addNested("&:valid", p),
-    invalid:      (p: CSSProperties) => addNested("&:invalid", p),
-    readOnly:     (p: CSSProperties) => addNested("&:read-only", p),
-
-    // Pseudo-classes — structural
-    first:        (p: CSSProperties) => addNested("&:first-child", p),
-    last:         (p: CSSProperties) => addNested("&:last-child", p),
-    nthChild:     (n: string | number, p: CSSProperties) => addNested(`&:nth-child(${String(n)})`, p),
-    empty:        (p: CSSProperties) => addNested("&:empty", p),
-
-    // Pseudo-classes — relational (Selectors Level 4)
-    has:          (sel: string, p: CSSProperties) => addNested(`&:has(${sel})`, p),
-    is:           (sel: string, p: CSSProperties) => addNested(`&:is(${sel})`, p),
-    where:        (sel: string, p: CSSProperties) => addNested(`&:where(${sel})`, p),
-    not:          (sel: string, p: CSSProperties) => addNested(`&:not(${sel})`, p),
-
-    // Pseudo-elements
-    before:       (p: CSSProperties) => addNested("&::before", p),
-    after:        (p: CSSProperties) => addNested("&::after", p),
-    placeholder:  (p: CSSProperties) => addNested("&::placeholder", p),
-    selection:    (p: CSSProperties) => addNested("&::selection", p),
-    firstLine:    (p: CSSProperties) => addNested("&::first-line", p),
-    firstLetter:  (p: CSSProperties) => addNested("&::first-letter", p),
-    marker:       (p: CSSProperties) => addNested("&::marker", p),
-    backdrop:     (p: CSSProperties) => addNested("&::backdrop", p),
-
-    // At-rules
-    media:        (q: string, p: CSSProperties) => addNested(`@media (${q})`, p),
-    container:    (q: string, p: CSSProperties) => addNested(`@container (${q})`, p),
-    supports:     (cond: string, p: CSSProperties) => addNested(`@supports (${cond})`, p),
-    on:           (sel: string, p: CSSProperties) => addNested(sel, p),
-  }) as unknown as CSSBuilder;
-
-  return builder;
+  return new CSSBuilderImpl(initialProps) as unknown as CSSBuilder;
 }

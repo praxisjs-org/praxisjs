@@ -9,6 +9,7 @@ import {
 
 import {
   createThemeInstance,
+  isActiveTheme,
   theme,
   ThemeInstance,
   type ThemedConfig,
@@ -16,7 +17,11 @@ import {
 
 // ─── @Themed ─────────────────────────────────────────────────────────────────
 
+const NO_ENHANCEMENT: ClassEnhancement = Object.freeze({});
+
 class ThemedBehavior extends ClassBehavior {
+  #instance: ThemeInstance | null = null;
+
   constructor(
     private readonly DefaultTheme: new () => unknown,
     private readonly config: Partial<ThemedConfig>,
@@ -24,16 +29,23 @@ class ThemedBehavior extends ClassBehavior {
     super();
   }
 
+  // Makes this class's theme the active one again, e.g. after another @Themed class replaced it
+  // or it was destroyed. While it is still active it is kept, so a theme the user switched to
+  // survives the component being instantiated again.
   create(_instance: RootComponent): ClassEnhancement {
-    createThemeInstance(this.DefaultTheme, this.config);
-    return {};
+    if (!isActiveTheme(this.#instance)) this.#activate();
+    return NO_ENHANCEMENT;
   }
 
   initialize(
     _Enhanced: new (...args: unknown[]) => unknown,
     _original: new (...args: unknown[]) => unknown,
   ): void {
-    createThemeInstance(this.DefaultTheme, this.config);
+    this.#activate();
+  }
+
+  #activate(): void {
+    this.#instance = createThemeInstance(this.DefaultTheme, this.config);
   }
 }
 

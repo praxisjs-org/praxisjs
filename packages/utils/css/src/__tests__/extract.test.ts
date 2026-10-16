@@ -279,6 +279,17 @@ describe("extractionModule() — globalStyle()", () => {
     expect(emitted[0].prepend).toBeFalsy();
   });
 
+  // Bug: the extraction stub dropped the options, so production CSS lost its @layer and won the
+  // cascade over layered CSS (e.g. Tailwind utilities) that it loses to in dev.
+  it("keeps the `layer` option, like the runtime globalStyle()", () => {
+    const { mod, emitted } = makeCollector();
+    (mod.globalStyle as (f: () => string, o?: { layer?: string | false }) => void)(
+      () => "body { margin: 0; }",
+      { layer: "base" },
+    );
+    expect(emitted[0].css).toBe("@layer base {\nbody { margin: 0; }\n}");
+  });
+
   it("factory can use the builder to produce CSS via .on()", () => {
     const { mod, emitted } = makeCollector();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -287,6 +298,32 @@ describe("extractionModule() — globalStyle()", () => {
     );
     expect(emitted[0].css).toContain("body");
     expect(emitted[0].css).toContain("margin: 0");
+  });
+});
+
+// ─── preflight() ─────────────────────────────────────────────────────────────
+
+// Bug: preflight was missing from the extraction module, so calling it threw inside the sandbox,
+// which skipped the rest of that file's CSS, and the reset never reached the static stylesheet.
+describe("extractionModule() — preflight()", () => {
+  type Preflight = (options?: { layer?: string | false }) => void;
+
+  it("emits the reset wrapped in @layer reset by default", () => {
+    const { mod, emitted } = makeCollector();
+    (mod.preflight as Preflight)();
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0].css.startsWith("@layer reset {")).toBe(true);
+    expect(emitted[0].css).toContain("box-sizing: border-box");
+  });
+
+  it("honours a custom layer name and layer: false", () => {
+    const named = makeCollector();
+    (named.mod.preflight as Preflight)({ layer: "base" });
+    expect(named.emitted[0].css.startsWith("@layer base {")).toBe(true);
+
+    const plain = makeCollector();
+    (plain.mod.preflight as Preflight)({ layer: false });
+    expect(plain.emitted[0].css.startsWith("@layer")).toBe(false);
   });
 });
 
@@ -455,5 +492,30 @@ describe("extractionModule() — additional coverage", () => {
     callInner(mod.Param as Maker);
     callInner(mod.Style as Maker);
     callInner(mod.Theme as Maker);
+  });
+});
+
+// ─── Runtime parity ───────────────────────────────────────────────────────────
+
+describe("extractionModule() — matches the runtime output", () => {
+  it("Styled() emits the same class names and CSS the runtime @Styled uses", async () => {
+    const { compileSheet } = await import("../internal/sheet");
+    const { mod, emitted } = makeCollector();
+    class ParityStyles extends Stylesheet {
+      $root = this.css({ display: "flex" }).hover({ opacity: 0.5 });
+      $label = `font-weight: 600;`;
+    }
+    (mod.Styled as (cls: new () => unknown) => unknown)(ParityStyles);
+    const sheet = compileSheet(ParityStyles);
+    expect(emitted[0].css).toBe(sheet.css);
+    expect(emitted[0].css).toContain(`.${sheet.classMap.$root} {`);
+  });
+
+  it("keyframes() returns the same scoped name as the runtime keyframes()", async () => {
+    const { keyframes } = await import("../builder/keyframes");
+    const { mod } = makeCollector();
+    const stops = { from: { opacity: 0 }, to: { opacity: 1, transform: "scale(1)" } };
+    const extracted = (mod.keyframes as (n: string, s: typeof stops) => string)("fade", stops);
+    expect(extracted).toBe(keyframes("fade", stops));
   });
 });

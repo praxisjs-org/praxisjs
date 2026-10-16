@@ -1,33 +1,42 @@
 import { Composable } from "@praxisjs/core";
-import { batch, signal, computed } from "@praxisjs/core/internal";
+import { computed, endBatch, signal, startBatch } from "@praxisjs/core/internal";
+
+const hasWindow = typeof window !== "undefined";
+
+// Listeners and timers start in onMount and stop in onUnmount: setup() runs when the component is
+// constructed, which also happens for components that never mount (and on the server).
 
 export class MediaQuery extends Composable {
   declare matches: boolean;
 
   private _mql?: MediaQueryList;
-  private _handler?: (e: MediaQueryListEvent) => void;
-  private _view?: Record<string, unknown>;
+  private readonly _matches = signal(false);
+
+  private readonly _onChange = (e: MediaQueryListEvent) => {
+    this._matches.set(e.matches);
+  };
 
   constructor(private readonly query: string) {
     super();
   }
 
   setup() {
-    if (this._view) return this._view;
-    this._mql = window.matchMedia(this.query);
-    const matches = signal(this._mql.matches);
-    this._handler = (e) => {
-      matches.set(e.matches);
-    };
-    this._mql.addEventListener("change", this._handler);
-    this._view = { matches };
-    return this._view;
+    if (hasWindow) {
+      this._mql ??= window.matchMedia(this.query);
+      this._matches.set(this._mql.matches);
+    }
+    return { matches: this._matches };
+  }
+
+  onMount() {
+    const mql = this._mql;
+    if (!mql) return;
+    this._matches.set(mql.matches);
+    mql.addEventListener("change", this._onChange);
   }
 
   onUnmount() {
-    if (this._mql && this._handler) {
-      this._mql.removeEventListener("change", this._handler);
-    }
+    this._mql?.removeEventListener("change", this._onChange);
   }
 }
 
@@ -35,27 +44,20 @@ export class ColorScheme extends Composable {
   declare isDark: boolean;
   declare isLight: boolean;
 
-  private _mql?: MediaQueryList;
-  private _handler?: (e: MediaQueryListEvent) => void;
-  private _view?: Record<string, unknown>;
+  private readonly _query = new MediaQuery("(prefers-color-scheme: dark)");
 
   setup() {
-    if (this._view) return this._view;
-    this._mql = window.matchMedia("(prefers-color-scheme: dark)");
-    const isDark = signal(this._mql.matches);
+    const isDark = this._query.setup().matches;
     const isLight = computed(() => !isDark());
-    this._handler = (e) => {
-      isDark.set(e.matches);
-    };
-    this._mql.addEventListener("change", this._handler);
-    this._view = { isDark, isLight };
-    return this._view;
+    return { isDark, isLight };
+  }
+
+  onMount() {
+    this._query.onMount();
   }
 
   onUnmount() {
-    if (this._mql && this._handler) {
-      this._mql.removeEventListener("change", this._handler);
-    }
+    this._query.onUnmount();
   }
 }
 
@@ -63,127 +65,139 @@ export class Mouse extends Composable {
   declare x: number;
   declare y: number;
 
-  private _handler!: (e: MouseEvent) => void;
-  private _view?: Record<string, unknown>;
+  private readonly _x = signal(0);
+  private readonly _y = signal(0);
+
+  private readonly _onMove = (e: MouseEvent) => {
+    startBatch();
+    this._x.set(e.clientX);
+    this._y.set(e.clientY);
+    endBatch();
+  };
 
   setup() {
-    if (this._view) return this._view;
-    const x = signal(0);
-    const y = signal(0);
-    this._handler = (e) => {
-      batch(() => {
-        x.set(e.clientX);
-        y.set(e.clientY);
-      });
-    };
-    window.addEventListener("mousemove", this._handler);
-    this._view = { x, y };
-    return this._view;
+    return { x: this._x, y: this._y };
+  }
+
+  onMount() {
+    window.addEventListener("mousemove", this._onMove);
   }
 
   onUnmount() {
-    window.removeEventListener("mousemove", this._handler);
+    window.removeEventListener("mousemove", this._onMove);
   }
 }
+
+const MODIFIERS = ["ctrl", "shift", "alt", "meta"];
 
 export class KeyCombo extends Composable {
   declare pressed: boolean;
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private _keydownHandler = (_e: KeyboardEvent) => {};
-  private _keyupHandler!: () => void;
-  private _view?: Record<string, unknown>;
+  private readonly _pressed = signal(false);
+  // Parsed once: the keydown handler runs for every key press on the page.
+  private readonly _key: string | undefined;
+  private readonly _ctrl: boolean;
+  private readonly _shift: boolean;
+  private readonly _alt: boolean;
+  private readonly _meta: boolean;
 
-  constructor(private readonly combo: string) {
+  private readonly _onKeyDown = (e: KeyboardEvent) => {
+    if (
+      (!this._ctrl || e.ctrlKey) &&
+      (!this._shift || e.shiftKey) &&
+      (!this._alt || e.altKey) &&
+      (!this._meta || e.metaKey) &&
+      e.key.toLowerCase() === this._key
+    ) {
+      this._pressed.set(true);
+    }
+  };
+
+  private readonly _onKeyUp = () => {
+    this._pressed.set(false);
+  };
+
+  constructor(combo: string) {
     super();
+    const parts = combo.toLowerCase().split("+").map((p) => p.trim());
+    this._key = parts.find((p) => !MODIFIERS.includes(p));
+    this._ctrl = parts.includes("ctrl");
+    this._shift = parts.includes("shift");
+    this._alt = parts.includes("alt");
+    this._meta = parts.includes("meta");
   }
 
   setup() {
-    if (this._view) return this._view;
-    const parts = this.combo
-      .toLowerCase()
-      .split("+")
-      .map((p) => p.trim());
-    const pressed = signal(false);
+    return { pressed: this._pressed };
+  }
 
-    const modifiers = ["ctrl", "shift", "alt", "meta"];
-    const key = parts.find((p) => !modifiers.includes(p));
-
-    // A combo with no non-modifier key is invalid and should never fire
-    if (!key) {
-      this._keyupHandler = () => {
-        pressed.set(false);
-      };
-      window.addEventListener("keydown", this._keydownHandler);
-      window.addEventListener("keyup", this._keyupHandler);
-      this._view = { pressed };
-      return this._view;
-    }
-
-    this._keydownHandler = (e) => {
-      const ctrl = parts.includes("ctrl") ? e.ctrlKey : true;
-      const shift = parts.includes("shift") ? e.shiftKey : true;
-      const alt = parts.includes("alt") ? e.altKey : true;
-      const meta = parts.includes("meta") ? e.metaKey : true;
-      if (ctrl && shift && alt && meta && e.key.toLowerCase() === key) {
-        pressed.set(true);
-      }
-    };
-    this._keyupHandler = () => {
-      pressed.set(false);
-    };
-
-    window.addEventListener("keydown", this._keydownHandler);
-    window.addEventListener("keyup", this._keyupHandler);
-    this._view = { pressed };
-    return this._view;
+  onMount() {
+    // A combo with no non-modifier key is invalid and never fires.
+    if (this._key !== undefined) window.addEventListener("keydown", this._onKeyDown);
+    window.addEventListener("keyup", this._onKeyUp);
   }
 
   onUnmount() {
-    window.removeEventListener("keydown", this._keydownHandler);
-    window.removeEventListener("keyup", this._keyupHandler);
+    window.removeEventListener("keydown", this._onKeyDown);
+    window.removeEventListener("keyup", this._onKeyUp);
   }
 }
+
+const ACTIVITY_EVENTS = ["mousemove", "keydown", "click", "scroll", "touchstart"];
 
 export class Idle extends Composable {
   declare idle: boolean;
 
-  private _listeners: Array<[string, () => void]> = [];
+  private readonly _idle = signal(false);
   private _timer?: ReturnType<typeof setTimeout>;
-  private _view?: Record<string, unknown>;
+  private _lastActivity = 0;
+
+  // Activity only records a timestamp: rescheduling a timer on every mousemove or scroll event was
+  // the expensive part. The single pending timer checks the timestamp when it fires.
+  private readonly _onActivity = () => {
+    this._lastActivity = Date.now();
+    if (this._timer === undefined) {
+      this._idle.set(false);
+      this._schedule(this.timeout);
+    }
+  };
+
+  private readonly _check = () => {
+    const remaining = this.timeout - (Date.now() - this._lastActivity);
+    if (remaining > 0) {
+      this._schedule(remaining);
+    } else {
+      this._timer = undefined;
+      this._idle.set(true);
+    }
+  };
 
   constructor(private readonly timeout = 60_000) {
     super();
   }
 
+  private _schedule(delay: number) {
+    this._timer = setTimeout(this._check, delay);
+  }
+
   setup() {
-    if (this._view) return this._view;
-    const idle = signal(false);
-    const reset = () => {
-      idle.set(false);
-      clearTimeout(this._timer);
-      this._timer = setTimeout(() => {
-        idle.set(true);
-      }, this.timeout);
-    };
+    return { idle: this._idle };
+  }
 
-    ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach(
-      (event) => {
-        window.addEventListener(event, reset, { passive: true });
-        this._listeners.push([event, reset]);
-      },
-    );
-
-    reset();
-    this._view = { idle };
-    return this._view;
+  onMount() {
+    for (const event of ACTIVITY_EVENTS) {
+      window.addEventListener(event, this._onActivity, { passive: true });
+    }
+    clearTimeout(this._timer);
+    this._timer = undefined;
+    this._onActivity();
   }
 
   onUnmount() {
     clearTimeout(this._timer);
-    this._listeners.forEach(([event, handler]) => {
-      window.removeEventListener(event, handler);
-    });
-    this._listeners = [];
+    this._timer = undefined;
+    for (const event of ACTIVITY_EVENTS) {
+      window.removeEventListener(event, this._onActivity);
+    }
   }
 }

@@ -1,17 +1,13 @@
-import { signal, computed } from "@praxisjs/core/internal";
+import { SignalNode, writeSignal } from "@praxisjs/core/internal";
 import type { Computed } from "@praxisjs/shared";
 
-import { acceptsSignal } from "./utils";
+import { acceptsSignal, isAbortError, readonlyView, toError } from "./utils";
 
 export class QueueClearedError extends Error {
   constructor() {
     super("Queue cleared");
     this.name = "QueueClearedError";
   }
-}
-
-function isAbortError(err: unknown): boolean {
-  return err instanceof Error && err.name === "AbortError";
 }
 
 export interface QueueInstance<T> {
@@ -22,86 +18,94 @@ export interface QueueInstance<T> {
   clear(): void;
 }
 
+interface QueueItem<T> {
+  args: unknown[];
+  resolve: (v: T) => void;
+  reject: (e: Error) => void;
+  controller: AbortController | undefined;
+}
+
 export function queue<T>(
   fn: (...args: unknown[]) => Promise<T>,
   options?: { signal?: boolean },
 ): QueueInstance<T> {
-  const _loading = signal(false);
-  const _pending = signal(0);
-  const _error = signal<Error | null>(null);
-  const _wantsSignal = options?.signal ?? acceptsSignal(fn);
-  const _queue: Array<{
-    args: unknown[];
-    resolve: (v: T) => void;
-    reject: (e: Error) => void;
-    controller: AbortController;
-  }> = [];
-  let _running = false;
-  let _cleared = false;
-  let _activeController: AbortController | null = null;
-  let _activeAbortedByClear = false;
+  const loading = new SignalNode(false);
+  const pending = new SignalNode(0);
+  const error = new SignalNode<Error | null>(null);
+  const wantsSignal = options?.signal ?? acceptsSignal(fn);
+  // FIFO read from `head`: shifting the array instead made draining n calls O(n²).
+  let items: Array<QueueItem<T> | undefined> = [];
+  let head = 0;
+  let running = false;
+  let inCall = false;
+  let activeController: AbortController | undefined;
+  let activeAbortedByClear = false;
 
   async function drain(): Promise<void> {
-    if (_running || _queue.length === 0) return;
-    _running = true;
-    _loading.set(true);
-    while (_queue.length > 0) {
-      const item = _queue[0];
-      _queue.shift();
+    if (running || head === items.length) return;
+    running = true;
+    writeSignal(loading, true);
+    while (head < items.length) {
+      const item = items[head] as QueueItem<T>;
+      items[head++] = undefined;
+      if (head === items.length) {
+        items = [];
+        head = 0;
+      }
 
       const { args, resolve, reject, controller } = item;
-      _activeController = controller;
-      _activeAbortedByClear = false;
-      _pending.update((n) => n - 1);
+      activeController = controller;
+      activeAbortedByClear = false;
+      inCall = true;
+      writeSignal(pending, items.length - head);
       try {
-        const result = await (_wantsSignal ? fn(controller.signal, ...args) : fn(...args));
+        const result = await (controller ? fn(controller.signal, ...args) : fn(...args));
         resolve(result);
       } catch (err) {
-        // _activeAbortedByClear is set asynchronously by clear() between the await and this catch
+        // activeAbortedByClear is set by clear() while the call is awaited
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (isAbortError(err) && _activeAbortedByClear) {
+        if (isAbortError(err) && activeAbortedByClear) {
           reject(new QueueClearedError());
         } else {
-          const e = err instanceof Error ? err : new Error(String(err));
-          _error.set(e);
+          const e = toError(err);
+          writeSignal(error, e);
           reject(e);
         }
       } finally {
-        _activeController = null;
+        inCall = false;
+        activeController = undefined;
       }
     }
-    _cleared = false;
-    _running = false;
-    _loading.set(false);
+    running = false;
+    writeSignal(loading, false);
   }
 
   function enqueue(...args: unknown[]): Promise<T> {
-    if (_cleared) {
-      _cleared = false;
-    }
-    const controller = new AbortController();
     return new Promise<T>((resolve, reject) => {
-      _queue.push({ args, resolve, reject, controller });
-      _pending.update((n) => n + 1);
+      items.push({ args, resolve, reject, controller: wantsSignal ? new AbortController() : undefined });
+      writeSignal(pending, items.length - head);
       void drain();
     });
   }
 
-  enqueue.loading = computed(() => _loading());
-  enqueue.pending = computed(() => _pending());
-  enqueue.error = computed(() => _error());
+  enqueue.loading = readonlyView(loading);
+  enqueue.pending = readonlyView(pending);
+  enqueue.error = readonlyView(error);
   enqueue.clear = () => {
-    if (_activeController) {
-      _activeAbortedByClear = true;
-      _activeController.abort();
+    if (inCall) {
+      activeAbortedByClear = true;
+      activeController?.abort();
     }
-    while (_queue.length > 0) {
-      const item = _queue.shift();
-      item?.controller.abort();
-      item?.reject(new QueueClearedError());
+    const cleared = items;
+    const from = head;
+    items = [];
+    head = 0;
+    for (let i = from; i < cleared.length; i++) {
+      const item = cleared[i] as QueueItem<T>;
+      item.controller?.abort();
+      item.reject(new QueueClearedError());
     }
-    _pending.set(0);
-    _cleared = true;
+    writeSignal(pending, 0);
   };
 
   return enqueue as QueueInstance<T>;

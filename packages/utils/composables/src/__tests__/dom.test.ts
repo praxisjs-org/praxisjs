@@ -24,6 +24,7 @@ describe("WindowSize", () => {
 
     const ws = new WindowSize();
     const { width, height } = ws.setup() as { width: () => number; height: () => number };
+    ws.onMount();
 
     Object.defineProperty(window, "innerWidth", { value: 1280, configurable: true });
     Object.defineProperty(window, "innerHeight", { value: 900, configurable: true });
@@ -31,6 +32,7 @@ describe("WindowSize", () => {
 
     expect(width()).toBe(1280);
     expect(height()).toBe(900);
+    ws.onUnmount();
   });
 
   it("removes listener on unmount", () => {
@@ -116,6 +118,7 @@ describe("ElementSize", () => {
     const ref = { current: el };
     const es = new ElementSize(ref);
     const { width, height } = es.setup() as { width: () => number; height: () => number };
+    es.onMount();
 
     observerCallback(
       [{ contentRect: { width: 300, height: 150 } } as ResizeObserverEntry],
@@ -134,9 +137,9 @@ describe("ElementSize", () => {
       disconnect = disconnect;
     });
 
-    const ref = { current: null };
-    const es = new ElementSize(ref);
+    const es = new ElementSize({ current: document.createElement("div") });
     es.setup();
+    es.onMount();
     es.onUnmount();
     expect(disconnect).toHaveBeenCalled();
   });
@@ -174,6 +177,7 @@ describe("Intersection", () => {
     const ref = { current: el };
     const int = new Intersection(ref);
     const { visible } = int.setup() as { visible: () => boolean };
+    int.onMount();
 
     observerCallback(
       [{ isIntersecting: true } as IntersectionObserverEntry],
@@ -191,9 +195,9 @@ describe("Intersection", () => {
       disconnect = disconnect;
     });
 
-    const ref = { current: null };
-    const int = new Intersection(ref);
+    const int = new Intersection({ current: document.createElement("div") });
     int.setup();
+    int.onMount();
     int.onUnmount();
     expect(disconnect).toHaveBeenCalled();
   });
@@ -280,6 +284,7 @@ describe("Intersection (additional)", () => {
     const ref = { current: el };
     const int = new Intersection(ref);
     const { visible } = int.setup() as { visible: () => boolean };
+    int.onMount();
 
     observerCallback(
       [{ isIntersecting: true } as IntersectionObserverEntry],
@@ -445,55 +450,70 @@ describe("Focus", () => {
 // ── WindowSize (additional) ───────────────────────────────────────────────────
 
 describe("WindowSize (additional)", () => {
-  it("setup() called twice returns the same view object", () => {
+  it("setup() called twice exposes the same signals", () => {
     const ws = new WindowSize();
     const view1 = ws.setup();
     const view2 = ws.setup();
-    expect(view1).toBe(view2);
-    ws.onUnmount();
+    expect(view1.width).toBe(view2.width);
+    expect(view1.height).toBe(view2.height);
   });
 
-  it("setup() called twice registers only one resize listener", () => {
+  it("listens only between mount and unmount", () => {
     const add = vi.spyOn(window, "addEventListener");
     const ws = new WindowSize();
     ws.setup();
     ws.setup();
-    const resizeCalls = add.mock.calls.filter((c) => c[0] === "resize").length;
-    expect(resizeCalls).toBe(1);
+    expect(add.mock.calls.filter((c) => c[0] === "resize").length).toBe(0);
+    ws.onMount();
+    expect(add.mock.calls.filter((c) => c[0] === "resize").length).toBe(1);
     ws.onUnmount();
     vi.restoreAllMocks();
+  });
+
+  it("re-reads the window size on mount", () => {
+    const ws = new WindowSize();
+    const { width } = ws.setup() as { width: () => number };
+    Object.defineProperty(window, "innerWidth", { value: 640, configurable: true });
+    ws.onMount();
+    expect(width()).toBe(640);
+    ws.onUnmount();
   });
 });
 
 // ── ElementSize (cache) ───────────────────────────────────────────────────────
 
 describe("ElementSize (cache)", () => {
-  it("setup() called twice returns the same view object", () => {
-    const el = document.createElement("div");
-    document.body.appendChild(el);
-    const ref = { current: el };
-    const es = new ElementSize(ref);
-    const view1 = es.setup();
-    const view2 = es.setup();
-    expect(view1).toBe(view2);
+  it("setup() called twice exposes the same signals", () => {
+    const es = new ElementSize({ current: document.createElement("div") });
+    expect(es.setup().width).toBe(es.setup().width);
+  });
+
+  it("creates its ResizeObserver on first mount and reuses it", () => {
+    let created = 0;
+    const observe = vi.fn();
+    vi.stubGlobal("ResizeObserver", class {
+      constructor() { created++; }
+      observe = observe;
+      disconnect = vi.fn();
+    });
+    const es = new ElementSize({ current: document.createElement("div") });
+    es.setup();
+    expect(created).toBe(0);
+    es.onMount();
     es.onUnmount();
-    document.body.removeChild(el);
+    es.onMount();
+    expect(created).toBe(1);
+    expect(observe).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
   });
 });
 
 // ── Intersection (cache) ──────────────────────────────────────────────────────
 
 describe("Intersection (cache)", () => {
-  it("setup() called twice returns the same view object", () => {
-    const el = document.createElement("div");
-    document.body.appendChild(el);
-    const ref = { current: el };
-    const inter = new Intersection(ref);
-    const view1 = inter.setup();
-    const view2 = inter.setup();
-    expect(view1).toBe(view2);
-    inter.onUnmount();
-    document.body.removeChild(el);
+  it("setup() called twice exposes the same signal", () => {
+    const inter = new Intersection({ current: document.createElement("div") });
+    expect(inter.setup().visible).toBe(inter.setup().visible);
   });
 });
 
@@ -530,6 +550,7 @@ describe("paired updates re-run dependents once per event", () => {
   it("WindowSize", () => {
     const ws = new WindowSize();
     const { width, height } = ws.setup() as { width: () => number; height: () => number };
+    ws.onMount();
     const runs = countRuns(() => { void width(); void height(); });
     Object.defineProperty(window, "innerWidth", { value: 111, configurable: true });
     Object.defineProperty(window, "innerHeight", { value: 222, configurable: true });
@@ -559,9 +580,82 @@ describe("paired updates re-run dependents once per event", () => {
     });
     const es = new ElementSize({ current: document.createElement("div") });
     const { width, height } = es.setup() as { width: () => number; height: () => number };
+    es.onMount();
     const runs = countRuns(() => { void width(); void height(); });
     callback([{ contentRect: { width: 10, height: 20 } } as ResizeObserverEntry], {} as ResizeObserver);
     expect(runs()).toBe(1);
     vi.unstubAllGlobals();
+  });
+});
+
+// ── Detaching from what was attached ──────────────────────────────────────────
+
+describe("listeners are removed from the element they were added to", () => {
+  // Bug: onUnmount re-read ref.current, so a ref that changed after mount left the listener on
+  // the old element.
+  it("ScrollPosition", () => {
+    const el1 = document.createElement("div");
+    const el2 = document.createElement("div");
+    const ref = { current: el1 as HTMLElement | null };
+    const sp = new ScrollPosition(ref);
+    const { y } = sp.setup() as { y: () => number };
+    sp.onMount();
+    ref.current = el2;
+    sp.onUnmount();
+
+    Object.defineProperty(el1, "scrollTop", { value: 40, configurable: true });
+    el1.dispatchEvent(new Event("scroll"));
+    expect(y()).toBe(0);
+  });
+
+  it("Focus", () => {
+    const el1 = document.createElement("input");
+    const el2 = document.createElement("input");
+    const ref = { current: el1 as HTMLElement | null };
+    const focus = new Focus(ref);
+    const { focused } = focus.setup() as { focused: () => boolean };
+    focus.onMount();
+    ref.current = el2;
+    focus.onUnmount();
+
+    el1.dispatchEvent(new Event("focus"));
+    expect(focused()).toBe(false);
+  });
+});
+
+describe("initial state read on mount", () => {
+  it("ScrollPosition reads the target's current scroll offset", () => {
+    const el = document.createElement("div");
+    Object.defineProperty(el, "scrollLeft", { value: 12, configurable: true });
+    Object.defineProperty(el, "scrollTop", { value: 34, configurable: true });
+    const sp = new ScrollPosition(el);
+    const { x, y } = sp.setup() as { x: () => number; y: () => number };
+    sp.onMount();
+    expect([x(), y()]).toEqual([12, 34]);
+    sp.onUnmount();
+  });
+
+  it("Focus reports an element that is already focused", () => {
+    const el = document.createElement("input");
+    document.body.appendChild(el);
+    el.focus();
+    const focus = new Focus({ current: el });
+    const { focused } = focus.setup() as { focused: () => boolean };
+    focus.onMount();
+    expect(focused()).toBe(true);
+    focus.onUnmount();
+    el.remove();
+  });
+
+  it("a scroll event after unmount is ignored", () => {
+    const el = document.createElement("div");
+    const sp = new ScrollPosition(el);
+    const { y } = sp.setup() as { y: () => number };
+    sp.onMount();
+    const handler = (sp as unknown as { _onScroll: () => void })._onScroll;
+    sp.onUnmount();
+    Object.defineProperty(el, "scrollTop", { value: 99, configurable: true });
+    handler();
+    expect(y()).toBe(0);
   });
 });

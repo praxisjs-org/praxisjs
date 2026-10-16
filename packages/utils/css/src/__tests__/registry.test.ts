@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { injectStyle, releaseStyle } from "../internal/registry";
+import { injectStyle } from "../internal/registry";
 import { createCollector, setCollector } from "../internal/collector";
 
 beforeEach(() => {
@@ -19,7 +19,7 @@ afterEach(() => {
   setCollector(null);
 });
 
-describe("injectStyle / releaseStyle", () => {
+describe("injectStyle", () => {
   it("injects a style element with the given key and css", () => {
     injectStyle("abc", ".a { color: red; }");
     const el = document.head.querySelector("style[data-praxis-hash='abc']");
@@ -27,31 +27,20 @@ describe("injectStyle / releaseStyle", () => {
     expect(el?.textContent).toBe(".a { color: red; }");
   });
 
-  it("reference-counts — increments count on duplicate key", () => {
+  it("is idempotent — one element per key however often it is called", () => {
+    injectStyle("k1", ".x { display: flex; }");
+    const el = document.head.querySelector("style[data-praxis-hash='k1']");
     injectStyle("k1", ".x { display: flex; }");
     injectStyle("k1", ".x { display: flex; }");
     expect(document.head.querySelectorAll("style[data-praxis-hash='k1']").length).toBe(1);
-  });
-
-  it("removes the element when count reaches zero", () => {
-    injectStyle("k2", ".y { opacity: 1; }");
-    injectStyle("k2", ".y { opacity: 1; }");
-    releaseStyle("k2");
-    expect(document.head.querySelector("style[data-praxis-hash='k2']")).not.toBeNull();
-    releaseStyle("k2");
-    expect(document.head.querySelector("style[data-praxis-hash='k2']")).toBeNull();
-  });
-
-  it("releaseStyle on non-existent key is a no-op", () => {
-    expect(() => releaseStyle("does-not-exist")).not.toThrow();
+    expect(document.head.querySelector("style[data-praxis-hash='k1']")).toBe(el);
   });
 
   it("re-injects when element was removed externally (DOM divergence guard)", () => {
     injectStyle("k3", ".z { color: blue; }");
     document.head.querySelector("style[data-praxis-hash='k3']")?.remove();
     injectStyle("k3", ".z { color: blue; }");
-    expect(document.head.querySelector("style[data-praxis-hash='k3']")).not.toBeNull();
-    releaseStyle("k3");
+    expect(document.head.querySelectorAll("style[data-praxis-hash='k3']").length).toBe(1);
   });
 });
 
@@ -82,12 +71,12 @@ describe("collector mode", () => {
     expect(css).toContain(".b { color: blue; }");
   });
 
-  it("releaseStyle is a no-op when a collector is active", () => {
+  it("collects again while a collector is active even if the element is already in the DOM", () => {
+    injectStyle("x", ".x { }");
     const col = createCollector();
     setCollector(col);
     injectStyle("x", ".x { }");
-    expect(() => releaseStyle("x")).not.toThrow();
-    expect(col.getCSS()).toContain(".x { }");
+    expect(col.getCSS()).toBe(".x { }");
   });
 
   it("clear() resets the collector", () => {
@@ -106,13 +95,12 @@ describe("collector mode", () => {
     injectStyle("post", ".post { }");
     expect(document.head.querySelector("style[data-praxis-hash='pre']")).toBeNull();
     expect(document.head.querySelector("style[data-praxis-hash='post']")).not.toBeNull();
-    releaseStyle("post");
   });
 });
 
 // ─── STATIC_MODE ──────────────────────────────────────────────────────────────
 
-describe("injectStyle / releaseStyle — static mode (__PRAXIS_CSS_STATIC__)", () => {
+describe("injectStyle — static mode (__PRAXIS_CSS_STATIC__)", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.resetModules();
@@ -124,13 +112,6 @@ describe("injectStyle / releaseStyle — static mode (__PRAXIS_CSS_STATIC__)", (
     const { injectStyle: staticInject } = await import("../internal/registry");
     staticInject("sm1", ".a { color: red; }");
     expect(document.head.querySelector("style[data-praxis-hash='sm1']")).toBeNull();
-  });
-
-  it("releaseStyle is a no-op when __PRAXIS_CSS_STATIC__ is true", async () => {
-    vi.stubGlobal("__PRAXIS_CSS_STATIC__", true);
-    vi.resetModules();
-    const { releaseStyle: staticRelease } = await import("../internal/registry");
-    expect(() => staticRelease("sm2")).not.toThrow();
   });
 });
 

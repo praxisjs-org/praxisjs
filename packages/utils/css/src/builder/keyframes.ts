@@ -1,26 +1,23 @@
 import { getCollector } from "../internal/collector.js";
 import { hashCSS } from "../internal/hash.js";
+import { declarations } from "../internal/kebab.js";
+import { STATIC_MODE } from "../internal/static-mode.js";
 
 import type { CSSProperties } from "./css-builder.js";
-
-// Defined by the Vite CSS plugin — skip DOM injection when CSS is static.
-declare const __PRAXIS_CSS_STATIC__: boolean | undefined;
-const STATIC_MODE: boolean =
-  typeof __PRAXIS_CSS_STATIC__ !== "undefined" && __PRAXIS_CSS_STATIC__;
 
 type KeyframeStops = Record<string, CSSProperties>;
 
 const injected = new Set<string>();
 
-function toKebab(camel: string): string {
-  return camel.replace(/([A-Z])/g, "-$1").toLowerCase();
-}
-
-function stopToCSS(props: CSSProperties): string {
-  return Object.entries(props)
-    .filter(([, v]) => v != null)
-    .map(([k, v]) => `    ${toKebab(k)}: ${String(v)};`)
-    .join("\n");
+/** The scoped name and `@keyframes` rule for a set of stops — shared with build-time extraction. */
+export function keyframesRule(name: string, stops: KeyframeStops): { name: string; css: string } {
+  let body = "";
+  for (const stop in stops) {
+    const block = `  ${stop} {\n${declarations(stops[stop], "    ")}\n  }`;
+    body = body === "" ? block : `${body}\n${block}`;
+  }
+  const scopedName = `prx-${name}-${hashCSS(body)}`;
+  return { name: scopedName, css: `@keyframes ${scopedName} {\n${body}\n}` };
 }
 
 /**
@@ -42,12 +39,7 @@ function stopToCSS(props: CSSProperties): string {
  * }
  */
 export function keyframes(name: string, stops: KeyframeStops): string {
-  const stopsCSS = Object.entries(stops)
-    .map(([stop, props]) => `  ${stop} {\n${stopToCSS(props)}\n  }`)
-    .join("\n");
-
-  const scopedName = `prx-${name}-${hashCSS(stopsCSS)}`;
-  const kfCSS = `@keyframes ${scopedName} {\n${stopsCSS}\n}`;
+  const { name: scopedName, css: kfCSS } = keyframesRule(name, stops);
 
   if (STATIC_MODE) return scopedName;
 

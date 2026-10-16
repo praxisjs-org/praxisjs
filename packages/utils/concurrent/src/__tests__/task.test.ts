@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import { effect } from "@praxisjs/core/internal";
 
 import { task } from "../task";
 
@@ -201,5 +202,45 @@ describe("task — with signal", () => {
     await staleP;
     expect(await t("fresh")).toBe("fresh");
     expect(t.lastResult()).toBe("fresh");
+  });
+});
+
+describe("task — batching and allocation", () => {
+  it("an effect reading loading and lastResult runs once per state change", async () => {
+    const t = task(async (x: unknown) => x);
+    const seen: string[] = [];
+    const stop = effect(() => { seen.push(`${String(t.loading())}:${String(t.lastResult())}`); });
+    await t(1);
+    stop();
+    expect(seen).toEqual(["false:null", "true:null", "false:1"]);
+  });
+
+  it("an error and loading=false are published together", async () => {
+    const t = task(async () => { throw new Error("nope"); });
+    const seen: string[] = [];
+    const stop = effect(() => { seen.push(`${String(t.loading())}:${t.error()?.message ?? "-"}`); });
+    await t();
+    stop();
+    expect(seen).toEqual(["false:-", "true:-", "false:nope"]);
+  });
+
+  it("does not create AbortControllers when fn takes no signal", async () => {
+    const spy = vi.spyOn(globalThis, "AbortController");
+    const t = task(async (x: unknown) => x);
+    await t(1);
+    t.cancelAll();
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("cancelAll() without a signal still discards the in-flight result", async () => {
+    let resolve!: (v: number) => void;
+    const t = task(() => new Promise<number>((r) => { resolve = r; }));
+    const p = t();
+    t.cancelAll();
+    resolve(5);
+    expect(await p).toBeUndefined();
+    expect(t.lastResult()).toBeNull();
+    expect(t.loading()).toBe(false);
   });
 });

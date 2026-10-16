@@ -1,5 +1,5 @@
 import { Composable } from "@praxisjs/core";
-import { signal, computed } from "@praxisjs/core/internal";
+import { computed, peek, signal } from "@praxisjs/core/internal";
 import type { Signal, Computed } from "@praxisjs/shared";
 
 export interface FileValidationOptions {
@@ -143,7 +143,8 @@ function createSelection(options: FileSelectionOptions) {
   const add = (incoming: FileList | File[] | null | undefined): void => {
     const list = toFileArray(incoming);
     if (list.length === 0) return;
-    const current = multiple ? files() : [];
+    // Untracked: add() may be called from an effect, which must not subscribe to the list.
+    const current = multiple ? peek(files) : [];
     const { accepted, rejected } = validateFiles(list, current.length, validation);
     errors.set(rejected);
     if (accepted.length === 0) return;
@@ -280,10 +281,19 @@ export class FileUpload extends Composable {
     const errors = signal<FileError[]>([]);
     let nextId = 0;
 
+    // Every internal read is untracked: these run from callers' effects (add, retry, start) and
+    // must not subscribe them to the list, or each progress update would re-run them.
+    const current = () => peek(items);
+
     const patch = (id: string, changes: Partial<UploadItem>) => {
-      items.update((list) => list.map((i) => (i.id === id ? { ...i, ...changes } : i)));
+      const list = current();
+      const index = list.findIndex((i) => i.id === id);
+      if (index === -1) return;
+      const next = list.slice();
+      next[index] = { ...list[index], ...changes };
+      items.set(next);
     };
-    const find = (id: string) => items().find((i) => i.id === id);
+    const find = (id: string) => current().find((i) => i.id === id);
 
     const finish = (id: string, changes: Partial<UploadItem>) => {
       this._requests.delete(id);
@@ -305,8 +315,14 @@ export class FileUpload extends Composable {
       const headers = typeof opts.headers === "function" ? opts.headers() : opts.headers;
       for (const [key, value] of Object.entries(headers ?? {})) xhr.setRequestHeader(key, value);
 
+      // Progress events arrive far more often than the rounded percentage changes.
+      let progress = 0;
       xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) patch(item.id, { progress: Math.round((e.loaded / e.total) * 100) });
+        if (!e.lengthComputable) return;
+        const next = Math.round((e.loaded / e.total) * 100);
+        if (next === progress) return;
+        progress = next;
+        patch(item.id, { progress });
       };
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
@@ -333,8 +349,9 @@ export class FileUpload extends Composable {
 
     const pump = () => {
       if (this._destroyed) return;
-      let running = items().filter((i) => i.status === "uploading").length;
-      for (const item of items()) {
+      // Every running upload has its request in the map.
+      let running = this._requests.size;
+      for (const item of current()) {
         if (running >= concurrency) break;
         if (item.status === "pending") {
           running++;
@@ -356,11 +373,11 @@ export class FileUpload extends Composable {
     const add = (incoming: FileList | File[] | null | undefined) => {
       const list = toFileArray(incoming);
       if (list.length === 0) return;
-      const { accepted, rejected } = validateFiles(list, items().length, opts);
+      const { accepted, rejected } = validateFiles(list, current().length, opts);
       errors.set(rejected);
       if (accepted.length === 0) return;
-      items.update((current) => [
-        ...current,
+      items.update((list) => [
+        ...list,
         ...accepted.map((file): UploadItem => ({
           id: `upload-${String(++nextId)}`,
           file,
@@ -394,9 +411,11 @@ export class FileUpload extends Composable {
         items.update((list) => list.filter((i) => i.id !== id));
       },
       clear: () => {
-        abortAll();
+        // Emptied first: aborting fires onabort, which pumps and would otherwise start the
+        // pending uploads that are about to be discarded.
         items.set([]);
         errors.set([]);
+        abortAll();
       },
     };
   }

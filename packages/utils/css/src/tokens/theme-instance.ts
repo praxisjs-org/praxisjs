@@ -1,25 +1,26 @@
 import { getCollector } from "../internal/collector.js";
+import { toKebab } from "../internal/kebab.js";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-function camelToKebab(s: string): string {
-  return s.replace(/([A-Z])/g, "-$1").toLowerCase();
-}
-
-function instanceToVars(instance: Record<string, unknown>): Record<string, string> {
+/** The `--token: value` pairs of a theme instance's string and number fields. */
+export function instanceToVars(instance: Record<string, unknown>): Record<string, string> {
   const result: Record<string, string> = {};
-  for (const [key, val] of Object.entries(instance)) {
+  for (const key of Object.keys(instance)) {
+    const val = instance[key];
     if (typeof val === "string" || typeof val === "number") {
-      result[`--${camelToKebab(key)}`] = String(val);
+      result[`--${toKebab(key)}`] = String(val);
     }
   }
   return result;
 }
 
-function varsToCSS(vars: Record<string, string>): string {
-  const body = Object.entries(vars)
-    .map(([k, v]) => `  ${k}: ${v};`)
-    .join("\n");
+export function varsToCSS(vars: Record<string, string>): string {
+  let body = "";
+  for (const name of Object.keys(vars)) {
+    const line = `  ${name}: ${vars[name]};`;
+    body = body === "" ? line : `${body}\n${line}`;
+  }
   return `:root {\n${body}\n}`;
 }
 
@@ -47,6 +48,8 @@ export interface ThemedConfig {
 const STORAGE_KEY    = "praxis-theme";
 const BROADCAST_KEY  = "praxis-theme";
 
+const destroyed = new WeakSet<ThemeInstance>();
+
 // ─── ThemeInstance ────────────────────────────────────────────────────────────
 
 /**
@@ -68,10 +71,9 @@ export class ThemeInstance {
 
     const saved = this.#config.persist ? this.#loadFromStorage() : null;
 
-    if (typeof document !== "undefined") {
-      applyVarsToRoot(saved ?? instanceToVars(this.#current));
-      if (this.#config.syncTabs) this.#setupBroadcast();
-    }
+    // Also reaches an active collector when there is no document (server render).
+    applyVarsToRoot(saved ?? instanceToVars(this.#current));
+    if (this.#config.syncTabs && typeof document !== "undefined") this.#setupBroadcast();
   }
 
   /** The currently active theme instance. */
@@ -88,13 +90,14 @@ export class ThemeInstance {
     this.#current = new ThemeClass() as Record<string, unknown>;
     const vars    = instanceToVars(this.#current);
 
-    if (typeof document !== "undefined") applyVarsToRoot(vars);
+    applyVarsToRoot(vars);
     if (this.#config.persist)            this.#saveToStorage(vars);
     if (this.#config.syncTabs)           this.#channel?.postMessage({ vars });
   }
 
   /** Removes the injected `<style>` and closes the BroadcastChannel. */
   destroy(): void {
+    destroyed.add(this);
     this.#channel?.close();
     this.#channel = null;
     if (typeof document !== "undefined") {
@@ -133,8 +136,15 @@ export function createThemeInstance(
   DefaultTheme: new () => unknown,
   config?: Partial<ThemedConfig>,
 ): ThemeInstance {
+  // The replaced instance would otherwise keep its BroadcastChannel open for the page lifetime.
+  _instance?.destroy();
   _instance = new ThemeInstance(DefaultTheme, config);
   return _instance;
+}
+
+/** Whether `instance` is the app-wide theme and has not been destroyed. */
+export function isActiveTheme(instance: ThemeInstance | null): boolean {
+  return instance !== null && instance === _instance && !destroyed.has(instance);
 }
 
 /**

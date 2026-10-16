@@ -1,6 +1,7 @@
 import { createCSSBuilder, type CSSProperties, type CSSBuilder } from "./builder/css-builder.js";
 import { getCollector } from "./internal/collector.js";
 import { hashCSS } from "./internal/hash.js";
+import { STATIC_MODE } from "./internal/static-mode.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,13 +18,13 @@ export interface GlobalStyleOptions {
   layer?: string | false;
 }
 
-// ─── Static mode ──────────────────────────────────────────────────────────────
-
-declare const __PRAXIS_CSS_STATIC__: boolean | undefined;
-const STATIC_MODE: boolean =
-  typeof __PRAXIS_CSS_STATIC__ !== "undefined" && __PRAXIS_CSS_STATIC__;
-
 const injected = new Set<string>();
+
+/** The CSS a `globalStyle()` call injects — shared with build-time extraction. */
+export function globalCSS(factory: GlobalStyleFactory, { layer }: GlobalStyleOptions = {}): string {
+  const rawCSS = String(factory(createCSSBuilder));
+  return layer ? `@layer ${layer} {\n${rawCSS}\n}` : rawCSS;
+}
 
 // ─── globalStyle ─────────────────────────────────────────────────────────────
 
@@ -54,10 +55,10 @@ const injected = new Set<string>();
  * globalStyle(_css => `body { font-family: system-ui; }`, { layer: 'base' })
  */
 export function globalStyle(factory: GlobalStyleFactory, options: GlobalStyleOptions = {}): void {
-  const rawCSS = String(factory(createCSSBuilder));
-  const { layer } = options;
-  const css = layer ? `@layer ${layer} {\n${rawCSS}\n}` : rawCSS;
+  injectGlobalCSS(globalCSS(factory, options));
+}
 
+export function injectGlobalCSS(css: string): void {
   const key = hashCSS(css);
   if (injected.has(key)) return;
   injected.add(key);

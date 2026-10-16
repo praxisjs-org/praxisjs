@@ -1,4 +1,4 @@
-import { createFieldDecorator } from "@praxisjs/decorators";
+import { assertFieldContext } from "@praxisjs/decorators";
 import type { Computed } from "@praxisjs/shared";
 
 import { pool } from "./pool";
@@ -58,54 +58,53 @@ export type QueueOf<C, K extends keyof C> =
 export type PoolOf<C, K extends keyof C> =
   C[K] extends AnyAsyncFn ? PoolDecorated<C[K]> : never;
 
+// ── Field decorators ───────────────────────────────────────────────────────────
+
+// Each decorator returns the field's initializer: the value is created per instance while the
+// field is defined, instead of redefining the field afterwards with Object.defineProperty.
+function fieldFrom(
+  methodName: string,
+  create: (method: AnyAsyncFn, wantsSignal: boolean) => unknown,
+): (this: object) => unknown {
+  return function (this: object): unknown {
+    const method = (this as Record<string, AnyAsyncFn>)[methodName];
+    // Detect signal on the unbound method — bound functions lose their source.
+    return create(method.bind(this), acceptsSignal(method));
+  };
+}
+
 // ── @Task ──────────────────────────────────────────────────────────────────────
 
 export function Task(methodName: string) {
-  return createFieldDecorator({
-    bind(instance: object, _name: string) {
-      const inst = instance as Record<string, AnyAsyncFn>;
-      // Detect signal on the unbound method — bound functions lose their source.
-      const wantsSignal = acceptsSignal(inst[methodName]);
-      return {
-        descriptor: {
-          value: task(inst[methodName].bind(instance), { signal: wantsSignal }) as unknown,
-          writable: true,
-        },
-      };
-    },
-  });
+  return function <This extends object, Value = unknown>(
+    _value: undefined,
+    context: ClassFieldDecoratorContext<This, Value>,
+  ): (this: This) => Value {
+    assertFieldContext(context);
+    return fieldFrom(methodName, (method, signal) => task(method, { signal })) as (this: This) => Value;
+  };
 }
 
 // ── @Queue ─────────────────────────────────────────────────────────────────────
 
 export function Queue(methodName: string) {
-  return createFieldDecorator({
-    bind(instance: object, _name: string) {
-      const inst = instance as Record<string, AnyAsyncFn>;
-      const wantsSignal = acceptsSignal(inst[methodName]);
-      return {
-        descriptor: {
-          value: queue(inst[methodName].bind(instance), { signal: wantsSignal }) as unknown,
-          writable: true,
-        },
-      };
-    },
-  });
+  return function <This extends object, Value = unknown>(
+    _value: undefined,
+    context: ClassFieldDecoratorContext<This, Value>,
+  ): (this: This) => Value {
+    assertFieldContext(context);
+    return fieldFrom(methodName, (method, signal) => queue(method, { signal })) as (this: This) => Value;
+  };
 }
 
 // ── @Pool ──────────────────────────────────────────────────────────────────────
 
 export function Pool(methodName: string, concurrency = 1) {
-  return createFieldDecorator({
-    bind(instance: object, _name: string) {
-      const inst = instance as Record<string, AnyAsyncFn>;
-      const wantsSignal = acceptsSignal(inst[methodName]);
-      return {
-        descriptor: {
-          value: pool(concurrency, inst[methodName].bind(instance), { signal: wantsSignal }) as unknown,
-          writable: true,
-        },
-      };
-    },
-  });
+  return function <This extends object, Value = unknown>(
+    _value: undefined,
+    context: ClassFieldDecoratorContext<This, Value>,
+  ): (this: This) => Value {
+    assertFieldContext(context);
+    return fieldFrom(methodName, (method, signal) => pool(concurrency, method, { signal })) as (this: This) => Value;
+  };
 }

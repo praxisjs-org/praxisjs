@@ -1,4 +1,4 @@
-import { globalStyle } from "./global.js";
+import { globalCSS, injectGlobalCSS } from "./global.js";
 
 // Tailwind CSS preflight — https://github.com/tailwindlabs/tailwindcss/blob/main/packages/tailwindcss/preflight.css
 // --theme() references stripped and replaced with their fallback values.
@@ -197,6 +197,11 @@ export interface PreflightOptions {
  * import { preflight } from '@praxisjs/css'
  * preflight()
  */
-export function preflight({ layer = "reset" }: PreflightOptions = {}): void {
-  globalStyle(_css => PREFLIGHT, { layer });
+export function preflight(options?: PreflightOptions): void {
+  injectGlobalCSS(preflightCSS(options));
+}
+
+/** The CSS `preflight()` injects — shared with build-time extraction. */
+export function preflightCSS({ layer = "reset" }: PreflightOptions = {}): string {
+  return globalCSS(() => PREFLIGHT, { layer });
 }

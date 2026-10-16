@@ -1,5 +1,13 @@
 import { Composable } from "@praxisjs/core";
-import { signal, computed } from "@praxisjs/core/internal";
+import {
+  computed,
+  createEffect,
+  disposeEffect,
+  endBatch,
+  signal,
+  startBatch,
+  type EffectNode,
+} from "@praxisjs/core/internal";
 import type { Signal, Computed } from "@praxisjs/shared";
 
 export interface PaginationOptions {
@@ -27,8 +35,10 @@ export class Clipboard extends Composable {
     const copy = async (text: string): Promise<void> => {
       try {
         await navigator.clipboard.writeText(text);
+        startBatch();
         content.set(text);
         copied.set(true);
+        endBatch();
         clearTimeout(this._resetTimer);
         this._resetTimer = setTimeout(() => { copied.set(false); }, resetDelay);
       } catch {
@@ -50,34 +60,42 @@ export class Geolocation extends Composable {
   declare error: GeolocationPositionError | null;
   declare loading: boolean;
 
-  private _active = true;
+  private readonly _lat = signal<number | null>(null);
+  private readonly _lng = signal<number | null>(null);
+  private readonly _error = signal<GeolocationPositionError | null>(null);
+  private readonly _loading = signal(true);
+  private _active = false;
 
   constructor(private readonly options?: PositionOptions) {
     super();
   }
 
   setup() {
-    const lat = signal<number | null>(null);
-    const lng = signal<number | null>(null);
-    const error = signal<GeolocationPositionError | null>(null);
-    const loading = signal(true);
+    return { lat: this._lat, lng: this._lng, error: this._error, loading: this._loading };
+  }
 
+  // Requested on mount rather than in setup(), which also runs for components that never mount.
+  onMount() {
+    if (this._active) return;
+    this._active = true;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         if (!this._active) return;
-        lat.set(pos.coords.latitude);
-        lng.set(pos.coords.longitude);
-        loading.set(false);
+        startBatch();
+        this._lat.set(pos.coords.latitude);
+        this._lng.set(pos.coords.longitude);
+        this._loading.set(false);
+        endBatch();
       },
       (err) => {
         if (!this._active) return;
-        error.set(err);
-        loading.set(false);
+        startBatch();
+        this._error.set(err);
+        this._loading.set(false);
+        endBatch();
       },
       this.options,
     );
-
-    return { lat, lng, error, loading };
   }
 
   onUnmount() {
@@ -85,10 +103,58 @@ export class Geolocation extends Composable {
   }
 }
 
+const SECOND = 1_000;
+const MINUTE = 60_000;
+const HOUR = 3_600_000;
+const DAY = 86_400_000;
+const MONTH = 2_592_000_000;
+// setTimeout fires immediately for delays above 2^31 - 1 ms.
+const MAX_DELAY = 2_147_483_647;
+
+interface TimeUnit {
+  /** The unit applies while |diff| is below this. */
+  below: number;
+  size: number;
+  name: Intl.RelativeTimeFormatUnit;
+}
+
+const UNITS: TimeUnit[] = [
+  { below: MINUTE, size: SECOND, name: "second" },
+  { below: HOUR, size: MINUTE, name: "minute" },
+  { below: DAY, size: HOUR, name: "hour" },
+  { below: MONTH, size: DAY, name: "day" },
+  { below: Infinity, size: MONTH, name: "month" },
+];
+
+function unitIndex(diff: number): number {
+  const abs = Math.abs(diff);
+  let i = 0;
+  while (abs >= UNITS[i].below) i++;
+  return i;
+}
+
+/**
+ * Milliseconds until the text for `diff` (target − now, shrinking as time passes) changes: the
+ * next rounding step within its unit, or the moment it crosses into another unit.
+ */
+export function msUntilChange(diff: number): number {
+  const i = unitIndex(diff);
+  const { size, below } = UNITS[i];
+  // Math.round(x) changes once x falls below its value minus one half.
+  let wait = diff - (Math.round(diff / size) - 0.5) * size + 1;
+  if (diff > 0) {
+    if (i > 0) wait = Math.min(wait, diff - UNITS[i - 1].below + 1);
+  } else if (below !== Infinity) {
+    wait = Math.min(wait, diff + below);
+  }
+  return Math.min(Math.max(Math.ceil(wait), 1), MAX_DELAY);
+}
+
 export class TimeAgo extends Composable {
   declare value: string;
 
-  private _interval?: ReturnType<typeof setInterval>;
+  private readonly _tick = signal(0);
+  private _effect?: EffectNode;
 
   constructor(
     private readonly source:
@@ -101,28 +167,39 @@ export class TimeAgo extends Composable {
   }
 
   setup() {
-    const tick = signal(Date.now());
-    this._interval = setInterval(() => { tick.set(Date.now()); }, 60_000);
-
     const rtf = new Intl.RelativeTimeFormat(this.locale, { numeric: "auto" });
     const read = this.source;
+    const tick = this._tick;
 
     const value = computed(() => {
       void tick();
       const diff = new Date(read() as Date).getTime() - Date.now();
-      const abs = Math.abs(diff);
-      if (abs < 60_000) return rtf.format(Math.round(diff / 1000), "second");
-      if (abs < 3_600_000) return rtf.format(Math.round(diff / 60_000), "minute");
-      if (abs < 86_400_000) return rtf.format(Math.round(diff / 3_600_000), "hour");
-      if (abs < 2_592_000_000) return rtf.format(Math.round(diff / 86_400_000), "day");
-      return rtf.format(Math.round(diff / 2_592_000_000), "month");
+      const { size, name } = UNITS[unitIndex(diff)];
+      return rtf.format(Math.round(diff / size), name);
     });
 
     return { value };
   }
 
+  // One timer for the exact moment the text changes, instead of polling: re-armed whenever it
+  // fires or the source changes.
+  onMount() {
+    if (this._effect) return;
+    const read = this.source;
+    const tick = this._tick;
+    this._effect = createEffect(() => {
+      tick();
+      const diff = new Date(read() as Date).getTime() - Date.now();
+      // An invalid date has no next change; a NaN delay would fire at once, over and over.
+      if (Number.isNaN(diff)) return;
+      const timer = setTimeout(() => { tick.update((n) => n + 1); }, msUntilChange(diff));
+      return () => { clearTimeout(timer); };
+    });
+  }
+
   onUnmount() {
-    clearInterval(this._interval);
+    if (this._effect) disposeEffect(this._effect);
+    this._effect = undefined;
   }
 }
 

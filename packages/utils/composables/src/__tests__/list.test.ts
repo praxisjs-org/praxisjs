@@ -208,3 +208,95 @@ describe("VirtualList — reactive getItems", () => {
     expect(visibleItems()).toHaveLength(10);
   });
 });
+
+// ── Mount-time state and container resizes ─────────────────────────────────────
+
+describe("VirtualList — mount and resize", () => {
+  function makeContainer(height: number, scrollTop = 0) {
+    const el = document.createElement("div");
+    Object.defineProperty(el, "clientHeight", { value: height, configurable: true, writable: true });
+    Object.defineProperty(el, "scrollTop", { value: scrollTop, configurable: true, writable: true });
+    return el;
+  }
+
+  it("reads the container's scroll offset at mount", () => {
+    const el = makeContainer(100, 500);
+    const vl = new VirtualList({ current: el }, () => makeItems(100), 50, 0);
+    const { offsetTop } = vl.setup() as { offsetTop: () => number };
+    vl.onMount();
+    expect(offsetTop()).toBe(500);
+    vl.onUnmount();
+  });
+
+  // Bug: the view height was measured once at mount, so a container that grew later showed
+  // empty space below the rendered rows.
+  it("follows the container's height when it is resized", () => {
+    let callback!: () => void;
+    const observe = vi.fn();
+    const disconnect = vi.fn();
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(cb: () => void) { callback = cb; }
+      observe = observe;
+      disconnect = disconnect;
+    });
+    const el = makeContainer(100);
+    const vl = new VirtualList({ current: el }, () => makeItems(100), 50, 0);
+    const { visibleItems } = vl.setup() as { visibleItems: () => VirtualItem<AnyItem>[] };
+    vl.onMount();
+    expect(observe).toHaveBeenCalledWith(el);
+    expect(visibleItems()).toHaveLength(3);
+
+    (el as unknown as { clientHeight: number }).clientHeight = 400;
+    callback();
+    expect(visibleItems()).toHaveLength(9);
+
+    (el as unknown as { clientHeight: number }).clientHeight = 0;
+    callback();
+    expect(visibleItems()).toHaveLength(9);
+
+    vl.onUnmount();
+    expect(disconnect).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it("works without ResizeObserver", () => {
+    vi.stubGlobal("ResizeObserver", undefined);
+    const el = makeContainer(100);
+    const vl = new VirtualList({ current: el }, () => makeItems(10), 50, 0);
+    vl.setup();
+    expect(() => { vl.onMount(); vl.onUnmount(); }).not.toThrow();
+    vi.unstubAllGlobals();
+  });
+
+  it("a second onMount is a no-op and scroll stops after unmount", () => {
+    const el = makeContainer(100);
+    const add = vi.spyOn(el, "addEventListener");
+    const vl = new VirtualList({ current: el }, () => makeItems(100), 50, 0);
+    const { offsetTop } = vl.setup() as { offsetTop: () => number };
+    vl.onMount();
+    vl.onMount();
+    expect(add.mock.calls.filter((c) => c[0] === "scroll")).toHaveLength(1);
+    vl.onUnmount();
+    (el as unknown as { scrollTop: number }).scrollTop = 1000;
+    el.dispatchEvent(new Event("scroll"));
+    expect(offsetTop()).toBe(0);
+  });
+});
+
+describe("VirtualList — late observer callbacks", () => {
+  it("scroll and resize callbacks arriving after unmount change nothing", () => {
+    const vl = new VirtualList({ current: document.createElement("div") }, () => makeItems(100), 50, 0);
+    const { visibleItems, offsetTop } = vl.setup() as {
+      visibleItems: () => VirtualItem<AnyItem>[];
+      offsetTop: () => number;
+    };
+    vl.onMount();
+    vl.onUnmount();
+    const handlers = vl as unknown as { _onScroll: () => void; _onResize: () => void };
+    const before = visibleItems().length;
+    handlers._onScroll();
+    handlers._onResize();
+    expect(offsetTop()).toBe(0);
+    expect(visibleItems()).toHaveLength(before);
+  });
+});

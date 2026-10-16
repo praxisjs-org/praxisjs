@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { effect } from "@praxisjs/core/internal";
 
 import { pool } from "../pool";
 
@@ -208,5 +209,66 @@ describe("pool — with signal", () => {
     expect(await p("fresh")).toBe("fresh");
     expect(p.active()).toBe(0);
     expect(p.error()).toBeNull();
+  });
+});
+
+describe("pool — reactivity", () => {
+  // Bug: scheduling read the `active` signal, so an effect that called the pool subscribed to it
+  // and ran again (calling the pool again) every time a task started or finished.
+  it("calling the pool inside an effect does not subscribe the effect to the pool's state", async () => {
+    const p = pool(2, async (x: unknown) => x);
+    let runs = 0;
+    const calls: Array<Promise<unknown>> = [];
+    const stop = effect(() => {
+      runs++;
+      calls.push(p(runs));
+    });
+    await Promise.all(calls);
+    await Promise.resolve();
+    stop();
+    expect(runs).toBe(1);
+  });
+
+  it("publishes active, pending and loading together once per scheduling step", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    const p = pool(1, async () => { await gate; });
+    const snapshots: string[] = [];
+    const stop = effect(() => {
+      snapshots.push(`${String(p.active())}/${String(p.pending())}/${String(p.loading())}`);
+    });
+    const a = p();
+    const b = p();
+    release();
+    await Promise.all([a, b]);
+    stop();
+    expect(snapshots).toEqual(["0/0/false", "1/0/true", "1/1/true", "1/0/true", "0/0/false"]);
+  });
+
+  it("drains a long backlog in order", async () => {
+    const order: number[] = [];
+    const p = pool(3, async (x: unknown) => { order.push(x as number); });
+    await Promise.all(Array.from({ length: 50 }, (_, i) => p(i)));
+    expect(order).toEqual(Array.from({ length: 50 }, (_, i) => i));
+    expect(p.pending()).toBe(0);
+    expect(p.active()).toBe(0);
+  });
+
+  it("does not create AbortControllers when fn takes no signal", async () => {
+    const spy = vi.spyOn(globalThis, "AbortController");
+    const p = pool(2, async (x: unknown) => x);
+    await Promise.all([p(1), p(2), p(3)]);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("a synchronously throwing fn frees its slot and lets the backlog continue", async () => {
+    const p = pool(1, ((x: unknown) => {
+      if (x === 1) throw new Error("sync");
+      return Promise.resolve(x);
+    }) as (x: unknown) => Promise<unknown>);
+    const results = await Promise.all([p(1), p(2)]);
+    expect(results).toEqual([undefined, 2]);
+    expect(p.error()?.message).toBe("sync");
   });
 });

@@ -168,3 +168,68 @@ describe("@Style field decorator", () => {
     expect(container.style.getPropertyValue("--card-border-radius")).toBe("12px");
   });
 });
+
+describe("@Style — shared accessors and lifecycle", () => {
+  it("instances share one accessor pair and keep independent values", () => {
+    class Comp extends AnchoredComponent {
+      @Style("--accent") accent = "red";
+      render() { return null; }
+    }
+    const a = new Comp();
+    const b = new Comp();
+    const getter = (o: object) => Object.getOwnPropertyDescriptor(o, "accent")?.get;
+    expect(getter(a)).toBe(getter(b));
+    a.accent = "blue";
+    expect(a.accent).toBe("blue");
+    expect(b.accent).toBe("red");
+  });
+
+  it("runs the component's own onMount/onUnmount first", () => {
+    const anchor = makeAnchor(container);
+    const calls: string[] = [];
+    class Comp extends AnchoredComponent {
+      constructor() { super(anchor); }
+      @Style("--accent") accent = "red";
+      onMount() { calls.push(`mount:${container.style.getPropertyValue("--accent")}`); }
+      onUnmount() { calls.push(`unmount:${container.style.getPropertyValue("--accent")}`); }
+      render() { return null; }
+    }
+    const inst = new Comp();
+    inst.onMount();
+    inst.onUnmount();
+    expect(calls).toEqual(["mount:", "unmount:red"]);
+  });
+
+  it("two @Style fields on one component chain their hooks", () => {
+    const anchor = makeAnchor(container);
+    class Comp extends AnchoredComponent {
+      constructor() { super(anchor); }
+      @Style("--a") a = "1px";
+      @Style("--b") b = "2px";
+      render() { return null; }
+    }
+    const inst = new Comp() as WithLifecycle;
+    inst.onMount?.();
+    expect(container.style.getPropertyValue("--a")).toBe("1px");
+    expect(container.style.getPropertyValue("--b")).toBe("2px");
+    inst.onUnmount?.();
+    expect(container.style.getPropertyValue("--a")).toBe("");
+    expect(container.style.getPropertyValue("--b")).toBe("");
+  });
+
+  // Bug: the property was removed from the anchor's current parent, so a component whose anchor
+  // was already detached at unmount left it on its old container.
+  it("removes the property from the element it was set on, even after the anchor is detached", () => {
+    const anchor = makeAnchor(container);
+    class Comp extends AnchoredComponent {
+      constructor() { super(anchor); }
+      @Style("--accent") accent = "red";
+      render() { return null; }
+    }
+    const inst = new Comp() as WithLifecycle;
+    inst.onMount?.();
+    anchor.remove();
+    inst.onUnmount?.();
+    expect(container.style.getPropertyValue("--accent")).toBe("");
+  });
+});

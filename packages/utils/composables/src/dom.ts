@@ -1,30 +1,36 @@
 import { Composable } from "@praxisjs/core";
-import { batch, signal } from "@praxisjs/core/internal";
+import { endBatch, signal, startBatch } from "@praxisjs/core/internal";
+
+const hasWindow = typeof window !== "undefined";
+
+// Listeners and observers start in onMount and stop in onUnmount: setup() runs when the component
+// is constructed, which also happens for components that never mount (and on the server).
 
 export class WindowSize extends Composable {
   declare width: number;
   declare height: number;
 
-  private _handler!: () => void;
-  private _view?: Record<string, unknown>;
+  private readonly _width = signal(hasWindow ? window.innerWidth : 0);
+  private readonly _height = signal(hasWindow ? window.innerHeight : 0);
+
+  private readonly _onResize = () => {
+    startBatch();
+    this._width.set(window.innerWidth);
+    this._height.set(window.innerHeight);
+    endBatch();
+  };
 
   setup() {
-    if (this._view) return this._view;
-    const width = signal(window.innerWidth);
-    const height = signal(window.innerHeight);
-    this._handler = () => {
-      batch(() => {
-        width.set(window.innerWidth);
-        height.set(window.innerHeight);
-      });
-    };
-    window.addEventListener("resize", this._handler);
-    this._view = { width, height };
-    return this._view;
+    return { width: this._width, height: this._height };
+  }
+
+  onMount() {
+    this._onResize();
+    window.addEventListener("resize", this._onResize);
   }
 
   onUnmount() {
-    window.removeEventListener("resize", this._handler);
+    window.removeEventListener("resize", this._onResize);
   }
 }
 
@@ -34,10 +40,23 @@ export class ScrollPosition extends Composable {
 
   private readonly _ref?: { current: HTMLElement | null };
   private readonly _staticTarget?: HTMLElement | Window;
-  private _handler!: () => void;
-  private _x!: ReturnType<typeof signal<number>>;
-  private _y!: ReturnType<typeof signal<number>>;
-  private _mounted = false;
+  private readonly _x = signal(0);
+  private readonly _y = signal(0);
+  private _target: HTMLElement | Window | null = null;
+
+  private readonly _onScroll = () => {
+    const t = this._target;
+    if (t === null) return;
+    startBatch();
+    if (t === window) {
+      this._x.set(window.scrollX);
+      this._y.set(window.scrollY);
+    } else {
+      this._x.set((t as HTMLElement).scrollLeft);
+      this._y.set((t as HTMLElement).scrollTop);
+    }
+    endBatch();
+  };
 
   constructor(
     target: HTMLElement | Window | { current: HTMLElement | null } = window,
@@ -51,49 +70,26 @@ export class ScrollPosition extends Composable {
   }
 
   private _resolveTarget(): HTMLElement | Window {
-    if (this._ref) {
-      if (this._ref.current !== null) {
-        return this._ref.current;
-      }
-
-      return window;
-    }
-
-    if (this._staticTarget !== undefined) {
-      return this._staticTarget;
-    }
-
-    const fallback: HTMLElement | Window = window;
-    return fallback;
+    if (this._ref) return this._ref.current ?? window;
+    return this._staticTarget ?? window;
   }
 
   setup() {
-    this._x = signal(0);
-    this._y = signal(0);
     return { x: this._x, y: this._y };
   }
 
   onMount() {
-    if (this._mounted) return;
-    this._mounted = true;
+    if (this._target !== null) return;
+    // Kept so onUnmount detaches from the same target even if the ref changed meanwhile.
     const t = this._resolveTarget();
-    this._handler = () => {
-      batch(() => {
-        this._x.set(
-          t === window ? window.scrollX : (t as HTMLElement).scrollLeft,
-        );
-        this._y.set(t === window ? window.scrollY : (t as HTMLElement).scrollTop);
-      });
-    };
-    t.addEventListener("scroll", this._handler);
-    // set initial values
-    this._x.set(t === window ? window.scrollX : (t as HTMLElement).scrollLeft);
-    this._y.set(t === window ? window.scrollY : (t as HTMLElement).scrollTop);
+    this._target = t;
+    t.addEventListener("scroll", this._onScroll);
+    this._onScroll();
   }
 
   onUnmount() {
-    this._mounted = false;
-    this._resolveTarget().removeEventListener("scroll", this._handler);
+    this._target?.removeEventListener("scroll", this._onScroll);
+    this._target = null;
   }
 }
 
@@ -102,34 +98,31 @@ export class ElementSize extends Composable {
   declare height: number;
 
   private _observer?: ResizeObserver;
-  private _width!: ReturnType<typeof signal<number>>;
-  private _height!: ReturnType<typeof signal<number>>;
-  private _view?: Record<string, unknown>;
+  private readonly _width = signal(0);
+  private readonly _height = signal(0);
 
   constructor(private readonly ref: { current: HTMLElement | null }) {
     super();
   }
 
   setup() {
-    if (this._view) return this._view;
-    this._width = signal(0);
-    this._height = signal(0);
-    this._observer = new ResizeObserver(([entry]) => {
-      batch(() => {
-        this._width.set(entry.contentRect.width);
-        this._height.set(entry.contentRect.height);
-      });
-    });
-    this._view = { width: this._width, height: this._height };
-    return this._view;
+    return { width: this._width, height: this._height };
   }
 
   onMount() {
     const el = this.ref.current;
     if (!el) return;
-    this._observer?.observe(el);
+    this._observer ??= new ResizeObserver(([entry]) => {
+      startBatch();
+      this._width.set(entry.contentRect.width);
+      this._height.set(entry.contentRect.height);
+      endBatch();
+    });
+    this._observer.observe(el);
+    startBatch();
     this._width.set(el.offsetWidth);
     this._height.set(el.offsetHeight);
+    endBatch();
   }
 
   onUnmount() {
@@ -141,8 +134,7 @@ export class Intersection extends Composable {
   declare visible: boolean;
 
   private _observer?: IntersectionObserver;
-  private _visible!: ReturnType<typeof signal<boolean>>;
-  private _view?: Record<string, unknown>;
+  private readonly _visible = signal(false);
 
   constructor(
     private readonly ref: { current: HTMLElement | null },
@@ -152,18 +144,16 @@ export class Intersection extends Composable {
   }
 
   setup() {
-    if (this._view) return this._view;
-    this._visible = signal(false);
-    this._observer = new IntersectionObserver(([entry]) => {
-      this._visible.set(entry.isIntersecting);
-    }, this.options);
-    this._view = { visible: this._visible };
-    return this._view;
+    return { visible: this._visible };
   }
 
   onMount() {
     const el = this.ref.current;
-    if (el) this._observer?.observe(el);
+    if (!el) return;
+    this._observer ??= new IntersectionObserver(([entry]) => {
+      this._visible.set(entry.isIntersecting);
+    }, this.options);
+    this._observer.observe(el);
   }
 
   onUnmount() {
@@ -174,38 +164,40 @@ export class Intersection extends Composable {
 export class Focus extends Composable {
   declare focused: boolean;
 
-  private _focused!: ReturnType<typeof signal<boolean>>;
+  private readonly _focused = signal(false);
+  private _el: HTMLElement | null = null;
+
   private readonly _onFocus = () => {
     this._focused.set(true);
   };
   private readonly _onBlur = () => {
     this._focused.set(false);
   };
-  private _mounted = false;
 
   constructor(private readonly ref: { current: HTMLElement | null }) {
     super();
   }
 
   setup() {
-    this._focused = signal(false);
     return { focused: this._focused };
   }
 
   onMount() {
-    if (this._mounted) return;
-    this._mounted = true;
+    if (this._el !== null) return;
     const el = this.ref.current;
     if (!el) return;
+    // Kept so onUnmount detaches from the same element even if the ref changed meanwhile.
+    this._el = el;
     el.addEventListener("focus", this._onFocus);
     el.addEventListener("blur", this._onBlur);
+    this._focused.set(el.ownerDocument.activeElement === el);
   }
 
   onUnmount() {
-    this._mounted = false;
-    const el = this.ref.current;
-    if (!el) return;
+    const el = this._el;
+    if (el === null) return;
     el.removeEventListener("focus", this._onFocus);
     el.removeEventListener("blur", this._onBlur);
+    this._el = null;
   }
 }

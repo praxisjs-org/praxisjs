@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { signal } from "@praxisjs/core/internal";
 
-import { Clipboard, Geolocation, TimeAgo, Pagination } from "../utilities";
+import { Clipboard, Geolocation, TimeAgo, Pagination, msUntilChange } from "../utilities";
 
 // ── Clipboard ─────────────────────────────────────────────────────────────────
 
@@ -106,6 +106,7 @@ describe("Geolocation", () => {
       lat: () => number | null;
       lng: () => number | null;
     };
+    geo.onMount();
     expect(loading()).toBe(false);
     expect(lat()).toBe(51.5);
     expect(lng()).toBe(-0.1);
@@ -119,6 +120,7 @@ describe("Geolocation", () => {
       loading: () => boolean;
       error: () => GeolocationPositionError | null;
     };
+    geo.onMount();
     expect(loading()).toBe(false);
     expect(error()).toBe(mockError);
   });
@@ -134,6 +136,7 @@ describe("Geolocation", () => {
       loading: () => boolean;
     };
 
+    geo.onMount();
     geo.onUnmount();
     capturedSuccess!({ coords: { latitude: 99, longitude: 99 } } as GeolocationPosition);
 
@@ -152,11 +155,23 @@ describe("Geolocation", () => {
       loading: () => boolean;
     };
 
+    geo.onMount();
     geo.onUnmount();
     capturedError!({ code: 1, message: "denied" } as GeolocationPositionError);
 
     expect(error()).toBeNull();
     expect(loading()).toBe(true);
+  });
+
+  it("requests the position on mount, once, and not before", () => {
+    const getCurrentPosition = vi.fn();
+    mockGeolocation(getCurrentPosition);
+    const geo = new Geolocation();
+    geo.setup();
+    expect(getCurrentPosition).not.toHaveBeenCalled();
+    geo.onMount();
+    geo.onMount();
+    expect(getCurrentPosition).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -205,23 +220,66 @@ describe("TimeAgo", () => {
     expect(value()).toContain("30 seconds ago");
   });
 
-  it("clears interval on unmount", () => {
-    const clearInterval = vi.spyOn(globalThis, "clearInterval");
-    const ta = new TimeAgo(() => now, "en");
+  it("starts no timer before it is mounted and none after it is unmounted", () => {
+    const ta = new TimeAgo(() => Date.now() - 30_000, "en");
     ta.setup();
+    expect(vi.getTimerCount()).toBe(0);
+    ta.onMount();
+    expect(vi.getTimerCount()).toBe(1);
+    ta.onMount();
+    expect(vi.getTimerCount()).toBe(1);
     ta.onUnmount();
-    expect(clearInterval).toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+    expect(() => { ta.onUnmount(); }).not.toThrow();
   });
 
-  it("interval callback fires after 60s — tick updates and value recomputes", () => {
-    const ta = new TimeAgo(() => now - 30_000, "en");
+  // Previously a fixed 60s interval: "30 seconds ago" stayed frozen for a minute.
+  it("updates the moment the text changes, second by second for recent times", () => {
+    const start = Date.now();
+    const ta = new TimeAgo(() => start - 30_000, "en");
     const { value } = ta.setup() as { value: () => string };
-    const before = value();
-    vi.advanceTimersByTime(60_000);
-    // After 60s the tick signal updates; value() still produces a valid string
-    expect(typeof value()).toBe("string");
-    expect(value()).not.toBe(undefined);
-    void before;
+    ta.onMount();
+    expect(value()).toBe("30 seconds ago");
+    vi.advanceTimersByTime(1_000);
+    expect(value()).toBe("31 seconds ago");
+    vi.advanceTimersByTime(29_000);
+    expect(value()).toBe("1 minute ago");
+    ta.onUnmount();
+  });
+
+  it("wakes up rarely for old times instead of every minute", () => {
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+    const start = Date.now();
+    const ta = new TimeAgo(() => start - 3 * 86_400_000, "en");
+    const { value } = ta.setup() as { value: () => string };
+    ta.onMount();
+    vi.advanceTimersByTime(3_600_000);
+    expect(value()).toBe("3 days ago");
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+    ta.onUnmount();
+    setTimeoutSpy.mockRestore();
+  });
+
+  it("re-arms its timer when the source changes", () => {
+    const start = Date.now();
+    const src = signal(start - 3 * 86_400_000);
+    const ta = new TimeAgo(src, "en");
+    const { value } = ta.setup() as { value: () => string };
+    ta.onMount();
+    src.set(Date.now() - 10_000);
+    expect(value()).toBe("10 seconds ago");
+    vi.advanceTimersByTime(1_000);
+    expect(value()).toBe("11 seconds ago");
+    expect(vi.getTimerCount()).toBe(1);
+    ta.onUnmount();
+  });
+
+  it("schedules no timer for an invalid date", () => {
+    const ta = new TimeAgo(() => Number.NaN, "en");
+    ta.setup();
+    ta.onMount();
+    expect(vi.getTimerCount()).toBe(0);
+    ta.onUnmount();
   });
 
   it("future date produces a positive relative time string (e.g. 'in 30 seconds')", () => {
@@ -323,5 +381,41 @@ describe("Pagination", () => {
 
   it("throws when pageSize is negative", () => {
     expect(() => new Pagination({ total: 10, pageSize: -1 })).toThrow("pageSize must be greater than 0");
+  });
+});
+
+// ── msUntilChange ─────────────────────────────────────────────────────────────
+
+describe("msUntilChange", () => {
+  const S = 1_000;
+  const M = 60_000;
+  const H = 3_600_000;
+  const D = 86_400_000;
+  const MONTH = 2_592_000_000;
+
+  it("waits for the next rounding step of a past time", () => {
+    expect(msUntilChange(-30 * S)).toBe(501);
+    expect(msUntilChange(-30.4 * S)).toBe(101);
+    expect(msUntilChange(-5 * M)).toBe(30 * S + 1);
+  });
+
+  it("waits for the next rounding step of a future time", () => {
+    expect(msUntilChange(30.4 * S)).toBe(901);
+    expect(msUntilChange(5 * M)).toBe(30 * S + 1);
+  });
+
+  it("stops at the boundary into the next unit for a past time", () => {
+    expect(msUntilChange(-59.8 * S)).toBe(200);
+    expect(msUntilChange(-(D - 10))).toBe(10);
+  });
+
+  it("stops at the boundary into the previous unit for a future time", () => {
+    expect(msUntilChange(M + 500)).toBe(501);
+    expect(msUntilChange(H + 2_000)).toBe(2_001);
+  });
+
+  it("never waits less than 1ms, nor beyond what setTimeout supports", () => {
+    expect(msUntilChange(-30.5 * S)).toBe(1);
+    expect(msUntilChange(-(11.5 * MONTH) - 1)).toBe(2_147_483_647);
   });
 });

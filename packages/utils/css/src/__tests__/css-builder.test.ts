@@ -228,3 +228,36 @@ describe("isCSSBuilder()", () => {
     expect(isCSSBuilder({ display: "flex" })).toBe(false);
   });
 });
+
+describe("createCSSBuilder() — output stability", () => {
+  // Class names are content hashes of this output, so it must not change shape.
+  it("indents every line of a nested rule, including continuation lines of a multi-line value", () => {
+    const css = createCSSBuilder({ display: "grid" }).media("min-width: 640px", {
+      gridTemplateAreas: '"a b"\n"c d"',
+      gap: 4,
+    });
+    expect(String(css)).toBe(
+      'display: grid;\n@media (min-width: 640px) {\n  grid-template-areas: "a b"\n  "c d";\n  gap: 4;\n}',
+    );
+  });
+
+  it("toString(), String() and template literals agree", () => {
+    const css = createCSSBuilder({ color: "red" }).hover({ color: "blue" });
+    expect(css.toString()).toBe("color: red;\n&:hover {\n  color: blue;\n}");
+    expect(`${css}`).toBe(css.toString());
+    expect(String(css)).toBe(css.toString());
+  });
+
+  it("methods are shared on the prototype, not created per builder", () => {
+    const a = createCSSBuilder({}) as unknown as Record<string, unknown>;
+    const b = createCSSBuilder({}) as unknown as Record<string, unknown>;
+    expect(a.hover).toBe(b.hover);
+    expect(Object.hasOwn(a, "hover")).toBe(false);
+  });
+
+  it("isCSSBuilder rejects strings and look-alike objects", () => {
+    expect(isCSSBuilder("color: red;")).toBe(false);
+    expect(isCSSBuilder({ toString: () => "color: red;" })).toBe(false);
+    expect(isCSSBuilder(null)).toBe(false);
+  });
+});

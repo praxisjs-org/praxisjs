@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 import { queue, QueueClearedError } from "../queue";
 
@@ -193,5 +193,59 @@ describe("queue — with signal", () => {
     resolveFirst();
     await Promise.all([p0.catch(() => undefined), p1.catch(() => undefined), p2.catch(() => undefined)]);
     expect(signals[0]?.aborted).toBe(true);
+  });
+});
+
+describe("queue — scheduling", () => {
+  it("drains a long backlog in order, keeping pending accurate", async () => {
+    const order: number[] = [];
+    const pendings: number[] = [];
+    const q = queue(async (x: unknown) => { pendings.push(q.pending()); order.push(x as number); });
+    await Promise.all(Array.from({ length: 50 }, (_, i) => q(i)));
+    expect(order).toEqual(Array.from({ length: 50 }, (_, i) => i));
+    // The first call starts synchronously, before the rest are enqueued.
+    expect(pendings[0]).toBe(0);
+    expect(pendings[1]).toBe(48);
+    expect(pendings[49]).toBe(0);
+    expect(q.loading()).toBe(false);
+  });
+
+  it("keeps working for calls enqueued while the backlog is draining", async () => {
+    const order: number[] = [];
+    const q = queue(async (x: unknown) => {
+      order.push(x as number);
+      await Promise.resolve();
+      if (x === 0) void q(2);
+    });
+    await Promise.all([q(0), q(1)]);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(order).toEqual([0, 1, 2]);
+  });
+
+  it("does not create AbortControllers when fn takes no signal", async () => {
+    const spy = vi.spyOn(globalThis, "AbortController");
+    const q = queue(async (x: unknown) => x);
+    await Promise.all([q(1), q(2)]);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("an AbortError from a call without a signal, thrown after clear(), rejects as cleared", async () => {
+    let fail!: () => void;
+    const q = queue(() => new Promise((_, reject) => {
+      fail = () => { reject(Object.assign(new Error("Aborted"), { name: "AbortError" })); };
+    }));
+    const p = q();
+    await Promise.resolve();
+    q.clear();
+    fail();
+    await expect(p).rejects.toBeInstanceOf(QueueClearedError);
+    expect(q.error()).toBeNull();
+  });
+
+  it("clear() when idle only resets pending", () => {
+    const q = queue(async (x: unknown) => x);
+    expect(() => { q.clear(); }).not.toThrow();
+    expect(q.pending()).toBe(0);
   });
 });
