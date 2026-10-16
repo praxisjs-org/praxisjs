@@ -1,5 +1,13 @@
 # create-praxisjs
 
+## 1.2.1
+
+### Patch Changes
+
+- 05518dc: Depend on other `@praxisjs/*` packages through caret ranges (`^2.3.0`) instead of exact versions (`2.3.0`), and accept any `@praxisjs/css` 0.3.x as the peer of `@praxisjs/vite-plugin`. Exact versions made npm install a second copy of a package as soon as two releases disagreed, and turned upgrades into peer conflicts that npm could not resolve (`ERESOLVE`, or a crash in its peer resolution).
+- Updated dependencies [fe7aa9b]
+  - praxisjs@1.2.1
+
 ## 1.2.0
 
 ### Minor Changes
