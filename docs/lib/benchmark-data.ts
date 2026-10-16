@@ -65,8 +65,7 @@ export interface BenchmarkRun {
 
 export const benchmarkRepo: { name: string; url?: string; upstream: string } = {
   name: "praxisjs-benchmark",
-  // Set once the clone with the PraxisJS entry is published.
-  url: undefined,
+  url: "https://github.com/praxisjs-org/praxisjs-benchmark",
   upstream: "https://github.com/krausest/js-framework-benchmark",
 };
 
