@@ -127,10 +127,14 @@ async function plan(root: string, candidates: Candidate[]): Promise<Plan> {
     versions.set(name, entry);
     declared.push([candidate, entry]);
   }
-  // Peer checks look at what is really installed, which a caret range may put above its base.
+  // Peer checks look at what is really installed, which a caret range may put above its base. A
+  // copy outside a declared range is left over from an upgrade whose install failed, and the next
+  // install replaces it, so it says nothing about the version the project gets.
   for (const entry of versions.values()) {
     const installed = installedPackage(root, entry.name)?.version;
-    if (installed !== undefined) entry.current = installed;
+    if (installed === undefined) continue;
+    const ranges = candidates.filter((c) => c.name === entry.name).map((c) => c.range);
+    if (ranges.every((range) => satisfies(installed, range) !== false)) entry.current = installed;
   }
 
   const held = new Map<string, string>();
@@ -271,6 +275,8 @@ function releaseLockedEcosystem(root: string): void {
     delete packages[key];
     fs.rmSync(path.join(root, key), { recursive: true, force: true });
   }
+  // npm's hidden lockfile still lists the removed folders, and npm can trust it over node_modules.
+  fs.rmSync(path.join(root, "node_modules", ".package-lock.json"), { force: true });
   fs.writeFileSync(lockPath, JSON.stringify(lock, null, 2) + "\n");
 }
 

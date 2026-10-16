@@ -467,6 +467,34 @@ describe("upgrade — ecosystem packages", () => {
     expect(noteBody("Already incompatible")).toBeUndefined();
     expect(mockSpinnerStop).toHaveBeenCalledWith("Already up to date.");
   });
+  it("ignores an installed copy outside its declared range, left over from an install that failed", async () => {
+    mockFiles({
+      "/project/package.json": {
+        dependencies: { "@morphos/core": "^0.1.6", "@morphos/inputs": "^1.1.1", "@morphos/layout": "^1.2.1" },
+      },
+      "/project/node_modules/@morphos/core/package.json": { version: "0.1.3" },
+      "/project/node_modules/@morphos/inputs/package.json": { version: "1.0.3" },
+    });
+    mockRegistry(
+      {
+        "@morphos/core": "0.1.6",
+        "@morphos/inputs": { version: "1.1.2", peerDependencies: { "@morphos/core": "^0.1.6" } },
+        "@morphos/layout": { version: "1.2.2", peerDependencies: { "@morphos/core": "^0.1.6" } },
+      },
+      { "@morphos/layout@1.2.1": { version: "1.2.1", peerDependencies: { "@morphos/core": "0.1.6" } } },
+    );
+
+    await upgrade();
+
+    expect(writtenManifest().dependencies).toEqual({
+      "@morphos/core": "^0.1.6",
+      "@morphos/inputs": "^1.1.2",
+      "@morphos/layout": "^1.2.2",
+    });
+    expect(noteBody("Morphos")).toBe("@morphos/inputs: ^1.1.1 → ^1.1.2\n@morphos/layout: ^1.2.1 → ^1.2.2");
+    expect(noteBody("Already incompatible")).toBeUndefined();
+  });
+
   it("checks peers against the highest version a package is declared at", async () => {
     mockFiles({
       "/project/package.json": {
@@ -617,6 +645,7 @@ describe("upgrade — installing over an existing lockfile", () => {
       "/project/node_modules/@morphos/inputs",
       "/project/node_modules/@morphos/inputs/node_modules/@praxisjs/jsx",
       "/project/node_modules/kosmesis",
+      "/project/node_modules/.package-lock.json",
     ]);
     expect(mockWriteFileSync.mock.calls[0][0]).toBe("/project/package.json");
     expect(mockExecFileSync).toHaveBeenCalledWith("npm", ["install"], expect.objectContaining({ cwd: "/project" }));
