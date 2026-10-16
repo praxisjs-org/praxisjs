@@ -447,8 +447,9 @@ describe("transformTemplates — HTML templates", () => {
     expect(markup('<p data-x={"\\r&"} />')).toBe('"<p data-x=\\"&#13;&amp;\\">"');
     expect(markup("<div>{() => a}<span>s</span>{() => b}</div>")).toBe('"<div><!----><span>s</span><!---->"');
     expect(markup('<label htmlFor="i" className="c">L</label>')).toBe('"<label for=i class=c>L"');
-    expect(markup("<div tabindex={0} data-n={1_000} id={1e21} data-f={false} data-z={null} hidden={true} aria-x={true}>x</div>"))
-      .toBe('"<div tabindex=0 data-n=1000 id=1e+21 hidden aria-x>x"');
+    expect(markup("<div tabindex={0} data-n={1_000} id={1e21} data-f={false} data-z={null} hidden={true} data-x={true}>x</div>"))
+      .toBe('"<div tabindex=0 data-n=1000 id=1e+21 hidden data-x>x"');
+    expect(markup("<div aria-x={true} aria-y={false} aria-z={null}>x</div>")).toBe('"<div aria-x=true aria-y=false>x"');
   });
 
   it("renders the same DOM as jsx()", () => {

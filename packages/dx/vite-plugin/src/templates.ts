@@ -400,6 +400,8 @@ function attributeHtml(key: string, code: string): string | null {
   const name = markupName(key);
   const dashed = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/.test(name);
   if (!dashed && !STRING_ATTRS.has(name) && !BOOLEAN_ATTRS.has(name)) return null;
+  // As the runtime writes them: an ARIA state is "true" or "false", never an empty attribute.
+  if (name.startsWith("aria-") && (code === "true" || code === "false")) return attributeCode(name, code);
   if (code === "true") return dashed || BOOLEAN_ATTRS.has(name) ? name : null;
   if (code === "false" || code === "null") return dashed || BOOLEAN_ATTRS.has(name) ? "" : null;
   if (BOOLEAN_ATTRS.has(name)) return null;

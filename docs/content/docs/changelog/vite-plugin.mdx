@@ -6,6 +6,10 @@ icon: Hammer
 
 # @praxisjs/vite-plugin
 
+## 4.2.1
+
+Compiled templates write a static boolean `aria-*` attribute as `"true"` or `"false"`, matching `@praxisjs/runtime` 0.8.1 (it used to be an empty attribute, or left out for `false`).
+
 ## 4.2.0
 
 **PraxisJS libraries can be compiled like the app's own code.** A component library built with `tsc` (`@morphos/*`, for one) used to get none of the plugin's work: its decorated fields were defined and then replaced by their decorator, leaving its instances in V8's dictionary mode, and its elements were built by `jsx()`. A library now opts in with `"praxisjs": { "optimize": true }` in its `package.json`: the decorated fields of its compiled files are claimed as in the app's own code. With `"rootDir"` and `"outDir"` as well, and its sources shipped, imports of its compiled files load its sources instead, which get compiled templates and keyed lists too. The new `libraries` option opts packages in or out by name (`{ "@morphos/*": { rootDir: "src", outDir: "dist" } }`), or turns the feature off (`false`). In the dev server the same transforms run inside Vite's dependency optimizer, so libraries stay pre-bundled, and the optimizer's cache follows the options. Libraries that opt in are added to `ssr.noExternal`. Packages that don't opt in are compiled exactly as before. With five `@morphos/inputs` components, mounting took 16 to 37% less time from the compiled files and 23 to 44% less from the sources. See [Libraries](/docs/tooling/vite-plugin#libraries).

@@ -188,6 +188,20 @@ Reactive:
 
 ---
 
+## Attributes
+
+Strings and numbers are written as they are, and `null` or `undefined` removes the attribute. Booleans follow what the attribute means:
+
+- **HTML boolean attributes** (`disabled`, `hidden`, `required`…) are present for `true` and removed for `false`.
+- **ARIA states** (`aria-selected`, `aria-expanded`, `aria-checked`…) are written as the strings `"true"` and `"false"`, which is what assistive technology reads. `aria-selected={this.isActive}` needs no conversion.
+- **Other attributes** such as `data-*` are present (empty) for `true` and removed for `false`.
+
+```tsx
+<li role="option" aria-selected={() => this.isSelected(item.id)} data-active={() => this.active === item.id}>
+  {item.label}
+</li>
+```
+
 ## Fragments
 
 Render multiple elements without a wrapper node:

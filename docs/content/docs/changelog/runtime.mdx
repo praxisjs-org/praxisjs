@@ -6,6 +6,10 @@ icon: Boxes
 
 # @praxisjs/runtime
 
+## 0.8.1
+
+**Bug fix:** boolean values of `aria-*` attributes are written as `"true"` and `"false"`. `aria-selected={true}` used to render an empty attribute and `false` removed it, which assistive technology reads as an unset state. `data-*` and HTML boolean attributes (`disabled`, `hidden`…) are unchanged. See [Attributes](/docs/essentials/jsx#attributes).
+
 ## 0.8.0
 
 **Breaking: hydration is opt-in, so apps that don't prerender leave it out.** `render()` used to carry the reconciliation code and a recording branch in every render path, whether or not the page was prerendered. It now hydrates only after the new `enableHydration()` has run, and an app that never calls it leaves that code out of its bundle (about 1.4 kB of minified JavaScript). `ssgPlugin()` from `@praxisjs/ssg` calls it at the start of the client bundle, so apps built with it hydrate as before with no change; a page prerendered another way calls `enableHydration()` once before `render()`. Without it, a container carrying the hydration marker is cleared and mounted fresh. See [Enabling hydration](/docs/tooling/ssg#enabling-hydration).

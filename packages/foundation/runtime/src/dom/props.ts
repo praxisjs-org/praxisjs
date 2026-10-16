@@ -42,7 +42,11 @@ function applyStyle(el: Element, value: unknown): void {
 }
 
 function applyAttr(el: Element, key: string, value: unknown): void {
-  if (value === false || value === null || value === undefined) {
+  if (typeof value === "boolean" && key.startsWith("aria-")) {
+    // ARIA states are the strings "true" and "false", not HTML boolean attributes: an empty or
+    // missing aria-selected/aria-expanded reads as unset to assistive technology.
+    el.setAttribute(key, value ? "true" : "false");
+  } else if (value === false || value === null || value === undefined) {
     el.removeAttribute(key);
   } else if (value === true) {
     el.setAttribute(key, "");

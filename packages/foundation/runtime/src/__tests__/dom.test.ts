@@ -172,8 +172,26 @@ describe("applyProp", () => {
   it("sets boolean true as empty string for non-VALUE_PROPS attributes (applyAttr path)", () => {
     const el = document.createElement("div");
     const scope = new Scope();
+    applyProp(el, "data-open", true, scope);
+    expect(el.getAttribute("data-open")).toBe("");
+    applyProp(el, "data-open", false, scope);
+    expect(el.hasAttribute("data-open")).toBe(false);
+  });
+
+  it("writes boolean ARIA states as \"true\" and \"false\", and removes them only for null or undefined", () => {
+    const el = document.createElement("div");
+    const scope = new Scope();
     applyProp(el, "aria-expanded", true, scope);
-    expect(el.getAttribute("aria-expanded")).toBe("");
+    expect(el.getAttribute("aria-expanded")).toBe("true");
+    applyProp(el, "aria-expanded", false, scope);
+    expect(el.getAttribute("aria-expanded")).toBe("false");
+    applyProp(el, "aria-expanded", null, scope);
+    expect(el.hasAttribute("aria-expanded")).toBe(false);
+    const selected = signal(false);
+    applyProp(el, "aria-selected", () => selected(), scope);
+    expect(el.getAttribute("aria-selected")).toBe("false");
+    selected.set(true);
+    expect(el.getAttribute("aria-selected")).toBe("true");
   });
 
   it("removes style attribute when value is undefined", () => {
