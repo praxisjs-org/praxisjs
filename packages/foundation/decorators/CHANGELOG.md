@@ -1,5 +1,38 @@
 # @praxisjs/decorators
 
+## 2.0.0
+
+### Major Changes
+
+- 75115a9: Remove the `accessor`-based APIs: `createAccessorDecorator` (with `AccessorBehavior` and `AccessorBinding`) and the `@Computed({ get, set })` form declared on an `accessor` field. Use `createFieldDecorator` with `setup` on a plain field, and a `@Computed()` getter with a `set` accessor next to it. See the migration notes in "Creating Decorators".
+
+  Add a shared `setup` form to `createFieldDecorator`, `createMethodDecorator`, `createGetterDecorator` and `createWritableGetterDecorator`: created once per decorated member, shared by every instance, with per-instance state in symbol slots and optional `init`/`onMount`/`onUnmount`. `ClassBehavior` can define `onMount(instance)`, `onUnmount(instance)` and `render(instance, originalRender)` itself, and `create` is optional. `createGetterObserverDecorator` takes `register` (per mount) and runs a cleanup returned by `observe` on unmount. Every builder takes a `label`, checks the member kind with a clear `TypeError`, and has typed `Host`/`Value` parameters.
+
+  The per-instance forms are faster: `createMethodDecorator({ wrap })` and `createWritableGetterDecorator({ bind })` call through one replacement on the class instead of defining a property on every instance (detached `wrap` methods are now bound and stack under built-in method decorators), and `@Computed()` installs its getter on the class. Fixes `@Computed()` with a `set` accessor declared next to the getter, which threw on assignment.
+
+### Minor Changes
+
+- 75115a9: Decorated fields are defined by their innermost decorator. With `@praxisjs/vite-plugin`, `@State()`, `@Prop()`, every built-in field decorator and `createFieldDecorator` bindings install their property directly with the field's initial value instead of replacing a plain value, which kept every instance in V8's slow dictionary mode. New `addClaimableInitializer(context, init)` export for field decorators written against the TC39 API.
+- 75115a9: Field decorators throw a `TypeError` when the class is defined if they decorate an `accessor`, naming the member to fix. Covers `@State()`, `@Prop()`, every built-in field decorator and `createFieldDecorator` bindings. New `assertFieldContext(context, label?)` export for field decorators written against the TC39 API directly.
+- 75115a9: Cheaper decorators per instance and per call. Method decorators (`@Bind`, `@Once`, `@Throttle`, `@Debounce`, `@Retry`, `@Log`, `@Memo`, `@Emit`, `@Until`) replace the method once on the class and bind it lazily on first read, field decorators share one accessor pair per field with per-instance state in symbol slots, lifecycle hooks chain without bound functions, and slots, `@Persisted` and `@Synced` no longer read `WeakMap`s. Fixes `@Until` on `@State` fields, a leaked registration when `onMount()` runs twice, stacked method decorators dropping all but one, and method decorators on private methods doing nothing.
+- 75115a9: Rendering and reactivity performance overhaul. `@praxisjs/core` has a new push-pull reactive graph (linked dependencies reused across runs, version-checked computeds, glitch-free effects) and keeps component internals on the instance. `@praxisjs/decorators` shares one accessor pair per `@State`/`@Prop` field, creates `@Computed` lazily, and `@Component` no longer wraps the class. `@praxisjs/runtime` adds the compiled-template helpers, a shared event dispatcher, leaner scopes and reactive children, skipped no-op prop writes, cheaper component mounting and a detached fill for large `For` renders, and fixes a static `<select>` value being lost. `@praxisjs/vite-plugin` compiles JSX trees of host elements into templates cloned per render (`templates` option, on by default).
+- 75115a9: Add a keyed selection primitive. `selector(source, equals?)` in `@praxisjs/core/internal` and the `@Selector(field, { equals })` field decorator expose `isSelected(key)`, whose subscribers are grouped by key: a change to the source re-runs only the effects that read the previous or the next key, instead of every row comparing against it. Key buckets and the source subscription are released when their effects are disposed.
+
+### Patch Changes
+
+- 75115a9: Edge-case fixes in the new fast paths. `@praxisjs/vite-plugin` keeps a claimed field's initializer in the field's own scope instead of moving it into the constructor, where a constructor parameter or local of the same name shadowed what it read (and `new.target` fields are claimed too). `selector()` from `@praxisjs/core` compares against the current source value when read outside an effect, also inside a batch or an event handler before its subscribers are notified. `@praxisjs/runtime` keeps updating a hydrated element through a reactive child that fills it alone, rebuilds compiled templates when `render()` runs with another global document (a new SSG window), and always writes `open`, `selectedIndex`, media and scroll props from reactive bindings so a re-run restores what the user changed. Compiled templates keep the leading whitespace of JSX text (`{v} / {m}` lost its first space) and keep tabs inside a line, as the JSX transform does. Methods of `@Bind`, `@Emit` and the other built-in method decorators can be spied on with `vi.spyOn(instance, name)` before their first read again. `@praxisjs/router`'s `Link` removes its `class` attribute when it stops being active instead of leaving `class=""`.
+- 75115a9: Published packages no longer contain their tests: package builds compile `src` without `src/**/__tests__` (through a `tsconfig.build.json`), and each package's `files` leaves test sources and stale compiled tests out of the tarball. `pnpm typecheck` still type-checks the tests.
+- 75115a9: Smaller production bundles. The framework and feature packages are marked `"sideEffects": false`, so bundlers leave out the modules an app does not use (`For`/`Index` and `selector()` were kept in every bundle by their shape keepers). `@praxisjs/core`'s graph gates its observer instrumentation on a boolean that minifiers fold away when no observer is ever installed. `@praxisjs/runtime` passes `Index`'s positional update to the list view, so `For`-only apps leave it out, and builds its event prop table from camel-case names. `@praxisjs/devtools` is built one file per module and its decorators check `process.env.NODE_ENV` inline, so `@Trace`/`@Debug` in production code no longer bundle the registry and the panel. `@praxisjs/vite-plugin` serves TypeScript's decorator helpers and the claimed fields' helper from one virtual module (`virtual:praxisjs/decorators`) instead of writing them into every decorated file, and replaces the identical copies `tsc` wrote into ES module libraries.
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+  - @praxisjs/core@2.3.0
+  - @praxisjs/shared@0.3.2
+
 ## 1.7.0
 
 ### Minor Changes

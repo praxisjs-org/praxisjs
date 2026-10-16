@@ -1,5 +1,32 @@
 # @praxisjs/jsx
 
+## 0.8.0
+
+### Minor Changes
+
+- 75115a9: Add keyed list reconciliation. `For` (keyed by `by`, or by item identity) and `Index` (by position) in `@praxisjs/runtime` render each key once, keep its row while the key stays, and create, move or remove only the rows that changed, with the minimum number of moves (LIS) and `moveBefore()` where available. They support fallbacks, Promise-based enter/leave transitions, hydration of prerendered rows, and isolate row render errors. `@praxisjs/jsx` types components that set `static __jsxRawProps = true` by their exact constructor props, so `For` infers its item type. `@praxisjs/vite-plugin` rewrites keyed `{() => list.map((item) => <Row key={…} />)}` children into `For` and warns about keyed `.map()` calls it cannot rewrite (`keyedLists` option).
+
+### Patch Changes
+
+- 75115a9: Fix fragments dropping function children: `<>{() => x}</>` now mounts a reactive region, like element children. `@praxisjs/runtime` exports `mountChildren`, which `@praxisjs/jsx` uses to mount fragment children.
+- 75115a9: Published packages no longer contain their tests: package builds compile `src` without `src/**/__tests__` (through a `tsconfig.build.json`), and each package's `files` leaves test sources and stale compiled tests out of the tarball. `pnpm typecheck` still type-checks the tests.
+- 75115a9: Smaller production bundles. The framework and feature packages are marked `"sideEffects": false`, so bundlers leave out the modules an app does not use (`For`/`Index` and `selector()` were kept in every bundle by their shape keepers). `@praxisjs/core`'s graph gates its observer instrumentation on a boolean that minifiers fold away when no observer is ever installed. `@praxisjs/runtime` passes `Index`'s positional update to the list view, so `For`-only apps leave it out, and builds its event prop table from camel-case names. `@praxisjs/devtools` is built one file per module and its decorators check `process.env.NODE_ENV` inline, so `@Trace`/`@Debug` in production code no longer bundle the registry and the panel. `@praxisjs/vite-plugin` serves TypeScript's decorator helpers and the claimed fields' helper from one virtual module (`virtual:praxisjs/decorators`) instead of writing them into every decorated file, and replaces the identical copies `tsc` wrote into ES module libraries.
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+- Updated dependencies [75115a9]
+  - @praxisjs/runtime@0.8.0
+  - @praxisjs/core@2.3.0
+  - @praxisjs/shared@0.3.2
+
 ## 0.7.7
 
 ### Patch Changes
