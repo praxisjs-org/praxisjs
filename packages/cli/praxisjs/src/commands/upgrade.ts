@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { cwd, execPath, exit } from "node:process";
+import { cwd, execPath, exit, platform } from "node:process";
 
 import { intro, note, outro, spinner } from "@clack/prompts";
 import pc from "picocolors";
@@ -38,6 +38,9 @@ const EXEC_COMMANDS: Record<PackageManager, string> = {
   bun: "bunx",
   npm: "npx",
 };
+
+// A package-lock.json entry of an ecosystem package, at any depth.
+const ECOSYSTEM_LOCK_PATH = /(?:^|\/)node_modules\/(?:@praxisjs\/[^/]+|@morphos\/[^/]+|kosmesis)$/;
 
 interface Candidate {
   field: DependencyField;
@@ -242,6 +245,76 @@ function reportKosmesisComponents(root: string, pm: PackageManager): void {
   );
 }
 
+/**
+ * npm resolves an install against package-lock.json, whose entries for the upgraded packages still
+ * hold the old releases and the exact versions they require of each other, so the new peer ranges
+ * can't be satisfied (ERESOLVE, or a crash in npm's peer resolution). Dropping only the ecosystem's
+ * entries, and their folders, lets npm resolve them afresh while every other dependency keeps its
+ * locked version.
+ */
+function releaseLockedEcosystem(root: string): void {
+  const lockPath = path.join(root, "package-lock.json");
+  if (!fs.existsSync(lockPath)) return;
+  let lock: { packages?: Record<string, unknown> };
+  try {
+    lock = JSON.parse(fs.readFileSync(lockPath, "utf-8")) as typeof lock;
+  } catch {
+    return;
+  }
+  // A lockfile without `packages` (v1) is rewritten by npm itself.
+  const packages = lock.packages;
+  if (packages === undefined) return;
+  const stale = Object.keys(packages).filter((key) => ECOSYSTEM_LOCK_PATH.test(key));
+  if (stale.length === 0) return;
+  for (const key of stale) {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete packages[key];
+    fs.rmSync(path.join(root, key), { recursive: true, force: true });
+  }
+  fs.writeFileSync(lockPath, JSON.stringify(lock, null, 2) + "\n");
+}
+
+/**
+ * Ecosystem packages whose installed copy is missing or outside the range package.json declares:
+ * an earlier upgrade rewrote package.json but its install failed. A project that was never
+ * installed has nothing to repair.
+ */
+function staleInstalls(root: string, candidates: Candidate[]): string[] {
+  if (!fs.existsSync(path.join(root, "node_modules"))) return [];
+  return candidates
+    .filter(({ name, range }) => {
+      const installed = installedPackage(root, name)?.version;
+      return installed === undefined || satisfies(installed, range) === false;
+    })
+    .map(({ name }) => name);
+}
+
+/** Runs the package manager's install, freeing npm from the ecosystem's stale lockfile entries first. */
+function install(root: string, pm: PackageManager): boolean {
+  const [cmd, args] = INSTALL_COMMANDS[pm];
+  if (pm === "npm") releaseLockedEcosystem(root);
+  const installSpinner = spinner();
+  installSpinner.start(`Running ${cmd} install...`);
+  try {
+    // On Windows the package managers are .cmd scripts, which only run through a shell.
+    execFileSync(cmd, args, { cwd: root, stdio: "pipe", shell: platform === "win32" });
+    installSpinner.stop("Dependencies installed.");
+    return true;
+  } catch (error) {
+    installSpinner.stop(`Install failed — run \`${[cmd, ...args].join(" ")}\` manually.`);
+    const output = installOutput(error);
+    if (output !== "") note(output, `${cmd} output`);
+    return false;
+  }
+}
+
+/** The last lines a failed install printed, for the error note. */
+function installOutput(error: unknown): string {
+  const { stderr, stdout } = (error ?? {}) as { stderr?: Buffer | string | null; stdout?: Buffer | string | null };
+  const text = `${stdout?.toString() ?? ""}${stderr?.toString() ?? ""}`.trim();
+  return text.split(/\r?\n/).slice(-12).join("\n");
+}
+
 export async function upgrade(): Promise<void> {
   intro(
     pc.bgCyan(pc.bold(pc.black(" PraxisJS "))) +
@@ -297,20 +370,20 @@ export async function upgrade(): Promise<void> {
     note(pc.yellow(conflicts.join("\n")), "Already incompatible");
   }
 
-  if (updates.length > 0) {
-    const [cmd, args] = INSTALL_COMMANDS[pm];
-    const installSpinner = spinner();
-    installSpinner.start(`Running ${cmd} install...`);
-    try {
-      execFileSync(cmd, args, { cwd: root, stdio: "ignore" });
-      installSpinner.stop("Dependencies installed.");
-    } catch {
-      installSpinner.stop(`Install failed — run \`${[cmd, ...args].join(" ")}\` manually.`);
-    }
+  // Nothing to upgrade, but an earlier upgrade may have stopped before its install finished.
+  const repair = updates.length === 0 ? staleInstalls(root, candidates) : [];
+  if (repair.length > 0) {
+    note(
+      `${repair.join("\n")}\n\nThese don't match package.json — an earlier upgrade did not finish installing. Reinstalling.`,
+      "Installed versions out of date",
+    );
   }
+  const installed = updates.length > 0 || repair.length > 0 ? install(root, pm) : undefined;
 
   if (kosmesis) reportKosmesisComponents(root, pm);
   await offerAiSync(root);
 
-  outro(updates.length > 0 ? pc.green("Upgrade complete!") : pc.green("Nothing to upgrade."));
+  if (updates.length > 0) outro(pc.green("Upgrade complete!"));
+  else if (repair.length > 0) outro(installed === true ? pc.green("Dependencies repaired.") : pc.yellow("Dependencies still need an install."));
+  else outro(pc.green("Nothing to upgrade."));
 }

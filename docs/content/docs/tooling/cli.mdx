@@ -197,11 +197,11 @@ Only packages the project already lists are upgraded; `upgrade` never adds one. 
 
 ### Compatible versions
 
-Before writing anything, `upgrade` reads the `peerDependencies` of every version it is about to install (and of the installed version of every package it leaves alone) and checks them against the other ecosystem packages in the project. Morphos packages declare the `@praxisjs/*` ranges they work with and the exact `@morphos/core` they were built against, so this is what keeps them in step. When an upgrade would break a peer range, it is held back instead of producing a broken install:
+Before writing anything, `upgrade` reads the `peerDependencies` of every version it is about to install (and of the installed version of every package it leaves alone) and checks them against the other ecosystem packages in the project. Morphos packages declare the `@praxisjs/*` and `@morphos/core` ranges they work with, so this is what keeps them in step. When an upgrade would break a peer range, it is held back instead of producing a broken install:
 
 - If the new release of a package needs a peer the project won't have (a Morphos release that needs a newer `@praxisjs/core` than the latest one), that package stays on its current version.
 - If a package that isn't moving doesn't accept the new release of one of its peers (a Morphos package that doesn't support a new `@praxisjs/core` major yet), the peer stays on its current version.
-- Holding back one `@praxisjs/*` package holds back every `@praxisjs/*` package, because they depend on each other at exact versions and splitting them installs a second copy.
+- Holding back one `@praxisjs/*` package holds back every `@praxisjs/*` package: releases before PraxisJS 0.8.2 depend on each other at exact versions, and splitting them installs a second copy.
 
 Held back packages are listed in yellow with the reason, under their ecosystem. Peer conflicts the project already had before the upgrade, which no upgrade fixes, are listed under **Already incompatible** without changing anything. Run `upgrade` again once a compatible release is out.
 
@@ -218,7 +218,17 @@ Held back packages are listed in yellow with the reason, under their ecosystem. 
 
 ### Install
 
-If anything changed, `upgrade` writes `package.json` and runs the detected package manager's install command — `pnpm install`, `yarn`, `bun install`, or `npm install`, based on the lockfile present in the project root (`pnpm-lock.yaml`, `yarn.lock`, `bun.lock` or `bun.lockb`). A `package.json` that isn't valid JSON is reported and `upgrade` exits with code `1` without changing anything. If the install itself fails, `upgrade` reports it but doesn't crash; re-run the printed command manually.
+If anything changed, `upgrade` writes `package.json` and runs the detected package manager's install command — `pnpm install`, `yarn`, `bun install`, or `npm install`, based on the lockfile present in the project root (`pnpm-lock.yaml`, `yarn.lock`, `bun.lock` or `bun.lockb`). A `package.json` that isn't valid JSON is reported and `upgrade` exits with code `1` without changing anything.
+
+With npm it first removes the `@praxisjs/*`, `@morphos/*` and `kosmesis` entries from `package-lock.json`, and their folders from `node_modules`: the old releases recorded there require exact versions of each other, which made `npm install` fail with `ERESOLVE` (or crash in its peer resolution) after an upgrade. Every other dependency keeps its locked version.
+
+When `package.json` is already up to date but the versions installed in `node_modules` don't match it, an earlier upgrade did not finish installing. `upgrade` lists those packages under **Installed versions out of date** and runs the install again, ending with **Dependencies repaired.**
+
+If the install fails, `upgrade` reports it without crashing, shows the end of the package manager's output and the command to run manually.
+
+<Callout type="info" title="A project an older upgrade left broken">
+  Run `npx praxisjs@latest upgrade` again: it finds the packages that don't match `package.json`, clears their stale lockfile entries and installs. Deleting `node_modules` and `package-lock.json` and running `npm install` works too, but it also unlocks every other dependency.
+</Callout>
 
 ### Kosmesis components
 

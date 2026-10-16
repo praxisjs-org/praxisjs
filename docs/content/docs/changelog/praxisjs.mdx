@@ -6,6 +6,12 @@ icon: Wrench
 
 # praxisjs
 
+## 1.2.1
+
+**`praxisjs upgrade` installs reliably.** With npm it first drops the `@praxisjs/*`, `@morphos/*` and `kosmesis` entries (and their folders) from `package-lock.json`: their old releases pinned exact versions of each other, so `npm install` failed with `ERESOLVE` or crashed in its peer resolution and left the project unable to run. Every other dependency keeps its locked version. On Windows the package manager now runs through a shell (it is a `.cmd` script, so the install failed every time), and a failed install shows the end of the package manager's output.
+
+**`praxisjs upgrade` repairs an upgrade that did not finish.** When `package.json` is already up to date but the versions in `node_modules` don't match it, `upgrade` lists them under "Installed versions out of date" and installs again, instead of reporting nothing to upgrade. Projects an older upgrade left broken are fixed by running `npx praxisjs@latest upgrade` again.
+
 ## 1.2.0
 
 **New `praxisjs add kosmesis`.** Sets up [Kosmesis](https://kosmesis.praxisjs.org) UI components in a project you already have, Tauri apps included. It checks that the project uses PraxisJS, reports what it found (template, Tauri, package manager, AI integration), installs the dependencies when `node_modules` is missing, runs `kosmesis init` through your package manager (`kosmesis@^0.6.0`) and adds the components you ask for. In a terminal without flags, `kosmesis init` asks its own questions; `--style-system`, `--components`, `--yes` and the `kosmesis init` flags run it without prompts. When the setup fails, it prints the commands to finish by hand and exits with code `1`. See [add kosmesis](/docs/tooling/cli#add-kosmesis).

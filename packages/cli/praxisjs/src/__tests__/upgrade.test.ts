@@ -12,6 +12,8 @@ const mockWriteFileSync = vi.fn();
 const mockExecFileSync = vi.fn();
 const mockFetch = vi.fn();
 const mockSpinnerStop = vi.fn();
+const mockRmSync = vi.fn();
+const runtime = vi.hoisted(() => ({ platform: "darwin" }));
 
 vi.mock("@clack/prompts", () => ({
   intro: mockIntro,
@@ -26,12 +28,16 @@ vi.mock("node:process", () => ({
   cwd: () => "/project",
   execPath: "/usr/bin/node",
   exit: mockExit,
+  get platform() {
+    return runtime.platform;
+  },
 }));
 vi.mock("node:fs", () => ({
   default: {
     existsSync: mockExistsSync,
     readFileSync: mockReadFileSync,
     writeFileSync: mockWriteFileSync,
+    rmSync: mockRmSync,
   },
 }));
 vi.mock("node:child_process", () => ({
@@ -92,6 +98,8 @@ beforeEach(() => {
   mockExecFileSync.mockReset();
   mockFetch.mockReset();
   mockSpinnerStop.mockClear();
+  mockRmSync.mockReset();
+  runtime.platform = "darwin";
 });
 
 afterEach(() => {
@@ -124,7 +132,7 @@ describe("upgrade — malformed package.json", () => {
 
 describe("upgrade — already up to date", () => {
   it("does nothing when no @praxisjs/* dependency has a newer version", async () => {
-    mockExistsSync.mockReturnValue(true);
+    mockExistsSync.mockImplementation((p: unknown) => String(p) === "/project/package.json");
     mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { "@praxisjs/core": "^2.0.0" } }));
     mockRegistry({ "@praxisjs/core": "2.0.0" });
 
@@ -135,7 +143,7 @@ describe("upgrade — already up to date", () => {
   });
 
   it("skips a dependency when the registry lookup fails", async () => {
-    mockExistsSync.mockReturnValue(true);
+    mockExistsSync.mockImplementation((p: unknown) => String(p) === "/project/package.json");
     mockReadFileSync.mockReturnValue(JSON.stringify({ dependencies: { "@praxisjs/core": "^1.0.0" } }));
     mockFetch.mockRejectedValue(new Error("network down"));
 
@@ -574,5 +582,158 @@ describe("upgrade — AI setup", () => {
     await upgrade();
 
     expect(mockOfferAiSync).toHaveBeenCalledWith("/project");
+  });
+});
+
+describe("upgrade — installing over an existing lockfile", () => {
+  const manifest = { dependencies: { "@praxisjs/core": "^1.0.0", "left-pad": "^1.3.0" } };
+
+  function npmProject(lock: unknown): void {
+    mockFiles({ "/project/package.json": manifest, "/project/package-lock.json": lock });
+    mockRegistry({ "@praxisjs/core": "2.0.0" });
+  }
+
+  it("drops the ecosystem's package-lock entries and folders before npm install, keeping the rest", async () => {
+    npmProject({
+      lockfileVersion: 3,
+      packages: {
+        "": { name: "app" },
+        "node_modules/@praxisjs/core": { version: "1.0.0" },
+        "node_modules/@morphos/inputs": { version: "1.0.3" },
+        "node_modules/@morphos/inputs/node_modules/@praxisjs/jsx": { version: "0.7.7" },
+        "node_modules/kosmesis": { version: "0.4.0" },
+        "node_modules/left-pad": { version: "1.3.0" },
+        "node_modules/@praxisjs-like/other": { version: "1.0.0" },
+      },
+    });
+
+    await upgrade();
+
+    const lockWrite = mockWriteFileSync.mock.calls.find(([file]) => file === "/project/package-lock.json");
+    const lock = JSON.parse(lockWrite?.[1] as string) as { packages: Record<string, unknown> };
+    expect(Object.keys(lock.packages)).toEqual(["", "node_modules/left-pad", "node_modules/@praxisjs-like/other"]);
+    expect(mockRmSync.mock.calls.map(([dir]) => String(dir))).toEqual([
+      "/project/node_modules/@praxisjs/core",
+      "/project/node_modules/@morphos/inputs",
+      "/project/node_modules/@morphos/inputs/node_modules/@praxisjs/jsx",
+      "/project/node_modules/kosmesis",
+    ]);
+    expect(mockWriteFileSync.mock.calls[0][0]).toBe("/project/package.json");
+    expect(mockExecFileSync).toHaveBeenCalledWith("npm", ["install"], expect.objectContaining({ cwd: "/project" }));
+  });
+
+  it.each([
+    ["has no ecosystem entries", { lockfileVersion: 3, packages: { "": {}, "node_modules/left-pad": {} } }],
+    ["is a v1 lockfile without packages", { lockfileVersion: 1, dependencies: {} }],
+    ["is not valid JSON", "{ not json"],
+  ])("leaves package-lock.json alone when it %s", async (_label, lock) => {
+    npmProject(lock);
+
+    await upgrade();
+
+    expect(mockWriteFileSync.mock.calls.map(([file]) => file)).toEqual(["/project/package.json"]);
+    expect(mockRmSync).not.toHaveBeenCalled();
+    expect(mockExecFileSync).toHaveBeenCalled();
+  });
+
+  it("does not touch package-lock.json for other package managers", async () => {
+    mockFiles({
+      "/project/package.json": manifest,
+      "/project/pnpm-lock.yaml": "",
+      "/project/package-lock.json": { packages: { "node_modules/@praxisjs/core": {} } },
+    });
+    mockRegistry({ "@praxisjs/core": "2.0.0" });
+
+    await upgrade();
+
+    expect(mockRmSync).not.toHaveBeenCalled();
+    expect(mockExecFileSync).toHaveBeenCalledWith("pnpm", ["install"], expect.anything());
+  });
+
+  it("runs the package manager through a shell on Windows, where it is a .cmd script", async () => {
+    runtime.platform = "win32";
+    mockFiles({ "/project/package.json": manifest });
+    mockRegistry({ "@praxisjs/core": "2.0.0" });
+
+    await upgrade();
+
+    expect(mockExecFileSync).toHaveBeenCalledWith("npm", ["install"], expect.objectContaining({ shell: true }));
+  });
+
+  it("shows the end of the package manager's output when the install fails", async () => {
+    mockFiles({ "/project/package.json": manifest });
+    mockRegistry({ "@praxisjs/core": "2.0.0" });
+    const lines = Array.from({ length: 15 }, (_, i) => `line ${String(i + 1)}`);
+    mockExecFileSync.mockImplementation(() => {
+      throw Object.assign(new Error("failed"), { stdout: Buffer.from("added 0\n"), stderr: lines.join("\n") });
+    });
+
+    await upgrade();
+
+    expect(mockNote).toHaveBeenCalledWith(lines.slice(-12).join("\n"), "npm output");
+  });
+
+  it("shows no output note when the failed install printed nothing", async () => {
+    mockFiles({ "/project/package.json": manifest });
+    mockRegistry({ "@praxisjs/core": "2.0.0" });
+    mockExecFileSync.mockImplementation(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw undefined;
+    });
+
+    await upgrade();
+
+    expect(mockSpinnerStop).toHaveBeenCalledWith("Install failed — run `npm install` manually.");
+    expect(mockNote.mock.calls.some(([, title]) => title === "npm output")).toBe(false);
+  });
+});
+
+describe("upgrade — repairing an upgrade whose install did not finish", () => {
+  const manifest = { dependencies: { "@praxisjs/core": "^2.3.0", "@morphos/inputs": "^1.1.1" } };
+
+  it("reinstalls when installed versions are outside the ranges package.json declares", async () => {
+    mockFiles({
+      "/project/package.json": manifest,
+      "/project/node_modules": "",
+      "/project/node_modules/@praxisjs/core/package.json": { version: "2.2.0" },
+      "/project/package-lock.json": { packages: { "node_modules/@praxisjs/core": { version: "2.2.0" } } },
+    });
+    mockRegistry({ "@praxisjs/core": "2.3.0", "@morphos/inputs": "1.1.1" });
+
+    await upgrade();
+
+    expect(mockWriteFileSync.mock.calls.map(([file]) => file)).toEqual(["/project/package-lock.json"]);
+    expect(noteBody("Installed versions out of date")).toContain("@praxisjs/core\n@morphos/inputs");
+    expect(mockExecFileSync).toHaveBeenCalledWith("npm", ["install"], expect.anything());
+    expect(mockOutro).toHaveBeenCalledWith("Dependencies repaired.");
+  });
+
+  it("says the install is still needed when the repair install fails", async () => {
+    mockFiles({ "/project/package.json": manifest, "/project/node_modules": "" });
+    mockRegistry({ "@praxisjs/core": "2.3.0", "@morphos/inputs": "1.1.1" });
+    mockExecFileSync.mockImplementation(() => {
+      throw new Error("failed");
+    });
+
+    await upgrade();
+
+    expect(mockOutro).toHaveBeenCalledWith("Dependencies still need an install.");
+  });
+
+  it("leaves a project alone when what is installed matches, or when it was never installed", async () => {
+    mockFiles({
+      "/project/package.json": manifest,
+      "/project/node_modules": "",
+      "/project/node_modules/@praxisjs/core/package.json": { version: "2.3.0" },
+      "/project/node_modules/@morphos/inputs/package.json": { version: "1.1.1" },
+    });
+    mockRegistry({ "@praxisjs/core": "2.3.0", "@morphos/inputs": "1.1.1" });
+    await upgrade();
+    expect(mockExecFileSync).not.toHaveBeenCalled();
+    expect(mockOutro).toHaveBeenCalledWith("Nothing to upgrade.");
+
+    mockFiles({ "/project/package.json": manifest });
+    await upgrade();
+    expect(mockExecFileSync).not.toHaveBeenCalled();
   });
 });
